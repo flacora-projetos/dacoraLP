@@ -31,20 +31,23 @@ export default function App() {
         SEÇÃO 1 — HERO
         -------------------------------------------
       */}
-      <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full">
+      <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full bg-dacora-dark">
         <div className="absolute inset-0 z-0">
           <img
             src="https://drive.google.com/thumbnail?id=1vCk73pPYTuKkEX4Rqe_IBS3mBjPJoCci&sz=w2000"
             alt="Executivo analisando dados"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-[70%_center] md:object-[60%_center]"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-dacora-dark/65 pointer-events-none"></div>
+          {/* General overlay */}
+          <div className="absolute inset-0 bg-dacora-dark/40 pointer-events-none"></div>
+          {/* Left side text protection mask */}
+          <div className="absolute inset-0 bg-gradient-to-r from-dacora-dark/95 via-dacora-dark/75 to-transparent w-full md:w-3/4 lg:w-2/3 pointer-events-none"></div>
         </div>
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-24">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-24 mt-12 md:mt-0">
           <motion.div
-            className="w-full lg:max-w-[55%] flex flex-col"
+            className="w-full flex flex-col"
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
@@ -57,14 +60,14 @@ export default function App() {
             
             <motion.h1 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-dacora-offwhite leading-tight mb-8"
+              className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-dacora-offwhite leading-[1.15] mb-8 tracking-tight max-w-[650px]"
             >
-              Você tem um serviço diferenciado. O tráfego pago precisa refletir isso.
+              Você tem um serviço diferenciado.<br className="hidden md:block" /> O tráfego pago precisa<br className="hidden md:block" /> refletir isso.
             </motion.h1>
             
             <motion.p 
               variants={fadeInUp}
-              className="text-lg md:text-xl text-dacora-offwhite/90 font-light mb-10 max-w-xl leading-relaxed"
+              className="text-lg md:text-xl lg:text-[1.35rem] text-dacora-offwhite/90 font-light mb-10 max-w-[580px] leading-relaxed"
             >
               Ajudamos negócios locais a atrair leads qualificados, mas o trabalho começa com um diagnóstico do seu processo comercial, não com o gerenciador.
             </motion.p>
@@ -72,7 +75,7 @@ export default function App() {
             <motion.div variants={fadeInUp}>
               <a
                 href={CONTACT_LINK}
-                className="inline-flex items-center justify-center px-8 py-4 bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-dacora-primary hover:text-dacora-offwhite border-2 border-transparent hover:border-dacora-offwhite transition-all duration-300 w-full sm:w-auto"
+                className="inline-flex items-center justify-center px-10 py-[1.125rem] bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-white hover:scale-[1.02] transition-all duration-300 w-full sm:w-auto"
               >
                 Solicitar proposta →
               </a>
@@ -127,59 +130,88 @@ export default function App() {
         SEÇÃO 3 — PROBLEMA
         -------------------------------------------
       */}
-      <section className="py-24 lg:py-32 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
-          <motion.div 
-            className="flex-1 order-2 lg:order-1"
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="relative aspect-[3/4] w-full max-w-md mx-auto lg:max-w-none overflow-hidden rounded-[8px]">
-              <img
-                src="https://drive.google.com/thumbnail?id=1UOVkGZWLMgWOfF0XXB33Bgm26a5wEz2W&sz=w1000"
-                alt="Reunião de diagnóstico"
-                className="w-full h-full object-cover"
-                style={{ filter: 'contrast(1.05)' }}
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          </motion.div>
+      <section className="lg:min-h-screen flex flex-col lg:flex-row bg-dacora-offwhite relative">
+        {/* Imagem (Faixa Editorial) */}
+        <motion.div 
+          className="w-full lg:w-[45%] h-[40vh] min-h-[300px] lg:h-auto relative"
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.8 }}
+        >
+          <img
+            src="https://drive.google.com/thumbnail?id=1UOVkGZWLMgWOfF0XXB33Bgm26a5wEz2W&sz=w1000"
+            alt="Reunião de diagnóstico"
+            className="w-full h-full object-cover object-[center_60%] lg:object-[20%_70%]"
+            style={{ filter: 'contrast(1.1) grayscale(0.2)' }}
+            referrerPolicy="no-referrer"
+          />
+          {/* Overlay esverdeado/frio subtil */}
+          <div className="absolute inset-0 bg-dacora-primary/10 mix-blend-multiply pointer-events-none"></div>
+          <div className="absolute inset-0 bg-dacora-dark/10 pointer-events-none"></div>
+        </motion.div>
 
-          <motion.div 
-            className="flex-1 order-1 lg:order-2"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={staggerContainer}
-          >
-            <motion.h2 
-              variants={fadeInUp}
-              className="text-3xl md:text-4xl lg:text-5xl font-bold text-dacora-dark mb-8"
-            >
-              O problema nem sempre está no anúncio
-            </motion.h2>
-            
-            <motion.div variants={fadeInUp} className="space-y-6 text-lg md:text-xl text-dacora-gray font-light leading-relaxed mb-12">
-              <p>
-                A maioria dos negócios locais que investe em tráfego pago encontra os gargalos antes do gerenciador: atendimento desorganizado, oferta mal posicionada, follow-up inexistente. O anúncio traz o lead. O processo comercial é o que converte.
-              </p>
-              <p>
-                Por isso a gestão começa com diagnóstico.
-              </p>
-            </motion.div>
-
+        {/* Texto */}
+        <div className="w-full lg:w-[55%] flex items-center">
+          <div className="w-full px-6 py-20 lg:px-16 xl:px-24">
             <motion.div 
-              variants={fadeInUp}
-              className="pl-6 border-l-[3px] border-dacora-primary py-2"
+              className="max-w-2xl"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-100px' }}
+              variants={staggerContainer}
             >
-              <p className="text-2xl md:text-3xl text-dacora-primary font-medium">
-                Campanha atrai. <br className="hidden md:block" />
-                <span className="font-light italic text-dacora-gray">Processo comercial converte.</span>
-              </p>
+              <motion.div variants={fadeInUp}>
+                <span className="inline-block uppercase tracking-[0.2em] text-sm font-semibold text-dacora-sage mb-6">
+                  DIAGNÓSTICO COMERCIAL
+                </span>
+              </motion.div>
+
+              <motion.h2 
+                variants={fadeInUp}
+                className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold text-dacora-dark mb-8 leading-[1.15] tracking-tight"
+              >
+                O problema nem sempre está no anúncio
+              </motion.h2>
+              
+              <motion.div variants={fadeInUp} className="text-lg md:text-xl text-dacora-gray font-light leading-relaxed">
+                <p className="mb-10">
+                  A maioria dos negócios locais que investe em tráfego pago encontra os gargalos antes do gerenciador:
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-10">
+                  {[
+                    'Atendimento desorganizado', 
+                    'Oferta mal posicionada', 
+                    'Follow-up inexistente'
+                  ].map((item, idx) => (
+                    <div key={idx} className="pt-4 border-t border-dacora-sage/30">
+                       <span className="text-dacora-dark text-base md:text-lg font-medium block leading-snug">
+                         {item}
+                       </span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mb-4">
+                  O anúncio traz o lead. O processo comercial é o que converte.
+                </p>
+                <p>
+                  Por isso a gestão começa com diagnóstico.
+                </p>
+              </motion.div>
+
+              <motion.div 
+                variants={fadeInUp}
+                className="pl-6 md:pl-8 border-l-[4px] border-dacora-primary py-3 md:py-5 mt-16"
+              >
+                <p className="text-2xl md:text-3xl lg:text-[2rem] text-dacora-primary font-medium leading-snug">
+                  Campanha atrai. <br className="hidden md:block" />
+                  <span className="font-light italic text-dacora-gray mt-1 block">Processo comercial converte.</span>
+                </p>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
