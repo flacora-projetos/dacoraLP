@@ -113,7 +113,7 @@ export default function App() {
             variants={fadeInUp}
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-16 text-center lg:text-left"
           >
-            Esse serviço é para você se:
+            Esse serviço é para você que:
           </motion.h2>
 
           <div className="space-y-8 lg:space-y-12">
