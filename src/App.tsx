@@ -4,6 +4,7 @@
  */
 
 import { motion } from 'motion/react';
+import { CheckCircle2 } from 'lucide-react';
 
 const CONTACT_LINK = 'https://wa.me/556296242626?text=Quero+melhorar+a+estrat%C3%A9gia+da+minha+empresa';
 
@@ -123,9 +124,9 @@ export default function App() {
               <motion.div 
                 key={index} 
                 variants={fadeInUp}
-                className="flex items-start gap-6 group"
+                className="flex items-start gap-5 lg:gap-6 group"
               >
-                <span className="text-dacora-sage font-light text-2xl md:text-3xl opacity-50 mt-1">—</span>
+                <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-dacora-sage opacity-80 shrink-0 mt-0.5 md:mt-0" strokeWidth={1.5} />
                 <p className="text-xl md:text-2xl font-light leading-relaxed">
                   {text}
                 </p>
@@ -208,16 +209,6 @@ export default function App() {
                 </p>
                 <p>
                   Por isso a gestão começa com diagnóstico.
-                </p>
-              </motion.div>
-
-              <motion.div 
-                variants={fadeInUp}
-                className="pl-6 md:pl-8 border-l-[4px] border-dacora-primary py-3 md:py-5 mt-16"
-              >
-                <p className="text-2xl md:text-3xl lg:text-[2rem] text-dacora-primary font-medium leading-snug">
-                  Campanha atrai. <br className="hidden md:block" />
-                  <span className="font-light italic text-dacora-gray mt-1 block">Processo comercial converte.</span>
                 </p>
               </motion.div>
             </motion.div>
