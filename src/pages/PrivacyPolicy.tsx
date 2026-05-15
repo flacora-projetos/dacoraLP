@@ -49,7 +49,7 @@ export default function PrivacyPolicy() {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="max-w-none text-dacora-gray font-light leading-relaxed">
-            <p className="mb-8">Última atualização: [INSERIR DATA]</p>
+            <p className="mb-8">Última atualização: 15 de maio de 2026</p>
 
             <p className="mb-10">
               A Dácora Performance Digital respeita a sua privacidade e se compromete a tratar os seus dados pessoais com responsabilidade, transparência e segurança.
