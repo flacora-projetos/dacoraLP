@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dacora-primary: #014029;
+  --color-dacora-medium: #02593A;
+  --color-dacora-offwhite: #F2EFEB;
+  --color-dacora-dark: #0D1F18;
+  --color-dacora-gray: #4A5E55;
+  --color-dacora-sage: #8A9E95;
+
+  --font-sans: 'Red Hat Display', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-dacora-offwhite);
+  color: var(--color-dacora-dark);
+  font-family: var(--font-sans);
+}
