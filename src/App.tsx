@@ -31,30 +31,40 @@ export default function App() {
         SEÇÃO 1 — HERO
         -------------------------------------------
       */}
-      <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-32 px-6 overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+      <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://drive.google.com/thumbnail?id=1vCk73pPYTuKkEX4Rqe_IBS3mBjPJoCci&sz=w2000"
+            alt="Executivo analisando dados"
+            className="w-full h-full object-cover object-center"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-dacora-dark/65 pointer-events-none"></div>
+        </div>
+
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-24">
           <motion.div
-            className="flex-1 text-center lg:text-left"
+            className="w-full lg:max-w-[55%] flex flex-col"
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
           >
             <motion.div variants={fadeInUp}>
-              <span className="inline-block uppercase tracking-widest text-sm font-semibold text-dacora-sage mb-6">
-                Tráfego Pago
+              <span className="inline-block uppercase tracking-[0.2em] text-sm font-medium text-dacora-offwhite/80 mb-6">
+                TRÁFEGO PAGO
               </span>
             </motion.div>
             
             <motion.h1 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold text-dacora-primary leading-tight mb-8"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold text-dacora-offwhite leading-tight mb-8"
             >
               Você tem um serviço diferenciado. O tráfego pago precisa refletir isso.
             </motion.h1>
             
             <motion.p 
               variants={fadeInUp}
-              className="text-lg md:text-xl text-dacora-gray font-light mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
+              className="text-lg md:text-xl text-dacora-offwhite/90 font-light mb-10 max-w-xl leading-relaxed"
             >
               Ajudamos negócios locais a atrair leads qualificados, mas o trabalho começa com um diagnóstico do seu processo comercial, não com o gerenciador.
             </motion.p>
@@ -62,29 +72,11 @@ export default function App() {
             <motion.div variants={fadeInUp}>
               <a
                 href={CONTACT_LINK}
-                className="inline-flex items-center justify-center px-8 py-4 bg-dacora-primary text-dacora-offwhite font-medium text-lg rounded-[4px] hover:bg-dacora-medium transition-colors duration-300"
+                className="inline-flex items-center justify-center px-8 py-4 bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-dacora-primary hover:text-dacora-offwhite border-2 border-transparent hover:border-dacora-offwhite transition-all duration-300 w-full sm:w-auto"
               >
                 Solicitar proposta →
               </a>
             </motion.div>
-          </motion.div>
-
-          <motion.div 
-            className="flex-1 w-full"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-          >
-            <div className="relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] w-full max-w-md mx-auto lg:max-w-none overflow-hidden rounded-[8px]">
-              <img
-                src="https://drive.google.com/thumbnail?id=1vCk73pPYTuKkEX4Rqe_IBS3mBjPJoCci&sz=w1000"
-                alt="Executivo analisando dados"
-                className="w-full h-full object-cover"
-                style={{ filter: 'contrast(1.05) brightness(0.95)' }}
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-dacora-primary/60 via-transparent to-transparent pointer-events-none mix-blend-multiply"></div>
-            </div>
           </motion.div>
         </div>
       </section>
