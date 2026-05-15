@@ -4,7 +4,7 @@
  */
 
 import { motion } from 'motion/react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Instagram } from 'lucide-react';
 
 const CONTACT_LINK = 'https://wa.me/556296242626?text=Quero+melhorar+a+estrat%C3%A9gia+da+minha+empresa';
 
@@ -334,16 +334,29 @@ export default function App() {
         SEÇÃO 6 — RODAPÉ
         -------------------------------------------
       */}
-      <footer className="bg-dacora-primary pt-12 pb-8 px-6 border-t border-t-dacora-offwhite/10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-dacora-offwhite/70 font-light tracking-wide text-sm md:text-base text-center md:text-left">
-            Tráfego atrai. Estrutura converte. Método escala.
-          </p>
+      <footer className="bg-dacora-primary pt-12 pb-28 md:pb-16 px-6 border-t border-t-dacora-offwhite/10 relative">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 md:pr-24 lg:pr-28">
+          <div className="flex flex-col items-center md:items-start gap-3">
+            <p className="text-dacora-offwhite/70 font-light tracking-wide text-sm md:text-base text-center md:text-left">
+              Tráfego atrai. Estrutura converte. Método escala.
+            </p>
+            <a 
+              href="https://wa.me/5562999465725"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-dacora-sage/50 hover:text-dacora-offwhite transition-colors text-[10px] sm:text-xs tracking-[0.1em] italic"
+            >
+              Desenvolvido por Flávio Corá
+            </a>
+          </div>
           <a 
-            href="#" 
-            className="text-dacora-offwhite/50 hover:text-dacora-offwhite transition-colors text-sm uppercase tracking-widest"
+            href="https://www.instagram.com/dacora.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Instagram da Dácora"
+            className="text-dacora-offwhite/50 hover:text-dacora-offwhite transition-colors p-2"
           >
-            @dacora.com.br
+            <Instagram className="w-6 h-6" strokeWidth={1.5} />
           </a>
         </div>
       </footer>
