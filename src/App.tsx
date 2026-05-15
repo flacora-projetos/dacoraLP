@@ -89,7 +89,7 @@ export default function App() {
         SEÇÃO 2 — QUALIFICAÇÃO
         -------------------------------------------
       */}
-      <section className="relative z-20 bg-dacora-primary text-dacora-offwhite py-24 px-6 md:py-32 -mt-6 md:-mt-10 border-t border-dacora-sage/20 shadow-sm">
+      <section className="bg-dacora-primary text-dacora-offwhite py-24 px-6 md:py-32">
         <motion.div 
           className="max-w-4xl mx-auto"
           initial="hidden"
@@ -130,8 +130,7 @@ export default function App() {
         SEÇÃO 3 — PROBLEMA
         -------------------------------------------
       */}
-      <section className="bg-dacora-offwhite pt-16 lg:pt-24 border-t border-dacora-sage/20">
-        <div className="lg:min-h-[80vh] flex flex-col lg:flex-row relative">
+      <section className="lg:min-h-screen flex flex-col lg:flex-row bg-dacora-offwhite relative">
           {/* Imagem (Faixa Editorial) */}
           <motion.div 
             className="w-full lg:w-[45%] h-[40vh] min-h-[300px] lg:h-auto relative"
@@ -214,7 +213,6 @@ export default function App() {
             </motion.div>
           </div>
         </div>
-        </div>
       </section>
 
       {/* 
@@ -222,7 +220,7 @@ export default function App() {
         SEÇÃO 4 — COMO FUNCIONA
         -------------------------------------------
       */}
-      <section className="pt-24 pb-16 lg:pt-32 lg:pb-20 px-6 bg-[#EBE7E1] border-t border-dacora-sage/20">
+      <section className="py-24 lg:py-32 px-6 bg-[#EBE7E1] border-t border-t-dacora-sage/10">
         <div className="max-w-7xl mx-auto">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
@@ -293,7 +291,7 @@ export default function App() {
         SEÇÃO 5 — CTA FINAL
         -------------------------------------------
       */}
-      <section className="relative bg-dacora-primary text-dacora-offwhite py-24 lg:py-32 px-6 overflow-hidden border-t border-dacora-sage/20">
+      <section className="relative bg-dacora-primary text-dacora-offwhite py-32 px-6 overflow-hidden">
         {/* Subtle background detail */}
         <div className="absolute inset-0 opacity-5 pointer-events-none" 
              style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #F2EFEB 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
