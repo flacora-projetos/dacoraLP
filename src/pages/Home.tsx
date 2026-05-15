@@ -305,6 +305,12 @@ export default function App() {
           viewport={{ once: true }}
           variants={staggerContainer}
         >
+          <motion.div variants={fadeInUp} className="mb-6 md:mb-8">
+            <span className="text-dacora-sage/90 italic font-light text-lg md:text-xl tracking-wide">
+              Tráfego atrai. Estrutura converte. Método escala.
+            </span>
+          </motion.div>
+
           <motion.h2 
             variants={fadeInUp}
             className="text-4xl md:text-5xl lg:text-6xl font-bold mb-12 leading-tight"
@@ -335,46 +341,40 @@ export default function App() {
         SEÇÃO 6 — RODAPÉ
         -------------------------------------------
       */}
-      <footer className="bg-dacora-primary pt-16 pb-32 md:pb-16 px-6 border-t border-t-dacora-offwhite/10 relative">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-12 md:pr-24 lg:pr-32">
+      <footer className="bg-dacora-primary pt-12 pb-28 md:pb-12 px-6 border-t border-t-dacora-offwhite/10 relative">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 md:pr-24 lg:pr-32">
           
-          <div className="flex flex-col gap-4 max-w-sm">
-            <span className="text-dacora-offwhite font-bold tracking-widest uppercase text-sm md:text-base">
-              DACORA.COM.BR
-            </span>
-            <p className="text-dacora-offwhite/80 font-light tracking-wide text-sm md:text-base leading-relaxed">
-              Tráfego atrai. Estrutura converte. Método escala.
-            </p>
-            <div className="mt-2 text-dacora-offwhite/70">
-              <a 
-                href="https://www.instagram.com/dacora.com.br/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram da Dácora"
-                className="inline-flex items-center gap-2 hover:text-dacora-offwhite transition-colors group"
-              >
-                <Instagram className="w-5 h-5 group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                <span className="text-sm tracking-wide font-medium">Instagram</span>
-              </a>
-            </div>
-          </div>
+          <span className="text-dacora-offwhite/60 font-light tracking-wide text-sm order-3 md:order-1 mt-2 md:mt-0">
+            dacora.com.br
+          </span>
 
-          <div className="flex flex-col sm:flex-row items-start md:items-center gap-6 sm:gap-8 pt-8 md:pt-0 border-t border-dacora-offwhite/10 md:border-none w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 order-1 md:order-2">
+            <a 
+              href="https://www.instagram.com/dacora.com.br/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram da Dácora"
+              className="inline-flex items-center gap-2 text-dacora-offwhite/80 hover:text-dacora-offwhite transition-colors group"
+            >
+              <Instagram className="w-[18px] h-[18px] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+              <span className="text-sm tracking-wide font-medium">Instagram</span>
+            </a>
             <Link 
               to="/politica-de-privacidade"
-              className="text-dacora-offwhite/60 hover:text-dacora-offwhite transition-colors text-sm tracking-wide font-medium"
+              className="text-dacora-offwhite/80 hover:text-dacora-offwhite transition-colors text-sm tracking-wide font-medium"
             >
               Política de Privacidade
             </Link>
-            <a 
-              href="https://wa.me/5562999465725"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-dacora-offwhite/60 hover:text-dacora-offwhite transition-colors text-sm tracking-wide font-medium"
-            >
-              Desenvolvido por Flávio Corá
-            </a>
           </div>
+
+          <a 
+            href="https://wa.me/5562999465725"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-dacora-sage/60 hover:text-dacora-offwhite transition-colors text-xs tracking-wide order-2 md:order-3"
+          >
+            Desenvolvido por Flávio Corá
+          </a>
 
         </div>
       </footer>
