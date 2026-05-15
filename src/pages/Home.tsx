@@ -35,6 +35,12 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
+const trackContact = () => {
+  if (typeof window !== 'undefined' && (window as any).fbq) {
+    (window as any).fbq('track', 'Contact');
+  }
+};
+
 export default function App() {
   return (
     <div className="min-h-screen bg-dacora-offwhite text-dacora-dark font-sans selection:bg-dacora-primary selection:text-dacora-offwhite">
@@ -87,6 +93,7 @@ export default function App() {
             <motion.div variants={fadeInUp}>
               <a
                 href={CONTACT_LINK}
+                onClick={trackContact}
                 className="inline-flex items-center justify-center px-10 py-[1.125rem] bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-white hover:scale-[1.02] transition-all duration-300 w-full sm:w-auto"
               >
                 Solicitar proposta →
@@ -321,6 +328,7 @@ export default function App() {
           <motion.div variants={fadeInUp} className="mb-10">
             <a
               href={CONTACT_LINK}
+              onClick={trackContact}
               className="inline-flex items-center justify-center px-10 py-5 bg-dacora-offwhite text-dacora-primary font-bold text-lg md:text-xl rounded-[4px] hover:bg-white transition-colors duration-300"
             >
               Solicitar proposta →
@@ -382,6 +390,7 @@ export default function App() {
       {/* Floating WhatsApp Button */}
       <motion.a
         href={CONTACT_LINK}
+        onClick={trackContact}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1EBE5D] hover:scale-105 hover:shadow-xl transition-all duration-300 group flex items-center justify-center pointer-events-auto"
