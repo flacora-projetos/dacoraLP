@@ -36,8 +36,36 @@ const WhatsAppIcon = () => (
 );
 
 const trackContact = () => {
+  const generateEventId = () => {
+    return typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'evt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
+  };
+  
+  const eventId = generateEventId();
+
+  // 1. Pixel no front-end
   if (typeof window !== 'undefined' && (window as any).fbq) {
-    (window as any).fbq('track', 'Contact');
+    (window as any).fbq('track', 'Contact', {}, { eventID: eventId });
+  }
+
+  // 2. Conversions API no server-side
+  if (typeof window !== 'undefined') {
+    const fbp = document.cookie.split('; ').find(row => row.startsWith('_fbp='))?.split('=')[1] || null;
+    const fbc = document.cookie.split('; ').find(row => row.startsWith('_fbc='))?.split('=')[1] || null;
+
+    fetch('/api/meta-capi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventName: 'Contact',
+        eventId: eventId,
+        eventUrl: window.location.href,
+        userAgent: navigator.userAgent,
+        fbp,
+        fbc
+      })
+    }).catch(err => console.error('CAPI fetch error:', err));
   }
 };
 
