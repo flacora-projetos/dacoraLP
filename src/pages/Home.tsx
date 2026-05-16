@@ -121,6 +121,8 @@ export default function App() {
             <motion.div variants={fadeInUp}>
               <a
                 href={CONTACT_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={trackContact}
                 className="inline-flex items-center justify-center px-10 py-[1.125rem] bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-white hover:scale-[1.02] transition-all duration-300 w-full sm:w-auto"
               >
@@ -356,6 +358,8 @@ export default function App() {
           <motion.div variants={fadeInUp} className="mb-10">
             <a
               href={CONTACT_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={trackContact}
               className="inline-flex items-center justify-center px-10 py-5 bg-dacora-offwhite text-dacora-primary font-bold text-lg md:text-xl rounded-[4px] hover:bg-white transition-colors duration-300"
             >
