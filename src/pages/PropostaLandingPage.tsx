@@ -2,10 +2,10 @@ import { motion } from 'motion/react';
 import { CheckCircle2, Instagram, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import fernandaFaceClose from '../assets/images/proposta-landing-page/fernanda-face-close.webp';
-import fernandaCaneca from '../assets/images/proposta-landing-page/fernanda-caneca.webp';
-import fernandaCelular from '../assets/images/proposta-landing-page/fernanda-celular.webp';
-import fernandaNotebook from '../assets/images/proposta-landing-page/fernanda-notebook.webp';
+
+
+
+
 
 const CONTACT_LINK = 'https://wa.me/556296242626?text=Ol%C3%A1%21+Vi+a+proposta+de+landing+pages+da+D%C3%A1cora+e+gostaria+de+conversar+sobre+meu+projeto.';
 
@@ -188,8 +188,8 @@ export default function PropostaLandingPage() {
       <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full bg-dacora-dark">
         <div className="absolute inset-0 z-0">
           <img
-            src={fernandaFaceClose}
-            alt="Fernanda Corá"
+            src="https://drive.google.com/thumbnail?id=1Q6YVOUe8FMudYXJb6haefrLvcjaV-Jtx&sz=w2000"
+            alt="Fernanda Corá" referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-[center_30%] md:object-[60%_25%]"
             fetchPriority="high"
           />
@@ -354,8 +354,8 @@ export default function PropostaLandingPage() {
           >
             <div className="relative w-full max-w-[500px] aspect-square rounded-[4px] overflow-hidden">
               <img
-                src={fernandaCaneca}
-                alt="Estratégia e planejamento"
+                src="https://drive.google.com/thumbnail?id=1RCj4J-hiHGWoqrt65zSBQqFe91k9-h3H&sz=w1000"
+                alt="Estratégia e planejamento" referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
@@ -505,8 +505,8 @@ export default function PropostaLandingPage() {
           >
             <div className="relative w-full max-w-[400px] aspect-[4/5] rounded-[4px] overflow-hidden">
               <img
-                src={fernandaCelular}
-                alt="Uso no celular"
+                src="https://drive.google.com/thumbnail?id=12Y0EJ7l4bdZRxKWxX5ceiFJDRneancFg&sz=w1000"
+                alt="Uso no celular" referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
@@ -729,8 +729,8 @@ export default function PropostaLandingPage() {
           >
             <div className="relative w-full max-w-[500px] aspect-[4/3] rounded-[4px] overflow-hidden">
               <img
-                src={fernandaNotebook}
-                alt="Estrutura técnica e mensuração"
+                src="https://drive.google.com/thumbnail?id=14doJmSjsAlAWx577WU0Oyendd3j8iryi&sz=w1000"
+                alt="Estrutura técnica e mensuração" referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
                 loading="lazy"
               />
@@ -832,8 +832,8 @@ export default function PropostaLandingPage() {
             >
               <div className="w-20 h-20 rounded-full overflow-hidden mb-6 border-2 border-dacora-sage">
                 <img
-                  src={fernandaFaceClose}
-                  alt="Fernanda Corá"
+                  src="https://drive.google.com/thumbnail?id=1Q6YVOUe8FMudYXJb6haefrLvcjaV-Jtx&sz=w2000"
+                  alt="Fernanda Corá" referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-[center_30%]"
                   loading="lazy"
                 />
