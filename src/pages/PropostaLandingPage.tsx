@@ -184,7 +184,7 @@ export default function PropostaLandingPage() {
       <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full bg-dacora-dark">
         <div className="absolute inset-0 z-0">
           <img
-            src="/images/proposta-landing-page/fernanda-face-close.webp"
+            src="/images/proposta-landing-page/fernanda-face-close.jpg"
             alt="Fernanda Corá"
             className="w-full h-full object-cover object-[center_30%] md:object-[60%_25%]"
             fetchPriority="high"
@@ -350,7 +350,7 @@ export default function PropostaLandingPage() {
           >
             <div className="relative w-full max-w-[500px] aspect-square rounded-[4px] overflow-hidden">
               <img
-                src="/images/proposta-landing-page/fernanda-caneca.webp"
+                src="/images/proposta-landing-page/fernanda-caneca.jpg"
                 alt="Estratégia e planejamento"
                 className="w-full h-full object-cover object-center"
                 loading="lazy"
@@ -501,7 +501,7 @@ export default function PropostaLandingPage() {
           >
             <div className="relative w-full max-w-[400px] aspect-[4/5] rounded-[4px] overflow-hidden">
               <img
-                src="/images/proposta-landing-page/fernanda-celular.webp"
+                src="/images/proposta-landing-page/fernanda-celular.jpg"
                 alt="Uso no celular"
                 className="w-full h-full object-cover object-center"
                 loading="lazy"
@@ -725,7 +725,7 @@ export default function PropostaLandingPage() {
           >
             <div className="relative w-full max-w-[500px] aspect-[4/3] rounded-[4px] overflow-hidden">
               <img
-                src="/images/proposta-landing-page/fernanda-notebook.webp"
+                src="/images/proposta-landing-page/fernanda-notebook.jpg"
                 alt="Estrutura técnica e mensuração"
                 className="w-full h-full object-cover object-center"
                 loading="lazy"
@@ -828,7 +828,7 @@ export default function PropostaLandingPage() {
             >
               <div className="w-20 h-20 rounded-full overflow-hidden mb-6 border-2 border-dacora-sage">
                 <img
-                  src="/images/proposta-landing-page/fernanda-face-close.webp"
+                  src="/images/proposta-landing-page/fernanda-face-close.jpg"
                   alt="Fernanda Corá"
                   className="w-full h-full object-cover object-[center_30%]"
                   loading="lazy"
