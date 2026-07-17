@@ -352,14 +352,16 @@ export default function PropostaLandingPage() {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.8 }}
           >
-            <div className="relative w-full max-w-[500px] aspect-square rounded-[4px] overflow-hidden">
-              <img
-                src="https://drive.google.com/thumbnail?id=1RCj4J-hiHGWoqrt65zSBQqFe91k9-h3H&sz=w1000"
-                alt="Estratégia e planejamento" referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-dacora-primary/5 mix-blend-multiply pointer-events-none"></div>
+            <div className="p-2 md:p-3 bg-dacora-offwhite border border-dacora-sage/30 rounded-[4px] shadow-sm w-full max-w-[500px]">
+              <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
+                <img
+                  src="https://drive.google.com/thumbnail?id=1RCj4J-hiHGWoqrt65zSBQqFe91k9-h3H&sz=w1000"
+                  alt="Estratégia e planejamento" referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-dacora-primary/5 mix-blend-multiply pointer-events-none"></div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -503,14 +505,16 @@ export default function PropostaLandingPage() {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.8 }}
           >
-            <div className="relative w-full max-w-[400px] aspect-[4/5] rounded-[4px] overflow-hidden">
-              <img
-                src="https://drive.google.com/thumbnail?id=12Y0EJ7l4bdZRxKWxX5ceiFJDRneancFg&sz=w1000"
-                alt="Uso no celular" referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-dacora-dark/20 mix-blend-multiply pointer-events-none"></div>
+            <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-[4px] shadow-lg w-full max-w-[400px]">
+              <div className="relative w-full aspect-[4/5] rounded-[2px] overflow-hidden">
+                <img
+                  src="https://drive.google.com/thumbnail?id=12Y0EJ7l4bdZRxKWxX5ceiFJDRneancFg&sz=w1000"
+                  alt="Uso no celular" referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-dacora-dark/20 mix-blend-multiply pointer-events-none"></div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -727,14 +731,16 @@ export default function PropostaLandingPage() {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.8 }}
           >
-            <div className="relative w-full max-w-[500px] aspect-[4/3] rounded-[4px] overflow-hidden">
-              <img
-                src="https://drive.google.com/thumbnail?id=14doJmSjsAlAWx577WU0Oyendd3j8iryi&sz=w1000"
-                alt="Estrutura técnica e mensuração" referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-center"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-dacora-primary/5 mix-blend-multiply pointer-events-none"></div>
+            <div className="p-2 md:p-3 bg-dacora-offwhite border border-dacora-sage/30 rounded-[4px] shadow-sm w-full max-w-[500px]">
+              <div className="relative w-full aspect-[4/3] rounded-[2px] overflow-hidden">
+                <img
+                  src="https://drive.google.com/thumbnail?id=14doJmSjsAlAWx577WU0Oyendd3j8iryi&sz=w1000"
+                  alt="Estrutura técnica e mensuração" referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-dacora-primary/5 mix-blend-multiply pointer-events-none"></div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -830,13 +836,15 @@ export default function PropostaLandingPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <div className="w-20 h-20 rounded-full overflow-hidden mb-6 border-2 border-dacora-sage">
-                <img
-                  src="https://drive.google.com/thumbnail?id=1Q6YVOUe8FMudYXJb6haefrLvcjaV-Jtx&sz=w2000"
-                  alt="Fernanda Corá" referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-[center_30%]"
-                  loading="lazy"
-                />
+              <div className="p-1 bg-dacora-offwhite border border-dacora-sage/30 rounded-full w-24 h-24 mb-6 shadow-sm">
+                <div className="w-full h-full rounded-full overflow-hidden">
+                  <img
+                    src="https://drive.google.com/thumbnail?id=1Q6YVOUe8FMudYXJb6haefrLvcjaV-Jtx&sz=w2000"
+                    alt="Fernanda Corá" referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-[center_30%]"
+                    loading="lazy"
+                  />
+                </div>
               </div>
               <h3 className="text-2xl font-bold mb-4">Fernanda Corá</h3>
               <p className="text-dacora-offwhite/80 font-light leading-relaxed">
