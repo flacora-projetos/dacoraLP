@@ -49,7 +49,15 @@ const trackContact = () => {
     (window as any).fbq('track', 'Contact', {}, { eventID: eventId });
   }
 
-  // 2. Conversions API no server-side
+  // 2. Google Analytics 4 (GA4)
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', 'Contact', {
+      event_category: 'Home Page',
+      event_label: 'Contact'
+    });
+  }
+
+  // 3. Conversions API no server-side
   if (typeof window !== 'undefined') {
     const fbp = document.cookie.split('; ').find(row => row.startsWith('_fbp='))?.split('=')[1] || null;
     const fbc = document.cookie.split('; ').find(row => row.startsWith('_fbc='))?.split('=')[1] || null;

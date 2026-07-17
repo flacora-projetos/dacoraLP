@@ -23,7 +23,15 @@ const trackEvent = (eventName: string) => {
     (window as any).fbq('trackCustom', eventName, {}, { eventID: eventId });
   }
 
-  // 2. Conversions API no server-side
+  // 2. Google Analytics 4 (GA4)
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', eventName, {
+      event_category: 'Landing Page',
+      event_label: eventName
+    });
+  }
+
+  // 3. Conversions API no server-side
   if (typeof window !== 'undefined') {
     const fbp = document.cookie.split('; ').find(row => row.startsWith('_fbp='))?.split('=')[1] || null;
     const fbc = document.cookie.split('; ').find(row => row.startsWith('_fbc='))?.split('=')[1] || null;
