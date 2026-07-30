@@ -88,10 +88,15 @@ export default function App() {
       <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full bg-dacora-dark">
         <div className="absolute inset-0 z-0">
           <img
-            src="https://drive.google.com/thumbnail?id=1vCk73pPYTuKkEX4Rqe_IBS3mBjPJoCci&sz=w2000"
-            alt="Executivo analisando dados"
+            src="/img/hero-trafego-pago-1920.webp"
+            srcSet="/img/hero-trafego-pago-640.webp 640w, /img/hero-trafego-pago-828.webp 828w, /img/hero-trafego-pago-1280.webp 1280w, /img/hero-trafego-pago-1920.webp 1920w"
+            sizes="100vw"
+            width={1920}
+            height={1280}
+            alt="Gestor de tráfego analisando dados de campanhas para negócios locais"
             className="w-full h-full object-cover object-[70%_center] md:object-[60%_center]"
-            referrerPolicy="no-referrer"
+            fetchPriority="high"
+            decoding="async"
           />
           {/* General overlay */}
           <div className="absolute inset-0 bg-dacora-dark/40 pointer-events-none"></div>
@@ -197,11 +202,16 @@ export default function App() {
             transition={{ duration: 0.8 }}
           >
           <img
-            src="https://drive.google.com/thumbnail?id=1UOVkGZWLMgWOfF0XXB33Bgm26a5wEz2W&sz=w1000"
-            alt="Reunião de diagnóstico"
+            src="/img/diagnostico-comercial-1200.webp"
+            srcSet="/img/diagnostico-comercial-640.webp 640w, /img/diagnostico-comercial-828.webp 828w, /img/diagnostico-comercial-1200.webp 1200w"
+            sizes="(min-width: 1024px) 45vw, 100vw"
+            width={1200}
+            height={1800}
+            alt="Reunião de diagnóstico do processo comercial antes de iniciar as campanhas"
             className="w-full h-full object-cover object-[center_60%] lg:object-[20%_70%]"
             style={{ filter: 'contrast(1.1) grayscale(0.2)' }}
-            referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
           />
           {/* Overlay esverdeado/frio subtil */}
           <div className="absolute inset-0 bg-dacora-primary/10 mix-blend-multiply pointer-events-none"></div>

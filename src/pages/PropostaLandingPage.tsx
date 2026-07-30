@@ -114,49 +114,10 @@ const FaqItem = ({ question, answer, eventName }: { question: string, answer: st
 
 export default function PropostaLandingPage() {
   useEffect(() => {
-    // SEO metadata
-    document.title = "Criação de Landing Pages que Convertem | Dácora";
-    
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', 'Landing pages personalizadas com estratégia, copy, design, WhatsApp, mensuração e qualificação de leads. Conheça as opções da Dácora.');
-    
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.setAttribute('rel', 'canonical');
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute('href', 'https://dacora.com.br/proposta-landing-page');
-
-    // Schema
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'schema-landing-page';
-    script.innerHTML = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "serviceType": "Criação de Landing Pages",
-      "provider": {
-        "@type": "Organization",
-        "name": "Dácora Performance Digital",
-        "url": "https://dacora.com.br"
-      }
-    });
-    document.head.appendChild(script);
-
-    // Track page view
+    // Title, description, canonical e schema desta página são gerados em
+    // build-time (scripts/seo-routes.mjs + scripts/prerender.mjs), para que
+    // fiquem no HTML servido e não dependam de JavaScript.
     trackEvent('ViewLandingPageProposal');
-
-    return () => {
-      // Cleanup schema on unmount if needed
-      const existingScript = document.getElementById('schema-landing-page');
-      if (existingScript) existingScript.remove();
-    };
   }, []);
 
   return (
@@ -196,10 +157,15 @@ export default function PropostaLandingPage() {
       <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full bg-dacora-dark">
         <div className="absolute inset-0 z-0">
           <img
-            src="https://drive.google.com/thumbnail?id=1Q6YVOUe8FMudYXJb6haefrLvcjaV-Jtx&sz=w2000"
-            alt="Fernanda Corá" referrerPolicy="no-referrer"
+            src="/img/fernanda-cora-1600.webp"
+            srcSet="/img/fernanda-cora-640.webp 640w, /img/fernanda-cora-1000.webp 1000w, /img/fernanda-cora-1600.webp 1600w"
+            sizes="100vw"
+            width={1600}
+            height={2400}
+            alt="Fernanda Corá"
             className="w-full h-full object-cover object-[center_30%] md:object-[60%_25%]"
             fetchPriority="high"
+            decoding="async"
           />
           {/* General overlay */}
           <div className="absolute inset-0 bg-dacora-dark/40 pointer-events-none"></div>
@@ -363,10 +329,15 @@ export default function PropostaLandingPage() {
             <div className="p-2 md:p-3 bg-dacora-offwhite border border-dacora-sage/30 rounded-[4px] shadow-sm w-full max-w-[500px]">
               <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
                 <img
-                  src="https://drive.google.com/thumbnail?id=1RCj4J-hiHGWoqrt65zSBQqFe91k9-h3H&sz=w1000"
-                  alt="Estratégia e planejamento" referrerPolicy="no-referrer"
+                  src="/img/estrategia-planejamento-1000.webp"
+                  srcSet="/img/estrategia-planejamento-400.webp 400w, /img/estrategia-planejamento-640.webp 640w, /img/estrategia-planejamento-1000.webp 1000w"
+                  sizes="(min-width: 768px) 500px, 100vw"
+                  width={1000}
+                  height={1500}
+                  alt="Estratégia e planejamento de landing page"
                   className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-dacora-primary/5 mix-blend-multiply pointer-events-none"></div>
               </div>
@@ -516,10 +487,15 @@ export default function PropostaLandingPage() {
             <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-[4px] shadow-lg w-full max-w-[400px]">
               <div className="relative w-full aspect-[4/5] rounded-[2px] overflow-hidden">
                 <img
-                  src="https://drive.google.com/thumbnail?id=12Y0EJ7l4bdZRxKWxX5ceiFJDRneancFg&sz=w1000"
-                  alt="Uso no celular" referrerPolicy="no-referrer"
+                  src="/img/landing-page-mobile-1000.webp"
+                  srcSet="/img/landing-page-mobile-400.webp 400w, /img/landing-page-mobile-640.webp 640w, /img/landing-page-mobile-1000.webp 1000w"
+                  sizes="(min-width: 768px) 400px, 100vw"
+                  width={1000}
+                  height={1500}
+                  alt="Landing page da Dácora acessada pelo celular"
                   className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-dacora-dark/20 mix-blend-multiply pointer-events-none"></div>
               </div>
@@ -742,10 +718,15 @@ export default function PropostaLandingPage() {
             <div className="p-2 md:p-3 bg-dacora-offwhite border border-dacora-sage/30 rounded-[4px] shadow-sm w-full max-w-[500px]">
               <div className="relative w-full aspect-[4/3] rounded-[2px] overflow-hidden">
                 <img
-                  src="https://drive.google.com/thumbnail?id=14doJmSjsAlAWx577WU0Oyendd3j8iryi&sz=w1000"
-                  alt="Estrutura técnica e mensuração" referrerPolicy="no-referrer"
+                  src="/img/estrutura-tecnica-1000.webp"
+                  srcSet="/img/estrutura-tecnica-400.webp 400w, /img/estrutura-tecnica-640.webp 640w, /img/estrutura-tecnica-1000.webp 1000w"
+                  sizes="(min-width: 768px) 500px, 100vw"
+                  width={1000}
+                  height={1500}
+                  alt="Estrutura técnica e mensuração de resultados da landing page"
                   className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-dacora-primary/5 mix-blend-multiply pointer-events-none"></div>
               </div>
@@ -847,10 +828,13 @@ export default function PropostaLandingPage() {
               <div className="p-1 bg-dacora-offwhite border border-dacora-sage/30 rounded-full w-24 h-24 mb-6 shadow-sm">
                 <div className="w-full h-full rounded-full overflow-hidden">
                   <img
-                    src="https://drive.google.com/thumbnail?id=1Q6YVOUe8FMudYXJb6haefrLvcjaV-Jtx&sz=w2000"
-                    alt="Fernanda Corá" referrerPolicy="no-referrer"
+                    src="/img/fernanda-cora-256.webp"
+                    width={256}
+                    height={384}
+                    alt="Fernanda Corá"
                     className="w-full h-full object-cover object-[center_30%]"
                     loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>

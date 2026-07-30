@@ -1,0 +1,63 @@
+# robots.txt — Dácora Performance Digital
+# https://www.dacora.com.br
+
+User-agent: *
+Allow: /
+
+# Página de proposta comercial: rastreável (para ler o noindex), fora do índice.
+# O bloqueio real é feito pela meta robots noindex na própria página.
+
+# --- Buscadores tradicionais ---
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# --- Answer engines / LLMs: liberados para leitura e citação ---
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+Sitemap: https://www.dacora.com.br/sitemap.xml

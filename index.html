@@ -1,11 +1,201 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--seo-->
+    <title>Gestão de Tráfego Pago para Negócios Locais | Dácora</title>
+    <meta name="description" content="Gestão de tráfego pago que começa com o diagnóstico do seu processo comercial, não com o gerenciador. Atraia leads qualificados que viram cliente. Planos a partir de R$1.500/mês." />
+    <link rel="canonical" href="https://www.dacora.com.br/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Dácora Performance Digital" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://www.dacora.com.br/" />
+    <meta property="og:title" content="Gestão de Tráfego Pago para Negócios Locais | Dácora" />
+    <meta property="og:description" content="Gestão de tráfego pago que começa com o diagnóstico do seu processo comercial, não com o gerenciador. Atraia leads qualificados que viram cliente." />
+    <meta property="og:image" content="https://www.dacora.com.br/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Dácora — Você tem um serviço diferenciado. O tráfego pago precisa refletir isso." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Gestão de Tráfego Pago para Negócios Locais | Dácora" />
+    <meta name="twitter:description" content="Gestão de tráfego pago que começa com o diagnóstico do seu processo comercial, não com o gerenciador." />
+    <meta name="twitter:image" content="https://www.dacora.com.br/og-image.jpg" />
+    <!--/seo-->
+
+    <meta name="author" content="Dácora Performance Digital" />
+    <meta name="theme-color" content="#014029" />
+
+    <!--
+      As animações de entrada (motion) renderizam com opacity:0 no HTML
+      pré-renderizado e só ficam visíveis após a hidratação. Para quem não
+      executa JavaScript, o CSS abaixo revela o mesmo conteúdo.
+    -->
+    <noscript>
+      <style>
+        [style*="opacity:0"],
+        [style*="opacity: 0"] {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
+
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+
+    <!-- Preload da imagem LCP (hero) -->
+    <link
+      rel="preload"
+      as="image"
+      href="/img/hero-trafego-pago-1920.webp"
+      imagesrcset="/img/hero-trafego-pago-640.webp 640w, /img/hero-trafego-pago-828.webp 828w, /img/hero-trafego-pago-1280.webp 1280w, /img/hero-trafego-pago-1920.webp 1920w"
+      imagesizes="100vw"
+      fetchpriority="high"
+    />
+
+    <!--jsonld-->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.dacora.com.br/#organization",
+          "name": "Dácora Performance Digital",
+          "alternateName": "Dácora",
+          "url": "https://www.dacora.com.br/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://www.dacora.com.br/icon-512.png",
+            "width": 512,
+            "height": 512
+          },
+          "image": "https://www.dacora.com.br/og-image.jpg",
+          "description": "Gestão de tráfego pago para negócios locais, começando pelo diagnóstico do processo comercial.",
+          "slogan": "Tráfego atrai. Estrutura converte. Método escala.",
+          "sameAs": ["https://www.instagram.com/dacora.com.br/"],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "sales",
+            "telephone": "+55-62-9624-2626",
+            "availableLanguage": ["Portuguese"],
+            "areaServed": "BR"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.dacora.com.br/#website",
+          "url": "https://www.dacora.com.br/",
+          "name": "Dácora Performance Digital",
+          "inLanguage": "pt-BR",
+          "publisher": { "@id": "https://www.dacora.com.br/#organization" }
+        },
+        {
+          "@type": "ProfessionalService",
+          "@id": "https://www.dacora.com.br/#service-business",
+          "name": "Dácora Performance Digital",
+          "url": "https://www.dacora.com.br/",
+          "image": "https://www.dacora.com.br/og-image.jpg",
+          "parentOrganization": { "@id": "https://www.dacora.com.br/#organization" },
+          "telephone": "+55-62-9624-2626",
+          "priceRange": "A partir de R$1.500/mês",
+          "areaServed": { "@type": "Country", "name": "Brasil" },
+          "knowsLanguage": "pt-BR",
+          "sameAs": ["https://www.instagram.com/dacora.com.br/"]
+        },
+        {
+          "@type": "Service",
+          "@id": "https://www.dacora.com.br/#servico-trafego-pago",
+          "name": "Gestão de tráfego pago para negócios locais",
+          "serviceType": "Gestão de tráfego pago",
+          "provider": { "@id": "https://www.dacora.com.br/#organization" },
+          "areaServed": { "@type": "Country", "name": "Brasil" },
+          "description": "Gestão de tráfego pago que começa com um diagnóstico do processo comercial para identificar gargalos antes de criar qualquer campanha.",
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "BRL",
+            "price": "1500",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "priceCurrency": "BRL",
+              "price": "1500",
+              "unitCode": "MON",
+              "referenceQuantity": {
+                "@type": "QuantitativeValue",
+                "value": 1,
+                "unitCode": "MON"
+              }
+            },
+            "availability": "https://schema.org/LimitedAvailability",
+            "url": "https://www.dacora.com.br/"
+          },
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Como funciona",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Diagnóstico comercial",
+                  "description": "Mapeamento do processo comercial para identificar gargalos e oportunidades antes de criar qualquer campanha."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Guia de Criativos",
+                  "description": "Documento personalizado para orientar a produção de conteúdo estratégico."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Gestão profissional",
+                  "description": "Gestão de tráfego pago por equipe especializada com mais de 5 anos de mercado e processo validado."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://www.dacora.com.br/#webpage",
+          "url": "https://www.dacora.com.br/",
+          "name": "Gestão de Tráfego Pago para Negócios Locais | Dácora",
+          "description": "Gestão de tráfego pago que começa com o diagnóstico do seu processo comercial, não com o gerenciador.",
+          "inLanguage": "pt-BR",
+          "isPartOf": { "@id": "https://www.dacora.com.br/#website" },
+          "about": { "@id": "https://www.dacora.com.br/#servico-trafego-pago" },
+          "primaryImageOfPage": "https://www.dacora.com.br/img/hero-trafego-pago-1920.webp"
+        }
+      ]
+    }
+    </script>
+    <!--/jsonld-->
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CN7F6YWH42"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-CN7F6YWH42');
+    </script>
+
     <!-- Meta Pixel Code -->
     <script>
     !function(f,b,e,v,n,t,s)
@@ -20,7 +210,6 @@
     fbq('track', 'PageView');
     </script>
     <!-- End Meta Pixel Code -->
-    <title>Dácora Performance Digital</title>
   </head>
   <body>
     <noscript><img height="1" width="1" style="display:none"
@@ -30,4 +219,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

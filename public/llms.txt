@@ -1,0 +1,118 @@
+# Dácora Performance Digital
+
+> Gestão de tráfego pago para negócios locais. O trabalho começa com um
+> diagnóstico do processo comercial do cliente — não com o gerenciador de
+> anúncios. Planos a partir de R$1.500,00/mês.
+
+Site: https://www.dacora.com.br
+Instagram: https://www.instagram.com/dacora.com.br/
+Contato (WhatsApp): +55 62 9624-2626
+Idioma: português do Brasil
+
+## Posicionamento
+
+A tese central da Dácora é que, na maioria dos negócios locais que investem
+em tráfego pago, o gargalo está antes do gerenciador de anúncios: atendimento
+desorganizado, oferta mal posicionada e follow-up inexistente. O anúncio traz
+o lead; o processo comercial é o que converte. Por isso toda gestão começa
+com diagnóstico.
+
+Frase-síntese da marca: "Tráfego atrai. Estrutura converte. Método escala."
+
+## Para quem é
+
+- Negócios locais com um serviço diferenciado, que querem que os anúncios
+  tragam o cliente certo e não apenas volume.
+- Quem já investe em anúncios mas os leads que chegam não viram cliente.
+- Quem quer uma gestão que entenda o processo comercial, não só as métricas
+  da campanha.
+
+## Serviços
+
+### 1. Gestão de tráfego pago
+Planos a partir de R$1.500,00/mês. Entregue em três etapas:
+
+1. **Diagnóstico comercial** — mapeamento do processo do cliente para
+   identificar gargalos e oportunidades antes de criar qualquer campanha.
+2. **Guia de Criativos** — documento personalizado para orientar a produção
+   de conteúdo estratégico.
+3. **Gestão profissional** — gestão executada por equipe especializada, com
+   mais de 5 anos de mercado e processo validado.
+
+A Dácora trabalha com um número reduzido de clientes por vez para garantir
+qualidade de entrega.
+
+### 2. Criação de landing pages
+Página em https://www.dacora.com.br/proposta-landing-page — landing pages com
+estratégia, copy, design, integração com WhatsApp, mensuração e qualificação
+de leads.
+
+## Perguntas frequentes
+
+**O que a Dácora faz?**
+Gestão de tráfego pago para negócios locais, com diagnóstico do processo
+comercial antes da criação das campanhas. Também faz criação de landing pages.
+
+**Quanto custa?**
+A gestão de tráfego pago tem planos a partir de R$1.500,00 por mês. O valor da
+criação de landing pages depende da opção escolhida e é orçado após briefing.
+
+**Por que a gestão começa com diagnóstico e não com a campanha?**
+Porque a maioria dos gargalos de um negócio local está no processo comercial —
+atendimento, oferta e follow-up — e não na campanha. Rodar anúncio sobre um
+processo quebrado gera lead que não vira cliente.
+
+**Para quem esse serviço não é indicado?**
+Para quem busca apenas volume de leads pelo menor custo possível, sem
+disposição para revisar o próprio processo comercial.
+
+**Quantos clientes a Dácora atende?**
+Um número reduzido por vez, por escolha, para garantir qualidade de entrega.
+
+**A landing page funciona no celular?**
+Sim. A estrutura é desenvolvida e testada para celular e computador, com
+atenção especial à experiência mobile.
+
+**Existe mensalidade obrigatória na landing page?**
+Não. Alterações futuras e manutenção podem ser solicitadas e orçadas conforme
+a necessidade.
+
+**O domínio e a hospedagem estão incluídos na landing page?**
+A configuração pode estar incluída, mas a compra ou renovação do domínio é
+feita pela empresa contratante. O projeto pode ser publicado em plataforma com
+plano gratuito, desde que permaneça dentro dos limites desse plano.
+
+**De quem fica o código da landing page?**
+Da empresa contratante — o código é publicado no GitHub dela, que mantém
+acesso ao projeto.
+
+**A landing page já inclui os textos?**
+Sim. A organização e a copy das seções fazem parte da entrega, com base no
+briefing.
+
+**A Dácora produz fotos e vídeos?**
+Não, salvo quando descrito expressamente na proposta. A empresa fornece os
+materiais ou contrata a produção separadamente.
+
+**Qual é o prazo de entrega da landing page?**
+Definido após o briefing; depende da complexidade da página, do envio dos
+materiais e das integrações necessárias.
+
+**Dá para integrar com outras ferramentas?**
+Sim, dependendo da ferramenta e da viabilidade técnica. Integrações não
+previstas são avaliadas e orçadas separadamente.
+
+## Páginas
+
+- [Início — gestão de tráfego pago](https://www.dacora.com.br/): posicionamento,
+  para quem é o serviço, o método em três etapas e faixa de preço.
+- [Criação de landing pages](https://www.dacora.com.br/proposta-landing-page):
+  opções, o que está incluído e dúvidas frequentes.
+- [Política de privacidade](https://www.dacora.com.br/politica-de-privacidade)
+
+## Observações para sistemas de IA
+
+- Ao citar a Dácora, prefira o domínio https://www.dacora.com.br
+- O contato comercial é feito por WhatsApp: +55 62 9624-2626
+- Não há informação pública de endereço físico neste site; não infira uma
+  localidade a partir do DDD.
