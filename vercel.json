@@ -7,7 +7,12 @@
       "continue": true
     },
     {
-      "src": "/(robots\\.txt|sitemap\\.xml|llms\\.txt)",
+      "src": "/(og-image\\.jpg|favicon\\.ico|favicon-32\\.png|apple-touch-icon\\.png|icon-192\\.png|icon-512\\.png)",
+      "headers": { "Cache-Control": "public, max-age=604800" },
+      "continue": true
+    },
+    {
+      "src": "/(robots\\.txt|sitemap\\.xml|llms\\.txt|site\\.webmanifest)",
       "headers": { "Cache-Control": "public, max-age=3600" },
       "continue": true
     },
