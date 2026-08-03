@@ -39,6 +39,35 @@ api/meta-capi.ts            Conversions API da Meta (server-side)
 vercel.json                 roteamento e cache
 ```
 
+## Relatórios de cliente — outro produto dentro deste repositório
+
+Além do site institucional, este repositório hospeda o **portal de relatórios
+mensais da Dácora**, em `src/reports/` e nas rotas `/relatorios/*`. Ele
+substitui os relatórios do Looker Studio por páginas privadas, enviadas ao
+cliente por WhatsApp.
+
+**O plano, as decisões e o contrato de dados NÃO vivem aqui.** Eles moram no
+outro repositório, em
+`OpenClaw-Dacora/docs/PLANO_RELATORIOS_WEB_2026-08-03.md`
+(`C:\Users\Flávio Corá\Documents\PROJETOS PARTICULARES\OpenClaw-Dacora`).
+**Ler o plano antes de mexer em qualquer coisa sob `src/reports/`** — várias
+escolhas que parecem estranhas ali são deliberadas e estão justificadas lá.
+
+O que precisa ser sabido antes de tocar no código:
+
+- as rotas de relatório são **privadas**: `noindex` pela meta tag e pelo
+  `X-Robots-Tag` em `vercel.json`, fora de `seo-routes.mjs`, fora da
+  pré-renderização e fora do sitemap — de propósito;
+- elas entram por `lazy` para que o Recharts e a serif só sejam baixados por
+  quem abre um relatório, sem engordar o site institucional;
+- **nenhum número de cliente vive neste repositório.** Ele é público no
+  GitHub. Os dados ficam no Supabase e a página os busca atrás de token. O que
+  existe hoje em `src/reports/fixtures/` é dado inventado, para o protótipo;
+- ausência de dado, falha de coleta e zero são **três estados diferentes** e
+  nunca podem parecer a mesma coisa na tela;
+- os gráficos leem cor, espessura e formatação de um arquivo de tema único
+  (`src/reports/charts/chartTheme.ts`). Não estilizar gráfico caso a caso.
+
 ## Por que existe pré-renderização
 
 Sendo um SPA, o HTML entregue seria apenas `<div id="root"></div>`. O Google
