@@ -16,6 +16,7 @@ import PropostaLandingPage from './pages/PropostaLandingPage';
  */
 const RelatorioDemoA = lazy(() => import('./pages/RelatorioDemoA'));
 const RelatorioDemoB = lazy(() => import('./pages/RelatorioDemoB'));
+const RelatorioDemoEcommerce = lazy(() => import('./pages/RelatorioDemoEcommerce'));
 
 export default function App() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
         element={
           <Suspense fallback={<CarregandoRelatorio />}>
             <RelatorioDemoB />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/relatorios/demo/ecommerce"
+        element={
+          <Suspense fallback={<CarregandoRelatorio />}>
+            <RelatorioDemoEcommerce />
           </Suspense>
         }
       />

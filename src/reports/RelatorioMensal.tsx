@@ -1,15 +1,26 @@
 /**
- * O relatório mensal. Uma árvore só, duas propostas visuais.
+ * O relatório mensal. Uma árvore só, duas propostas visuais e dois tipos de
+ * relatório.
  *
- * O componente não conhece cliente: tudo que ele mostra vem do snapshot.
- * Não existe `if` por nome de cliente aqui, e não deve passar a existir —
- * variação de formato é por `tipoRelatorio`, não por quem é o cliente.
+ * O componente não conhece cliente: tudo que ele mostra vem do snapshot. Não
+ * existe `if` por nome de cliente aqui, e não deve passar a existir.
+ *
+ * Duas variações, e elas são coisas diferentes:
+ *
+ *  • PROPOSTA VISUAL (A/B) — a pele. Vive no CSS, em `[data-proposta]`, e no
+ *    `chartTheme`. Não muda o que a página diz.
+ *  • TIPO DE RELATÓRIO (serviços/leads x e-commerce) — o miolo. Vive em
+ *    `src/reports/tipos/`, resolvido por `identidade.tipoRelatorio`. Muda
+ *    quais seções existem e o que elas mostram.
+ *
+ * Este arquivo é o que os dois tipos compartilham: cabeçalho, capa, resumo
+ * executivo, indicadores, oportunidades, qualidade das fontes e rodapé.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { CompetenciaDisponivel, PlataformaId, Snapshot } from './snapshot';
+import type { CompetenciaDisponivel, Snapshot } from './snapshot';
 import {
   formatarCarimbo,
   formatarCompetencia,
@@ -21,23 +32,19 @@ import {
   Chip,
   ChipFonte,
   Indicador,
-  Motivo,
   Secao,
-  ValorExibido,
   nomePlataforma,
 } from './componentes';
 import { criarChartTheme, type PropostaId } from './charts/chartTheme';
-import EvolucaoNoTempo from './charts/EvolucaoNoTempo';
-import ComparacaoEntreCanais from './charts/ComparacaoEntreCanais';
-import TabelaDeCampanhas from './charts/TabelaDeCampanhas';
+import { CORPO_POR_TIPO } from './tipos';
 import './report.css';
 
 interface Props {
   snapshot: Snapshot;
   competencias: CompetenciaDisponivel[];
   proposta: PropostaId;
-  /** Rodapé de demonstração com o link para a outra proposta. Só na W0. */
-  demo?: { rotuloOutra: string; hrefOutra: string; descricao: string };
+  /** Rodapé de demonstração com link para outra rota. Só na W0. */
+  demo?: { rotulo: string; href: string; descricao: string };
 }
 
 const ESTADO_PUBLICACAO: Record<string, { texto: string; tom: 'ok' | 'atencao' | 'neutro' }> = {
@@ -64,53 +71,35 @@ function usaPaginaPrivada(titulo: string) {
   }, [titulo]);
 }
 
+const indice = (posicao: number) => String(posicao).padStart(2, '0');
+
 export default function RelatorioMensal({ snapshot, competencias, proposta, demo }: Props) {
   const { identidade, publicacao, leitura } = snapshot;
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
-  const [serieAtiva, setSerieAtiva] = useState<'leads_dia' | 'investimento_dia'>('leads_dia');
 
   const competenciaTexto = formatarCompetencia(identidade.competencia);
-  usaPaginaPrivada(
-    `Relatório ${competenciaTexto} — ${identidade.clienteNome} | Dácora`,
-  );
+  usaPaginaPrivada(`Relatório ${competenciaTexto} — ${identidade.clienteNome} | Dácora`);
 
   const estado = ESTADO_PUBLICACAO[publicacao.estado] ?? {
     texto: publicacao.estado,
     tom: 'neutro' as const,
   };
 
-  const canalPorPlataforma = (id: PlataformaId) =>
-    snapshot.canais.find((c) => c.plataforma === id);
-
-  const metricaDoCanal = (id: PlataformaId, metricaId: string) =>
-    canalPorPlataforma(id)?.metricas.find((m) => m.id === metricaId);
-
-  const itensLeads = snapshot.canais.map((canal) => ({
-    plataforma: canal.plataforma,
-    rotulo: canal.rotulo,
-    valor: metricaDoCanal(canal.plataforma, `${canal.plataforma}_leads`)?.valor ?? {
-      estado: 'ausente' as const,
-      motivo: 'Métrica não presente no snapshot.',
-    },
-  }));
-
-  const itensInvestimento = snapshot.canais.map((canal) => ({
-    plataforma: canal.plataforma,
-    rotulo: canal.rotulo,
-    valor: metricaDoCanal(canal.plataforma, `${canal.plataforma}_investimento`)?.valor ?? {
-      estado: 'ausente' as const,
-      motivo: 'Métrica não presente no snapshot.',
-    },
-  }));
-
-  const rotulosPlataforma = Object.fromEntries(
-    snapshot.canais.map((c) => [c.plataforma, c.rotulo]),
+  /**
+   * O miolo é escolhido pelo TIPO do relatório, não por quem é o cliente. É o
+   * mesmo desenho do `client_report_formats` na fábrica.
+   */
+  const secoesDoMiolo = useMemo(
+    () => CORPO_POR_TIPO[identidade.tipoRelatorio]({ snapshot, theme }),
+    [identidade.tipoRelatorio, snapshot, theme],
   );
 
-  const resumoVerde = proposta === 'B';
+  /** A numeração é posicional: nenhum tipo precisa saber quantas seções o outro tem. */
+  let posicao = 0;
+  const proximo = () => indice(++posicao);
 
   return (
-    <div className="dc-report" data-proposta={proposta}>
+    <div className="dc-report" data-proposta={proposta} data-tipo={identidade.tipoRelatorio}>
       {/* 1 — cabeçalho discreto ------------------------------------- */}
       <header className="dc-topo">
         <div className="dc-largura dc-topo__conteudo">
@@ -120,11 +109,7 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
 
           <div className="dc-topo__seletor">
             <label htmlFor="competencia">Competência</label>
-            <select
-              id="competencia"
-              className="dc-select"
-              defaultValue={identidade.competencia}
-            >
+            <select id="competencia" className="dc-select" defaultValue={identidade.competencia}>
               {competencias.map((c) => (
                 <option key={c.competencia} value={c.competencia} disabled={!c.publicada}>
                   {c.rotulo}
@@ -148,7 +133,9 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
 
             <div className="dc-capa__linha">
               <Chip tom={estado.tom}>{estado.texto}</Chip>
-              <span>Período de {formatarPeriodo(identidade.periodo.inicio, identidade.periodo.fim)}</span>
+              <span>
+                Período de {formatarPeriodo(identidade.periodo.inicio, identidade.periodo.fim)}
+              </span>
               <span>Versão {publicacao.versao}</span>
               {publicacao.aprovadoEm && (
                 <span>Liberado em {formatarCarimbo(publicacao.aprovadoEm)}</span>
@@ -159,16 +146,18 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
 
         {/* 3 — resumo executivo ------------------------------------- */}
         <Secao
-          indice="01"
+          indice={proximo()}
           id="resumo"
           titulo="Resumo do mês"
           apoio="Escrito a partir dos números apurados. Nenhuma causa é inferida: o que não foi medido não é explicado."
         >
           <div
-            className={resumoVerde ? 'dc-destaque' : 'dc-superficie'}
-            data-sobre={resumoVerde ? 'verde' : undefined}
+            className={proposta === 'B' ? 'dc-destaque' : 'dc-superficie'}
+            data-sobre={proposta === 'B' ? 'verde' : undefined}
           >
-            <div className={`dc-resumo ${resumoVerde ? 'dc-resumo--verde' : 'dc-resumo--claro'}`}>
+            <div
+              className={`dc-resumo ${proposta === 'B' ? 'dc-resumo--verde' : 'dc-resumo--claro'}`}
+            >
               {leitura.resumoExecutivo.map((afirmacao) => (
                 <p key={afirmacao.texto}>{afirmacao.texto}</p>
               ))}
@@ -178,10 +167,10 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
 
         {/* 4 — indicadores ------------------------------------------ */}
         <Secao
-          indice="02"
+          indice={proximo()}
           id="indicadores"
-          titulo="Os números que resumem julho"
-          apoio="Cinco indicadores, cada um com a fonte e a base de comparação. Valor que não veio aparece escrito, nunca como zero."
+          titulo={`Os números que resumem ${competenciaTexto.split(' de ')[0]}`}
+          apoio="Cada indicador traz a fonte e a base de comparação. Valor que não veio aparece escrito, nunca como zero."
         >
           <div className="dc-kpis">
             {snapshot.indicadores.map((metrica) => (
@@ -190,139 +179,22 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
           </div>
         </Secao>
 
-        {/* 5 — evolução do período ---------------------------------- */}
+        {/* 5..N — miolo, por tipo de relatório ---------------------- */}
+        {secoesDoMiolo.map((secao) => (
+          <Secao
+            key={secao.id}
+            indice={proximo()}
+            id={secao.id}
+            titulo={secao.titulo}
+            apoio={secao.apoio}
+          >
+            {secao.conteudo}
+          </Secao>
+        ))}
+
+        {/* N+1 — oportunidades e próximos passos -------------------- */}
         <Secao
-          indice="03"
-          id="evolucao"
-          titulo="Como o mês se comportou dia a dia"
-          apoio="Dia sem coleta aparece como interrupção na linha. Nada é preenchido por estimativa."
-        >
-          <div className="dc-superficie">
-            <EvolucaoNoTempo
-              serie={snapshot.series[serieAtiva]}
-              theme={theme}
-              controles={
-                <div className="dc-segmentado" role="group" aria-label="O que mostrar no gráfico">
-                  <button
-                    type="button"
-                    aria-pressed={serieAtiva === 'leads_dia'}
-                    onClick={() => setSerieAtiva('leads_dia')}
-                  >
-                    Leads
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={serieAtiva === 'investimento_dia'}
-                    onClick={() => setSerieAtiva('investimento_dia')}
-                  >
-                    Investimento
-                  </button>
-                </div>
-              }
-            />
-          </div>
-        </Secao>
-
-        {/* 6 — blocos por canal ------------------------------------- */}
-        <Secao
-          indice="04"
-          id="canais"
-          titulo="O que cada canal entregou"
-          apoio="Meta e Google são medidos por contas diferentes. Onde a comparação não é possível, isso está dito em vez de omitido."
-        >
-          <div className="dc-canais">
-            <div className="dc-superficie">
-              <ComparacaoEntreCanais
-                pergunta="De onde vieram os leads?"
-                unidade="inteiro"
-                unidadeTexto="Leads no período"
-                itens={itensLeads}
-                theme={theme}
-              />
-            </div>
-            <div className="dc-superficie">
-              <ComparacaoEntreCanais
-                pergunta="Onde o investimento foi aplicado?"
-                unidade="brl"
-                unidadeTexto="Reais no período"
-                itens={itensInvestimento}
-                theme={theme}
-              />
-            </div>
-          </div>
-
-          <div className="dc-canais" style={{ marginTop: '1.15rem' }}>
-            {snapshot.canais.map((canal) => {
-              const fonte = snapshot.fontes.find((f) => f.plataforma === canal.plataforma);
-              const metricasIncompletas = canal.metricas.filter((m) => m.valor.estado !== 'ok');
-              return (
-                <article key={canal.plataforma} className="dc-superficie dc-canal">
-                  <header className="dc-canal__cabecalho">
-                    <h3 className="dc-canal__nome">
-                      <span
-                        className="dc-canal__marca"
-                        aria-hidden="true"
-                        style={{ background: theme.series[canal.plataforma].cor }}
-                      />
-                      {canal.rotulo}
-                    </h3>
-                    <ChipFonte situacao={canal.situacao} />
-                  </header>
-
-                  <div className="dc-metricas">
-                    {canal.metricas.map((metrica) => (
-                      <div className="dc-metrica" key={metrica.id}>
-                        <span className="dc-metrica__rotulo">{metrica.rotulo}</span>
-                        <ValorExibido
-                          valor={metrica.valor}
-                          unidade={metrica.unidade}
-                          sufixo={metrica.sufixo}
-                          className="dc-metrica__valor"
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {metricasIncompletas.map(
-                    (metrica) =>
-                      metrica.valor.estado !== 'ok' && (
-                        <div className="dc-canal__observacao" key={metrica.id}>
-                          <Motivo texto={`${metrica.rotulo}: ${metrica.valor.motivo}`} />
-                        </div>
-                      ),
-                  )}
-
-                  {fonte && fonte.conta && (
-                    <p className="dc-origem" style={{ marginTop: '0.9rem' }}>
-                      Conta consultada: {fonte.conta}
-                    </p>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        </Secao>
-
-        {/* 7 — campanhas -------------------------------------------- */}
-        <Secao
-          indice="05"
-          id="campanhas"
-          titulo="Campanhas do período"
-          apoio="Ordenadas por leads. No celular, toque no + para ver investimento, impressões, cliques e participação."
-        >
-          <div className="dc-superficie">
-            <TabelaDeCampanhas
-              campanhas={snapshot.campanhas}
-              theme={theme}
-              rotulosPlataforma={rotulosPlataforma}
-              pergunta="Quais campanhas trouxeram os leads do mês e a que custo?"
-            />
-          </div>
-        </Secao>
-
-        {/* 8 — oportunidades e próximos passos ---------------------- */}
-        <Secao
-          indice="06"
+          indice={proximo()}
           id="proximos-passos"
           titulo="Oportunidades e próximos passos"
           apoio="Cada item aponta para um número deste relatório. Nada aqui é promessa de resultado."
@@ -331,18 +203,14 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
             <BlocoLeitura titulo="Destaques" tom="destaques" itens={leitura.destaques} />
             <BlocoLeitura titulo="Pontos de atenção" tom="atencao" itens={leitura.atencao} />
           </div>
-          <div style={{ marginTop: '1.15rem' }}>
-            <BlocoLeitura
-              titulo="Próximos passos"
-              tom="passos"
-              itens={leitura.proximosPassos}
-            />
+          <div className="dc-espaco-bloco">
+            <BlocoLeitura titulo="Próximos passos" tom="passos" itens={leitura.proximosPassos} />
           </div>
         </Secao>
 
-        {/* 9 — qualidade dos dados ---------------------------------- */}
+        {/* N+2 — qualidade dos dados -------------------------------- */}
         <Secao
-          indice="07"
+          indice={proximo()}
           id="qualidade"
           titulo="Qualidade dos dados e fontes"
           apoio="De onde veio cada número, quando foi coletado e o que faltou. Esta seção é parte do relatório, não um apêndice."
@@ -379,7 +247,7 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
           </div>
         </Secao>
 
-        {/* 10 — rodapé ---------------------------------------------- */}
+        {/* rodapé ---------------------------------------------------- */}
         <footer className="dc-rodape">
           <span className="dc-rodape__marca">Dácora Performance Digital</span>
           <p>
@@ -406,10 +274,10 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
 
         {/* Barra de demonstração — não faz parte do relatório -------- */}
         {demo && (
-          <aside className="dc-demo dc-no-print" aria-label="Comparação entre propostas visuais">
+          <aside className="dc-demo dc-no-print" aria-label="Outras telas da demonstração">
             <strong>Proposta {proposta}</strong>
             <span>{demo.descricao}</span>
-            <Link to={demo.hrefOutra}>Ver a proposta {demo.rotuloOutra}</Link>
+            <Link to={demo.href}>{demo.rotulo}</Link>
           </aside>
         )}
       </main>

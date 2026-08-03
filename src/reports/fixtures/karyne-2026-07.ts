@@ -194,6 +194,7 @@ export const karyne202607: Snapshot = {
     {
       plataforma: 'meta',
       rotulo: 'Meta Ads',
+      papel: 'midia',
       situacao: 'sucesso',
       metricas: [
         {
@@ -250,6 +251,7 @@ export const karyne202607: Snapshot = {
     {
       plataforma: 'google',
       rotulo: 'Google Ads',
+      papel: 'midia',
       situacao: 'parcial',
       metricas: [
         {
@@ -317,6 +319,8 @@ export const karyne202607: Snapshot = {
       nome: '[Leads] Consultoria — público frio',
       plataforma: 'meta',
       objetivo: 'Cadastro',
+      natureza: 'cadastro',
+      resultado: 'leads',
       situacao: 'ativa',
       investimento: { estado: 'ok', numero: 2914.6 },
       leads: { estado: 'ok', numero: 61 },
@@ -330,6 +334,8 @@ export const karyne202607: Snapshot = {
       nome: '[Leads] Remarketing 30 dias',
       plataforma: 'meta',
       objetivo: 'Cadastro',
+      natureza: 'cadastro',
+      resultado: 'leads',
       situacao: 'ativa',
       investimento: { estado: 'ok', numero: 1208.45 },
       leads: { estado: 'ok', numero: 44 },
@@ -343,6 +349,8 @@ export const karyne202607: Snapshot = {
       nome: '[Leads] Semelhante 1% — base de clientes',
       plataforma: 'meta',
       objetivo: 'Cadastro',
+      natureza: 'cadastro',
+      resultado: 'leads',
       situacao: 'ativa',
       investimento: { estado: 'ok', numero: 1641.32 },
       leads: { estado: 'ok', numero: 33 },
@@ -356,6 +364,8 @@ export const karyne202607: Snapshot = {
       nome: '[Reconhecimento] Institucional julho',
       plataforma: 'meta',
       objetivo: 'Reconhecimento',
+      natureza: 'reconhecimento',
+      resultado: 'leads',
       situacao: 'pausada',
       investimento: { estado: 'ok', numero: 718.0 },
       leads: { estado: 'ok', numero: 6 },
@@ -369,6 +379,8 @@ export const karyne202607: Snapshot = {
       nome: '[Pesquisa] Marca',
       plataforma: 'google',
       objetivo: 'Cadastro',
+      natureza: 'cadastro',
+      resultado: 'leads',
       situacao: 'ativa',
       investimento: { estado: 'ok', numero: 612.4 },
       leads: { estado: 'ok', numero: 19 },
@@ -382,6 +394,8 @@ export const karyne202607: Snapshot = {
       nome: '[Pesquisa] Serviço — termos gerais',
       plataforma: 'google',
       objetivo: 'Cadastro',
+      natureza: 'cadastro',
+      resultado: 'leads',
       situacao: 'ativa',
       investimento: { estado: 'ok', numero: 1883.15 },
       leads: { estado: 'ok', numero: 24 },
@@ -395,6 +409,8 @@ export const karyne202607: Snapshot = {
       nome: '[Performance Max] Captação',
       plataforma: 'google',
       objetivo: 'Cadastro',
+      natureza: 'cadastro',
+      resultado: 'leads',
       situacao: 'ativa',
       investimento: { estado: 'ok', numero: 622.35 },
       leads: { estado: 'ok', numero: 8 },

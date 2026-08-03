@@ -22,10 +22,10 @@ export default function RelatorioDemoB() {
       competencias={competenciasKaryne}
       proposta="B"
       demo={{
-        rotuloOutra: 'A',
-        hrefOutra: '/relatorios/demo/a',
+        rotulo: 'Ver o modelo de e-commerce',
+        href: '/relatorios/demo/ecommerce',
         descricao:
-          'Composição: só Red Hat Display, escala grande, indicadores sem caixa, resumo em verde.',
+          'Modelo de serviços e leads. O modelo de e-commerce usa esta mesma pele, com outro miolo.',
       }}
     />
   );

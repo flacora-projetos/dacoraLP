@@ -22,8 +22,8 @@ export default function RelatorioDemoA() {
       competencias={competenciasKaryne}
       proposta="A"
       demo={{
-        rotuloOutra: 'B',
-        hrefOutra: '/relatorios/demo/b',
+        rotulo: 'Ver a proposta B',
+        href: '/relatorios/demo/b',
         descricao:
           'Editorial: serif nos títulos e números, filetes de seção, capa em verde.',
       }}

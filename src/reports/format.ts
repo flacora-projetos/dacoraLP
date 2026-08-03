@@ -145,6 +145,19 @@ export function textoValor(valor: Valor, unidade: Unidade, sufixo?: string): str
   return valor.estado === 'ausente' ? ROTULO_AUSENTE : ROTULO_FALHA;
 }
 
+/**
+ * Percentual com UMA casa, resolvendo os três estados.
+ *
+ * Existe porque `formatarNumero(..., 'percentual')` aceita até duas casas, e
+ * o mesmo percentual acabava saindo "23,78%" no número grande e "23,8%" no
+ * texto ao lado dele. Dois arredondamentos do mesmo valor na mesma tela fazem
+ * o leitor duvidar do relatório inteiro — com razão.
+ */
+export function textoPercentual1(valor: Valor): string {
+  if (valor.estado === 'ok') return formatarParticipacao(valor.numero);
+  return valor.estado === 'ausente' ? ROTULO_AUSENTE : ROTULO_FALHA;
+}
+
 export function ehOk(valor: Valor): valor is { estado: 'ok'; numero: number } {
   return valor.estado === 'ok';
 }

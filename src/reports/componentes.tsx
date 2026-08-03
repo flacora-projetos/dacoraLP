@@ -159,6 +159,7 @@ export function ComparativoExibido({
 const NOME_PLATAFORMA: Record<PlataformaId, string> = {
   meta: 'Meta Ads',
   google: 'Google Ads',
+  pinterest: 'Pinterest Ads',
   ga4: 'Google Analytics 4',
   instagram: 'Instagram',
   ecommerce: 'Loja',

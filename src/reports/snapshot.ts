@@ -21,6 +21,12 @@ export const VERSAO_SCHEMA = '2026-08-w0';
 /* Identidade                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * O tipo do relatório é o que decide o formato da página. É o equivalente,
+ * aqui, ao `client_report_formats` do repositório da fábrica: o layout muda
+ * por TIPO, nunca por nome de cliente. Cliente novo de e-commerce recebe
+ * `ecommerce` no snapshot e ganha o modelo inteiro sem uma linha de código.
+ */
 export type TipoRelatorio = 'servicos_leads' | 'ecommerce';
 
 export interface Periodo {
@@ -49,7 +55,13 @@ export interface Identidade {
 /* Fontes                                                              */
 /* ------------------------------------------------------------------ */
 
-export type PlataformaId = 'meta' | 'google' | 'ga4' | 'instagram' | 'ecommerce';
+export type PlataformaId =
+  | 'meta'
+  | 'google'
+  | 'pinterest'
+  | 'ga4'
+  | 'instagram'
+  | 'ecommerce';
 
 /**
  * `sucesso`        — tudo que se esperava veio.
@@ -158,6 +170,13 @@ export interface Serie {
   pergunta: string;
   granularidade: 'dia' | 'semana' | 'campanha';
   unidade: Unidade;
+  /**
+   * O que está sendo medido, em uma linha curta. É onde a receita declara a
+   * fonte: "Reais atribuídos pelas plataformas, por dia" não é a mesma coisa
+   * que "Reais faturados pela loja, por dia". Quando ausente, a página cai
+   * num texto genérico derivado da unidade.
+   */
+  unidadeTexto?: string;
   chaves: ChaveSerie[];
   pontos: PontoSerie[];
   observacoes: string[];
@@ -170,24 +189,139 @@ export interface Serie {
 export interface Canal {
   plataforma: PlataformaId;
   rotulo: string;
+  /**
+   * O papel separa quem investe (`midia`) de quem só mede (`medicao`) e de
+   * quem registra a venda (`loja`). A página usa isto para nunca colocar GA4
+   * num gráfico de investimento e nunca somar loja com mídia.
+   */
+  papel: PapelFonte;
   situacao: SituacaoFonte;
   metricas: Metrica[];
+  /** Uma linha de contexto do canal, quando o número sozinho engana. */
+  nota?: string;
 }
 
 export type SituacaoCampanha = 'ativa' | 'pausada' | 'encerrada';
 
-export interface Campanha {
+/**
+ * A natureza é o que a campanha foi comprada para fazer. Ela existe para
+ * impedir a soma errada: campanha de venda, de tráfego e de mensagem não vão
+ * para o mesmo total, porque o resultado delas não é a mesma coisa.
+ */
+export type NaturezaCampanha =
+  | 'venda'
+  | 'cadastro'
+  | 'trafego'
+  | 'mensagem'
+  | 'reconhecimento';
+
+interface CampanhaBase {
   id: string;
   nome: string;
   plataforma: PlataformaId;
   objetivo: string;
+  natureza: NaturezaCampanha;
   situacao: SituacaoCampanha;
   investimento: Valor;
-  leads: Valor;
-  custoPorLead: Valor;
   impressoes: Valor;
   cliques: Valor;
   ctr: Valor;
+}
+
+export interface CampanhaLeads extends CampanhaBase {
+  resultado: 'leads';
+  leads: Valor;
+  custoPorLead: Valor;
+}
+
+export interface CampanhaVenda extends CampanhaBase {
+  resultado: 'venda';
+  compras: Valor;
+  /**
+   * Receita que ESTA plataforma atribui a si. Nunca é faturamento, nunca pode
+   * ser somada com o que a loja registrou, e o rótulo na tela é obrigado a
+   * dizer quem atribuiu.
+   */
+  receitaAtribuida: Valor;
+  /** Receita atribuída ÷ investimento desta campanha. */
+  roas: Valor;
+  custoPorCompra: Valor;
+  /** Janela de atribuição declarada pela plataforma, em português. */
+  janelaAtribuicao: string;
+}
+
+/** Campanha que não foi comprada para vender: tráfego, mensagem, alcance. */
+export interface CampanhaSemVenda extends CampanhaBase {
+  resultado: 'sem_venda';
+  /** Por que não há receita atribuída a ela. Aparece na tela. */
+  motivo: string;
+  /** O resultado próprio da natureza dela, quando existe. */
+  resultadoProprio?: {
+    rotulo: string;
+    valor: Valor;
+    unidade: Unidade;
+    custoRotulo?: string;
+    custo?: Valor;
+  };
+}
+
+export type Campanha = CampanhaLeads | CampanhaVenda | CampanhaSemVenda;
+
+/* ------------------------------------------------------------------ */
+/* Confronto entre o que a mídia atribui e o que a loja registrou      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Só o relatório de e-commerce usa este bloco.
+ *
+ * Ele existe porque a soma do que as plataformas atribuem quase nunca é igual
+ * ao faturamento da loja, e as duas formas erradas de lidar com isso são
+ * esconder a diferença ou eleger um dos números como "o verdadeiro". Aqui os
+ * dois aparecem inteiros, com o que cada um conta e em que janela, e a
+ * diferença é apresentada como diferença — sem causa inventada.
+ */
+export interface FonteDeVenda {
+  id: string;
+  rotulo: string;
+  papel: PapelFonte;
+  /** O que essa fonte conta, em português. */
+  oQueConta: string;
+  /** Janela declarada por ela. */
+  janela: string;
+  receita: Valor;
+  pedidos: Valor;
+  /** `true` para a linha de soma das plataformas de mídia. */
+  soma?: boolean;
+  observacao?: string;
+}
+
+export interface LadoDoConfronto {
+  rotulo: string;
+  descricao: string;
+  receita: Valor;
+  pedidos: Valor;
+  /** Rótulo da contagem: "compras atribuídas" x "pedidos pagos". */
+  pedidosRotulo: string;
+}
+
+export interface ConfrontoReceita {
+  midia: LadoDoConfronto;
+  loja: LadoDoConfronto;
+  diferenca: {
+    receita: Valor;
+    receitaPercentual: Valor;
+    pedidos: Valor;
+    pedidosPercentual: Valor;
+    /** Sobre o que o percentual foi calculado. */
+    base: string;
+  };
+  /**
+   * Texto montado pelo gerador a partir dos números já apurados — o mesmo
+   * padrão da "Leitura do período". Nunca escrito por modelo, nunca com causa
+   * que ninguém mediu.
+   */
+  explicacao: string[];
+  fontes: FonteDeVenda[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -242,6 +376,8 @@ export interface Snapshot {
   campanhas: Campanha[];
   /** Indexadas por id para a página escolher sem varrer array. */
   series: Record<string, Serie>;
+  /** Presente só quando há loja e mídia contando venda ao mesmo tempo. */
+  confrontoReceita?: ConfrontoReceita;
   leitura: Leitura;
   publicacao: Publicacao;
 }

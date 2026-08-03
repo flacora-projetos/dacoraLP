@@ -155,6 +155,21 @@
   gap: 0.5rem;
 }
 
+/* Em tela estreita o seletor desce para a própria linha em vez de empurrar o
+   cabeçalho para fora da viewport — era isso que fazia a página inteira rolar
+   de lado no celular, nas três rotas. */
+@media (max-width: 480px) {
+  .dc-topo__seletor {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dc-topo__seletor .dc-select {
+    max-width: 62%;
+  }
+}
+
 .dc-topo__seletor label {
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -1029,6 +1044,22 @@
   background: rgba(74, 94, 85, 0.1);
 }
 
+/* Mesma rampa verde-cinza da marca; nenhuma cor de plataforma entra aqui. */
+.dc-chip-canal[data-plataforma='pinterest'] {
+  color: #57685f;
+  background: rgba(110, 131, 122, 0.16);
+}
+
+.dc-chip-canal[data-plataforma='ecommerce'] {
+  color: var(--dc-tinta);
+  background: rgba(13, 31, 24, 0.08);
+}
+
+.dc-chip-canal[data-plataforma='ga4'] {
+  color: var(--dc-cinza);
+  background: rgba(138, 158, 149, 0.18);
+}
+
 .dc-campanha__situacao {
   font-size: 0.7rem;
   font-weight: 600;
@@ -1184,8 +1215,285 @@
     max-width: 22ch;
   }
   .dc-barra-embutida__trilho {
-    width: 4.5rem;
+    width: 3.25rem;
   }
+  .dc-barra-embutida__valor {
+    font-size: 0.94rem;
+  }
+
+  /* Rede de segurança: se um nome de campanha muito longo ainda empurrar a
+     grade, quem rola é a tabela dentro do bloco — nunca a página inteira.
+     A promessa do plano é que o relatório não role de lado no celular. */
+  .dc-campanhas {
+    overflow-x: auto;
+  }
+}
+
+/* ---------- Confronto entre mídia e loja (modelo de e-commerce) -------- */
+
+/* Regra do bloco: os dois números têm exatamente o mesmo tratamento
+   tipográfico. Dar mais peso a um deles seria eleger um como o verdadeiro,
+   que é justamente o que este relatório se recusa a fazer. */
+
+/* `minmax(0, 1fr)` não é enfeite: sem ele, a largura mínima da tabela de
+   fontes (40rem) empurra a coluna do grid e leva TODO o bloco para além da
+   tela no celular. Com ele, quem rola é só o container da tabela. */
+.dc-confronto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.dc-confronto__quadro {
+  padding: clamp(1.25rem, 0.9rem + 1.6vw, 2rem);
+}
+
+.dc-confronto__lados {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 820px) {
+  .dc-confronto__lados {
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    gap: clamp(1.5rem, 0.8rem + 2.4vw, 2.75rem);
+  }
+}
+
+.dc-confronto__separador {
+  background: var(--dc-filete);
+  height: 1px;
+  align-self: stretch;
+}
+
+@media (min-width: 820px) {
+  .dc-confronto__separador {
+    width: 1px;
+    height: auto;
+  }
+}
+
+.dc-confronto__lado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dc-confronto__rotulo {
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  line-height: 1.45;
+  max-width: 26ch;
+}
+
+.dc-confronto__valor {
+  font-family: var(--dc-fonte-numero);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 1.3rem + 2.8vw, 2.85rem);
+  color: var(--dc-tinta);
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+.dc-report[data-proposta='B'] .dc-confronto__valor {
+  font-weight: 300;
+  letter-spacing: -0.045em;
+}
+
+.dc-confronto__contagem {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--dc-tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-confronto__descricao {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--dc-cinza);
+  max-width: 44ch;
+}
+
+.dc-confronto__diferenca {
+  margin-top: clamp(1.25rem, 0.9rem + 1.4vw, 1.9rem);
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--dc-filete-forte);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dc-confronto__diferenca-rotulo {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+}
+
+.dc-confronto__diferenca-valor {
+  font-family: var(--dc-fonte-numero);
+  font-size: clamp(1.35rem, 1.1rem + 1.1vw, 1.8rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--dc-tinta);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.dc-confronto__diferenca-percentual {
+  font-family: var(--dc-fonte-base);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--dc-cinza);
+}
+
+.dc-confronto__diferenca-secundaria {
+  font-size: 0.88rem;
+  color: var(--dc-cinza);
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-confronto__texto p {
+  font-size: clamp(0.96rem, 0.92rem + 0.28vw, 1.06rem);
+  line-height: 1.62;
+  color: var(--dc-tinta);
+  max-width: 68ch;
+}
+
+.dc-confronto__texto p + p {
+  margin-top: 0.8rem;
+}
+
+.dc-confronto__texto p:first-child {
+  font-weight: 500;
+}
+
+.dc-confronto__titulo-tabela,
+.dc-subtitulo {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  margin-bottom: 0.9rem;
+}
+
+.dc-confronto__rolagem {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.dc-tabela-fontes-venda {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  min-width: 40rem;
+}
+
+.dc-tabela-fontes-venda thead th {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  text-align: left;
+  padding: 0 0.6rem 0.7rem;
+  border-bottom: 1px solid var(--dc-filete-forte);
+  vertical-align: bottom;
+}
+
+.dc-tabela-fontes-venda thead th.dc-num,
+.dc-tabela-fontes-venda tbody td.dc-num {
+  text-align: right;
+}
+
+.dc-tabela-fontes-venda tbody th[scope='row'] {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.75rem 0.6rem;
+  vertical-align: top;
+  color: var(--dc-tinta);
+}
+
+.dc-tabela-fontes-venda tbody td {
+  padding: 0.75rem 0.6rem;
+  vertical-align: top;
+  color: var(--dc-cinza);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-tabela-fontes-venda tbody td.dc-num {
+  color: var(--dc-tinta);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dc-tabela-fontes-venda tbody tr > * {
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+/* A linha de soma é a única com peso diferente — e o texto dela avisa que
+   somar não desfaz a sobreposição entre as plataformas. */
+.dc-tabela-fontes-venda tbody tr[data-soma='sim'] > * {
+  background: rgba(13, 31, 24, 0.035);
+  border-top: 1px solid var(--dc-filete-forte);
+}
+
+.dc-fonte-venda__nome {
+  display: block;
+}
+
+.dc-fonte-venda__observacao {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--dc-cinza);
+  max-width: 24ch;
+}
+
+/* ---------- Espaçamentos e apoios comuns ------------------------------- */
+
+.dc-espaco-bloco {
+  margin-top: 1.15rem;
+}
+
+.dc-canal__nota,
+.dc-campanhas__nota {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--dc-cinza);
+  max-width: 62ch;
+  margin-bottom: 0.9rem;
+}
+
+.dc-canal__nota {
+  margin-top: -0.35rem;
+}
+
+.dc-campanha__natureza {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  padding: 0.12rem 0.45rem;
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 4px;
 }
 
 /* ---------- Listas de leitura ----------------------------------------- */
@@ -1438,8 +1746,21 @@
   .dc-kpi,
   .dc-canal,
   .dc-grafico,
-  .dc-fonte {
+  .dc-fonte,
+  .dc-confronto__quadro,
+  .dc-confronto__texto {
     break-inside: avoid;
+  }
+
+  /* A tabela de fontes de venda não pode sair cortada nem rolar: na
+     impressão ela perde a largura mínima e encolhe a fonte. */
+  .dc-confronto__rolagem {
+    overflow: visible;
+  }
+
+  .dc-tabela-fontes-venda {
+    min-width: 0;
+    font-size: 0.72rem;
   }
 
   .dc-capa__caixa {

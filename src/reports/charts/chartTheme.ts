@@ -35,6 +35,13 @@ export const PALETA = {
   tinta: '#0D1F18', // dacora-dark
   cinza: '#4A5E55', // dacora-gray
   sage: '#8A9E95', // dacora-sage
+  /**
+   * Degrau intermediário da MESMA rampa verde-cinza da marca, entre `cinza` e
+   * `sage`. Entrou para o Pinterest ter identidade própria num gráfico com
+   * Meta e Google sem estrear um matiz novo. Contraste de 4,0:1 sobre branco,
+   * acima do mínimo de 3:1 exigido para elemento gráfico.
+   */
+  sageEscuro: '#6E837A',
   papel: '#F2EFEB', // dacora-offwhite
   superficie: '#FFFFFF',
   /** Único acento fora dos tokens: sinal de atenção. Nunca é série de gráfico. */
@@ -91,6 +98,7 @@ export interface ChartTheme {
 const SERIES: Record<PlataformaId, EstiloSerie> = {
   meta: { id: 'meta', cor: PALETA.verde, textura: 'solido' },
   google: { id: 'google', cor: PALETA.cinza, tracejado: '6 4', textura: 'hachura' },
+  pinterest: { id: 'pinterest', cor: PALETA.sageEscuro, tracejado: '3 3', textura: 'hachura' },
   ga4: { id: 'ga4', cor: PALETA.sage, tracejado: '2 4', textura: 'hachura' },
   instagram: { id: 'instagram', cor: PALETA.verdeMedio, tracejado: '10 4', textura: 'hachura' },
   ecommerce: { id: 'ecommerce', cor: PALETA.tinta, textura: 'solido' },

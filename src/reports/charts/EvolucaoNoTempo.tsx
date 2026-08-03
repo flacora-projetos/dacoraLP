@@ -91,7 +91,8 @@ export default function EvolucaoNoTempo({ serie, theme, controles }: Props) {
     <MolduraGrafico
       pergunta={serie.pergunta}
       unidadeTexto={
-        serie.unidade === 'brl' ? 'Em reais, por dia' : 'Em contatos, por dia'
+        serie.unidadeTexto ??
+        (serie.unidade === 'brl' ? 'Em reais, por dia' : 'Em contatos, por dia')
       }
       resumo={resumirSerie(serie)}
       legenda={serie.chaves.map((c) => ({

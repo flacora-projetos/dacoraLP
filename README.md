@@ -53,6 +53,25 @@ outro repositório, em
 **Ler o plano antes de mexer em qualquer coisa sob `src/reports/`** — várias
 escolhas que parecem estranhas ali são deliberadas e estão justificadas lá.
 
+### Duas variações, que são coisas diferentes
+
+- **Proposta visual (A/B)** — a pele. Vive no CSS, em `[data-proposta]`, e no
+  `chartTheme`. Não muda o que a página diz. A **B foi a escolhida** pelo
+  Flávio e pela Fernanda; a A continua nas rotas atuais e sai quando a W0
+  fechar.
+- **Tipo de relatório (`servicos_leads` × `ecommerce`)** — o miolo. Vive em
+  `src/reports/tipos/`, resolvido por `identidade.tipoRelatorio` no snapshot.
+  É o equivalente ao `client_report_formats` do repositório da fábrica.
+
+**O layout nunca muda por nome de cliente.** Se um dia aparecer um `if` com
+nome de cliente sob `src/reports/`, o desenho quebrou. Cliente novo de
+e-commerce ganha o modelo inteiro só por ter `tipoRelatorio: 'ecommerce'` no
+snapshot dele.
+
+Rotas hoje: `/relatorios/demo/a` e `/relatorios/demo/b` (serviços e leads, as
+duas propostas visuais) e `/relatorios/demo/ecommerce` (modelo de e-commerce,
+na pele B).
+
 O que precisa ser sabido antes de tocar no código:
 
 - as rotas de relatório são **privadas**: `noindex` pela meta tag e pelo

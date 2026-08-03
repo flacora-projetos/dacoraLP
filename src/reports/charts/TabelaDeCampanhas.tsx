@@ -5,19 +5,64 @@
  * celular as colunas secundárias saem da grade e reaparecem numa linha
  * expansível, então nunca há rolagem lateral e nada depende de hover.
  * Na impressão, todas as linhas de detalhe abrem.
+ *
+ * O componente não sabe o que é um lead nem o que é uma compra. Ele recebe
+ * uma coluna principal (a que ganha barra embutida e define a ordenação),
+ * as demais colunas e o total. Quem traduz `Campanha` para isso é o módulo
+ * do TIPO de relatório, em `src/reports/tipos/`.
+ *
+ * Uma tabela por natureza de campanha, de propósito: venda, tráfego e
+ * mensagem não compartilham colunas nem total, e forçá-las na mesma grade
+ * seria somar coisas diferentes.
  */
 
 import { useState } from 'react';
-import type { Campanha, PlataformaId, Valor } from '../snapshot';
-import { formatarNumero, formatarParticipacao, textoValor } from '../format';
+import type { PlataformaId, SituacaoCampanha, Unidade, Valor } from '../snapshot';
+import { formatarParticipacao, textoValor } from '../format';
 import type { ChartTheme } from './chartTheme';
 
+export interface ColunaCampanha {
+  id: string;
+  rotulo: string;
+  unidade: Unidade;
+  sufixo?: string;
+  /** Sai da grade no celular e reaparece na linha de detalhe. */
+  secundaria?: boolean;
+}
+
+export interface LinhaCampanha {
+  id: string;
+  nome: string;
+  plataforma: PlataformaId;
+  situacao: SituacaoCampanha;
+  /** Natureza em uma palavra: "Venda", "Tráfego", "Mensagem". */
+  etiqueta?: string;
+  /** Valor da coluna principal. É ele que vira barra e ordena a tabela. */
+  principal: Valor;
+  colunas: Record<string, Valor>;
+  detalhes: { rotulo: string; texto: string }[];
+}
+
+export interface TotalCampanhas {
+  rotulo: string;
+  principal: Valor;
+  /** Coluna sem total legítimo fica `null` e a célula sai vazia. */
+  colunas: Record<string, Valor | null>;
+}
+
 interface Props {
-  campanhas: Campanha[];
-  theme: ChartTheme;
-  rotulosPlataforma: Record<string, string>;
   /** Pergunta que a tabela responde. Vira o título acessível. */
   pergunta: string;
+  theme: ChartTheme;
+  rotulosPlataforma: Record<string, string>;
+  principal: ColunaCampanha;
+  colunas: ColunaCampanha[];
+  linhas: LinhaCampanha[];
+  total: TotalCampanhas;
+  /** Ressalva que vale para a tabela inteira. */
+  nota?: string;
+  /** Rótulo da participação mostrada no detalhe. */
+  participacaoRotulo?: string;
 }
 
 const SITUACAO: Record<string, string> = {
@@ -26,65 +71,84 @@ const SITUACAO: Record<string, string> = {
   encerrada: 'Encerrada',
 };
 
-function numero(valor: Valor): number {
-  return valor.estado === 'ok' ? valor.numero : 0;
+/** Só para ordenar e dimensionar a barra. Ausência e falha vão para o fim. */
+function ordenavel(valor: Valor): number {
+  return valor.estado === 'ok' ? valor.numero : -1;
 }
 
 export default function TabelaDeCampanhas({
-  campanhas,
+  pergunta,
   theme,
   rotulosPlataforma,
-  pergunta,
+  principal,
+  colunas,
+  linhas,
+  total,
+  nota,
+  participacaoRotulo,
 }: Props) {
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
 
-  const ordenadas = [...campanhas].sort((a, b) => numero(b.leads) - numero(a.leads));
-  const maiorLeads = Math.max(...ordenadas.map((c) => numero(c.leads)), 1);
-  const totalLeads = ordenadas.reduce((soma, c) => soma + numero(c.leads), 0);
+  const ordenadas = [...linhas].sort((a, b) => ordenavel(b.principal) - ordenavel(a.principal));
+  const maior = Math.max(...ordenadas.map((l) => ordenavel(l.principal)), 1);
+  const somaPrincipal = ordenadas
+    .map((l) => (l.principal.estado === 'ok' ? l.principal.numero : 0))
+    .reduce((a, b) => a + b, 0);
 
-  const alternar = (id: string) =>
-    setAbertas((atual) => ({ ...atual, [id]: !atual[id] }));
+  const totalColunas = 2 + colunas.length + 1;
+
+  const alternar = (id: string) => setAbertas((atual) => ({ ...atual, [id]: !atual[id] }));
 
   return (
     <div className="dc-campanhas">
+      {nota && <p className="dc-campanhas__nota">{nota}</p>}
+
       <table className="dc-tabela-campanhas">
         <caption className="dc-sr">{pergunta}</caption>
         <thead>
           <tr>
             <th scope="col">Campanha</th>
             <th scope="col" className="dc-num">
-              Leads
+              {principal.rotulo}
             </th>
-            <th scope="col" className="dc-num">
-              Custo por lead
-            </th>
-            <th scope="col" className="dc-num dc-col-secundaria">
-              Investimento
-            </th>
-            <th scope="col" className="dc-num dc-col-secundaria">
-              Taxa de cliques
-            </th>
+            {colunas.map((coluna) => (
+              <th
+                key={coluna.id}
+                scope="col"
+                className={coluna.secundaria ? 'dc-num dc-col-secundaria' : 'dc-num'}
+              >
+                {coluna.rotulo}
+              </th>
+            ))}
             <th scope="col">
               <span className="dc-sr">Detalhes</span>
             </th>
           </tr>
         </thead>
+
         <tbody>
-          {ordenadas.map((campanha) => {
-            const aberta = !!abertas[campanha.id];
-            const leads = numero(campanha.leads);
-            const proporcao = leads / maiorLeads;
-            const estilo = theme.series[campanha.plataforma as PlataformaId];
+          {ordenadas.map((linha) => {
+            const aberta = !!abertas[linha.id];
+            const proporcao = Math.max(ordenavel(linha.principal), 0) / maior;
+            const estilo = theme.series[linha.plataforma];
+            const participacao =
+              somaPrincipal > 0 && linha.principal.estado === 'ok'
+                ? formatarParticipacao(linha.principal.numero / somaPrincipal)
+                : '—';
+
             return [
-              <tr key={campanha.id} className={aberta ? 'dc-linha dc-linha--aberta' : 'dc-linha'}>
+              <tr key={linha.id} className={aberta ? 'dc-linha dc-linha--aberta' : 'dc-linha'}>
                 <th scope="row">
-                  <span className="dc-campanha__nome">{campanha.nome}</span>
+                  <span className="dc-campanha__nome">{linha.nome}</span>
                   <span className="dc-campanha__meta">
-                    <span className="dc-chip-canal" data-plataforma={campanha.plataforma}>
-                      {rotulosPlataforma[campanha.plataforma] ?? campanha.plataforma}
+                    <span className="dc-chip-canal" data-plataforma={linha.plataforma}>
+                      {rotulosPlataforma[linha.plataforma] ?? linha.plataforma}
                     </span>
-                    <span className="dc-campanha__situacao" data-situacao={campanha.situacao}>
-                      {SITUACAO[campanha.situacao] ?? campanha.situacao}
+                    {linha.etiqueta && (
+                      <span className="dc-campanha__natureza">{linha.etiqueta}</span>
+                    )}
+                    <span className="dc-campanha__situacao" data-situacao={linha.situacao}>
+                      {SITUACAO[linha.situacao] ?? linha.situacao}
                     </span>
                   </span>
                 </th>
@@ -105,29 +169,32 @@ export default function TabelaDeCampanhas({
                       />
                     </span>
                     <span className="dc-barra-embutida__valor">
-                      {textoValor(campanha.leads, 'inteiro')}
+                      {textoValor(linha.principal, principal.unidade, principal.sufixo)}
                     </span>
                   </span>
                 </td>
 
-                <td className="dc-num">{textoValor(campanha.custoPorLead, 'brl')}</td>
-                <td className="dc-num dc-col-secundaria">
-                  {textoValor(campanha.investimento, 'brl')}
-                </td>
-                <td className="dc-num dc-col-secundaria">
-                  {textoValor(campanha.ctr, 'percentual')}
-                </td>
+                {colunas.map((coluna) => (
+                  <td
+                    key={coluna.id}
+                    className={coluna.secundaria ? 'dc-num dc-col-secundaria' : 'dc-num'}
+                  >
+                    {linha.colunas[coluna.id]
+                      ? textoValor(linha.colunas[coluna.id], coluna.unidade, coluna.sufixo)
+                      : '—'}
+                  </td>
+                ))}
 
                 <td className="dc-acao">
                   <button
                     type="button"
                     className="dc-botao-detalhe"
                     aria-expanded={aberta}
-                    aria-controls={`detalhe-${campanha.id}`}
-                    onClick={() => alternar(campanha.id)}
+                    aria-controls={`detalhe-${linha.id}`}
+                    onClick={() => alternar(linha.id)}
                   >
                     <span className="dc-sr">
-                      {aberta ? 'Fechar detalhes de' : 'Ver detalhes de'} {campanha.nome}
+                      {aberta ? 'Fechar detalhes de' : 'Ver detalhes de'} {linha.nome}
                     </span>
                     <span aria-hidden="true" className="dc-botao-detalhe__sinal">
                       {aberta ? '−' : '+'}
@@ -137,54 +204,50 @@ export default function TabelaDeCampanhas({
               </tr>,
 
               <tr
-                key={`${campanha.id}-detalhe`}
-                id={`detalhe-${campanha.id}`}
+                key={`${linha.id}-detalhe`}
+                id={`detalhe-${linha.id}`}
                 className="dc-detalhe"
                 hidden={!aberta}
               >
-                <td colSpan={6}>
+                <td colSpan={totalColunas}>
                   <dl className="dc-detalhe__lista">
-                    <div>
-                      <dt>Investimento</dt>
-                      <dd>{textoValor(campanha.investimento, 'brl')}</dd>
-                    </div>
-                    <div>
-                      <dt>Impressões</dt>
-                      <dd>{textoValor(campanha.impressoes, 'inteiro')}</dd>
-                    </div>
-                    <div>
-                      <dt>Cliques</dt>
-                      <dd>{textoValor(campanha.cliques, 'inteiro')}</dd>
-                    </div>
-                    <div>
-                      <dt>Taxa de cliques</dt>
-                      <dd>{textoValor(campanha.ctr, 'percentual')}</dd>
-                    </div>
-                    <div>
-                      <dt>Objetivo</dt>
-                      <dd>{campanha.objetivo}</dd>
-                    </div>
-                    <div>
-                      <dt>Participação nos leads</dt>
-                      <dd>
-                        {totalLeads > 0
-                          ? formatarParticipacao(numero(campanha.leads) / totalLeads)
-                          : '—'}
-                      </dd>
-                    </div>
+                    {linha.detalhes.map((item) => (
+                      <div key={item.rotulo}>
+                        <dt>{item.rotulo}</dt>
+                        <dd>{item.texto}</dd>
+                      </div>
+                    ))}
+                    {participacaoRotulo && (
+                      <div>
+                        <dt>{participacaoRotulo}</dt>
+                        <dd>{participacao}</dd>
+                      </div>
+                    )}
                   </dl>
                 </td>
               </tr>,
             ];
           })}
         </tbody>
+
         <tfoot>
           <tr>
-            <th scope="row">Total do período</th>
-            <td className="dc-num">{formatarNumero(totalLeads, 'inteiro')}</td>
-            <td className="dc-num" colSpan={4}>
-              <span className="dc-sr">Custo por lead do total: ver indicadores</span>
+            <th scope="row">{total.rotulo}</th>
+            <td className="dc-num">
+              {textoValor(total.principal, principal.unidade, principal.sufixo)}
             </td>
+            {colunas.map((coluna) => {
+              const valor = total.colunas[coluna.id];
+              return (
+                <td
+                  key={coluna.id}
+                  className={coluna.secundaria ? 'dc-num dc-col-secundaria' : 'dc-num'}
+                >
+                  {valor ? textoValor(valor, coluna.unidade, coluna.sufixo) : ''}
+                </td>
+              );
+            })}
+            <td />
           </tr>
         </tfoot>
       </table>
