@@ -16,6 +16,11 @@
       "headers": { "Cache-Control": "public, max-age=3600" },
       "continue": true
     },
+    {
+      "src": "/relatorios/(.*)",
+      "headers": { "X-Robots-Tag": "noindex, nofollow, noarchive" },
+      "continue": true
+    },
     { "handle": "filesystem" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },
