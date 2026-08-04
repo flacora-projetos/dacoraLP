@@ -21,6 +21,7 @@ import B3EvolucaoMensal from './B3EvolucaoMensal';
 import B4RankingCriativos from './B4RankingCriativos';
 import B6QuebraPorDimensao from './B6QuebraPorDimensao';
 import B7Glossario from './B7Glossario';
+import B8ComentarioHumano from './B8ComentarioHumano';
 import type { BlocoConfigurado, DadosDeBloco } from './tipos';
 
 export interface ContextoBloco {
@@ -79,5 +80,18 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
 
     case 'B7':
       return <B7Glossario config={config} />;
+
+    case 'B8': {
+      /**
+       * Único bloco em que dado faltando NÃO é erro de montagem: quando
+       * ninguém escreveu comentário naquele mês, a seção simplesmente não
+       * existe. Metade dos relatórios validados não tem nenhum comentário
+       * humano e mesmo assim é entregue. Quem decide se a seção aparece é
+       * `RelatorioMontado`, que a descarta antes de numerar — senão sobraria
+       * um número de seção sem seção.
+       */
+      const comentario = ctx.dados.comentarios?.[config.comentario];
+      return comentario ? <B8ComentarioHumano comentario={comentario} /> : null;
+    }
   }
 }

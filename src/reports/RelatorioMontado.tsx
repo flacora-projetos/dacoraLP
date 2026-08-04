@@ -46,16 +46,24 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
       snapshot.fontes.map((fonte) => [fonte.plataforma, fonte.rotulo]),
     );
 
-    return snapshot.montagem.map((config) => ({
-      id: config.id,
-      titulo: config.titulo,
-      apoio: config.apoio,
-      conteudo: renderizarBloco(config, {
-        dados: snapshot.dados,
-        theme,
-        rotulosPlataforma,
-      }),
-    }));
+    return snapshot.montagem
+      .map((config) => ({
+        id: config.id,
+        titulo: config.titulo,
+        apoio: config.apoio,
+        conteudo: renderizarBloco(config, {
+          dados: snapshot.dados,
+          theme,
+          rotulosPlataforma,
+        }),
+      }))
+      /**
+       * Bloco que devolve nada sai da lista antes da numeração. Hoje só o B8
+       * faz isso, e de propósito: comentário humano é opcional de verdade, e
+       * um mês sem comentário não pode deixar um número de seção órfão nem um
+       * título com o corpo vazio embaixo.
+       */
+      .filter((secao) => secao.conteudo !== null);
   }, [snapshot, theme]);
 
   return (

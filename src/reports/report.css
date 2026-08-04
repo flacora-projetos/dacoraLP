@@ -1970,6 +1970,31 @@
   overflow-wrap: anywhere;
 }
 
+/* Situação do anúncio: discreta e sempre com a data ao lado. Sem a data ela
+   mentiria sobre o período — é o status de hoje, não o do mês do relatório. */
+.dc-criativo__situacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.dc-criativo__situacao-nome {
+  font-weight: 600;
+  color: var(--dc-cinza);
+}
+
+.dc-criativo__situacao[data-situacao='pausada'] .dc-criativo__situacao-nome,
+.dc-criativo__situacao[data-situacao='encerrada'] .dc-criativo__situacao-nome {
+  color: var(--dc-sinal);
+}
+
+.dc-criativo__situacao-data {
+  color: var(--dc-sage);
+}
+
 .dc-criativo__numeros {
   margin: 0;
   display: grid;
@@ -1993,6 +2018,58 @@
   line-height: 1.1;
   color: var(--dc-tinta);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- B8: comentário humano -------------------------------------- */
+
+/* A distinção visual é o ponto do bloco, não decoração. Um relatório que
+   apresenta apuração e opinião com a mesma cara ensina o leitor a duvidar das
+   duas. Aqui: filete grosso à esquerda, fundo próprio, texto maior e
+   assinatura — nada disso existe na leitura gerada em código. */
+.dc-comentario {
+  margin: 0;
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-left: 3px solid var(--dc-verde-medio);
+  border-radius: var(--dc-raio);
+  padding: clamp(1.1rem, 0.7rem + 1.5vw, 1.8rem);
+  max-width: 68ch;
+}
+
+.dc-report[data-proposta='B'] .dc-comentario {
+  border-radius: 10px;
+}
+
+.dc-comentario__texto {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--dc-tinta);
+}
+
+.dc-comentario__texto p + p {
+  margin-top: 0.85rem;
+}
+
+.dc-comentario__assinatura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--dc-filete);
+}
+
+.dc-comentario__autor {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dc-tinta);
+}
+
+.dc-comentario__data {
+  font-size: 0.76rem;
+  color: var(--dc-cinza);
 }
 
 /* ---------- B7: glossário ---------------------------------------------- */

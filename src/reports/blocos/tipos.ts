@@ -180,6 +180,24 @@ export interface Miniatura {
   alt: string;
 }
 
+/**
+ * A situação do anúncio, quando a montagem pede para mostrá-la.
+ *
+ * Ela vem com data obrigatória por um motivo concreto. O relatório de origem da
+ * VetSell imprime `ADSET_PAUSED` e `CAMPAIGN_PAUSED` — status cru da API, em
+ * inglês — e o status é o de **hoje**, não o do período. Um anúncio que rodou
+ * julho inteiro e foi pausado em agosto aparece como "pausado" num relatório
+ * sobre julho, e o cliente conclui que ele não rodou.
+ *
+ * Aqui o status é traduzido e **datado**: "Pausado · situação em 01/08/2026".
+ * Sem a data ele mentiria sobre o período; com ela, é informação útil.
+ */
+export interface SituacaoCriativo {
+  situacao: SituacaoCampanha;
+  /** ISO 8601 do momento em que a situação foi lida. */
+  lidaEm: string;
+}
+
 export interface Criativo {
   id: string;
   nome: string;
@@ -188,6 +206,8 @@ export interface Criativo {
   motivoSemMiniatura?: string;
   /** Um ou dois números por cartão: resultado e, às vezes, custo. */
   numeros: { rotulo: string; valor: Valor; unidade: Unidade }[];
+  /** Só quando a montagem pede. Ausente = não mostrar situação. */
+  situacao?: SituacaoCriativo;
 }
 
 export interface RankingCriativos {
@@ -239,6 +259,39 @@ export interface QuebraPorDimensao {
  * A montagem só diz QUAIS métricas explicar e ONDE o glossário fica.
  */
 export type PosicaoGlossario = 'rodape' | 'sob_o_numero';
+
+/* ------------------------------------------------------------------ */
+/* B8 — Comentário humano ("Leitura")                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Um parágrafo escrito por gente: causa, estratégia executada, contexto de
+ * projeto. É a única parte do relatório que pode dizer **por quê**, porque é a
+ * única em que alguém assume a autoria da afirmação.
+ *
+ * O exemplo real da VetSell mostra bem o que só cabe aqui: *"retiramos o
+ * Facebook das campanhas a partir do feedback de que estavam chegando muitos
+ * leads desqualificados"*. Tem decisão tomada, motivo e retorno do time
+ * comercial do cliente. Nenhuma API tem isso, e nenhuma leitura automática
+ * poderia inventar.
+ *
+ * Três regras, e as três existem para o leitor nunca confundir apuração com
+ * opinião:
+ *
+ *  • é **assinado** — nome e data de quem escreveu;
+ *  • é **visualmente distinto** do texto gerado em código;
+ *  • quando ninguém escreve, some sem deixar buraco. Metade dos seis
+ *    relatórios validados não tem nenhum comentário humano e mesmo assim é
+ *    entregue ao cliente — o campo é opcional de verdade, não "opcional mas
+ *    todo mundo preenche".
+ */
+export interface ComentarioHumano {
+  id: string;
+  paragrafos: string[];
+  autor: string;
+  /** ISO 8601. */
+  escritoEm: string;
+}
 
 /* ------------------------------------------------------------------ */
 /* A montagem                                                          */
@@ -296,7 +349,20 @@ export interface BlocoB7 extends BlocoBase {
   metricas: string[];
 }
 
-export type BlocoConfigurado = BlocoB1 | BlocoB2 | BlocoB3 | BlocoB4 | BlocoB6 | BlocoB7;
+export interface BlocoB8 extends BlocoBase {
+  bloco: 'B8';
+  /** Id em `dados.comentarios`. Ausente no snapshot = seção não aparece. */
+  comentario: string;
+}
+
+export type BlocoConfigurado =
+  | BlocoB1
+  | BlocoB2
+  | BlocoB3
+  | BlocoB4
+  | BlocoB6
+  | BlocoB7
+  | BlocoB8;
 
 export type BlocoId = BlocoConfigurado['bloco'];
 
@@ -310,6 +376,8 @@ export interface DadosDeBloco {
   evolucoesMensais: Record<string, EvolucaoMensal>;
   rankingsCriativos: Record<string, RankingCriativos>;
   quebras: Record<string, QuebraPorDimensao>;
+  /** Ausente quando ninguém escreveu nada naquele mês. Não é falha. */
+  comentarios?: Record<string, ComentarioHumano>;
 }
 
 /**

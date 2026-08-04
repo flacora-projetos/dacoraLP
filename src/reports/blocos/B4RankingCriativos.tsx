@@ -14,17 +14,24 @@
  *  • criativo sem resultado no período imprime traço, não zero;
  *  • o nome do criativo vai como está na conta, sem reescrita — é assim que a
  *    Fernanda o encontra depois no gerenciador;
- *  • **o status do anúncio não entra aqui.** O relatório de origem da VetSell
- *    imprime `ADSET_PAUSED` e `CAMPAIGN_PAUSED`, que é o status cru da API, em
- *    inglês. Além de não ser português, é o status de HOJE, não o do período:
- *    um anúncio que rodou o mês inteiro e foi pausado ontem apareceria como
- *    pausado num relatório sobre o mês em que ele rodou. Mostrar isso exige
- *    traduzir e datar; até lá, omitir é o certo.
+ *  • **o status do anúncio só entra traduzido e datado.** O relatório de origem
+ *    da VetSell imprime `ADSET_PAUSED` e `CAMPAIGN_PAUSED`, que é o status cru
+ *    da API, em inglês. Pior que o idioma: é o status de HOJE, não o do
+ *    período. Um anúncio que rodou o mês inteiro e foi pausado depois aparece
+ *    como pausado num relatório sobre o mês em que ele rodou, e o cliente
+ *    conclui que ele não rodou. Aqui sai "Pausado · situação em 01/08/2026" —
+ *    a data é obrigatória no tipo, então não há como esquecer dela.
  */
 
-import { textoValor } from '../format';
+import { formatarDataExtenso, textoValor } from '../format';
 import { EtiquetaEscopo } from './escopo';
 import type { RankingCriativos } from './tipos';
+
+const NOME_SITUACAO: Record<string, string> = {
+  ativa: 'Ativo',
+  pausada: 'Pausado',
+  encerrada: 'Encerrado',
+};
 
 export default function B4RankingCriativos({ ranking }: { ranking: RankingCriativos }) {
   /**
@@ -41,6 +48,8 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
         .map((criativo) => criativo.motivoSemMiniatura ?? 'Miniatura não guardada nesta coleta.'),
     ),
   ];
+
+  const temSituacao = ranking.criativos.some((criativo) => criativo.situacao);
 
   return (
     <>
@@ -70,6 +79,20 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
 
             <div className="dc-criativo__corpo">
               <h4 className="dc-criativo__nome">{criativo.nome}</h4>
+
+              {criativo.situacao && (
+                <p
+                  className="dc-criativo__situacao"
+                  data-situacao={criativo.situacao.situacao}
+                >
+                  <span className="dc-criativo__situacao-nome">
+                    {NOME_SITUACAO[criativo.situacao.situacao] ?? criativo.situacao.situacao}
+                  </span>
+                  <span className="dc-criativo__situacao-data">
+                    situação em {formatarDataExtenso(criativo.situacao.lidaEm)}
+                  </span>
+                </p>
+              )}
               <dl className="dc-criativo__numeros">
                 {criativo.numeros.map((numero) => (
                   <div key={numero.rotulo}>
@@ -91,8 +114,14 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
         ))}
       </ol>
 
-      {motivos.length > 0 && (
+      {(motivos.length > 0 || temSituacao) && (
         <ul className="dc-notas-tabela">
+          {temSituacao && (
+            <li>
+              A situação de cada anúncio é a do momento da coleta, não a do período do relatório:
+              um anúncio pode ter rodado o mês inteiro e ter sido pausado depois.
+            </li>
+          )}
           {motivos.map((motivo) => (
             <li key={motivo}>{motivo}</li>
           ))}
