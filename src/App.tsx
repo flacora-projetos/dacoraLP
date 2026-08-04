@@ -16,6 +16,7 @@ import PropostaLandingPage from './pages/PropostaLandingPage';
  */
 const RelatorioDemoA = lazy(() => import('./pages/RelatorioDemoA'));
 const RelatorioDemoB = lazy(() => import('./pages/RelatorioDemoB'));
+const RelatorioDemoAviarte = lazy(() => import('./pages/RelatorioDemoAviarte'));
 const RelatorioDemoEcommerce = lazy(() => import('./pages/RelatorioDemoEcommerce'));
 const RelatorioDemoIch = lazy(() => import('./pages/RelatorioDemoIch'));
 const RelatorioDemoKaryne = lazy(() => import('./pages/RelatorioDemoKaryne'));
@@ -41,6 +42,14 @@ export default function App() {
         element={
           <Suspense fallback={<CarregandoRelatorio />}>
             <RelatorioDemoB />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/relatorios/demo/aviarte"
+        element={
+          <Suspense fallback={<CarregandoRelatorio />}>
+            <RelatorioDemoAviarte />
           </Suspense>
         }
       />
