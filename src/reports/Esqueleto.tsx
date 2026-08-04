@@ -13,9 +13,10 @@
  *
  *  • PROPOSTA VISUAL (A/B) — a pele. Vive no CSS, em `[data-proposta]`, e no
  *    `chartTheme`. Não muda o que a página diz.
- *  • MARCA — de quem é o relatório na capa e no rodapé. Os relatórios da
- *    carteira Allgrotech saem com a marca deles, não com a da Dácora. É
- *    parâmetro de montagem que vem do cadastro, nunca deduzido do cliente.
+ *  • MARCA — de quem é o relatório na capa e no rodapé. É parâmetro de
+ *    montagem que vem do cadastro, nunca deduzido do cliente. Desde
+ *    2026-08-04, por decisão do Flávio, o único valor em uso é a Dácora:
+ *    nenhum relatório leva identidade visual da Allgrotech.
  */
 
 import { useEffect, type ReactNode } from 'react';

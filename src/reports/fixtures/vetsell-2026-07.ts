@@ -434,7 +434,7 @@ const comentarioJulho: ComentarioHumano = {
     'Em 12/06 tiramos o Facebook das campanhas e ficamos só no Instagram, depois de o comercial de vocês avisar que boa parte das conversas vindas de lá não era de produtor rural. O volume de mensagens caiu no primeiro mês, como esperávamos, e voltou a subir em julho.',
     'O custo por mensagem está mais alto que no começo do ano porque a disputa por espaço encareceu — o CPM saiu de R$ 6,61 em janeiro para R$ 12,31 em julho. A leitura da equipe é que as conversas de agora chegam mais qualificadas, mas isso é percepção de quem atende, não medição deste relatório.',
   ],
-  autor: 'Equipe Allgrotech',
+  autor: 'Equipe Dácora',
   escritoEm: '2026-08-01',
 };
 
@@ -451,11 +451,9 @@ export const vetsell202607: SnapshotMontado = {
     periodo: { inicio: '2026-07-01', fim: '2026-07-31' },
     fusoHorario: 'America/Sao_Paulo',
     tipoRelatorio: 'servicos_leads',
-    marca: {
-      id: 'allgrotech',
-      nome: 'Allgrotech',
-      assinatura: 'Allgrotech — operação conduzida em parceria com a Dácora',
-    },
+    // Sem `marca`: cai na Dácora. Decisão do Flávio em 2026-08-04 — nenhum
+    // relatório leva identidade visual da Allgrotech, inclusive os clientes
+    // daquela carteira.
     versaoSchema: '2026-08-w0',
   },
 

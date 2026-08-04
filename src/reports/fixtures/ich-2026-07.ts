@@ -521,11 +521,9 @@ export const ich202607: SnapshotMontado = {
     periodo: { inicio: '2026-07-01', fim: '2026-07-31' },
     fusoHorario: 'America/Sao_Paulo',
     tipoRelatorio: 'servicos_leads',
-    marca: {
-      id: 'allgrotech',
-      nome: 'Allgrotech',
-      assinatura: 'Allgrotech — operação conduzida em parceria com a Dácora',
-    },
+    // Sem `marca`: cai na Dácora. Decisão do Flávio em 2026-08-04 — nenhum
+    // relatório leva identidade visual da Allgrotech, inclusive os clientes
+    // daquela carteira.
     versaoSchema: '2026-08-w0',
   },
 

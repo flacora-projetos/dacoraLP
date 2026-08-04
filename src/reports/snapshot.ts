@@ -39,11 +39,15 @@ export interface Periodo {
 /**
  * De quem é o relatório na capa e no rodapé.
  *
- * Não é dado e não é bloco: é parâmetro de montagem. Os relatórios do ICH e da
- * VetSell saem com a marca **Allgrotech**, não Dácora, porque essa carteira é
- * atendida em parceria. Isso já vive no cadastro da fábrica
- * (`partner_organization`) e chega aqui pronto — a página nunca decide marca
- * pelo nome do cliente.
+ * Não é dado e não é bloco: é parâmetro de montagem, que chega pronto do
+ * cadastro da fábrica — a página nunca decide marca pelo nome do cliente.
+ *
+ * **Hoje só existe um valor em uso: a Dácora.** Decisão do Flávio em
+ * 2026-08-04: nenhum relatório leva identidade visual da Allgrotech, nem os
+ * clientes daquela carteira, que antes saíam com a marca deles. Quem omite
+ * `marca` cai na Dácora, e é o que todas as montagens fazem. O campo continua
+ * existindo porque a fábrica tem relação de agência parceira no cadastro, mas
+ * preenchê-lo de novo é decisão do PO, não conveniência de montagem.
  */
 export interface Marca {
   id: string;
