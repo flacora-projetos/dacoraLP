@@ -68,13 +68,21 @@ const TERMOS: TermoGlossario[] = [
   },
   {
     id: 'mensagens',
-    termo: 'Mensagens iniciadas',
+    /**
+     * Dois nomes no mesmo termo, de propósito. Parte da carteira lê "mensagens
+     * iniciadas" e parte lê "conversas iniciadas" — é a mesma medida, e o
+     * relatório de cada cliente usa a palavra que ele já reconhece. Criar dois
+     * termos de glossário para isso seria justamente o que este arquivo existe
+     * para impedir: duas redações da mesma explicação, para desencontrar mais
+     * tarde.
+     */
+    termo: 'Mensagens iniciadas (ou conversas iniciadas)',
     texto:
       'Quantas conversas novas começaram a partir do anúncio. Conta a conversa que se inicia, não a venda que ela pode ter gerado depois.',
   },
   {
     id: 'custo_por_mensagem',
-    termo: 'Custo por mensagem',
+    termo: 'Custo por mensagem (ou por conversa)',
     texto:
       'Quanto custou, em média, cada conversa iniciada. Neste relatório o investimento usado na conta é sempre o do mesmo recorte mostrado ao lado — se o bloco é de uma campanha, é o investimento daquela campanha.',
   },
@@ -99,6 +107,38 @@ const TERMOS: TermoGlossario[] = [
     id: 'custo_por_conversao',
     termo: 'Custo por conversão',
     texto: 'Quanto custou, em média, cada resultado obtido no período.',
+  },
+  /**
+   * Os quatro termos de venda entraram com o primeiro relatório de e-commerce
+   * montado pelo catálogo. Os três primeiros dizem, cada um do seu jeito, a
+   * mesma coisa que o cliente precisa entender uma vez e nunca mais esquecer:
+   * **a plataforma está contando o resultado dela mesma.** Duas plataformas
+   * podem reivindicar a mesma venda, e nenhuma delas sabe o que a loja
+   * registrou de fato.
+   */
+  {
+    id: 'compras',
+    termo: 'Compras atribuídas',
+    texto:
+      'Quantas compras a plataforma reconhece como resultado dos anúncios dela, dentro da janela de tempo que ela mesma declara. É a contagem da plataforma, e não o número de pedidos que a loja registrou.',
+  },
+  {
+    id: 'receita_atribuida',
+    termo: 'Receita atribuída',
+    texto:
+      'Quanto de venda a plataforma reivindica para si na janela dela. Duas plataformas podem reivindicar a mesma venda, então somar as receitas atribuídas não devolve o faturamento da loja.',
+  },
+  {
+    id: 'roas',
+    termo: 'ROAS — retorno sobre o investimento em anúncios',
+    texto:
+      'Quantos reais de receita a plataforma atribui a si para cada real investido nela. Como a receita é a que ela própria reivindica, o ROAS é a leitura da plataforma sobre o resultado dela.',
+  },
+  {
+    id: 'custo_por_compra',
+    termo: 'Custo por compra',
+    texto:
+      'Quanto foi investido, em média, para cada compra atribuída — sempre dentro do mesmo recorte mostrado ao lado do número.',
   },
   {
     id: 'cpc_medio',
