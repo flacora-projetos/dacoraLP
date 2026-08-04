@@ -21,8 +21,14 @@
 
 import type { Metrica } from '../snapshot';
 import { Indicador } from '../componentes';
+import { termoDoGlossario } from '../glossario';
 import { EtiquetaEscopo } from './escopo';
 import type { BlocoB1, FaixaIndicadores } from './tipos';
+
+function descricaoDe(metrica: Metrica): string | undefined {
+  const termo = metrica.glossarioId ? termoDoGlossario(metrica.glossarioId) : undefined;
+  return termo?.texto ?? metrica.descricao;
+}
 
 interface Props {
   faixa: FaixaIndicadores;
@@ -38,7 +44,14 @@ export default function B1FaixaIndicadores({ faixa, config }: Props) {
   const metricas: Metrica[] = faixa.metricas.map((metrica) => ({
     ...metrica,
     comparativo: config.mostrarVariacao ? metrica.comparativo : undefined,
-    descricao: config.descricaoSobNumero ? metrica.descricao : undefined,
+    /**
+     * Quando a montagem pede explicação sob o número — é o caso do Zenun, o
+     * único cliente que põe o glossário ali em vez do rodapé — o texto vem do
+     * glossário, escrito uma vez por métrica em código. A `descricao` do
+     * snapshot só entra quando não há termo de glossário, para o caso raro de
+     * uma explicação que só faz sentido naquele cliente.
+     */
+    descricao: config.descricaoSobNumero ? descricaoDe(metrica) : undefined,
   }));
 
   return (

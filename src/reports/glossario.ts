@@ -90,6 +90,47 @@ const TERMOS: TermoGlossario[] = [
     texto: 'Quanto custou, em média, cada visita ao perfil vinda do anúncio.',
   },
   {
+    id: 'conversoes',
+    termo: 'Conversões',
+    texto:
+      'Quantas vezes alguém fez a ação que combinamos contar como resultado — abrir conversa, ligar, preencher formulário. A plataforma pode contar frações de conversão quando divide o crédito entre mais de um anúncio, e por isso o número às vezes não é inteiro.',
+  },
+  {
+    id: 'custo_por_conversao',
+    termo: 'Custo por conversão',
+    texto: 'Quanto custou, em média, cada resultado obtido no período.',
+  },
+  {
+    id: 'cpc_medio',
+    termo: 'CPC médio',
+    texto:
+      'O valor médio pago por clique, calculado pela própria plataforma sobre o período inteiro.',
+  },
+  {
+    id: 'impressao_topo',
+    termo: 'Aparições no topo',
+    texto:
+      'De cada cem vezes que o anúncio apareceu, em quantas ele ficou acima dos resultados normais da busca.',
+  },
+  {
+    id: 'impressao_primeiro_lugar',
+    termo: 'Aparições no primeiro lugar',
+    texto:
+      'De cada cem vezes que o anúncio apareceu, em quantas ele foi o primeiro anúncio da página.',
+  },
+  {
+    id: 'tipo_conversao',
+    termo: 'Tipo de conversão',
+    texto:
+      'A separação dos resultados por tipo de ação: conversa iniciada, ligação, formulário. Serve para saber por onde as pessoas preferem entrar em contato.',
+  },
+  {
+    id: 'palavra_chave',
+    termo: 'Palavra-chave',
+    texto:
+      'O termo que a gente comprou na busca. É diferente do termo de pesquisa, que é o que a pessoa realmente digitou antes de o anúncio aparecer.',
+  },
+  {
     id: 'regiao',
     termo: 'Investimento por região',
     texto:

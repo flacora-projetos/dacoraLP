@@ -2020,6 +2020,78 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Seção que ainda não tem dado -------------------------------- */
+
+/* Sem cor de alarme e sem ícone de erro, de propósito. Isto não é falha do mês
+   nem problema da campanha do cliente: é uma parte do relatório ainda em
+   construção. Um aviso vermelho aqui faria o leitor procurar um problema que
+   não existe. O contorno tracejado diz "espaço reservado" sem dizer "erro". */
+.dc-indisponivel {
+  border: 1px dashed var(--dc-filete-forte);
+  border-radius: var(--dc-raio);
+  padding: clamp(1.1rem, 0.7rem + 1.5vw, 1.7rem);
+  background: color-mix(in srgb, var(--dc-superficie) 55%, transparent);
+  max-width: 68ch;
+  display: grid;
+  gap: 1rem;
+}
+
+.dc-report[data-proposta='B'] .dc-indisponivel {
+  border-radius: 10px;
+}
+
+.dc-indisponivel__motivo {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--dc-tinta);
+  margin: 0;
+}
+
+.dc-indisponivel__subtitulo {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  margin-bottom: 0.5rem;
+}
+
+.dc-indisponivel__temos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.dc-indisponivel__temos li {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--dc-cinza);
+  padding-left: 1rem;
+  position: relative;
+}
+
+.dc-indisponivel__temos li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dc-verde-medio);
+}
+
+.dc-indisponivel__depende {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--dc-sage);
+  margin: 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--dc-filete);
+}
+
 /* ---------- B8: comentário humano -------------------------------------- */
 
 /* A distinção visual é o ponto do bloco, não decoração. Um relatório que

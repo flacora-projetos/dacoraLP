@@ -165,8 +165,16 @@ export type DirecaoFavoravel = 'alta' | 'baixa' | 'neutra';
 export interface Metrica {
   id: string;
   rotulo: string;
-  /** Uma linha explicando o que a métrica mede. */
+  /**
+   * Uma linha explicando o que a métrica mede.
+   *
+   * Prefira `glossarioId`: o texto do glossário é escrito uma vez por métrica,
+   * em código, e vale para toda a carteira. Este campo existe para o caso raro
+   * de uma explicação que só faz sentido naquele cliente.
+   */
   descricao?: string;
+  /** Id em `src/reports/glossario.ts`. Resolve a explicação sem duplicá-la. */
+  glossarioId?: string;
   unidade: Unidade;
   /** Sufixo curto exibido junto do número. Ex.: "/lead". */
   sufixo?: string;

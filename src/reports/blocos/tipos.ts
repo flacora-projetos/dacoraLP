@@ -297,11 +297,43 @@ export interface ComentarioHumano {
 /* A montagem                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Um bloco que a montagem pede e que **não pode ser preenchido hoje**.
+ *
+ * Existe porque a alternativa é pior das duas maneiras possíveis: ou a seção
+ * some do relatório — e ninguém percebe que devia haver algo ali — ou ela é
+ * preenchida com número que ninguém mediu.
+ *
+ * O caso concreto é o Dr. Flávio Zenun: sete dos vinte e cinco números do
+ * relatório dele dependem de campos que o conector ainda não expõe, e dois
+ * blocos inteiros dependem disso. Declarando a indisponibilidade, o relatório
+ * fica honesto hoje e **completo no dia em que o dado chegar**, sem ninguém
+ * precisar lembrar de voltar aqui: basta apagar esta declaração.
+ *
+ * A regra de redação vale para os dois campos: escreva para o cliente ler, não
+ * para o desenvolvedor. "O conector não devolve métrica por palavra-chave" é
+ * para o registro; "ainda não conseguimos separar o resultado por palavra-chave
+ * nesta fonte" é o que vai para a tela.
+ */
+export interface Indisponibilidade {
+  /** O que deveria estar aqui e por que não está, em português de cliente. */
+  motivo: string;
+  /** O que já temos hoje, quando parte da informação existe. */
+  oQueTemos?: string[];
+  /** De que depende para ficar pronto. Vai para a tela em tom neutro. */
+  dependeDe?: string;
+}
+
 interface BlocoBase {
   /** Único dentro da montagem. Vira o id da seção e o alvo de âncora. */
   id: string;
   titulo: string;
   apoio?: string;
+  /**
+   * Presente = a seção aparece dizendo o que falta, em vez de sumir ou de ser
+   * preenchida com estimativa. Ausente = o bloco renderiza normalmente.
+   */
+  indisponivel?: Indisponibilidade;
 }
 
 export interface BlocoB1 extends BlocoBase {
@@ -336,6 +368,26 @@ export interface BlocoB4 extends BlocoBase {
   ranking: string;
 }
 
+/**
+ * B5 — série temporal (uma métrica dia a dia dentro do mês).
+ *
+ * **Declarado, ainda sem renderizador.** Os dois usos do catálogo — Zenun e
+ * Karyne — são séries diárias de **Google**, e `google_insights` não devolve
+ * linha por dia nem aceita incremento. Enquanto isso não chegar, os dois só
+ * podem existir como bloco indisponível.
+ *
+ * Não escrever o renderizador agora é decisão, não esquecimento: código que
+ * ninguém consegue testar com dado nenhum dá uma falsa sensação de pronto e
+ * quebra silenciosamente no dia em que finalmente roda. Quando o dado chegar,
+ * o gráfico já existe e está provado (`EvolucaoNoTempo`, usado nas rotas
+ * antigas) — o bloco vira um embrulho de poucas linhas.
+ */
+export interface BlocoB5 extends BlocoBase {
+  bloco: 'B5';
+  /** Id em `series` do snapshot, quando houver série para ler. */
+  serie: string;
+}
+
 export interface BlocoB6 extends BlocoBase {
   bloco: 'B6';
   /** Id em `dados.quebras`. */
@@ -360,6 +412,7 @@ export type BlocoConfigurado =
   | BlocoB2
   | BlocoB3
   | BlocoB4
+  | BlocoB5
   | BlocoB6
   | BlocoB7
   | BlocoB8;

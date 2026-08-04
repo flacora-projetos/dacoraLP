@@ -22,6 +22,7 @@ import B4RankingCriativos from './B4RankingCriativos';
 import B6QuebraPorDimensao from './B6QuebraPorDimensao';
 import B7Glossario from './B7Glossario';
 import B8ComentarioHumano from './B8ComentarioHumano';
+import BlocoIndisponivel from './BlocoIndisponivel';
 import type { BlocoConfigurado, DadosDeBloco } from './tipos';
 
 export interface ContextoBloco {
@@ -40,6 +41,17 @@ function DadoFaltando({ bloco, chave }: { bloco: string; chave: string }) {
 }
 
 export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): ReactNode {
+  /**
+   * A indisponibilidade declarada vem ANTES de qualquer tentativa de
+   * renderizar. Ela não é um erro que o bloco descobre: é uma decisão que a
+   * montagem tomou, sabendo que o dado ainda não existe. Deixar o bloco tentar
+   * e falhar produziria uma mensagem técnica no lugar de uma frase escrita
+   * para o cliente ler.
+   */
+  if (config.indisponivel) {
+    return <BlocoIndisponivel info={config.indisponivel} />;
+  }
+
   switch (config.bloco) {
     case 'B1': {
       const faixa = ctx.dados.faixas[config.faixa];
@@ -71,6 +83,21 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
       if (!ranking) return <DadoFaltando bloco="B4" chave={config.ranking} />;
       return <B4RankingCriativos ranking={ranking} />;
     }
+
+    case 'B5':
+      /**
+       * B5 só existe declarado. Os dois usos do catálogo são séries diárias de
+       * Google, que o conector ainda não devolve — e por isso a montagem
+       * sempre traz `indisponivel`, que já foi tratado acima. Chegar aqui
+       * significa que alguém configurou um B5 com dado disponível antes de o
+       * renderizador existir; a mensagem diz isso em vez de renderizar vazio.
+       */
+      return (
+        <p className="dc-motivo">
+          Este bloco de série diária ainda não tem apresentação construída. Ele foi declarado no
+          catálogo porque a fonte de dados correspondente não existe hoje.
+        </p>
+      );
 
     case 'B6': {
       const quebra = ctx.dados.quebras[config.quebra];
