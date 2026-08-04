@@ -23,10 +23,10 @@
 
 import type { Campanha, CampanhaSemVenda, CampanhaVenda, Valor } from '../snapshot';
 import { textoValor } from '../format';
-import TabelaDeCampanhas, {
-  type ColunaCampanha,
-  type LinhaCampanha,
-} from '../charts/TabelaDeCampanhas';
+import TabelaDeEntidades, {
+  type ColunaEntidade,
+  type LinhaEntidade,
+} from '../charts/TabelaDeEntidades';
 import ConfrontoMidiaLoja from '../ConfrontoMidiaLoja';
 import { CartoesDeCanal, ComparacaoDeCanais, EvolucaoComSeletor } from '../secoes';
 import { NOME_NATUREZA, rotulosDePlataforma, somar } from './comum';
@@ -41,7 +41,7 @@ import type { ContextoCorpo, SecaoRelatorio } from './index';
  * reaparece na linha expansível — é o que mantém a promessa de nunca haver
  * rolagem lateral numa tela de 375 px.
  */
-const COLUNAS_VENDA: ColunaCampanha[] = [
+const COLUNAS_VENDA: ColunaEntidade[] = [
   { id: 'roas', rotulo: 'ROAS', unidade: 'decimal', sufixo: '×' },
   { id: 'compras', rotulo: 'Compras', unidade: 'inteiro', secundaria: true },
   { id: 'investimento', rotulo: 'Investimento', unidade: 'brl', secundaria: true },
@@ -56,7 +56,7 @@ function ehSemVenda(campanha: Campanha): campanha is CampanhaSemVenda {
   return campanha.resultado === 'sem_venda';
 }
 
-function linhaVenda(campanha: CampanhaVenda): LinhaCampanha {
+function linhaVenda(campanha: CampanhaVenda): LinhaEntidade {
   return {
     id: campanha.id,
     nome: campanha.nome,
@@ -87,13 +87,13 @@ function linhaVenda(campanha: CampanhaVenda): LinhaCampanha {
 /* Campanhas que não foram compradas para vender                       */
 /* ------------------------------------------------------------------ */
 
-const COLUNAS_SEM_VENDA: ColunaCampanha[] = [
+const COLUNAS_SEM_VENDA: ColunaEntidade[] = [
   { id: 'impressoes', rotulo: 'Impressões', unidade: 'inteiro' },
   { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro', secundaria: true },
   { id: 'ctr', rotulo: 'Taxa de cliques', unidade: 'percentual', secundaria: true },
 ];
 
-function linhaSemVenda(campanha: CampanhaSemVenda): LinhaCampanha {
+function linhaSemVenda(campanha: CampanhaSemVenda): LinhaEntidade {
   const detalhes = [
     { rotulo: 'Objetivo', texto: campanha.objetivo },
     { rotulo: 'Cliques', texto: textoValor(campanha.cliques, 'inteiro') },
@@ -230,14 +230,17 @@ export function construirCorpoEcommerce({ snapshot, theme }: ContextoCorpo): Sec
       <>
         <div className="dc-superficie">
           <h3 className="dc-subtitulo">Campanhas de venda</h3>
-          <TabelaDeCampanhas
+          <TabelaDeEntidades
             pergunta="Quanta receita cada campanha de venda atribui a si, e a que custo?"
             theme={theme}
+            rotuloDimensao="Campanha"
             rotulosPlataforma={rotulos}
             principal={{ id: 'receita', rotulo: 'Receita atribuída', unidade: 'brl' }}
             colunas={COLUNAS_VENDA}
             linhas={venda.map(linhaVenda)}
-            nota="Receita atribuída é o que cada plataforma reivindica para si, dentro da própria janela. Não é faturamento da loja e não pode ser somada com ele."
+            notas={[
+              'Receita atribuída é o que cada plataforma reivindica para si, dentro da própria janela. Não é faturamento da loja e não pode ser somada com ele.',
+            ]}
             total={{
               rotulo: 'Total das campanhas de venda',
               principal: somar(
@@ -263,14 +266,17 @@ export function construirCorpoEcommerce({ snapshot, theme }: ContextoCorpo): Sec
 
         <div className="dc-superficie dc-espaco-bloco">
           <h3 className="dc-subtitulo">Campanhas de tráfego e de mensagem</h3>
-          <TabelaDeCampanhas
+          <TabelaDeEntidades
             pergunta="Quanto foi investido fora de campanhas de venda, e o que elas entregaram?"
             theme={theme}
+            rotuloDimensao="Campanha"
             rotulosPlataforma={rotulos}
             principal={{ id: 'investimento', rotulo: 'Investimento', unidade: 'brl' }}
             colunas={COLUNAS_SEM_VENDA}
             linhas={semVenda.map(linhaSemVenda)}
-            nota="Estas campanhas não foram compradas para vender. Nenhuma receita foi atribuída a elas neste relatório, e o investimento delas fica de fora do ROAS — que é calculado só sobre campanhas de venda."
+            notas={[
+              'Estas campanhas não foram compradas para vender. Nenhuma receita foi atribuída a elas neste relatório, e o investimento delas fica de fora do ROAS — que é calculado só sobre campanhas de venda.',
+            ]}
             total={{
               rotulo: 'Total fora de campanhas de venda',
               principal: somar(

@@ -136,13 +136,32 @@ export function formatarPeriodo(inicio: string, fim: string): string {
 
 export const ROTULO_AUSENTE = 'indisponível';
 export const ROTULO_FALHA = 'falha na coleta';
+/**
+ * "Não se aplica" é traço, e traço curto de propósito: ele precisa se
+ * distinguir do texto de ausência a um relance, porque as duas coisas pedem
+ * reações opostas do leitor. Um traço aqui é a resposta certa; um zero seria
+ * mentira e um "indisponível" seria alarme falso.
+ */
+export const ROTULO_NAO_APLICAVEL = '—';
 
-/** Texto do valor, já resolvendo os três estados. Nunca devolve "0" por falta. */
+/** O texto de cada estado que não é número. Nunca devolve "0" por falta. */
+export function textoDoEstadoVazio(valor: Exclude<Valor, { estado: 'ok' }>): string {
+  switch (valor.estado) {
+    case 'ausente':
+      return ROTULO_AUSENTE;
+    case 'falha':
+      return ROTULO_FALHA;
+    case 'nao_aplicavel':
+      return ROTULO_NAO_APLICAVEL;
+  }
+}
+
+/** Texto do valor, já resolvendo os quatro estados. */
 export function textoValor(valor: Valor, unidade: Unidade, sufixo?: string): string {
   if (valor.estado === 'ok') {
     return formatarNumero(valor.numero, unidade) + (sufixo ?? '');
   }
-  return valor.estado === 'ausente' ? ROTULO_AUSENTE : ROTULO_FALHA;
+  return textoDoEstadoVazio(valor);
 }
 
 /**
@@ -155,7 +174,7 @@ export function textoValor(valor: Valor, unidade: Unidade, sufixo?: string): str
  */
 export function textoPercentual1(valor: Valor): string {
   if (valor.estado === 'ok') return formatarParticipacao(valor.numero);
-  return valor.estado === 'ausente' ? ROTULO_AUSENTE : ROTULO_FALHA;
+  return textoDoEstadoVazio(valor);
 }
 
 export function ehOk(valor: Valor): valor is { estado: 'ok'; numero: number } {

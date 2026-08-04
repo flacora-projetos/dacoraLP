@@ -8,15 +8,15 @@
 
 import type { Campanha, CampanhaLeads } from '../snapshot';
 import { textoValor } from '../format';
-import TabelaDeCampanhas, {
-  type ColunaCampanha,
-  type LinhaCampanha,
-} from '../charts/TabelaDeCampanhas';
+import TabelaDeEntidades, {
+  type ColunaEntidade,
+  type LinhaEntidade,
+} from '../charts/TabelaDeEntidades';
 import { CartoesDeCanal, ComparacaoDeCanais, EvolucaoComSeletor } from '../secoes';
 import { NOME_NATUREZA, rotulosDePlataforma, somar } from './comum';
 import type { ContextoCorpo, SecaoRelatorio } from './index';
 
-const COLUNAS: ColunaCampanha[] = [
+const COLUNAS: ColunaEntidade[] = [
   { id: 'cpl', rotulo: 'Custo por lead', unidade: 'brl' },
   { id: 'investimento', rotulo: 'Investimento', unidade: 'brl', secundaria: true },
   { id: 'ctr', rotulo: 'Taxa de cliques', unidade: 'percentual', secundaria: true },
@@ -26,7 +26,7 @@ function ehLeads(campanha: Campanha): campanha is CampanhaLeads {
   return campanha.resultado === 'leads';
 }
 
-function linha(campanha: CampanhaLeads): LinhaCampanha {
+function linha(campanha: CampanhaLeads): LinhaEntidade {
   return {
     id: campanha.id,
     nome: campanha.nome,
@@ -115,9 +115,10 @@ export function construirCorpoServicosLeads({
         'Ordenadas por leads. No celular, toque no + para ver investimento, impressões, cliques e participação.',
       conteudo: (
         <div className="dc-superficie">
-          <TabelaDeCampanhas
+          <TabelaDeEntidades
             pergunta="Quais campanhas trouxeram os leads do mês e a que custo?"
             theme={theme}
+            rotuloDimensao="Campanha"
             rotulosPlataforma={rotulosDePlataforma(snapshot.canais)}
             principal={{ id: 'leads', rotulo: 'Leads', unidade: 'inteiro' }}
             colunas={COLUNAS}

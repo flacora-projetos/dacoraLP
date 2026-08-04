@@ -14,7 +14,7 @@
 import { Bar, BarChart, LabelList, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 import type { PlataformaId, Unidade, Valor } from '../snapshot';
-import { formatarParticipacao, ROTULO_AUSENTE, ROTULO_FALHA } from '../format';
+import { formatarParticipacao, textoDoEstadoVazio } from '../format';
 import { PALETA, preenchimentoBarra, type ChartTheme } from './chartTheme';
 import { MolduraGrafico, TexturasSVG, usaLargura, usaMovimentoReduzido } from './primitivas';
 
@@ -51,12 +51,7 @@ export default function ComparacaoEntreCanais({
     rotulo: item.rotulo,
     plataforma: item.plataforma,
     valor: item.valor.estado === 'ok' ? item.valor.numero : null,
-    ausencia:
-      item.valor.estado === 'ausente'
-        ? ROTULO_AUSENTE
-        : item.valor.estado === 'falha'
-          ? ROTULO_FALHA
-          : null,
+    ausencia: item.valor.estado === 'ok' ? null : textoDoEstadoVazio(item.valor),
   }));
 
   const total = dados

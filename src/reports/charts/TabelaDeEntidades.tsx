@@ -1,17 +1,23 @@
 /**
- * Gráfico 3 do catálogo: tabela de campanhas com barra embutida.
+ * Gráfico 3 do catálogo fechado: tabela de entidades com barra embutida.
  *
  * É uma `<table>` de verdade, com `<th scope>` — não um grid de divs. No
  * celular as colunas secundárias saem da grade e reaparecem numa linha
  * expansível, então nunca há rolagem lateral e nada depende de hover.
  * Na impressão, todas as linhas de detalhe abrem.
  *
- * O componente não sabe o que é um lead nem o que é uma compra. Ele recebe
- * uma coluna principal (a que ganha barra embutida e define a ordenação),
- * as demais colunas e o total. Quem traduz `Campanha` para isso é o módulo
- * do TIPO de relatório, em `src/reports/tipos/`.
+ * O componente não sabe o que é um lead, uma compra ou uma palavra-chave.
+ * Ele recebe o rótulo da dimensão, uma coluna principal (a que ganha barra
+ * embutida e define a ordenação), as demais colunas e o total.
  *
- * Uma tabela por natureza de campanha, de propósito: venda, tráfego e
+ * Ele nasceu chamando-se `TabelaDeCampanhas` e atendia só campanha. O
+ * inventário dos seis relatórios validados mostrou que **a mesma peça cobre
+ * cinco tabelas que pareciam diferentes** — campanha, grupo de anúncios,
+ * palavra-chave, termo de pesquisa e produto do PMax. O nome mudou junto com
+ * o escopo, para a próxima pessoa não achar que precisa de uma tabela nova
+ * para cada dimensão.
+ *
+ * Uma tabela por natureza de resultado, de propósito: venda, tráfego e
  * mensagem não compartilham colunas nem total, e forçá-las na mesma grade
  * seria somar coisas diferentes.
  */
@@ -21,7 +27,7 @@ import type { PlataformaId, SituacaoCampanha, Unidade, Valor } from '../snapshot
 import { formatarParticipacao, textoValor } from '../format';
 import type { ChartTheme } from './chartTheme';
 
-export interface ColunaCampanha {
+export interface ColunaEntidade {
   id: string;
   rotulo: string;
   unidade: Unidade;
@@ -30,11 +36,12 @@ export interface ColunaCampanha {
   secundaria?: boolean;
 }
 
-export interface LinhaCampanha {
+export interface LinhaEntidade {
   id: string;
   nome: string;
   plataforma: PlataformaId;
-  situacao: SituacaoCampanha;
+  /** Só campanha e grupo de anúncios têm situação. Palavra-chave não tem. */
+  situacao?: SituacaoCampanha;
   /** Natureza em uma palavra: "Venda", "Tráfego", "Mensagem". */
   etiqueta?: string;
   /** Valor da coluna principal. É ele que vira barra e ordena a tabela. */
@@ -43,7 +50,7 @@ export interface LinhaCampanha {
   detalhes: { rotulo: string; texto: string }[];
 }
 
-export interface TotalCampanhas {
+export interface TotalEntidades {
   rotulo: string;
   principal: Valor;
   /** Coluna sem total legítimo fica `null` e a célula sai vazia. */
@@ -54,13 +61,22 @@ interface Props {
   /** Pergunta que a tabela responde. Vira o título acessível. */
   pergunta: string;
   theme: ChartTheme;
+  /** Cabeçalho da primeira coluna: "Campanha", "Palavra-chave", "Produto". */
+  rotuloDimensao: string;
   rotulosPlataforma: Record<string, string>;
-  principal: ColunaCampanha;
-  colunas: ColunaCampanha[];
-  linhas: LinhaCampanha[];
-  total: TotalCampanhas;
-  /** Ressalva que vale para a tabela inteira. */
-  nota?: string;
+  principal: ColunaEntidade;
+  colunas: ColunaEntidade[];
+  linhas: LinhaEntidade[];
+  total: TotalEntidades;
+  /**
+   * Ressalvas que valem para a tabela inteira. É aqui que mora a definição de
+   * cada coluna calculada — em particular a do CPC, que **não quer dizer a
+   * mesma coisa em todos os clientes**: uns dividem o investimento pelos
+   * cliques no link, outros pelos cliques totais, e na carteira a diferença
+   * chegou a 54% sem nada aparecer na tela. Escrever a fórmula é o que impede
+   * duas grandezas diferentes de passarem pelo mesmo nome.
+   */
+  notas?: string[];
   /** Rótulo da participação mostrada no detalhe. */
   participacaoRotulo?: string;
 }
@@ -71,20 +87,21 @@ const SITUACAO: Record<string, string> = {
   encerrada: 'Encerrada',
 };
 
-/** Só para ordenar e dimensionar a barra. Ausência e falha vão para o fim. */
+/** Só para ordenar e dimensionar a barra. O que não é número vai para o fim. */
 function ordenavel(valor: Valor): number {
   return valor.estado === 'ok' ? valor.numero : -1;
 }
 
-export default function TabelaDeCampanhas({
+export default function TabelaDeEntidades({
   pergunta,
   theme,
+  rotuloDimensao,
   rotulosPlataforma,
   principal,
   colunas,
   linhas,
   total,
-  nota,
+  notas,
   participacaoRotulo,
 }: Props) {
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
@@ -101,13 +118,11 @@ export default function TabelaDeCampanhas({
 
   return (
     <div className="dc-campanhas">
-      {nota && <p className="dc-campanhas__nota">{nota}</p>}
-
       <table className="dc-tabela-campanhas">
         <caption className="dc-sr">{pergunta}</caption>
         <thead>
           <tr>
-            <th scope="col">Campanha</th>
+            <th scope="col">{rotuloDimensao}</th>
             <th scope="col" className="dc-num">
               {principal.rotulo}
             </th>
@@ -147,9 +162,11 @@ export default function TabelaDeCampanhas({
                     {linha.etiqueta && (
                       <span className="dc-campanha__natureza">{linha.etiqueta}</span>
                     )}
-                    <span className="dc-campanha__situacao" data-situacao={linha.situacao}>
-                      {SITUACAO[linha.situacao] ?? linha.situacao}
-                    </span>
+                    {linha.situacao && (
+                      <span className="dc-campanha__situacao" data-situacao={linha.situacao}>
+                        {SITUACAO[linha.situacao] ?? linha.situacao}
+                      </span>
+                    )}
                   </span>
                 </th>
 
@@ -251,6 +268,14 @@ export default function TabelaDeCampanhas({
           </tr>
         </tfoot>
       </table>
+
+      {notas && notas.length > 0 && (
+        <ul className="dc-notas-tabela">
+          {notas.map((nota) => (
+            <li key={nota}>{nota}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

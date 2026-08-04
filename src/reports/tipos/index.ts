@@ -12,18 +12,13 @@
  * esqueleto, iguais nos dois tipos, e ficam em `RelatorioMensal.tsx`.
  */
 
-import type { ReactNode } from 'react';
 import type { Snapshot, TipoRelatorio } from '../snapshot';
 import type { ChartTheme } from '../charts/chartTheme';
+import type { SecaoRelatorio } from '../Esqueleto';
 import { construirCorpoServicosLeads } from './servicosLeads';
 import { construirCorpoEcommerce } from './ecommerce';
 
-export interface SecaoRelatorio {
-  id: string;
-  titulo: string;
-  apoio?: string;
-  conteudo: ReactNode;
-}
+export type { SecaoRelatorio };
 
 export interface ContextoCorpo {
   snapshot: Snapshot;

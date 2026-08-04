@@ -605,7 +605,7 @@
   letter-spacing: 0.01em;
 }
 
-/* ---------- Valores em três estados ---------------------------------- */
+/* ---------- Valores em quatro estados -------------------------------- */
 
 .dc-valor--indisponivel {
   font-family: var(--dc-fonte-base);
@@ -625,6 +625,19 @@
   height: 2px;
   background: currentColor;
   flex: none;
+}
+
+/* "Não se aplica" não é problema a resolver, e por isso não usa a cor de
+   sinal nem o itálico de ausência: é uma pergunta que não se faz para aquela
+   linha. Só o traço, em cinza. Vestir os dois estados igual faria a página
+   parecer cheia de buracos onde não há nenhum. */
+.dc-valor--indisponivel[data-estado='nao_aplicavel'] {
+  color: var(--dc-sage);
+  font-style: normal;
+}
+
+.dc-valor--indisponivel[data-estado='nao_aplicavel']::before {
+  content: none;
 }
 
 .dc-motivo {
@@ -1703,6 +1716,318 @@
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+}
+
+/* =====================================================================
+   CATÁLOGO DE BLOCOS
+
+   Peças usadas pelos relatórios montados a partir do catálogo
+   (`src/reports/blocos/`). Elas herdam os mesmos tokens de cima: nenhuma
+   cor nova, nenhuma fonte nova e nenhum raio novo entram aqui.
+   ===================================================================== */
+
+/* ---------- Etiqueta de escopo ---------------------------------------- */
+
+/* Pequena de propósito: ela não disputa atenção com os números. Mas está
+   sempre presente, porque é ela que permite conferir se a divisão que
+   produziu um custo unitário usou o mesmo recorte dos números ao lado. */
+.dc-escopo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--dc-filete-forte);
+  margin-bottom: 1.1rem;
+  max-width: 62ch;
+}
+
+.dc-escopo[data-tipo='campanha'],
+.dc-escopo[data-tipo='grupo'] {
+  border-left-color: var(--dc-verde-medio);
+}
+
+.dc-escopo__texto strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dc-escopo__grupo {
+  font-size: 0.74rem;
+  color: var(--dc-sage);
+}
+
+/* ---------- Notas e definições sob uma tabela -------------------------- */
+
+.dc-notas-tabela {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  max-width: 72ch;
+}
+
+.dc-notas-tabela li {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--dc-cinza);
+  padding-left: 0.9rem;
+  position: relative;
+}
+
+.dc-notas-tabela li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 1px;
+  background: var(--dc-sage);
+}
+
+/* ---------- B3: evolução mensal em tabela ------------------------------ */
+
+.dc-rolagem-tabela {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dc-tabela-meses {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-tabela-meses thead th {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  text-align: left;
+  padding: 0 0.6rem 0.7rem;
+  border-bottom: 1px solid var(--dc-filete-forte);
+  white-space: nowrap;
+}
+
+.dc-tabela-meses thead th.dc-num,
+.dc-tabela-meses tbody td,
+.dc-tabela-meses tfoot td {
+  text-align: right;
+}
+
+.dc-tabela-meses tbody th[scope='row'] {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--dc-tinta);
+  padding: 0.7rem 0.6rem;
+  white-space: nowrap;
+}
+
+.dc-tabela-meses tbody td {
+  padding: 0.7rem 0.6rem;
+  font-size: 0.9rem;
+  color: var(--dc-tinta);
+}
+
+.dc-tabela-meses tbody tr > * {
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dc-mes__observacao {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dc-sage);
+  margin-top: 0.15rem;
+}
+
+.dc-tabela-meses tfoot th,
+.dc-tabela-meses tfoot td {
+  padding: 0.85rem 0.6rem 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--dc-tinta);
+}
+
+.dc-tabela-meses tfoot th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* A tabela de meses tem célula estreita; no celular ela reduz a fonte em vez
+   de forçar rolagem lateral na página inteira — a rolagem fica contida na
+   própria tabela. */
+@media (max-width: 639px) {
+  .dc-tabela-meses {
+    font-size: 0.84rem;
+    min-width: 30rem;
+  }
+}
+
+/* ---------- B4: ranking de criativos ----------------------------------- */
+
+.dc-ranking__ordem {
+  font-size: 0.8rem;
+  color: var(--dc-cinza);
+  margin-bottom: 1rem;
+}
+
+.dc-ranking__ordem strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dc-criativos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+  /* 11rem faz caberem cinco cartões numa linha na largura do relatório, que é
+     a quantidade mais comum nos rankings da carteira. Com 13rem cabiam quatro
+     e o quinto ficava sozinho numa segunda linha. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+}
+
+.dc-criativo {
+  display: flex;
+  flex-direction: column;
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  overflow: hidden;
+}
+
+.dc-report[data-proposta='B'] .dc-criativo {
+  border-radius: 10px;
+}
+
+.dc-criativo__miniatura {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--dc-canvas);
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dc-criativo__miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dc-criativo__sem-imagem {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dc-sage);
+  text-align: center;
+  padding: 0.9rem;
+}
+
+.dc-criativo__posicao {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--dc-verde);
+  color: var(--dc-canvas);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.dc-criativo__corpo {
+  padding: 0.8rem 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+}
+
+/* O nome vai como está na conta, inclusive quando é comprido e cheio de
+   underscore — é assim que ele é encontrado depois no gerenciador. Por isso
+   quebra em qualquer ponto em vez de estourar o cartão. */
+.dc-criativo__nome {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--dc-tinta);
+  overflow-wrap: anywhere;
+}
+
+.dc-criativo__numeros {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.dc-criativo__numeros dt {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+}
+
+.dc-criativo__numeros dd {
+  margin: 0;
+  font-family: var(--dc-fonte-numero);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--dc-tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- B7: glossário ---------------------------------------------- */
+
+.dc-glossario {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+
+@media (min-width: 780px) {
+  .dc-glossario {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2.5rem;
+  }
+}
+
+.dc-glossario__item {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dc-glossario__item dt {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--dc-tinta);
+  margin-bottom: 0.28rem;
+}
+
+.dc-glossario__item dd {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--dc-cinza);
+  max-width: 56ch;
 }
 
 /* ---------- Movimento -------------------------------------------------- */

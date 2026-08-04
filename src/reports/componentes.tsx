@@ -14,11 +14,10 @@ import type {
   Valor,
 } from './snapshot';
 import {
-  ROTULO_AUSENTE,
-  ROTULO_FALHA,
   formatarCompetencia,
   formatarNumero,
   formatarVariacao,
+  textoDoEstadoVazio,
 } from './format';
 
 /* ------------------------------------------------------------------ */
@@ -60,7 +59,8 @@ export function ChipFonte({ situacao }: { situacao: SituacaoFonte }) {
 /**
  * O único lugar que transforma `Valor` em texto na tela.
  * Ausência e falha nunca viram `0` e nunca são comunicadas só por cor:
- * levam palavra ("indisponível", "falha na coleta") e um traço.
+ * levam palavra ("indisponível", "falha na coleta"). "Não se aplica" é traço,
+ * e é tratado como estado neutro — não é problema a resolver.
  */
 export function ValorExibido({
   valor,
@@ -81,10 +81,11 @@ export function ValorExibido({
       </span>
     );
   }
-  const texto = valor.estado === 'ausente' ? ROTULO_AUSENTE : ROTULO_FALHA;
   return (
     <span className={className}>
-      <span className="dc-valor--indisponivel">{texto}</span>
+      <span className="dc-valor--indisponivel" data-estado={valor.estado}>
+        {textoDoEstadoVazio(valor)}
+      </span>
     </span>
   );
 }

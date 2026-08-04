@@ -36,6 +36,23 @@ export interface Periodo {
   fim: string;
 }
 
+/**
+ * De quem é o relatório na capa e no rodapé.
+ *
+ * Não é dado e não é bloco: é parâmetro de montagem. Os relatórios do ICH e da
+ * VetSell saem com a marca **Allgrotech**, não Dácora, porque essa carteira é
+ * atendida em parceria. Isso já vive no cadastro da fábrica
+ * (`partner_organization`) e chega aqui pronto — a página nunca decide marca
+ * pelo nome do cliente.
+ */
+export interface Marca {
+  id: string;
+  /** Nome curto, no topo da página. */
+  nome: string;
+  /** Assinatura completa, no rodapé. */
+  assinatura: string;
+}
+
 export interface Identidade {
   /** Identificador interno do relatório. Não é o token público da URL. */
   relatorioId: string;
@@ -48,6 +65,8 @@ export interface Identidade {
   periodo: Periodo;
   fusoHorario: string;
   tipoRelatorio: TipoRelatorio;
+  /** Ausente = Dácora. Presente quando o relatório sai com outra marca. */
+  marca?: Marca;
   versaoSchema: string;
 }
 
@@ -107,11 +126,21 @@ export type Unidade =
 /**
  * O ponto central do contrato. Um valor nunca é só um número:
  * ele é um número **ou** a explicação de por que não existe.
+ *
+ * Os três jeitos de não existir são coisas diferentes e a tela precisa
+ * distingui-los, porque a leitura do cliente muda:
+ *
+ *  • `ausente`       — a métrica deveria existir e não veio nesta coleta.
+ *  • `falha`         — a fonte respondeu com erro identificado.
+ *  • `nao_aplicavel` — a métrica não faz sentido para esta linha. Uma campanha
+ *    de tráfego não tem "compras" nem "mensagens": não é buraco de coleta, é
+ *    uma pergunta que não se faz. Imprime `-`, e nunca `0`.
  */
 export type Valor =
   | { estado: 'ok'; numero: number }
   | { estado: 'ausente'; motivo: string }
-  | { estado: 'falha'; motivo: string };
+  | { estado: 'falha'; motivo: string }
+  | { estado: 'nao_aplicavel'; motivo: string };
 
 export interface Origem {
   tipo: 'coletado' | 'calculado';
@@ -367,9 +396,30 @@ export interface Publicacao {
 /* Raiz                                                                */
 /* ------------------------------------------------------------------ */
 
-export interface Snapshot {
+/**
+ * O que TODO relatório tem, independentemente de como o miolo é montado.
+ *
+ * É o que o esqueleto da página consome: capa, resumo, oportunidades,
+ * qualidade das fontes e rodapé. Nada aqui depende do formato.
+ */
+export interface SnapshotBase {
   identidade: Identidade;
   fontes: Fonte[];
+  leitura: Leitura;
+  publicacao: Publicacao;
+}
+
+/**
+ * O snapshot do formato resolvido por TIPO — o protótipo inicial da W0.
+ *
+ * O formato montado por blocos (`src/reports/blocos/`) não usa estes campos:
+ * lá os dados são indexados por bloco. Os dois convivem enquanto a W0 não
+ * fecha, e é por isso que o núcleo comum ficou separado — para o relatório
+ * montado não ter de inventar `campanhas` e `canais` que ele não usa só para
+ * satisfazer um tipo. Estrutura de dados que obriga a preencher campo inútil
+ * acaba preenchida com dado falso.
+ */
+export interface Snapshot extends SnapshotBase {
   /** De 3 a 5. São os indicadores que abrem o relatório. */
   indicadores: Metrica[];
   canais: Canal[];
@@ -378,8 +428,6 @@ export interface Snapshot {
   series: Record<string, Serie>;
   /** Presente só quando há loja e mídia contando venda ao mesmo tempo. */
   confrontoReceita?: ConfrontoReceita;
-  leitura: Leitura;
-  publicacao: Publicacao;
 }
 
 /** Competência disponível no portal. Não faz parte do snapshot. */
