@@ -19,6 +19,7 @@ import B1FaixaIndicadores from './B1FaixaIndicadores';
 import B2TabelaEntidades from './B2TabelaEntidades';
 import B3EvolucaoMensal from './B3EvolucaoMensal';
 import B4RankingCriativos from './B4RankingCriativos';
+import B5SerieTemporal from './B5SerieTemporal';
 import B6QuebraPorDimensao from './B6QuebraPorDimensao';
 import B7Glossario from './B7Glossario';
 import B8ComentarioHumano from './B8ComentarioHumano';
@@ -75,7 +76,7 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
     case 'B3': {
       const evolucao = ctx.dados.evolucoesMensais[config.evolucao];
       if (!evolucao) return <DadoFaltando bloco="B3" chave={config.evolucao} />;
-      return <B3EvolucaoMensal evolucao={evolucao} />;
+      return <B3EvolucaoMensal evolucao={evolucao} config={config} theme={ctx.theme} />;
     }
 
     case 'B4': {
@@ -84,20 +85,11 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
       return <B4RankingCriativos ranking={ranking} />;
     }
 
-    case 'B5':
-      /**
-       * B5 só existe declarado. Os dois usos do catálogo são séries diárias de
-       * Google, que o conector ainda não devolve — e por isso a montagem
-       * sempre traz `indisponivel`, que já foi tratado acima. Chegar aqui
-       * significa que alguém configurou um B5 com dado disponível antes de o
-       * renderizador existir; a mensagem diz isso em vez de renderizar vazio.
-       */
-      return (
-        <p className="dc-motivo">
-          Este bloco de série diária ainda não tem apresentação construída. Ele foi declarado no
-          catálogo porque a fonte de dados correspondente não existe hoje.
-        </p>
-      );
+    case 'B5': {
+      const serie = ctx.dados.series?.[config.serie];
+      if (!serie) return <DadoFaltando bloco="B5" chave={config.serie} />;
+      return <B5SerieTemporal serie={serie} theme={ctx.theme} />;
+    }
 
     case 'B6': {
       const quebra = ctx.dados.quebras[config.quebra];

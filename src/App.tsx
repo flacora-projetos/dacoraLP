@@ -18,6 +18,7 @@ const RelatorioDemoA = lazy(() => import('./pages/RelatorioDemoA'));
 const RelatorioDemoB = lazy(() => import('./pages/RelatorioDemoB'));
 const RelatorioDemoEcommerce = lazy(() => import('./pages/RelatorioDemoEcommerce'));
 const RelatorioDemoIch = lazy(() => import('./pages/RelatorioDemoIch'));
+const RelatorioDemoKaryne = lazy(() => import('./pages/RelatorioDemoKaryne'));
 const RelatorioDemoVetsell = lazy(() => import('./pages/RelatorioDemoVetsell'));
 const RelatorioDemoZenun = lazy(() => import('./pages/RelatorioDemoZenun'));
 
@@ -56,6 +57,14 @@ export default function App() {
         element={
           <Suspense fallback={<CarregandoRelatorio />}>
             <RelatorioDemoIch />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/relatorios/demo/karyne"
+        element={
+          <Suspense fallback={<CarregandoRelatorio />}>
+            <RelatorioDemoKaryne />
           </Suspense>
         }
       />

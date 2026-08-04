@@ -51,6 +51,22 @@ export default function ComparacaoEntreCanais({
     rotulo: item.rotulo,
     plataforma: item.plataforma,
     valor: item.valor.estado === 'ok' ? item.valor.numero : null,
+    /**
+     * O valor que o gráfico plota, e ele NUNCA é `null`.
+     *
+     * Isto não é "ausência virando zero" — o zero aqui não chega a desenhar
+     * barra nenhuma, porque a forma abaixo confere `valor` (o de verdade) e
+     * desenha só o trilho quando ele é nulo. O campo existe para o Recharts
+     * criar um retângulo por categoria.
+     *
+     * Sem ele, o Recharts pula as categorias nulas e passa ao rótulo um
+     * índice que conta só as barras desenhadas. O rótulo então busca
+     * `dados[índice]` e pega o item ERRADO: num gráfico de sete meses com
+     * março sem veiculação, abril aparecia com o número de março, maio com o
+     * de abril, e julho sumia da tela sem erro nenhum. Número certo ao lado
+     * do rótulo errado é o pior defeito possível aqui, porque parece correto.
+     */
+    plot: item.valor.estado === 'ok' ? item.valor.numero : 0,
     ausencia: item.valor.estado === 'ok' ? null : textoDoEstadoVazio(item.valor),
   }));
 
@@ -98,7 +114,7 @@ export default function ComparacaoEntreCanais({
             <YAxis type="category" dataKey="rotulo" hide />
 
             <Bar
-              dataKey="valor"
+              dataKey="plot"
               barSize={theme.espessuraBarra}
               isAnimationActive={!reduzido}
               animationDuration={420}
@@ -153,7 +169,7 @@ export default function ComparacaoEntreCanais({
               }}
             >
               <LabelList
-                dataKey="valor"
+                dataKey="plot"
                 content={(props: {
                   x?: number | string;
                   y?: number | string;

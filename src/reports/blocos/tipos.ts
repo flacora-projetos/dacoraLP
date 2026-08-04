@@ -31,6 +31,7 @@
 import type {
   Metrica,
   PlataformaId,
+  Serie,
   SituacaoCampanha,
   SnapshotBase,
   Unidade,
@@ -358,8 +359,25 @@ export interface BlocoB3 extends BlocoBase {
   bloco: 'B3';
   /** Id em `dados.evolucoesMensais`. */
   evolucao: string;
-  /** Tabela em VetSell, ICH e Zenun; gráfico combinado na Karyne. */
-  apresentacao: 'tabela';
+  /**
+   * Tabela em VetSell, ICH e Zenun; gráfico na Karyne.
+   *
+   * **O relatório de origem da Karyne usa barra + linha com dois eixos Y** —
+   * custo numa escala, mensagens na outra. Nós não reproduzimos isso, e a
+   * recusa é técnica, não estética: eixo duplo é o erro de gráfico mais comum
+   * que existe, porque a posição relativa das duas séries passa a depender de
+   * como cada escala foi cortada. Dá para fazer as curvas se cruzarem onde o
+   * autor quiser. Quem lê enxerga uma relação entre gasto e resultado que não
+   * foi medida por ninguém — exatamente a "causa inventada" que as regras da
+   * casa proíbem.
+   *
+   * No lugar vão **dois painéis lado a lado**, um por métrica, compartilhando
+   * os mesmos meses. Cada painel tem uma escala só e uma série só; a
+   * comparação entre meses continua imediata e a comparação entre as duas
+   * métricas continua possível — só deixa de ser sugerida por um cruzamento de
+   * linhas que é artefato de escala.
+   */
+  apresentacao: 'tabela' | 'grafico';
 }
 
 export interface BlocoB4 extends BlocoBase {
@@ -371,20 +389,27 @@ export interface BlocoB4 extends BlocoBase {
 /**
  * B5 — série temporal (uma métrica dia a dia dentro do mês).
  *
- * **Declarado, ainda sem renderizador.** Os dois usos do catálogo — Zenun e
- * Karyne — são séries diárias de **Google**, e `google_insights` não devolve
- * linha por dia nem aceita incremento. Enquanto isso não chegar, os dois só
- * podem existir como bloco indisponível.
+ * **Renderizador construído em 2026-08-04, quando o dado chegou.** Até então
+ * este bloco existia só declarado, porque os dois usos do catálogo — Zenun e
+ * Karyne — são séries diárias de **Google**, e `google_insights` não aceitava
+ * incremento de tempo. Não escrever o renderizador antes disso foi decisão, e
+ * ela se pagou: quem escreve código que ninguém consegue exercitar com dado
+ * nenhum entrega uma falsa sensação de pronto.
  *
- * Não escrever o renderizador agora é decisão, não esquecimento: código que
- * ninguém consegue testar com dado nenhum dá uma falsa sensação de pronto e
- * quebra silenciosamente no dia em que finalmente roda. Quando o dado chegar,
- * o gráfico já existe e está provado (`EvolucaoNoTempo`, usado nas rotas
- * antigas) — o bloco vira um embrulho de poucas linhas.
+ * O conector passou a aceitar `time_increment: 1`, conferido por chamada real
+ * na conta da Karyne em julho/2026 — 31 dias, com `hasDelivery` por dia e a
+ * soma batendo com o total do mês. O bloco virou o embrulho de poucas linhas
+ * que estava previsto, sobre o `EvolucaoNoTempo` que já existia.
+ *
+ * **Uma diferença proposital em relação ao relatório de origem:** lá a série
+ * imprime o número em cima de cada ponto dos 31 dias. Rótulo em todo ponto
+ * vira ruído — some no celular e esconde justamente o dia que interessa. Aqui
+ * o valor de cada dia sai no toque/hover e na tabela do gráfico, que existe
+ * para todo gráfico do relatório.
  */
 export interface BlocoB5 extends BlocoBase {
   bloco: 'B5';
-  /** Id em `series` do snapshot, quando houver série para ler. */
+  /** Id em `series` do snapshot. */
   serie: string;
 }
 
@@ -429,6 +454,16 @@ export interface DadosDeBloco {
   evolucoesMensais: Record<string, EvolucaoMensal>;
   rankingsCriativos: Record<string, RankingCriativos>;
   quebras: Record<string, QuebraPorDimensao>;
+  /**
+   * Séries diárias do B5. Ausente quando a montagem não tem nenhum — que é o
+   * caso de três dos quatro relatórios montados.
+   *
+   * Fica aqui, e **não** em `SnapshotBase`, pelo mesmo motivo que `campanhas`
+   * e `canais` ficaram fora dele: o relatório montado não deve preencher campo
+   * que não usa só para satisfazer um tipo. O formato antigo tem o `series`
+   * dele, este tem o seu, e nenhum dos dois carrega o do outro.
+   */
+  series?: Record<string, Serie>;
   /** Ausente quando ninguém escreveu nada naquele mês. Não é falha. */
   comentarios?: Record<string, ComentarioHumano>;
 }

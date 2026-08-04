@@ -710,7 +710,18 @@
   .dc-report[data-proposta='B'] .dc-grafico__area {
     height: 320px;
   }
-  .dc-grafico__area--livre {
+  /*
+   * As duas regras de altura livre precisam da MESMA especificidade da regra
+   * de proposta acima, senão perdem para ela.
+   *
+   * Isso já estava quebrado: `.dc-grafico__area--livre` sozinho tem
+   * especificidade menor que `.dc-report[data-proposta='B'] .dc-grafico__area`,
+   * então o gráfico de altura livre era espremido em 320 px e transbordava
+   * por cima do texto seguinte. Aparecia em qualquer comparação entre canais
+   * no desktop, e ficou impossível de ignorar com sete meses na tela.
+   */
+  .dc-report[data-proposta='A'] .dc-grafico__area--livre,
+  .dc-report[data-proposta='B'] .dc-grafico__area--livre {
     height: auto;
   }
 }
@@ -1757,6 +1768,56 @@
 .dc-escopo__grupo {
   font-size: 0.74rem;
   color: var(--dc-sage);
+}
+
+/* ---------- B3 como gráfico: um painel por métrica --------------------- */
+
+/*
+ * Dois painéis lado a lado no desktop, empilhados no celular. Eles substituem
+ * o barra + linha de eixo duplo do relatório de origem — a justificativa está
+ * em `blocos/tipos.ts`, no BlocoB3. Cada painel tem uma escala e uma série, o
+ * que dispensa legenda: o título do painel nomeia a métrica.
+ */
+.dc-paineis-metrica {
+  display: grid;
+  gap: 1.6rem;
+}
+
+@media (min-width: 720px) {
+  .dc-paineis-metrica {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.4rem 2rem;
+  }
+}
+
+/*
+ * O total do período inteiro, que na apresentação em tabela vive no rodapé da
+ * tabela. Não é a soma das barras: para CPC, somar não faria sentido nenhum.
+ */
+.dc-total-periodo {
+  margin: 1.2rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--dc-filete);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1.4rem;
+  font-size: 0.82rem;
+  color: var(--dc-cinza);
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-total-periodo__rotulo {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--dc-sage);
+}
+
+.dc-total-periodo__item strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
 }
 
 /* ---------- Notas e definições sob uma tabela -------------------------- */
