@@ -7,30 +7,27 @@
  * │  os casos difíceis do formato; não descrevem a operação real.        │
  * └──────────────────────────────────────────────────────────────────────┘
  *
- * Terceiro relatório montado pelo catálogo, e o mais importante dos três para
- * quem for decidir o que fazer a seguir — porque é o primeiro que **não fecha**.
+ * Terceiro relatório montado pelo catálogo. Ele é o mais simples da carteira
+ * (só Google, nenhum texto humano) e serve **três clientes**: ele, a Dra. Maria
+ * Nazaré e o Dr. Danilo de Sá.
  *
- * O relatório do Zenun é o mais simples da carteira (só Google, nenhum texto
- * humano) e serve **três clientes**: ele, a Dra. Maria Nazaré e o Dr. Danilo
- * de Sá. Mesmo assim, três seções dele saem declaradas em vez de preenchidas.
+ * **Ele foi, por um tempo, o relatório que não fechava** — três das suas seções
+ * saíam declarando o que faltava em vez de mostrar números, e essa era a lição
+ * que ele carregava: mostrar os buracos como buracos, porque seção apagada não
+ * faz falta a ninguém e nunca volta.
  *
- * **Atualizado em 2026-08-05 — o motivo mudou para as três, e o texto antigo
- * aqui afirmava coisa que deixou de ser verdade.** O conector passou a devolver,
- * medido contra a API real nesta mesma conta: os níveis abaixo de campanha
- * (grupo de anúncios, palavra-chave e termo de pesquisa), a série diária, a
- * quebra das conversões por tipo de ação e o campo direto de aparições no
- * primeiro lugar do topo. **Nenhuma das três seções depende mais da fonte** —
- * as três esperam a montagem daqui.
+ * **As três foram montadas em 2026-08-05** e a lição se pagou exatamente como
+ * previsto: elas estavam visíveis, com o que faltava escrito no próprio lugar,
+ * então no dia em que o dado chegou não foi preciso lembrar de nada. A `divisão
+ * por tipo de contato`, a `série diária` e a `tabela de palavras-chave` passaram
+ * a ser devolvidas pela integração, medidas contra a API real nesta mesma conta.
  *
- * Duas coisas que não mudaram e que a tela precisa continuar dizendo: a soma da
- * tabela de palavra-chave **não fecha** com o total da conta — parte do
- * investimento o Google não atribui a palavra nenhuma, e os canais sem busca não
- * têm palavra-chave —, e o nível que fecha ao centavo é o de grupo de anúncios.
- *
- * A escolha aqui foi **mostrar os buracos como buracos**. Não é o caminho mais
- * bonito; é o único que não produz uma tela que nunca se preenche sozinha. Se
- * as seções que faltam fossem apagadas da montagem, ninguém sentiria falta
- * delas — nem a Fernanda, nem nós daqui a três meses.
+ * O que continua verdadeiro e a tela continua dizendo: a soma da tabela de
+ * palavra-chave **não fecha** com o total da conta — parte do investimento o
+ * Google não atribui a palavra nenhuma, e os canais sem busca não têm
+ * palavra-chave. Ela soma R$ 812,45 dos R$ 1.284,90, e a `cobertura` do bloco
+ * imprime os dois números lado a lado antes da tabela. O nível que fecha ao
+ * centavo é o de grupo de anúncios, que este cliente não usa.
  *
  * DUAS DECISÕES DO FLÁVIO REGISTRADAS AQUI:
  *
@@ -50,16 +47,20 @@
  * **derivado com trava**. Ver `impressaoPrimeiroLugar`, abaixo.
  */
 
-import type { CompetenciaDisponivel, Valor } from '../snapshot';
+import type { CompetenciaDisponivel, Serie, Valor } from '../snapshot';
 import type {
   EvolucaoMensal,
   FaixaIndicadores,
+  QuebraPorDimensao,
   SnapshotMontado,
+  TabelaEntidades,
 } from '../blocos/tipos';
 
 /* ------------------------------------------------------------------ */
 
 const ok = (numero: number): Valor => ({ estado: 'ok', numero });
+
+const naoSeAplica = (motivo: string): Valor => ({ estado: 'nao_aplicavel', motivo });
 
 const doGoogle = () => ({ tipo: 'coletado' as const, fontes: ['google' as const] });
 
@@ -342,6 +343,230 @@ const faixaAno: FaixaIndicadores = {
 };
 
 /* ------------------------------------------------------------------ */
+/* B6 — por onde as pessoas entraram em contato                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * É o gráfico de pizza do relatório de origem, e ele **não** virou pizza — o
+ * catálogo tem três tipos de gráfico e a pizza não é um deles. Decisão do
+ * Flávio: comparação entre categorias entrega a mesma informação e é mais
+ * legível no celular.
+ *
+ * As duas categorias somam exatamente as 21 conversões da primeira seção. Isso
+ * não é coincidência nem escolha de arredondamento: se um dia a soma da quebra
+ * não bater com o total, a quebra está errada ou incompleta, e a tela tem que
+ * dizer — não ajustar.
+ */
+const quebraTipoDeConversao: QuebraPorDimensao = {
+  id: 'tipo_de_conversao',
+  plataforma: 'google',
+  escopo: { tipo: 'conta', rotulo: 'toda a conta do Google Ads' },
+  pergunta: 'Por onde as pessoas entraram em contato?',
+  unidade: 'inteiro',
+  unidadeTexto: 'Conversões registradas no período, por tipo de contato',
+  itens: [
+    { id: 'whatsapp', rotulo: 'Conversa no WhatsApp', valor: ok(14) },
+    { id: 'ligacao', rotulo: 'Ligação recebida', valor: ok(7) },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* B5 — as conversões dia a dia                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Os dias 24 e 25 são lacuna, não zero. A distinção é a razão de este bloco
+ * existir: "não anunciamos" e "anunciamos e ninguém respondeu" são leituras
+ * opostas, e uma linha de zeros conta a segunda história para os dois casos.
+ */
+const conversoesPorDia: Serie = {
+  id: 'conversoes_dia',
+  pergunta: 'Como as conversões se distribuíram ao longo de julho?',
+  granularidade: 'dia',
+  unidade: 'inteiro',
+  unidadeTexto: 'Conversões registradas pelo Google Ads, por dia',
+  chaves: [{ id: 'conversoes', rotulo: 'Conversões', plataforma: 'google' }],
+  pontos: [
+    { data: '2026-07-01', valores: { conversoes: 0 } },
+    { data: '2026-07-02', valores: { conversoes: 1 } },
+    { data: '2026-07-03', valores: { conversoes: 0 } },
+    { data: '2026-07-04', valores: { conversoes: 1 } },
+    { data: '2026-07-05', valores: { conversoes: 0 } },
+    { data: '2026-07-06', valores: { conversoes: 0 } },
+    { data: '2026-07-07', valores: { conversoes: 1 } },
+    { data: '2026-07-08', valores: { conversoes: 2 } },
+    { data: '2026-07-09', valores: { conversoes: 0 } },
+    { data: '2026-07-10', valores: { conversoes: 1 } },
+    { data: '2026-07-11', valores: { conversoes: 0 } },
+    { data: '2026-07-12', valores: { conversoes: 0 } },
+    { data: '2026-07-13', valores: { conversoes: 1 } },
+    { data: '2026-07-14', valores: { conversoes: 3 } },
+    { data: '2026-07-15', valores: { conversoes: 1 } },
+    { data: '2026-07-16', valores: { conversoes: 0 } },
+    { data: '2026-07-17', valores: { conversoes: 1 } },
+    { data: '2026-07-18', valores: { conversoes: 0 } },
+    { data: '2026-07-19', valores: { conversoes: 1 } },
+    { data: '2026-07-20', valores: { conversoes: 0 } },
+    { data: '2026-07-21', valores: { conversoes: 2 } },
+    { data: '2026-07-22', valores: { conversoes: 0 } },
+    { data: '2026-07-23', valores: { conversoes: 1 } },
+    /* Dois dias sem veiculação: a linha se interrompe, e não desce a zero. */
+    { data: '2026-07-24', valores: { conversoes: null } },
+    { data: '2026-07-25', valores: { conversoes: null } },
+    { data: '2026-07-26', valores: { conversoes: 1 } },
+    { data: '2026-07-27', valores: { conversoes: 1 } },
+    { data: '2026-07-28', valores: { conversoes: 0 } },
+    { data: '2026-07-29', valores: { conversoes: 2 } },
+    { data: '2026-07-30', valores: { conversoes: 1 } },
+    { data: '2026-07-31', valores: { conversoes: 0 } },
+  ],
+  observacoes: [
+    'Os dias 24 e 25 aparecem como interrupção da linha, e não como zero: não houve veiculação neles. Um dia que veiculou e não converteu aparece como zero, apoiado na base do gráfico.',
+    'A soma dos dias é 21, o mesmo total de conversões da primeira seção.',
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* B2 — as palavras-chave, que não fecham com a conta                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Soma R$ 812,45 dos R$ 1.284,90 investidos. **Apresentar os R$ 812,45 como
+ * total seria erro**, e é por isso que a tabela carrega `cobertura`: o aviso
+ * fica acima dela, com os dois números lado a lado e o motivo da diferença.
+ */
+const tabelaPalavrasChave: TabelaEntidades = {
+  id: 'palavras_chave',
+  dimensao: 'palavra_chave',
+  rotuloDimensao: 'Palavra-chave',
+  escopo: { tipo: 'conta', rotulo: 'toda a conta do Google Ads' },
+  cobertura: {
+    universo: 'toda a conta do Google Ads',
+    colunaId: 'custo',
+    totalDoUniverso: ok(1284.9),
+    motivos: [
+      'Parte do investimento da busca o Google não atribui a nenhuma palavra-chave comprada.',
+      'Campanhas que não são de rede de pesquisa não têm palavra-chave, por definição.',
+    ],
+  },
+  colunaPrincipal: 'custo',
+  colunas: [
+    { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
+    { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro' },
+    { id: 'cpc_medio', rotulo: 'CPC médio', unidade: 'brl', secundaria: true },
+    { id: 'conversoes', rotulo: 'Conversões', unidade: 'inteiro' },
+    {
+      id: 'custo_conversao',
+      rotulo: 'Custo por conversão',
+      unidade: 'brl',
+      secundaria: true,
+    },
+  ],
+  linhas: [
+    {
+      id: 'kw_consulta_particular',
+      nome: 'consulta particular',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: {
+        custo: ok(268.4),
+        cliques: ok(79),
+        cpc_medio: ok(3.4),
+        conversoes: ok(6),
+        custo_conversao: ok(44.73),
+      },
+    },
+    {
+      id: 'kw_agendar_consulta',
+      nome: 'agendar consulta médica',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: {
+        custo: ok(196.15),
+        cliques: ok(58),
+        cpc_medio: ok(3.38),
+        conversoes: ok(4),
+        custo_conversao: ok(49.04),
+      },
+    },
+    {
+      id: 'kw_clinica_perto',
+      nome: 'clínica perto de mim',
+      plataforma: 'google',
+      etiqueta: 'Correspondência ampla',
+      valores: {
+        custo: ok(154.7),
+        cliques: ok(51),
+        cpc_medio: ok(3.03),
+        conversoes: ok(3),
+        custo_conversao: ok(51.57),
+      },
+    },
+    {
+      id: 'kw_atendimento_domingo',
+      nome: 'atendimento no fim de semana',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: {
+        custo: ok(112.85),
+        cliques: ok(34),
+        cpc_medio: ok(3.32),
+        conversoes: ok(2),
+        custo_conversao: ok(56.43),
+      },
+    },
+    {
+      id: 'kw_valor_consulta',
+      nome: 'valor da consulta',
+      plataforma: 'google',
+      etiqueta: 'Correspondência exata',
+      valores: {
+        custo: ok(80.35),
+        cliques: ok(26),
+        cpc_medio: ok(3.09),
+        conversoes: ok(1),
+        custo_conversao: ok(80.35),
+      },
+    },
+    /**
+     * Palavra ativa que consumiu investimento e não trouxe nada. Conversões `0`
+     * é medição — ela rodou e não converteu —, mas custo por conversão não é
+     * "zero reais por conversão": é divisão por zero, e imprimir `R$ 0,00` ali
+     * diria que essa palavra é a mais barata da tabela.
+     */
+    {
+      id: 'kw_medico_urgencia',
+      nome: 'médico urgência',
+      plataforma: 'google',
+      etiqueta: 'Correspondência ampla',
+      valores: {
+        custo: ok(0),
+        cliques: ok(0),
+        cpc_medio: naoSeAplica('Sem clique no período: o CPC seria uma divisão por zero.'),
+        conversoes: ok(0),
+        custo_conversao: naoSeAplica('Sem conversão no período: a divisão não existe.'),
+      },
+    },
+  ],
+  total: {
+    rotulo: 'Soma das palavras-chave listadas',
+    valores: {
+      custo: ok(812.45),
+      cliques: ok(248),
+      cpc_medio: ok(3.28),
+      conversoes: ok(16),
+      custo_conversao: ok(50.78),
+    },
+  },
+  definicoes: [
+    'CPC médio: investimento ÷ cliques.',
+    'Custo por conversão: investimento ÷ conversões.',
+    'A correspondência ao lado de cada palavra diz o quanto o Google pode se afastar do que foi comprado: exata mostra o anúncio só para aquela busca; frase e ampla aceitam variações.',
+    'A soma desta tabela é menor que o investimento do mês de propósito — o motivo está no aviso acima dela.',
+  ],
+};
+
+/* ------------------------------------------------------------------ */
 /* O snapshot                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -362,12 +587,15 @@ export const zenun202607: SnapshotMontado = {
       plataforma: 'google',
       rotulo: 'Google Ads',
       papel: 'midia',
-      situacao: 'parcial',
+      /* Era `parcial` com as três seções por montar. Virou `sucesso` no mesmo
+         commit que as montou — situação de fonte e conteúdo das seções mudam
+         juntos, senão a tela do cliente afirma falta que não existe mais. */
+      situacao: 'sucesso',
       conta: 'conta de demonstração',
       coletadoEm: '2026-08-01T07:02:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'A separação das conversões por tipo de contato, a série de conversões por dia e os números por palavra-chave passaram a ser devolvidos pela nossa integração. As três seções ainda não foram montadas aqui, e aparecem no relatório dizendo isso.',
+        'A tabela de palavras-chave soma menos que o investimento do mês, e isso não é falha de coleta: parte do investimento o Google não atribui a nenhuma palavra comprada. A diferença está dimensionada acima da tabela.',
         '"Aparições no primeiro lugar" é derivado de outras duas medições, e só é apresentado quando nenhuma delas vem como faixa.',
       ],
     },
@@ -390,12 +618,6 @@ export const zenun202607: SnapshotMontado = {
       titulo: 'Por onde as pessoas entraram em contato',
       apoio: 'A separação entre conversa no WhatsApp e ligação recebida.',
       quebra: 'tipo_de_conversao',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. A divisão entre conversa e ligação passou a chegar da fonte, e o que falta agora é construirmos a seção aqui. O total do mês está correto e aparece na seção anterior.',
-        oQueTemos: ['O total de conversões do mês, e a comparação dele com o mês anterior.'],
-        dependeDe: 'Depende só de montarmos a seção. A fonte já devolve a divisão por tipo de contato.',
-      },
     },
     {
       bloco: 'B5',
@@ -403,12 +625,6 @@ export const zenun202607: SnapshotMontado = {
       titulo: 'Como as conversões se distribuíram no mês',
       apoio: 'Dia a dia, para mostrar concentração e vazios ao longo do período.',
       serie: 'conversoes_dia',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. A fonte passou a devolver o dia a dia — o relatório da Karyne já mostra essa distribuição —, e o que falta agora é construirmos a seção aqui.',
-        oQueTemos: ['O total do mês e a evolução mês a mês, que está mais abaixo.'],
-        dependeDe: 'Depende só de montarmos a seção. A fonte já devolve o dia a dia.',
-      },
     },
     {
       bloco: 'B3',
@@ -435,24 +651,16 @@ export const zenun202607: SnapshotMontado = {
       apoio: 'Quanto cada termo comprado na busca consumiu e o que ele trouxe.',
       tabela: 'palavras_chave',
       pergunta: 'Quais palavras-chave trouxeram os resultados do mês?',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. O resultado de cada palavra-chave passou a chegar da fonte, e o que falta agora é construirmos a tabela aqui.',
-        oQueTemos: [
-          'A lista das palavras-chave ativas e o tipo de correspondência de cada uma.',
-          'O investimento e as conversões do conjunto, que estão na primeira seção. Eles vão continuar sendo maiores do que a soma desta tabela: parte do investimento o Google não atribui a palavra-chave nenhuma, e as campanhas que não são de busca não têm palavra-chave.',
-        ],
-        dependeDe: 'Depende só de montarmos a tabela. A fonte já devolve este nível.',
-      },
     },
   ],
 
   dados: {
     faixas: { faixa_conta: faixaConta, faixa_ano: faixaAno },
-    tabelas: {},
+    tabelas: { palavras_chave: tabelaPalavrasChave },
     evolucoesMensais: { evolucao_2026: evolucaoMensal },
     rankingsCriativos: {},
-    quebras: {},
+    quebras: { tipo_de_conversao: quebraTipoDeConversao },
+    series: { conversoes_dia: conversoesPorDia },
   },
 
   leitura: {
@@ -469,8 +677,8 @@ export const zenun202607: SnapshotMontado = {
       },
       {
         texto:
-          'Três seções deste relatório ainda não foram montadas, e cada uma diz o que falta no próprio lugar. Nenhuma delas depende mais da nossa integração com a plataforma: os dados das três já são devolvidos por ela.',
-        sustentadaPor: ['tipo-de-conversao', 'conversoes-por-dia', 'palavras-chave'],
+          'Das 21 conversões do mês, 14 vieram por conversa no WhatsApp e 7 por ligação. O dia de maior volume foi 14 de julho, com 3; houve dois dias sem veiculação no mês.',
+        sustentadaPor: ['tipo_de_conversao', 'conversoes_dia'],
       },
     ],
     destaques: [
@@ -500,8 +708,13 @@ export const zenun202607: SnapshotMontado = {
     proximosPassos: [
       {
         texto:
-          'As três seções incompletas dependem de serem montadas aqui — as alterações na integração com a plataforma já saíram. Nenhuma delas afeta os números que já estão neste relatório.',
-        sustentadaPor: ['tipo-de-conversao', 'conversoes-por-dia', 'palavras-chave'],
+          'A palavra "médico urgência" está ativa e não teve nenhum clique em julho. Ela aparece na tabela com investimento zero e sem CPC nem custo por conversão, porque sem clique esses dois não existem — é diferente de terem sido zero.',
+        sustentadaPor: ['palavras_chave'],
+      },
+      {
+        texto:
+          'As palavras-chave listadas respondem por R$ 812,45 dos R$ 1.284,90 do mês. O restante o Google não atribui a nenhuma palavra comprada, e isso é da natureza da fonte — não há o que corrigir nem o que perseguir.',
+        sustentadaPor: ['palavras_chave'],
       },
     ],
   },
