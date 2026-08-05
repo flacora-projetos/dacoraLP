@@ -1040,11 +1040,266 @@ const tabelaGoogle: TabelaEntidades = {
 };
 
 /* ------------------------------------------------------------------ */
-/* A montagem                                                          */
+/* B2 — palavras-chave e termos, os dois níveis que não fecham         */
 /* ------------------------------------------------------------------ */
 
-const FALTA_MONTAR =
-  'Depende só de montarmos a seção: a nossa integração com o Google passou a devolver os níveis abaixo de campanha, e a tabela ainda não foi construída aqui.';
+/**
+ * Esta cliente é o caso mais duro dos três em que a `cobertura` aparece, porque
+ * aqui a lista deixa de cobrir a conta **por dois motivos somados**: parte do
+ * investimento de pesquisa o Google não atribui a palavra nenhuma, e **mais da
+ * metade da conta nem é de pesquisa** — Performance Max e Display juntos levam
+ * R$ 2.994,00 dos R$ 6.418,00, e nenhum dos dois tem palavra-chave ou termo.
+ *
+ * Sem o aviso, um cliente que soma a coluna conclui que sumiram R$ 3.431,60 do
+ * mês dele. Com o aviso, ele lê o que de fato aconteceu.
+ */
+
+const cpcMedioDoGoogle =
+  'CPC médio: o valor que a própria plataforma calcula, sobre os cliques que ela conta. Não é a mesma conta do CPC das seções do Meta, que nesta cliente é feita sobre todos os cliques.';
+
+const tabelaPalavrasChave: TabelaEntidades = {
+  id: 'palavras_chave',
+  dimensao: 'palavra_chave',
+  rotuloDimensao: 'Palavra-chave',
+  escopo: { tipo: 'plataforma', rotulo: 'toda a conta do Google Ads' },
+  cobertura: {
+    universo: 'toda a conta do Google Ads',
+    colunaId: 'custo',
+    totalDoUniverso: ok(6418.0),
+    motivos: [
+      'Performance Max e Display respondem por R$ 2.994,00 do mês e não têm palavra-chave: elas não são campanhas de rede de pesquisa.',
+      'Dentro da pesquisa, parte do investimento o Google não atribui a nenhuma palavra comprada.',
+    ],
+  },
+  colunaPrincipal: 'custo',
+  colunas: [
+    { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
+    { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro' },
+    { id: 'cpc_medio', rotulo: 'CPC médio', unidade: 'brl', secundaria: true },
+    { id: 'compras', rotulo: 'Compras', unidade: 'inteiro' },
+    { id: 'roas', rotulo: 'ROAS', unidade: 'decimal', sufixo: '×' },
+  ],
+  linhas: [
+    {
+      id: 'kw_loja_oficial',
+      nome: 'loja oficial',
+      plataforma: 'google',
+      etiqueta: 'Correspondência exata',
+      valores: {
+        custo: ok(986.4),
+        cliques: ok(1591),
+        cpc_medio: ok(0.62),
+        compras: ok(18),
+        roas: ok(7.8),
+      },
+    },
+    {
+      id: 'kw_comprar_online',
+      nome: 'comprar online',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: {
+        custo: ok(742.15),
+        cliques: ok(1045),
+        cpc_medio: ok(0.71),
+        compras: ok(13),
+        roas: ok(5.4),
+      },
+    },
+    {
+      id: 'kw_onde_comprar',
+      nome: 'onde comprar',
+      plataforma: 'google',
+      etiqueta: 'Correspondência ampla',
+      valores: {
+        custo: ok(528.3),
+        cliques: ok(714),
+        cpc_medio: ok(0.74),
+        compras: ok(9),
+        roas: ok(4.85),
+      },
+    },
+    {
+      id: 'kw_frete_gratis',
+      nome: 'frete grátis',
+      plataforma: 'google',
+      etiqueta: 'Correspondência ampla',
+      valores: {
+        custo: ok(384.9),
+        cliques: ok(481),
+        cpc_medio: ok(0.8),
+        compras: ok(6),
+        roas: ok(3.9),
+      },
+    },
+    {
+      id: 'kw_loja_oficial_site',
+      nome: 'loja oficial site',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: {
+        custo: ok(218.45),
+        cliques: ok(317),
+        cpc_medio: ok(0.69),
+        compras: ok(4),
+        roas: ok(4.2),
+      },
+    },
+    {
+      id: 'kw_retirar_na_loja',
+      nome: 'retirar na loja',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: {
+        custo: ok(126.2),
+        cliques: ok(162),
+        cpc_medio: ok(0.78),
+        compras: ok(2),
+        roas: ok(3.1),
+      },
+    },
+  ],
+  total: {
+    rotulo: 'Soma das palavras-chave listadas',
+    valores: {
+      custo: ok(2986.4),
+      cliques: ok(4310),
+      cpc_medio: ok(0.69),
+      compras: ok(52),
+      roas: ok(5.72),
+    },
+  },
+  definicoes: [
+    cpcMedioDoGoogle,
+    'ROAS do total é a receita somada dividida pelo investimento somado, nunca a média dos ROAS das linhas — cada linha tem um investimento diferente, e a média trataria todas como iguais.',
+    'A soma desta tabela é menor que o investimento do mês de propósito — os motivos estão no aviso acima dela.',
+  ],
+};
+
+/**
+ * O termo de pesquisa é o único bloco desta cliente em que o **Performance Max
+ * sai declarado à parte**. Ele consome R$ 2.568,00 e não devolve o que a pessoa
+ * digitou — devolve categorias agrupadas, que são outra coisa. Escondê-lo faria
+ * a lista parecer só pequena; nomeá-lo diz por que ela é pequena.
+ */
+const tabelaTermos: TabelaEntidades = {
+  id: 'termos_de_pesquisa',
+  dimensao: 'termo_de_pesquisa',
+  rotuloDimensao: 'Termo pesquisado',
+  escopo: { tipo: 'plataforma', rotulo: 'toda a conta do Google Ads' },
+  cobertura: {
+    universo: 'toda a conta do Google Ads',
+    colunaId: 'custo',
+    totalDoUniverso: ok(6418.0),
+    motivos: [
+      'A campanha de Performance Max, que levou R$ 2.568,00 do mês, não devolve o termo digitado — só categorias agrupadas, que são outra informação.',
+      'Display e as redes que não são de pesquisa não têm termo digitado, por definição.',
+      'O Google não informa o termo que apareceu poucas vezes no período, para não identificar quem pesquisou. Isso vale para toda conta e não tem correção do nosso lado.',
+    ],
+  },
+  colunaPrincipal: 'custo',
+  colunas: [
+    { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
+    { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro' },
+    { id: 'cpc_medio', rotulo: 'CPC médio', unidade: 'brl', secundaria: true },
+    { id: 'compras', rotulo: 'Compras', unidade: 'inteiro' },
+    { id: 'roas', rotulo: 'ROAS', unidade: 'decimal', sufixo: '×' },
+  ],
+  linhas: [
+    {
+      id: 'termo_loja_oficial_site',
+      nome: 'loja oficial site',
+      plataforma: 'google',
+      etiqueta: 'Já adicionada como palavra-chave',
+      valores: {
+        custo: ok(486.2),
+        cliques: ok(742),
+        cpc_medio: ok(0.66),
+        compras: ok(9),
+        roas: ok(6.9),
+      },
+    },
+    {
+      id: 'termo_comprar_direto',
+      nome: 'comprar direto do site',
+      plataforma: 'google',
+      valores: {
+        custo: ok(412.85),
+        cliques: ok(588),
+        cpc_medio: ok(0.7),
+        compras: ok(7),
+        roas: ok(5.1),
+      },
+    },
+    {
+      id: 'termo_mais_barato',
+      nome: 'onde comprar mais barato',
+      plataforma: 'google',
+      valores: {
+        custo: ok(318.4),
+        cliques: ok(442),
+        cpc_medio: ok(0.72),
+        compras: ok(5),
+        roas: ok(4.6),
+      },
+    },
+    {
+      id: 'termo_site_frete',
+      nome: 'site oficial frete grátis',
+      plataforma: 'google',
+      valores: {
+        custo: ok(268.55),
+        cliques: ok(356),
+        cpc_medio: ok(0.75),
+        compras: ok(4),
+        roas: ok(4.2),
+      },
+    },
+    {
+      id: 'termo_vale_a_pena',
+      nome: 'vale a pena comprar online',
+      plataforma: 'google',
+      valores: {
+        custo: ok(214.3),
+        cliques: ok(288),
+        cpc_medio: ok(0.74),
+        compras: ok(3),
+        roas: ok(3.8),
+      },
+    },
+    {
+      id: 'termo_loja_fisica',
+      nome: 'loja física perto',
+      plataforma: 'google',
+      valores: {
+        custo: ok(142.45),
+        cliques: ok(196),
+        cpc_medio: ok(0.73),
+        compras: ok(1),
+        roas: ok(1.9),
+      },
+    },
+  ],
+  total: {
+    rotulo: 'Soma dos termos listados',
+    valores: {
+      custo: ok(1842.75),
+      cliques: ok(2612),
+      cpc_medio: ok(0.71),
+      compras: ok(29),
+      roas: ok(4.96),
+    },
+  },
+  definicoes: [
+    cpcMedioDoGoogle,
+    'Termo pesquisado é o que a pessoa digitou; palavra-chave é o que foi comprado. Os dois raramente coincidem, e é por isso que existem as duas tabelas: esta mostra o que chegou, a de palavras-chave mostra o que se comprou.',
+    'Esta tabela soma menos que a de palavras-chave, e as duas somam menos que o investimento do mês. Os motivos estão no aviso acima de cada uma.',
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* A montagem                                                          */
+/* ------------------------------------------------------------------ */
 
 const DEPENDE_DO_NIVEL_DE_PRODUTO =
   'Depende de uma alteração na nossa integração com o Google, já solicitada e em fila: o resultado por produto do catálogo continua fora do que ela devolve.';
@@ -1129,7 +1384,8 @@ export const aviarte202607: SnapshotMontado = {
       coletadoEm: '2026-08-01T07:04:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'Os números por produto do Performance Max não são devolvidos pela nossa integração hoje. Os de termo de pesquisa e de palavra-chave passaram a ser devolvidos, e as duas tabelas ainda não foram montadas aqui. As três seções aparecem no relatório dizendo o que falta em cada caso.',
+        'Os números por produto do catálogo do Performance Max continuam fora do que a nossa integração devolve, e aquela seção aparece dizendo isso. As tabelas de palavra-chave e de termo de pesquisa foram montadas.',
+        'As duas somam menos que o investimento do mês, e não é falha de coleta: Performance Max e Display levam R$ 2.994,00 e não têm nem palavra-chave nem termo digitado. A diferença está dimensionada acima de cada tabela.',
         'A coluna de aparições no topo vem vazia em três campanhas, por dois motivos diferentes: em Performance Max e Display a medida não existe; na campanha de menor volume ela existe e não veio. Nenhum dos dois casos vira zero.',
         'O total da conta e a tabela por campanha estão completos.',
       ],
@@ -1218,15 +1474,6 @@ export const aviarte202607: SnapshotMontado = {
       apoio: 'Os termos realmente pesquisados, que não são as palavras compradas.',
       tabela: 'termos_de_pesquisa',
       pergunta: 'Que buscas levaram aos anúncios?',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. Os termos de pesquisa passaram a chegar da fonte com o número de cada um, e o que falta agora é construirmos a tabela aqui. Quando ela vier, não vai cobrir a campanha de Performance Max: essa não devolve o termo que a pessoa digitou.',
-        oQueTemos: [
-          'O investimento, os cliques e as compras da conta inteira, na seção de Google acima.',
-          'O resultado de cada campanha, na tabela acima.',
-        ],
-        dependeDe: FALTA_MONTAR,
-      },
     },
     {
       bloco: 'B2',
@@ -1235,15 +1482,6 @@ export const aviarte202607: SnapshotMontado = {
       apoio: 'Quanto cada palavra comprada consumiu e o que ela trouxe.',
       tabela: 'palavras_chave',
       pergunta: 'Quais palavras-chave consumiram o investimento do mês?',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. O resultado de cada palavra-chave passou a chegar da fonte, e o que falta agora é construirmos a tabela aqui.',
-        oQueTemos: [
-          'A lista das palavras-chave ativas e o tipo de correspondência de cada uma.',
-          'O investimento e as compras de cada campanha de pesquisa, na tabela acima. O total do Google vai continuar sendo maior do que a soma desta tabela: parte do investimento não é atribuída a palavra-chave nenhuma, e Performance Max, Display e Shopping não têm palavra-chave.',
-        ],
-        dependeDe: FALTA_MONTAR,
-      },
     },
     {
       bloco: 'B2',
@@ -1295,6 +1533,8 @@ export const aviarte202607: SnapshotMontado = {
     tabelas: {
       campanhas_meta: tabelaMeta,
       campanhas_google: tabelaGoogle,
+      palavras_chave: tabelaPalavrasChave,
+      termos_de_pesquisa: tabelaTermos,
     },
     evolucoesMensais: {},
     rankingsCriativos: chavear(CAMPANHAS_EM_DESTAQUE.map((destaque) => destaque.ranking)),
@@ -1328,8 +1568,8 @@ export const aviarte202607: SnapshotMontado = {
       },
       {
         texto:
-          'Quatro seções deste relatório aparecem dizendo o que falta — o perfil do Instagram e as três aberturas abaixo do nível de campanha no Google. Nenhuma delas afeta os números acima.',
-        sustentadaPor: ['instagram-organico', 'termos-de-pesquisa', 'palavras-chave', 'produtos-pmax'],
+          'No Google, as palavras-chave respondem por R$ 2.986,40 e os termos pesquisados por R$ 1.842,75 dos R$ 6.418,00 do mês. As duas listas somam menos que o total porque Performance Max e Display levam R$ 2.994,00 e não têm nem palavra comprada nem termo digitado.',
+        sustentadaPor: ['palavras_chave', 'termos_de_pesquisa', 'google_investimento'],
       },
     ],
     destaques: [
@@ -1374,8 +1614,13 @@ export const aviarte202607: SnapshotMontado = {
     proximosPassos: [
       {
         texto:
-          'Das três seções de Google incompletas, duas — termos de pesquisa e palavras-chave — esperam só a montagem, porque a integração já devolve esses níveis; a de produtos do Performance Max continua dependendo de uma alteração já solicitada. A do Instagram depende de outra, também em fila.',
-        sustentadaPor: ['termos-de-pesquisa', 'palavras-chave', 'produtos-pmax', 'instagram-organico'],
+          'O termo "loja oficial site" já foi comprado como palavra-chave e aparece marcado assim. Os outros cinco ainda não foram, e este relatório mostra quais são — a decisão de comprar é da operação.',
+        sustentadaPor: ['termos_de_pesquisa'],
+      },
+      {
+        texto:
+          'Duas seções continuam aparecendo dizendo o que falta: os produtos do catálogo do Performance Max e o perfil do Instagram. As duas dependem de alterações na integração, já solicitadas, e nenhuma delas afeta os números que já estão neste relatório.',
+        sustentadaPor: ['produtos-pmax', 'instagram-organico'],
       },
     ],
   },
