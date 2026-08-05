@@ -14,12 +14,13 @@
  * humano) e serve **três clientes**: ele, a Dra. Maria Nazaré e o Dr. Danilo
  * de Sá. Mesmo assim, três seções dele saem declaradas em vez de preenchidas.
  *
- * **Atualizado em 2026-08-05 — o motivo mudou para duas das três, e o texto
- * antigo aqui afirmava coisa que deixou de ser verdade.** O conector passou a
- * devolver os níveis abaixo de campanha (grupo de anúncios, palavra-chave e
- * termo de pesquisa) e a série diária, medidos contra a API real. Palavras-chave
- * e conversões por dia esperam agora a **montagem daqui**, não a integração. Só
- * a separação das conversões por tipo de ação continua faltando na fonte.
+ * **Atualizado em 2026-08-05 — o motivo mudou para as três, e o texto antigo
+ * aqui afirmava coisa que deixou de ser verdade.** O conector passou a devolver,
+ * medido contra a API real nesta mesma conta: os níveis abaixo de campanha
+ * (grupo de anúncios, palavra-chave e termo de pesquisa), a série diária, a
+ * quebra das conversões por tipo de ação e o campo direto de aparições no
+ * primeiro lugar do topo. **Nenhuma das três seções depende mais da fonte** —
+ * as três esperam a montagem daqui.
  *
  * Duas coisas que não mudaram e que a tela precisa continuar dizendo: a soma da
  * tabela de palavra-chave **não fecha** com o total da conta — parte do
@@ -37,8 +38,9 @@
  *     gráfico de pizza de duas fatias. Ele fica fora do catálogo fechado de
  *     três tipos de gráfico, e a decisão foi substituí-lo por uma comparação
  *     entre categorias — que é o que o B6 já faz, entrega a mesma informação e
- *     é mais legível no celular. (Está declarado assim e indisponível por
- *     falta de dado, não por falta de gráfico.)
+ *     é mais legível no celular. (Está declarado assim e indisponível porque a
+ *     seção não foi montada, não por falta de gráfico — e, desde 05/08/2026,
+ *     não por falta de dado.)
  *  2. **Os relatórios de origem mostram QUAIS dados apresentamos, não são
  *     gabarito de layout.** Por isso a página abaixo não tenta imitar a
  *     disposição do Looker; ela garante que toda leitura possível lá continue
@@ -79,10 +81,30 @@ const comparativoJunho = (valorBase: number, variacao: number) => ({
 /* ------------------------------------------------------------------ */
 
 /**
- * "Aparições no primeiro lugar" não sai do conector: falta o campo
- * `absolute_top_impression_percentage`. Ele **pode** ser derivado, porque as
- * duas famílias de métrica de posição do Google têm o mesmo denominador dentro
- * de si, então a razão entre "primeiro lugar" e "topo" é a mesma nas duas:
+ * "Aparições no primeiro lugar" foi derivado aqui porque o campo
+ * `absolute_top_impression_percentage` não saía do conector.
+ *
+ * **Isso mudou em 2026-08-05, e este comentário substitui o que dizia o
+ * contrário.** O campo passou a ser devolvido e foi medido nesta conta, com o
+ * valor batendo o critério de pronto do pedido e vindo `null` nas campanhas
+ * pausadas, removidas e de Vídeo. **A ponte abaixo deixou de ser necessária.**
+ *
+ * Ela continua no arquivo por ser a única demonstração da regra da trava em toda
+ * a carteira, e trocá-la pelo campo direto é decisão de produto, não conserto de
+ * texto. Duas coisas para quem for fazer a troca:
+ *
+ *  • o campo certo é o **`absoluteTopImpressionPercentage`** — família
+ *    *porcentagem*, denominador = impressões **obtidas**. **Não** é o
+ *    `searchAbsoluteTopImpressionShare`, que é família *parcela*, denominador =
+ *    impressões **elegíveis**. Os nomes são quase iguais, os números são
+ *    diferentes, e essa confusão já custou uma correção neste projeto;
+ *  • a regra da trava continua valendo para as **parcelas**, que seguem vindo
+ *    travadas nos extremos em duas contas da carteira. O que sai de cena é
+ *    precisar derivar o primeiro lugar a partir delas.
+ *
+ * O raciocínio original, preservado porque a regra continua valendo: as duas
+ * famílias de métrica de posição do Google têm o mesmo denominador dentro de si,
+ * então a razão entre "primeiro lugar" e "topo" é a mesma nas duas:
  *
  *     parcela_primeiro ÷ parcela_topo  =  aparições_primeiro ÷ aparições_topo
  *
@@ -209,13 +231,13 @@ const faixaConta: FaixaIndicadores = {
        */
       valor: derivarPrimeiroLugar(0.7118, 0.312, 0.2841),
       origem: calculado(
-        'derivado das parcelas de posição da plataforma, enquanto o campo direto não é devolvido',
+        'derivado das duas parcelas de posição da plataforma, e apresentado só quando as duas são medição, nunca quando vêm como faixa',
       ),
       direcaoFavoravel: 'alta',
       comparativo: {
         permitido: false,
         motivo:
-          'é um número derivado enquanto a plataforma não devolve o campo direto, e comparar duas derivações acumularia o erro das duas.',
+          'é um número derivado de outras duas medições, e comparar duas derivações acumularia o erro das duas.',
       },
     },
   ],
@@ -345,8 +367,7 @@ export const zenun202607: SnapshotMontado = {
       coletadoEm: '2026-08-01T07:02:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'A separação das conversões por tipo de ação continua não sendo devolvida pela nossa integração. A seção aparece no relatório dizendo isso.',
-        'A série de conversões por dia e os números por palavra-chave passaram a ser devolvidos pela nossa integração. As duas seções ainda não foram montadas aqui, e aparecem no relatório dizendo isso.',
+        'A separação das conversões por tipo de contato, a série de conversões por dia e os números por palavra-chave passaram a ser devolvidos pela nossa integração. As três seções ainda não foram montadas aqui, e aparecem no relatório dizendo isso.',
         '"Aparições no primeiro lugar" é derivado de outras duas medições, e só é apresentado quando nenhuma delas vem como faixa.',
       ],
     },
@@ -371,10 +392,9 @@ export const zenun202607: SnapshotMontado = {
       quebra: 'tipo_de_conversao',
       indisponivel: {
         motivo:
-          'Ainda não conseguimos separar as conversões por tipo de contato nesta fonte. O total do mês está correto e aparece na seção anterior — o que falta é a divisão entre conversa e ligação.',
+          'Esta seção ainda não foi montada. A divisão entre conversa e ligação passou a chegar da fonte, e o que falta agora é construirmos a seção aqui. O total do mês está correto e aparece na seção anterior.',
         oQueTemos: ['O total de conversões do mês, e a comparação dele com o mês anterior.'],
-        dependeDe:
-          'Depende de uma alteração na nossa integração com a plataforma, já solicitada e em fila.',
+        dependeDe: 'Depende só de montarmos a seção. A fonte já devolve a divisão por tipo de contato.',
       },
     },
     {
@@ -449,7 +469,7 @@ export const zenun202607: SnapshotMontado = {
       },
       {
         texto:
-          'Três seções deste relatório estão incompletas, e cada uma diz no próprio lugar o que falta: duas esperam apenas ser montadas, e a separação das conversões por tipo de contato continua dependendo da nossa integração com a plataforma.',
+          'Três seções deste relatório ainda não foram montadas, e cada uma diz o que falta no próprio lugar. Nenhuma delas depende mais da nossa integração com a plataforma: os dados das três já são devolvidos por ela.',
         sustentadaPor: ['tipo-de-conversao', 'conversoes-por-dia', 'palavras-chave'],
       },
     ],
@@ -473,14 +493,14 @@ export const zenun202607: SnapshotMontado = {
       },
       {
         texto:
-          '"Aparições no primeiro lugar" é um número derivado enquanto a plataforma não devolve o campo direto. Ele não entra em comparação com meses anteriores.',
+          '"Aparições no primeiro lugar" ainda é apresentado aqui como número derivado de outras duas medições, e por isso não entra em comparação com meses anteriores. A plataforma passou a devolver o campo direto, e trocar um pelo outro depende de nós.',
         sustentadaPor: ['aparicoes_primeiro'],
       },
     ],
     proximosPassos: [
       {
         texto:
-          'Nenhuma das três seções incompletas afeta os números que já estão neste relatório. Duas delas esperam só a montagem; a separação das conversões por tipo de contato segue na fila da integração.',
+          'As três seções incompletas dependem de serem montadas aqui — as alterações na integração com a plataforma já saíram. Nenhuma delas afeta os números que já estão neste relatório.',
         sustentadaPor: ['tipo-de-conversao', 'conversoes-por-dia', 'palavras-chave'],
       },
     ],
