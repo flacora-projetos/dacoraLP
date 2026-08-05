@@ -25,7 +25,7 @@ import TabelaDeEntidades, {
 } from '../charts/TabelaDeEntidades';
 import type { ChartTheme } from '../charts/chartTheme';
 import { EtiquetaEscopo } from './escopo';
-import type { BlocoB2, ColunaTabela, TabelaEntidades } from './tipos';
+import type { BlocoB2, ColunaTabela, CoberturaTabela, TabelaEntidades } from './tipos';
 
 interface Props {
   tabela: TabelaEntidades;
@@ -47,6 +47,49 @@ const SEM_COLUNA: Valor = {
   estado: 'ausente',
   motivo: 'A coleta não trouxe esta métrica para esta linha.',
 };
+
+/**
+ * O aviso de lista parcial, e ele vem ANTES da tabela de propósito.
+ *
+ * Quem lê uma tabela lê os números primeiro e as notas depois — se é que lê. Um
+ * aviso embaixo chega tarde: a essa altura o leitor já somou a coluna de
+ * investimento e concluiu que aquele é o gasto do mês. Aqui a ordem é o que faz
+ * o trabalho, não o texto.
+ *
+ * Ele não calcula percentual nem diferença: se um dos dois lados não for uma
+ * medição, uma conta feita aqui viraria número inventado na tela. Imprime os
+ * dois valores lado a lado e deixa a subtração com quem lê.
+ */
+function AvisoCobertura({
+  cobertura,
+  rotuloColuna,
+  unidade,
+  sufixo,
+  somaListada,
+}: {
+  cobertura: CoberturaTabela;
+  rotuloColuna: string;
+  unidade: ColunaTabela['unidade'];
+  sufixo?: string;
+  somaListada: Valor | null;
+}) {
+  return (
+    <div className="dc-cobertura">
+      <p className="dc-cobertura__linha">
+        {rotuloColuna} da lista abaixo:{' '}
+        <strong>{textoValor(somaListada ?? SEM_COLUNA, unidade, sufixo)}</strong>, de{' '}
+        <strong>{textoValor(cobertura.totalDoUniverso, unidade, sufixo)}</strong> em{' '}
+        {cobertura.universo}. <strong>Esta lista não cobre o total</strong>, e não é para
+        cobrir.
+      </p>
+      <ul className="dc-cobertura__motivos">
+        {cobertura.motivos.map((motivo) => (
+          <li key={motivo}>{motivo}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function B2TabelaEntidades({
   tabela,
@@ -87,9 +130,33 @@ export default function B2TabelaEntidades({
     })),
   }));
 
+  /**
+   * A coluna medida pela cobertura precisa existir. Montagem que aponta para
+   * coluna inexistente é erro nosso — e, calada, produziria um aviso sem número
+   * de um lado, que é pior que aviso nenhum.
+   */
+  const colunaCobertura = tabela.cobertura
+    ? tabela.colunas.find((c) => c.id === tabela.cobertura!.colunaId)
+    : undefined;
+
   return (
     <>
       <EtiquetaEscopo escopo={tabela.escopo} />
+      {tabela.cobertura && colunaCobertura && (
+        <AvisoCobertura
+          cobertura={tabela.cobertura}
+          rotuloColuna={colunaCobertura.rotulo}
+          unidade={colunaCobertura.unidade}
+          sufixo={colunaCobertura.sufixo}
+          somaListada={tabela.total.valores[colunaCobertura.id] ?? null}
+        />
+      )}
+      {tabela.cobertura && !colunaCobertura && (
+        <p className="dc-motivo">
+          Esta tabela declara cobertura sobre a coluna “{tabela.cobertura.colunaId}”, que não
+          existe entre as colunas configuradas.
+        </p>
+      )}
       <div className="dc-superficie">
         <TabelaDeEntidades
           pergunta={config.pergunta}

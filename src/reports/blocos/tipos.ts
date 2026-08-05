@@ -110,12 +110,53 @@ export interface LinhaTabela {
   valores: Record<string, Valor>;
 }
 
+/**
+ * A cobertura da lista — quanto do universo ela representa.
+ *
+ * Nasceu de um fato da fonte que não tem conserto e não é defeito: **as tabelas
+ * de palavra-chave e de termo de pesquisa não fecham com a conta, por
+ * natureza.** Parte do investimento o Google não atribui a palavra alguma, e
+ * campanhas que não são de busca não têm palavra-chave nem termo. Medido numa
+ * conta real: as palavras-chave somavam R$ 295,09 de R$ 608,34 investidos.
+ *
+ * Sem esta declaração, a tabela tem duas saídas e as duas mentem: imprimir a
+ * soma das linhas como "Total" faz o cliente ler R$ 295,09 como o investimento
+ * do mês; omitir o total deixa a tabela sem fechamento e quem soma na mão chega
+ * ao mesmo engano. A saída certa é a terceira: **dizer de quanto é a lista e de
+ * quanto é a conta, lado a lado, com o motivo da diferença em português.**
+ *
+ * O nível de grupo de anúncios **fecha ao centavo** e não leva cobertura —
+ * declarar cobertura onde a lista é completa só cria dúvida onde não há.
+ *
+ * ⚠️ **`motivos` nunca deve conter "a lista foi cortada por limite".** Isso é
+ * falha nossa de coleta, não fato da fonte: a coleta corta antes de filtrar
+ * quem veiculou, então uma linha viva pode ficar de fora sem erro nenhum
+ * (medido em 2026-08-05: com o lote padrão a tabela veio com 8 linhas; com o
+ * lote no teto, com 9). O caminho é recolher com o teto, não explicar o corte
+ * ao cliente.
+ */
+export interface CoberturaTabela {
+  /** O universo a que a lista se compara, em português: "a conta do Google Ads". */
+  universo: string;
+  /** Coluna cuja cobertura é medida — na prática, sempre a de investimento. */
+  colunaId: string;
+  /** O total do universo naquela coluna, apurado na coleta. A página não soma. */
+  totalDoUniverso: Valor;
+  /** Por que a lista não cobre o universo, escrito para o cliente ler. */
+  motivos: string[];
+}
+
 export interface TabelaEntidades {
   id: string;
   dimensao: DimensaoEntidade;
   /** Cabeçalho da primeira coluna. */
   rotuloDimensao: string;
   escopo: Escopo;
+  /**
+   * Presente só quando a lista **não** cobre o universo — palavra-chave e termo
+   * de pesquisa. Ausente em campanha e em grupo de anúncios, que fecham.
+   */
+  cobertura?: CoberturaTabela;
   /** Id da coluna que ganha barra embutida e ordena a tabela. */
   colunaPrincipal: string;
   colunas: ColunaTabela[];

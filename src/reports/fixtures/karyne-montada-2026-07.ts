@@ -42,32 +42,30 @@
  *
  * ---
  *
- * O QUE ESTE RELATÓRIO **NÃO** CONSEGUE MOSTRAR, e por quê.
+ * AS TRÊS TABELAS DE GOOGLE, montadas em 2026-08-05.
  *
- * A página de Google da Karyne tem, no relatório de origem, três tabelas
- * abaixo do nível de campanha: grupo de anúncios, termo de pesquisa e
- * palavra-chave. A tabela por grupo é o **corpo** daquela página.
+ * A página de Google da Karyne tem três tabelas abaixo do nível de campanha:
+ * grupo de anúncios, palavra-chave e termo de pesquisa. A tabela por grupo é o
+ * **corpo** daquela página. As três passaram meses declaradas como indisponíveis
+ * — primeiro porque a integração devolvia Google só em nível de campanha,
+ * depois, por um dia, porque a montagem ainda não existia aqui.
  *
- * **Atualizado em 2026-08-05. O texto que estava aqui — "nossa integração
- * devolve Google só em nível de campanha", conferido por chamada real em
- * 2026-08-04 — deixou de valer, e ficou falso na tela do cliente por um dia.**
- * O conector passou a aceitar os três níveis (`ad_group`, `keyword`,
- * `search_term`), medidos contra a API real. O que segura estas três seções
- * agora é a **montagem daqui**, não a fonte.
+ * **O que elas exercitam, e é a razão de esta ter sido a primeira carteira a
+ * recebê-las: nem toda tabela fecha com o total, e a diferença entre as que
+ * fecham e as que não fecham não pode ficar por conta do leitor.**
  *
- * Duas coisas continuam verdadeiras e a tela precisa dizê-las quando as tabelas
- * forem montadas:
+ *  • **grupo de anúncios fecha ao centavo** — investimento, cliques e conversões
+ *    batem exatamente com a faixa de indicadores acima;
+ *  • **palavra-chave e termo de pesquisa não fecham, por natureza.** Parte do
+ *    investimento o Google não atribui a palavra nenhuma; Display, Vídeo,
+ *    Performance Max, Shopping e Demand Gen não têm palavra-chave; e o termo
+ *    pesquisado poucas vezes é omitido por privacidade. A leitura honesta é
+ *    "as palavras-chave somam X dos Y da conta" — apresentar X como total é
+ *    erro, e é o erro que a `cobertura` do bloco existe para impedir.
  *
- *  • **grupo de anúncios fecha com a conta ao centavo; palavra-chave e termo de
- *    pesquisa não fecham, por natureza.** Parte do investimento o Google não
- *    atribui a palavra nenhuma, e Display, Vídeo, Performance Max, Shopping e
- *    Demand Gen não têm palavra-chave. A leitura honesta é "as palavras-chave
- *    somam X dos Y da conta" — apresentar X como total é erro;
- *  • **campanha Performance Max não devolve o termo de pesquisa cru**, e vem
- *    declarada à parte na resposta.
- *
- * Os três blocos continuam aparecendo declarando o que falta, como no Zenun. No
- * dia em que forem montados, some-se a declaração e eles se preenchem.
+ * A `cobertura` é a capacidade nova que esta montagem pediu ao catálogo, e ela
+ * aparece **acima** da tabela de propósito: quem lê números lê as notas depois,
+ * se ler. Um aviso embaixo chegaria tarde, com a coluna já somada.
  *
  * O lead da Karyne é `messaging_conversation_started_7d`, definido por gente
  * no cadastro. **Não** é o `instagram_profile_visits` que o conector escolhe
@@ -80,11 +78,14 @@ import type {
   FaixaIndicadores,
   RankingCriativos,
   SnapshotMontado,
+  TabelaEntidades,
 } from '../blocos/tipos';
 
 /* ------------------------------------------------------------------ */
 
 const ok = (numero: number): Valor => ({ estado: 'ok', numero });
+
+const naoSeAplica = (motivo: string): Valor => ({ estado: 'nao_aplicavel', motivo });
 
 const daMeta = () => ({ tipo: 'coletado' as const, fontes: ['meta' as const] });
 const doGoogle = () => ({ tipo: 'coletado' as const, fontes: ['google' as const] });
@@ -441,11 +442,316 @@ const conversoesPorDia: Serie = {
 };
 
 /* ------------------------------------------------------------------ */
-/* O snapshot                                                          */
+/* B2 — as três tabelas abaixo de campanha, no Google                  */
 /* ------------------------------------------------------------------ */
 
-const FALTA_MONTAR =
-  'Depende só de montarmos a seção: a nossa integração com o Google passou a devolver os níveis abaixo de campanha, e a tabela ainda não foi construída aqui.';
+/**
+ * As três juntas são o corpo da página de Google, e existem para exercitar a
+ * diferença que mais engana neste relatório: **uma delas fecha com a conta e as
+ * outras duas não fecham, por natureza.**
+ *
+ * A soma dos grupos bate exatamente com os R$ 1.000,98, os 501 cliques e as 21
+ * conversões da faixa acima — nas quatro métricas, sem arredondamento. Já as
+ * palavras-chave somam R$ 604,22 e os termos, R$ 318,45. Nenhum dos dois é o
+ * gasto do mês, e é por isso que os dois levam `cobertura` e o de grupos não.
+ */
+
+const CPC_FORMULA = 'CPC: investimento ÷ cliques.';
+const CUSTO_CONVERSAO_FORMULA = 'Custo por conversão: investimento ÷ conversões.';
+
+/**
+ * Fecha ao centavo com a conta. O último grupo é o caso que a fonte devolve e
+ * que quase todo relatório imprime errado: **grupo pausado que não veiculou no
+ * período.** Investimento, cliques e conversões são `0` — a linha existiu e não
+ * acumulou nada, o que é medição. Mas CTR e CPC não são zero: sem impressão,
+ * eles são divisão por zero, uma pergunta que não se faz. Imprimir `0,00` ali
+ * afirmaria "seu anúncio apareceu e ninguém clicou", que é o oposto do que
+ * aconteceu.
+ */
+const tabelaGrupos: TabelaEntidades = {
+  id: 'grupos_de_anuncios',
+  dimensao: 'grupo_de_anuncios',
+  rotuloDimensao: 'Grupo de anúncios',
+  escopo: { tipo: 'plataforma', rotulo: 'toda a conta do Google Ads' },
+  colunaPrincipal: 'custo',
+  colunas: [
+    { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
+    { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro' },
+    { id: 'ctr', rotulo: 'CTR', unidade: 'percentual', secundaria: true },
+    { id: 'cpc', rotulo: 'CPC', unidade: 'brl', secundaria: true },
+    { id: 'conversoes', rotulo: 'Conversões', unidade: 'inteiro' },
+    {
+      id: 'custo_conversao',
+      rotulo: 'Custo por conversão',
+      unidade: 'brl',
+      secundaria: true,
+    },
+  ],
+  linhas: [
+    {
+      id: 'grupo_tratamento',
+      nome: 'Halitose — Tratamento',
+      plataforma: 'google',
+      situacao: 'ativa',
+      valores: {
+        custo: ok(412.6),
+        cliques: ok(198),
+        ctr: ok(0.0941),
+        cpc: ok(2.08),
+        conversoes: ok(9),
+        custo_conversao: ok(45.84),
+      },
+    },
+    {
+      id: 'grupo_causas',
+      nome: 'Halitose — Causas',
+      plataforma: 'google',
+      situacao: 'ativa',
+      valores: {
+        custo: ok(246.15),
+        cliques: ok(131),
+        ctr: ok(0.0869),
+        cpc: ok(1.88),
+        conversoes: ok(5),
+        custo_conversao: ok(49.23),
+      },
+    },
+    {
+      id: 'grupo_sintomas',
+      nome: 'Mau hálito — Sintomas',
+      plataforma: 'google',
+      situacao: 'ativa',
+      valores: {
+        custo: ok(188.44),
+        cliques: ok(96),
+        ctr: ok(0.0786),
+        cpc: ok(1.96),
+        conversoes: ok(4),
+        custo_conversao: ok(47.11),
+      },
+    },
+    {
+      id: 'grupo_dentista',
+      nome: 'Halitose — Dentista',
+      plataforma: 'google',
+      situacao: 'ativa',
+      valores: {
+        custo: ok(153.79),
+        cliques: ok(76),
+        ctr: ok(0.0936),
+        cpc: ok(2.02),
+        conversoes: ok(3),
+        custo_conversao: ok(51.26),
+      },
+    },
+    {
+      id: 'grupo_institucional',
+      nome: 'Halitose — Institucional',
+      plataforma: 'google',
+      situacao: 'pausada',
+      etiqueta: 'Sem veiculação em julho',
+      valores: {
+        custo: ok(0),
+        cliques: ok(0),
+        ctr: naoSeAplica('Sem impressão no período: o CTR seria uma divisão por zero.'),
+        cpc: naoSeAplica('Sem clique no período: o CPC seria uma divisão por zero.'),
+        conversoes: ok(0),
+        custo_conversao: naoSeAplica('Sem conversão e sem investimento no período.'),
+      },
+    },
+  ],
+  total: {
+    rotulo: 'Total da conta',
+    valores: {
+      custo: ok(1000.98),
+      cliques: ok(501),
+      ctr: ok(0.0888),
+      cpc: ok(2.0),
+      conversoes: ok(21),
+      custo_conversao: ok(47.67),
+    },
+  },
+  definicoes: [
+    CPC_FORMULA,
+    CUSTO_CONVERSAO_FORMULA,
+    'CTR: cliques ÷ impressões.',
+    'Este é o único nível abaixo de campanha cuja soma fecha com o total da conta: investimento, cliques e conversões batem exatamente com a seção anterior.',
+  ],
+};
+
+/**
+ * Não fecha, e a `cobertura` diz de quanto é a diferença antes de a tabela ser
+ * lida. A regra que ela protege: **apresentar os R$ 604,22 como total seria
+ * erro** — o gasto do mês é R$ 1.000,98, e o resto foi para lugares que não têm
+ * palavra-chave.
+ */
+const tabelaPalavrasChave: TabelaEntidades = {
+  id: 'palavras_chave',
+  dimensao: 'palavra_chave',
+  rotuloDimensao: 'Palavra-chave',
+  escopo: { tipo: 'plataforma', rotulo: 'toda a conta do Google Ads' },
+  cobertura: {
+    universo: 'toda a conta do Google Ads',
+    colunaId: 'custo',
+    totalDoUniverso: ok(1000.98),
+    motivos: [
+      'Parte do investimento da busca o Google não atribui a nenhuma palavra-chave comprada.',
+      'Campanhas que não são de rede de pesquisa — vídeo, display e Performance Max — não têm palavra-chave, por definição.',
+    ],
+  },
+  colunaPrincipal: 'custo',
+  colunas: [
+    { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
+    { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro' },
+    { id: 'cpc', rotulo: 'CPC', unidade: 'brl', secundaria: true },
+    { id: 'conversoes', rotulo: 'Conversões', unidade: 'inteiro' },
+  ],
+  linhas: [
+    {
+      id: 'kw_tratamento',
+      nome: 'tratamento halitose',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: { custo: ok(182.4), cliques: ok(84), cpc: ok(2.17), conversoes: ok(5) },
+    },
+    {
+      id: 'kw_mau_halito',
+      nome: 'mau hálito o que fazer',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: { custo: ok(141.88), cliques: ok(71), cpc: ok(2.0), conversoes: ok(4) },
+    },
+    {
+      id: 'kw_cura',
+      nome: 'halitose tem cura',
+      plataforma: 'google',
+      etiqueta: 'Correspondência exata',
+      valores: { custo: ok(118.6), cliques: ok(62), cpc: ok(1.91), conversoes: ok(3) },
+    },
+    {
+      id: 'kw_dentista',
+      nome: 'dentista halitose',
+      plataforma: 'google',
+      etiqueta: 'Correspondência de frase',
+      valores: { custo: ok(84.15), cliques: ok(41), cpc: ok(2.05), conversoes: ok(2) },
+    },
+    {
+      id: 'kw_porque',
+      nome: 'por que meu hálito é ruim',
+      plataforma: 'google',
+      etiqueta: 'Correspondência ampla',
+      valores: { custo: ok(51.77), cliques: ok(27), cpc: ok(1.92), conversoes: ok(1) },
+    },
+    {
+      id: 'kw_manha',
+      nome: 'hálito ruim de manhã',
+      plataforma: 'google',
+      etiqueta: 'Correspondência ampla',
+      valores: { custo: ok(25.42), cliques: ok(14), cpc: ok(1.82), conversoes: ok(0) },
+    },
+  ],
+  total: {
+    rotulo: 'Soma das palavras-chave listadas',
+    valores: {
+      custo: ok(604.22),
+      cliques: ok(299),
+      cpc: ok(2.02),
+      conversoes: ok(15),
+    },
+  },
+  definicoes: [
+    CPC_FORMULA,
+    'A correspondência ao lado de cada palavra diz o quanto o Google pode se afastar do que foi comprado: exata mostra o anúncio só para aquela busca; frase e ampla aceitam variações, e a ampla é a mais larga das três.',
+    'A soma desta tabela é menor que o investimento do mês de propósito — o motivo está no aviso acima dela.',
+  ],
+};
+
+/**
+ * A que menos cobre das três, e por um motivo diferente do das palavras-chave:
+ * aqui o Google **omite** o termo que foi pesquisado poucas vezes, para não
+ * identificar quem pesquisou. Não é lacuna de coleta e não tem conserto do
+ * nosso lado — tem que ser dito.
+ */
+const tabelaTermos: TabelaEntidades = {
+  id: 'termos_de_pesquisa',
+  dimensao: 'termo_de_pesquisa',
+  rotuloDimensao: 'Termo pesquisado',
+  escopo: { tipo: 'plataforma', rotulo: 'toda a conta do Google Ads' },
+  cobertura: {
+    universo: 'toda a conta do Google Ads',
+    colunaId: 'custo',
+    totalDoUniverso: ok(1000.98),
+    motivos: [
+      'O Google não informa o termo pesquisado quando ele apareceu poucas vezes no período — é uma proteção de privacidade de quem pesquisou, e vale para toda conta.',
+      'Campanhas de Performance Max não devolvem o termo digitado, apenas categorias agrupadas.',
+      'Parte do investimento vai para redes que não são de pesquisa, onde não existe termo digitado.',
+    ],
+  },
+  colunaPrincipal: 'custo',
+  colunas: [
+    { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
+    { id: 'cliques', rotulo: 'Cliques', unidade: 'inteiro' },
+    { id: 'cpc', rotulo: 'CPC', unidade: 'brl', secundaria: true },
+    { id: 'conversoes', rotulo: 'Conversões', unidade: 'inteiro' },
+  ],
+  linhas: [
+    {
+      id: 'termo_como_tratar',
+      nome: 'como tratar halitose',
+      plataforma: 'google',
+      etiqueta: 'Já adicionada como palavra-chave',
+      valores: { custo: ok(78.2), cliques: ok(36), cpc: ok(2.17), conversoes: ok(2) },
+    },
+    {
+      id: 'termo_causas',
+      nome: 'mau hálito causas',
+      plataforma: 'google',
+      valores: { custo: ok(64.55), cliques: ok(31), cpc: ok(2.08), conversoes: ok(1) },
+    },
+    {
+      id: 'termo_cura_mesmo',
+      nome: 'halitose tem cura mesmo',
+      plataforma: 'google',
+      valores: { custo: ok(52.9), cliques: ok(26), cpc: ok(2.03), conversoes: ok(1) },
+    },
+    {
+      id: 'termo_especialista',
+      nome: 'dentista especialista em mau hálito',
+      plataforma: 'google',
+      valores: { custo: ok(47.3), cliques: ok(22), cpc: ok(2.15), conversoes: ok(1) },
+    },
+    {
+      id: 'termo_escovando',
+      nome: 'hálito ruim mesmo escovando',
+      plataforma: 'google',
+      valores: { custo: ok(41.15), cliques: ok(19), cpc: ok(2.17), conversoes: ok(0) },
+    },
+    {
+      id: 'termo_preco',
+      nome: 'tratamento para mau hálito preço',
+      plataforma: 'google',
+      valores: { custo: ok(34.35), cliques: ok(16), cpc: ok(2.15), conversoes: ok(0) },
+    },
+  ],
+  total: {
+    rotulo: 'Soma dos termos listados',
+    valores: {
+      custo: ok(318.45),
+      cliques: ok(150),
+      cpc: ok(2.12),
+      conversoes: ok(5),
+    },
+  },
+  definicoes: [
+    CPC_FORMULA,
+    'Termo pesquisado é o que a pessoa digitou; palavra-chave é o que foi comprado. Os dois raramente são iguais, e é por isso que as duas tabelas existem.',
+    'A soma desta tabela é menor que o investimento do mês de propósito — os motivos estão no aviso acima dela.',
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* O snapshot                                                          */
+/* ------------------------------------------------------------------ */
 
 export const karyneMontada202607: SnapshotMontado = {
   identidade: {
@@ -477,13 +783,20 @@ export const karyneMontada202607: SnapshotMontado = {
       plataforma: 'google',
       rotulo: 'Google Ads',
       papel: 'midia',
-      situacao: 'parcial',
+      /**
+       * Era `parcial` enquanto as três tabelas estavam por montar. Virou
+       * `sucesso` no mesmo commit que as montou — e esta linha existe porque
+       * este arquivo já registrou o erro contrário: um texto de "não temos"
+       * que ficou na tela do cliente depois de o dado passar a existir.
+       * **Situação de fonte e conteúdo das seções mudam juntos, sempre.**
+       */
+      situacao: 'sucesso',
       conta: 'conta de demonstração',
       coletadoEm: '2026-08-01T07:02:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'As tabelas por grupo de anúncios, por termo de pesquisa e por palavra-chave ainda não foram montadas neste relatório. A nossa integração passou a devolver os três níveis, e as três seções aparecem dizendo que falta montá-las.',
-        'O total da conta e a distribuição das conversões por dia estão completos.',
+        'As tabelas de palavra-chave e de termo de pesquisa somam menos que o investimento do mês, e isso não é falha de coleta: parte do investimento o Google não atribui a palavra nenhuma, e o termo pesquisado poucas vezes é omitido por privacidade. Cada uma das duas diz de quanto é a diferença logo acima da tabela.',
+        'A tabela por grupo de anúncios fecha exatamente com o total da conta, nas três métricas.',
       ],
     },
   ],
@@ -536,15 +849,6 @@ export const karyneMontada202607: SnapshotMontado = {
       apoio: 'Onde o investimento da busca foi parar, grupo a grupo.',
       tabela: 'grupos_de_anuncios',
       pergunta: 'Quais grupos de anúncios trouxeram os resultados do mês?',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. Os números por grupo de anúncios passaram a chegar da fonte — e este é o único nível abaixo de campanha cuja soma fecha com o total da conta —, e o que falta agora é construirmos a tabela aqui.',
-        oQueTemos: [
-          'O investimento, os cliques, o CTR e as conversões da conta inteira, na seção acima.',
-          'A distribuição das conversões dia a dia, na seção abaixo.',
-        ],
-        dependeDe: FALTA_MONTAR,
-      },
     },
     {
       bloco: 'B5',
@@ -561,14 +865,6 @@ export const karyneMontada202607: SnapshotMontado = {
       apoio: 'Os termos realmente pesquisados, que não são as palavras compradas.',
       tabela: 'termos_de_pesquisa',
       pergunta: 'Que buscas levaram aos anúncios?',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. Os termos de pesquisa passaram a chegar da fonte com o número de cada um, e o que falta agora é construirmos a tabela aqui.',
-        oQueTemos: [
-          'O investimento e as conversões da conta inteira, na seção de Google acima. Eles vão continuar sendo maiores do que a soma desta tabela: o Google omite o termo pesquisado poucas vezes, e campanha de Performance Max não devolve o termo que a pessoa digitou.',
-        ],
-        dependeDe: FALTA_MONTAR,
-      },
     },
     {
       bloco: 'B2',
@@ -577,15 +873,6 @@ export const karyneMontada202607: SnapshotMontado = {
       apoio: 'Quanto cada palavra comprada consumiu.',
       tabela: 'palavras_chave',
       pergunta: 'Quais palavras-chave consumiram o investimento do mês?',
-      indisponivel: {
-        motivo:
-          'Esta seção ainda não foi montada. O resultado de cada palavra-chave passou a chegar da fonte, e o que falta agora é construirmos a tabela aqui.',
-        oQueTemos: [
-          'A lista das palavras-chave ativas e o tipo de correspondência de cada uma.',
-          'O investimento e as conversões da conta inteira, na seção de Google acima. Eles vão continuar sendo maiores do que a soma desta tabela: parte do investimento o Google não atribui a palavra-chave nenhuma, e as campanhas que não são de busca não têm palavra-chave.',
-        ],
-        dependeDe: FALTA_MONTAR,
-      },
     },
     {
       bloco: 'B7',
@@ -608,7 +895,11 @@ export const karyneMontada202607: SnapshotMontado = {
 
   dados: {
     faixas: { faixa_meta: faixaMeta, faixa_google: faixaGoogle },
-    tabelas: {},
+    tabelas: {
+      grupos_de_anuncios: tabelaGrupos,
+      palavras_chave: tabelaPalavrasChave,
+      termos_de_pesquisa: tabelaTermos,
+    },
     evolucoesMensais: {
       evolucao_meta_2026: evolucaoMeta,
       evolucao_google_2026: evolucaoGoogle,
@@ -632,8 +923,8 @@ export const karyneMontada202607: SnapshotMontado = {
       },
       {
         texto:
-          'Três seções da parte de Google ainda não foram montadas, e cada uma diz o que falta no próprio lugar. Nenhuma delas depende mais da nossa integração: os três níveis já são devolvidos por ela.',
-        sustentadaPor: ['grupos-de-anuncios', 'termos-de-pesquisa', 'palavras-chave'],
+          'A parte de Google abre em três tabelas: por grupo de anúncios, por palavra-chave comprada e por termo realmente pesquisado. A dos grupos soma exatamente o investimento do mês; as outras duas somam menos, e cada uma explica por quê logo acima da tabela.',
+        sustentadaPor: ['grupos_de_anuncios', 'palavras_chave', 'termos_de_pesquisa'],
       },
     ],
     destaques: [
@@ -663,8 +954,13 @@ export const karyneMontada202607: SnapshotMontado = {
     proximosPassos: [
       {
         texto:
-          'As três seções incompletas dependem de serem montadas aqui — a alteração na integração com o Google já saiu. Nenhuma delas afeta os números que já estão neste relatório.',
-        sustentadaPor: ['grupos-de-anuncios', 'termos-de-pesquisa', 'palavras-chave'],
+          'O termo “como tratar halitose” já foi comprado como palavra-chave e aparece marcado assim na tabela de termos. Os outros cinco ainda não foram, e são candidatos naturais a virar palavra-chave — este relatório mostra quais são; a decisão de comprar é da operação.',
+        sustentadaPor: ['termos_de_pesquisa'],
+      },
+      {
+        texto:
+          'O grupo “Halitose — Institucional” está pausado e não veiculou em julho. Ele aparece na tabela com investimento zero e sem CTR nem CPC, porque sem impressão esses dois não existem — é diferente de terem sido zero.',
+        sustentadaPor: ['grupos_de_anuncios'],
       },
     ],
   },

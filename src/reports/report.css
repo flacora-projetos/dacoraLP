@@ -1770,6 +1770,52 @@
   color: var(--dc-sage);
 }
 
+/* ---------- Aviso de lista parcial (cobertura da tabela) --------------- */
+
+/* Fica ACIMA da tabela e é mais forte que a etiqueta de escopo de propósito:
+   o escopo diz de onde os números vêm, e isso é contexto; a cobertura diz que
+   somar a coluna não dá o total do mês, e isso é correção de uma leitura que
+   o leitor faria sozinho e erraria. Mesmo assim, sem cor de alarme — não é
+   problema da campanha do cliente, é a natureza da fonte. */
+.dc-cobertura {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--dc-cinza);
+  padding: 0.15rem 0 0.15rem 0.9rem;
+  border-left: 3px solid var(--dc-verde-medio);
+  margin-bottom: 1.1rem;
+  max-width: 68ch;
+}
+
+.dc-cobertura__linha strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dc-cobertura__motivos {
+  margin: 0.5rem 0 0;
+  padding-left: 1.05rem;
+  list-style: none;
+}
+
+/* Menor que a linha de cima, mas na mesma tinta dela — e não no cinza claro
+   das notas de rodapé. Estes motivos são a razão de a tabela não fechar: quem
+   não os lê soma a coluna e conclui um gasto que não é o do mês. Hierarquia
+   aqui se faz por tamanho, não por apagar o texto. */
+.dc-cobertura__motivos li {
+  position: relative;
+  margin-top: 0.28rem;
+  font-size: 0.78rem;
+  color: var(--dc-cinza);
+}
+
+.dc-cobertura__motivos li::before {
+  content: '·';
+  position: absolute;
+  left: -0.75rem;
+  color: var(--dc-verde-medio);
+}
+
 /* ---------- B3 como gráfico: um painel por métrica --------------------- */
 
 /*
