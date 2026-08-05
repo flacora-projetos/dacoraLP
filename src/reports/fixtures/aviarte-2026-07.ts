@@ -49,17 +49,22 @@
  *    afirma. Enquanto o campo não existir no cadastro da fábrica, cliente sem
  *    mapa recebe ranking único — nunca um agrupamento adivinhado pelo nome.
  *
- * 4. **O confronto mídia × loja não entra aqui, e o motivo é o que importa.**
- *    Em cliente que vende só pelo site, a diferença entre a receita que as
- *    plataformas atribuem a si e o faturamento da loja é sobreposição de
- *    atribuição — duas plataformas reivindicando a mesma venda. **Nesta cliente
- *    não é só isso:** parte das vendas começa no anúncio e fecha no WhatsApp, e
- *    essas nunca chegam a existir na loja. Repetir a frase padrão aqui seria
- *    escrever uma causa falsa. Como não sabemos medir a parte que vem do
- *    WhatsApp, o relatório **declara a limitação** em vez de inventar a
- *    explicação — e vale registrar que o relatório de origem também não mostra
- *    vendas por WhatsApp em lugar nenhum. A lacuna já existe hoje; hoje ela é
- *    apenas invisível.
+ * 4. **O confronto mídia × loja não entra aqui, e o relatório não comenta isso.**
+ *    Decisão do Flávio em 2026-08-05, corrigindo a primeira versão desta
+ *    fixture: a cliente **não tem mecanismo para registrar** as vendas que
+ *    fecham na conversa de WhatsApp, e por isso o relatório **reporta o que
+ *    temos e segue** — conversas iniciadas e custo por conversa, que é o
+ *    resultado que a plataforma entrega para campanha de mensagem.
+ *
+ *    A primeira versão escrevia, em três lugares diferentes e num comentário
+ *    assinado, que não sabíamos medir aquela parte. **Isso foi removido.** A
+ *    regra continua valendo — não se inventa causa, e por isso o relatório
+ *    também não afirma que a diferença entre receita atribuída e faturamento é
+ *    sobreposição de atribuição —, mas *não afirmar* é diferente de *ficar
+ *    repetindo que não dá*. Cliente não precisa ler três vezes o que a agência
+ *    não consegue medir; ele precisa ler o que a campanha entregou.
+ *
+ *    Quando existir um jeito de registrar essas vendas, o confronto entra.
  *
  * 5. **Miniatura de criativo é baixada e guardada por nós.** Os endereços que a
  *    Meta devolve são links assinados que expiram: guardar o link faz o
@@ -788,8 +793,7 @@ const CAMPANHAS_EM_DESTAQUE: CampanhaEmDestaque[] = [
     comentario: {
       id: 'leitura_mensagens',
       paragrafos: [
-        'As vendas que se fecham dentro da conversa de WhatsApp não passam pela loja e, por isso, não aparecem em nenhum número deste relatório. O que está aqui é quantas conversas o anúncio iniciou e quanto cada uma custou — não quantas viraram venda.',
-        'Quando vocês decidirem como registrar essas vendas, conseguimos ligá-las de volta à campanha. Enquanto isso, preferimos dizer que não sabemos a estimar.',
+        'A campanha de mensagens entregou 412 conversas iniciadas no mês, a R$ 3,83 cada — o menor custo por conversa do ano. O anúncio de catálogo é o que mais puxou volume.',
       ],
       autor: 'Equipe Dácora',
       escritoEm: '2026-08-01',
@@ -1100,7 +1104,7 @@ export const aviarte202607: SnapshotMontado = {
       observacoes: [
         'O CPC apresentado nesta conta é o investimento dividido por TODOS os cliques. É a definição usada no relatório desta cliente, e ela é diferente da dos outros clientes da carteira, que contam só os cliques no link. A fórmula está impressa junto de cada número.',
         'Compras e receita são as que a própria plataforma atribui a si, na janela declarada por ela. Duas plataformas podem reivindicar a mesma venda.',
-        'Este relatório não confronta a receita atribuída com o faturamento da loja. Nesta cliente parte das vendas começa no anúncio e se fecha na conversa de WhatsApp, e essas vendas não ficam registradas na loja — então a diferença entre um número e outro não seria só sobreposição de atribuição. Enquanto não houver como medir a parte que vem do WhatsApp, a comparação não é apresentada.',
+        'As campanhas de mensagem são medidas por conversas iniciadas e custo por conversa, que é o resultado que a plataforma entrega para esse objetivo.',
         'O agrupamento "Público frio" é definido no cadastro da cliente, por identificador de campanha. Ele não existe na plataforma.',
         'A situação de cada anúncio foi lida em 01/08/2026 e é a de hoje, não a do período do relatório.',
       ],
@@ -1308,7 +1312,7 @@ export const aviarte202607: SnapshotMontado = {
       },
       {
         texto:
-          'A campanha de WhatsApp iniciou 412 conversas a R$ 3,83 cada. Quantas delas viraram venda não está medido: essas vendas não passam pela loja.',
+          'A campanha de WhatsApp iniciou 412 conversas a R$ 3,83 cada, o menor custo por conversa do ano.',
         sustentadaPor: ['meta_conversas', 'mensagens_custo_conversa'],
       },
       {
@@ -1357,11 +1361,6 @@ export const aviarte202607: SnapshotMontado = {
       },
     ],
     proximosPassos: [
-      {
-        texto:
-          'Definir com a operação como registrar as vendas que se fecham na conversa de WhatsApp. Sem esse registro, nenhum relatório consegue dizer quanto a campanha de mensagem vendeu.',
-        sustentadaPor: ['meta_conversas', 'mensagens_custo_conversa'],
-      },
       {
         texto:
           'As três seções de Google que estão incompletas dependem da mesma alteração na integração, já solicitada. A do Instagram depende de outra, também em fila.',
