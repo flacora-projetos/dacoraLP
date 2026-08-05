@@ -48,14 +48,26 @@
  * abaixo do nível de campanha: grupo de anúncios, termo de pesquisa e
  * palavra-chave. A tabela por grupo é o **corpo** daquela página.
  *
- * Nossa integração devolve Google só em nível de campanha. Isso foi conferido
- * por chamada real em 2026-08-04: `google_insights` não tem parâmetro de
- * nível. É o item 3 do pedido ao conector, o de maior valor de conteúdo dos
- * onze, e segue aberto.
+ * **Atualizado em 2026-08-05. O texto que estava aqui — "nossa integração
+ * devolve Google só em nível de campanha", conferido por chamada real em
+ * 2026-08-04 — deixou de valer, e ficou falso na tela do cliente por um dia.**
+ * O conector passou a aceitar os três níveis (`ad_group`, `keyword`,
+ * `search_term`), medidos contra a API real. O que segura estas três seções
+ * agora é a **montagem daqui**, não a fonte.
  *
- * Os três blocos aparecem declarando o que falta, como no Zenun. No dia em que
- * o dado chegar, some-se a declaração e eles se preenchem — sem ninguém
- * precisar lembrar de voltar aqui.
+ * Duas coisas continuam verdadeiras e a tela precisa dizê-las quando as tabelas
+ * forem montadas:
+ *
+ *  • **grupo de anúncios fecha com a conta ao centavo; palavra-chave e termo de
+ *    pesquisa não fecham, por natureza.** Parte do investimento o Google não
+ *    atribui a palavra nenhuma, e Display, Vídeo, Performance Max, Shopping e
+ *    Demand Gen não têm palavra-chave. A leitura honesta é "as palavras-chave
+ *    somam X dos Y da conta" — apresentar X como total é erro;
+ *  • **campanha Performance Max não devolve o termo de pesquisa cru**, e vem
+ *    declarada à parte na resposta.
+ *
+ * Os três blocos continuam aparecendo declarando o que falta, como no Zenun. No
+ * dia em que forem montados, some-se a declaração e eles se preenchem.
  *
  * O lead da Karyne é `messaging_conversation_started_7d`, definido por gente
  * no cadastro. **Não** é o `instagram_profile_visits` que o conector escolhe
@@ -432,8 +444,8 @@ const conversoesPorDia: Serie = {
 /* O snapshot                                                          */
 /* ------------------------------------------------------------------ */
 
-const DEPENDE_DO_NIVEL =
-  'Depende de uma alteração na nossa integração com o Google, já solicitada e em fila: hoje ela nos devolve os números por campanha, e não abaixo disso.';
+const FALTA_MONTAR =
+  'Depende só de montarmos a seção: a nossa integração com o Google passou a devolver os níveis abaixo de campanha, e a tabela ainda não foi construída aqui.';
 
 export const karyneMontada202607: SnapshotMontado = {
   identidade: {
@@ -470,7 +482,7 @@ export const karyneMontada202607: SnapshotMontado = {
       coletadoEm: '2026-08-01T07:02:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'Os números por grupo de anúncios, por termo de pesquisa e por palavra-chave não são devolvidos pela nossa integração hoje. As três seções aparecem no relatório dizendo isso.',
+        'As tabelas por grupo de anúncios, por termo de pesquisa e por palavra-chave ainda não foram montadas neste relatório. A nossa integração passou a devolver os três níveis, e as três seções aparecem dizendo que falta montá-las.',
         'O total da conta e a distribuição das conversões por dia estão completos.',
       ],
     },
@@ -526,12 +538,12 @@ export const karyneMontada202607: SnapshotMontado = {
       pergunta: 'Quais grupos de anúncios trouxeram os resultados do mês?',
       indisponivel: {
         motivo:
-          'Ainda não conseguimos trazer os números separados por grupo de anúncios nesta fonte. Distribuir o total da conta entre os grupos seria inventar, e mostrar os grupos sem número nenhum seria uma lista sem utilidade.',
+          'Esta seção ainda não foi montada. Os números por grupo de anúncios passaram a chegar da fonte — e este é o único nível abaixo de campanha cuja soma fecha com o total da conta —, e o que falta agora é construirmos a tabela aqui.',
         oQueTemos: [
           'O investimento, os cliques, o CTR e as conversões da conta inteira, na seção acima.',
           'A distribuição das conversões dia a dia, na seção abaixo.',
         ],
-        dependeDe: DEPENDE_DO_NIVEL,
+        dependeDe: FALTA_MONTAR,
       },
     },
     {
@@ -551,9 +563,11 @@ export const karyneMontada202607: SnapshotMontado = {
       pergunta: 'Que buscas levaram aos anúncios?',
       indisponivel: {
         motivo:
-          'Ainda não conseguimos trazer os termos de pesquisa com o número de cada um nesta fonte.',
-        oQueTemos: ['O investimento e as conversões da conta inteira, na seção de Google acima.'],
-        dependeDe: DEPENDE_DO_NIVEL,
+          'Esta seção ainda não foi montada. Os termos de pesquisa passaram a chegar da fonte com o número de cada um, e o que falta agora é construirmos a tabela aqui.',
+        oQueTemos: [
+          'O investimento e as conversões da conta inteira, na seção de Google acima. Eles vão continuar sendo maiores do que a soma desta tabela: o Google omite o termo pesquisado poucas vezes, e campanha de Performance Max não devolve o termo que a pessoa digitou.',
+        ],
+        dependeDe: FALTA_MONTAR,
       },
     },
     {
@@ -565,12 +579,12 @@ export const karyneMontada202607: SnapshotMontado = {
       pergunta: 'Quais palavras-chave consumiram o investimento do mês?',
       indisponivel: {
         motivo:
-          'Ainda não conseguimos trazer o resultado de cada palavra-chave separadamente nesta fonte.',
+          'Esta seção ainda não foi montada. O resultado de cada palavra-chave passou a chegar da fonte, e o que falta agora é construirmos a tabela aqui.',
         oQueTemos: [
           'A lista das palavras-chave ativas e o tipo de correspondência de cada uma.',
-          'O investimento e as conversões da conta inteira, na seção de Google acima.',
+          'O investimento e as conversões da conta inteira, na seção de Google acima. Eles vão continuar sendo maiores do que a soma desta tabela: parte do investimento o Google não atribui a palavra-chave nenhuma, e as campanhas que não são de busca não têm palavra-chave.',
         ],
-        dependeDe: DEPENDE_DO_NIVEL,
+        dependeDe: FALTA_MONTAR,
       },
     },
     {
@@ -618,7 +632,7 @@ export const karyneMontada202607: SnapshotMontado = {
       },
       {
         texto:
-          'Três seções da parte de Google estão incompletas por limitação da nossa integração, e cada uma diz o que falta no próprio lugar.',
+          'Três seções da parte de Google ainda não foram montadas, e cada uma diz o que falta no próprio lugar. Nenhuma delas depende mais da nossa integração: os três níveis já são devolvidos por ela.',
         sustentadaPor: ['grupos-de-anuncios', 'termos-de-pesquisa', 'palavras-chave'],
       },
     ],
@@ -649,7 +663,7 @@ export const karyneMontada202607: SnapshotMontado = {
     proximosPassos: [
       {
         texto:
-          'As três seções incompletas dependem da mesma alteração na integração com o Google, já solicitada. Nenhuma delas afeta os números que já estão neste relatório.',
+          'As três seções incompletas dependem de serem montadas aqui — a alteração na integração com o Google já saiu. Nenhuma delas afeta os números que já estão neste relatório.',
         sustentadaPor: ['grupos-de-anuncios', 'termos-de-pesquisa', 'palavras-chave'],
       },
     ],

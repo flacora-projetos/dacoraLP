@@ -4,8 +4,9 @@
  *
  * O arranjo dele serve três clientes (ele, a Dra. Maria Nazaré e o Dr. Danilo
  * de Sá) e é o mais simples da carteira — só Google, nenhum texto humano. Mesmo
- * assim, três seções dependem de campos que a nossa integração ainda não
- * devolve, e elas aparecem dizendo isso.
+ * assim, três seções aparecem dizendo o que falta: duas esperam a montagem
+ * daqui, desde que a integração passou a devolver os níveis abaixo de campanha e
+ * a série diária, e uma continua dependendo de um campo que ela não devolve.
  *
  * É de propósito. Apagar da montagem o que não temos produziria uma página
  * bonita que nunca se completa sozinha, porque ninguém sentiria falta do que

@@ -305,16 +305,28 @@ export interface ComentarioHumano {
  * some do relatório — e ninguém percebe que devia haver algo ali — ou ela é
  * preenchida com número que ninguém mediu.
  *
- * O caso concreto é o Dr. Flávio Zenun: sete dos vinte e cinco números do
- * relatório dele dependem de campos que o conector ainda não expõe, e dois
- * blocos inteiros dependem disso. Declarando a indisponibilidade, o relatório
- * fica honesto hoje e **completo no dia em que o dado chegar**, sem ninguém
- * precisar lembrar de voltar aqui: basta apagar esta declaração.
+ * O caso concreto é o Dr. Flávio Zenun: parte dos números do relatório dele
+ * depende de campos que o conector ainda não expõe, e blocos inteiros dependem
+ * disso. Declarando a indisponibilidade, o relatório fica honesto hoje e
+ * **completo no dia em que o dado chegar**, sem ninguém precisar lembrar de
+ * voltar aqui: basta apagar esta declaração.
+ *
+ * **Existem dois motivos diferentes para um bloco não ser preenchido, e o texto
+ * é obrigado a dizer qual dos dois é:**
+ *
+ *  • **a fonte não devolve o dado** — é o caso do resultado por produto do
+ *    catálogo, que segue fora do conector;
+ *  • **a fonte devolve e nós ainda não montamos a seção** — foi o que aconteceu
+ *    em 2026-08-05 com grupo de anúncios, palavra-chave, termo de pesquisa e
+ *    série diária. Enquanto o texto não foi corrigido, três relatórios
+ *    afirmaram ao cliente que a integração não devolvia algo que ela já
+ *    devolvia. Culpar a fonte pelo trabalho que falta do nosso lado é mentira,
+ *    e a mais confortável de todas.
  *
  * A regra de redação vale para os dois campos: escreva para o cliente ler, não
- * para o desenvolvedor. "O conector não devolve métrica por palavra-chave" é
- * para o registro; "ainda não conseguimos separar o resultado por palavra-chave
- * nesta fonte" é o que vai para a tela.
+ * para o desenvolvedor. "O conector não expõe `shopping_performance_view`" é
+ * para o registro; "ainda não conseguimos separar o resultado por produto do
+ * catálogo nesta fonte" é o que vai para a tela.
  */
 export interface Indisponibilidade {
   /** O que deveria estar aqui e por que não está, em português de cliente. */

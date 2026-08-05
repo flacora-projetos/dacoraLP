@@ -8,8 +8,9 @@
  * é a decisão mais importante desta montagem. O porquê está no cabeçalho da
  * fixture e em `blocos/tipos.ts`.
  *
- * Três seções da parte de Google aparecem dizendo o que falta, porque a nossa
- * integração devolve Google só em nível de campanha.
+ * Três seções da parte de Google aparecem dizendo o que falta. Desde 2026-08-05
+ * o motivo é outro: a integração passou a devolver os níveis abaixo de campanha,
+ * e as tabelas ainda não foram montadas aqui.
  *
  * Na pele B. Todos os números são inventados — ver o cabeçalho da fixture.
  */

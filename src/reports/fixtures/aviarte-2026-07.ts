@@ -82,9 +82,17 @@
  *  • **o perfil do Instagram** — no relatório de origem essa página é uma
  *    captura de tela do painel do Instagram, colada à mão todo mês. Três das
  *    quatro medidas não saem da nossa integração hoje;
- *  • **termos de pesquisa, palavras-chave e produtos do PMax** — a integração
- *    devolve Google só em nível de campanha. É o mesmo pedido, já em fila, que
- *    segura três seções do relatório da Karyne.
+ *  • **produtos do PMax** — o nível de produto do catálogo continua fora do que
+ *    a integração devolve, e o pedido segue em fila;
+ *  • **termos de pesquisa e palavras-chave** — aqui o motivo mudou em
+ *    2026-08-05, e o texto que estava neste cabeçalho ("a integração devolve
+ *    Google só em nível de campanha") passou a ser falso. A integração devolve
+ *    os dois níveis; o que segura as duas seções é a montagem daqui. Quando
+ *    forem montadas, duas ressalvas continuam valendo: a soma da tabela de
+ *    palavra-chave **não fecha** com o total do Google, porque parte do
+ *    investimento não é atribuída a palavra nenhuma e Display, Shopping e
+ *    Performance Max não têm palavra-chave; e o termo de pesquisa **não cobre
+ *    Performance Max**, que não expõe o termo cru.
  *
  * O relatório de origem também tem, dentro de cada cartão do Instagram, um
  * mini-gráfico do dia a dia. Esse seria o **único parâmetro novo** que esta
@@ -1035,8 +1043,11 @@ const tabelaGoogle: TabelaEntidades = {
 /* A montagem                                                          */
 /* ------------------------------------------------------------------ */
 
-const DEPENDE_DO_NIVEL =
-  'Depende de uma alteração na nossa integração com o Google, já solicitada e em fila: hoje ela nos devolve os números por campanha, e não abaixo disso.';
+const FALTA_MONTAR =
+  'Depende só de montarmos a seção: a nossa integração com o Google passou a devolver os níveis abaixo de campanha, e a tabela ainda não foi construída aqui.';
+
+const DEPENDE_DO_NIVEL_DE_PRODUTO =
+  'Depende de uma alteração na nossa integração com o Google, já solicitada e em fila: o resultado por produto do catálogo continua fora do que ela devolve.';
 
 /**
  * Aqui é onde o laço acontece. Quatro seções do relatório de origem viram um
@@ -1118,7 +1129,7 @@ export const aviarte202607: SnapshotMontado = {
       coletadoEm: '2026-08-01T07:04:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'Os números por termo de pesquisa, por palavra-chave e por produto do Performance Max não são devolvidos pela nossa integração hoje. As três seções aparecem no relatório dizendo isso.',
+        'Os números por produto do Performance Max não são devolvidos pela nossa integração hoje. Os de termo de pesquisa e de palavra-chave passaram a ser devolvidos, e as duas tabelas ainda não foram montadas aqui. As três seções aparecem no relatório dizendo o que falta em cada caso.',
         'A coluna de aparições no topo vem vazia em três campanhas, por dois motivos diferentes: em Performance Max e Display a medida não existe; na campanha de menor volume ela existe e não veio. Nenhum dos dois casos vira zero.',
         'O total da conta e a tabela por campanha estão completos.',
       ],
@@ -1209,12 +1220,12 @@ export const aviarte202607: SnapshotMontado = {
       pergunta: 'Que buscas levaram aos anúncios?',
       indisponivel: {
         motivo:
-          'Ainda não conseguimos trazer os termos de pesquisa com o número de cada um nesta fonte.',
+          'Esta seção ainda não foi montada. Os termos de pesquisa passaram a chegar da fonte com o número de cada um, e o que falta agora é construirmos a tabela aqui. Quando ela vier, não vai cobrir a campanha de Performance Max: essa não devolve o termo que a pessoa digitou.',
         oQueTemos: [
           'O investimento, os cliques e as compras da conta inteira, na seção de Google acima.',
           'O resultado de cada campanha, na tabela acima.',
         ],
-        dependeDe: DEPENDE_DO_NIVEL,
+        dependeDe: FALTA_MONTAR,
       },
     },
     {
@@ -1226,12 +1237,12 @@ export const aviarte202607: SnapshotMontado = {
       pergunta: 'Quais palavras-chave consumiram o investimento do mês?',
       indisponivel: {
         motivo:
-          'Ainda não conseguimos separar o resultado por palavra-chave nesta fonte. Dividir o total da campanha entre as palavras seria inventar a distribuição.',
+          'Esta seção ainda não foi montada. O resultado de cada palavra-chave passou a chegar da fonte, e o que falta agora é construirmos a tabela aqui.',
         oQueTemos: [
           'A lista das palavras-chave ativas e o tipo de correspondência de cada uma.',
-          'O investimento e as compras de cada campanha de pesquisa, na tabela acima.',
+          'O investimento e as compras de cada campanha de pesquisa, na tabela acima. O total do Google vai continuar sendo maior do que a soma desta tabela: parte do investimento não é atribuída a palavra-chave nenhuma, e Performance Max, Display e Shopping não têm palavra-chave.',
         ],
-        dependeDe: DEPENDE_DO_NIVEL,
+        dependeDe: FALTA_MONTAR,
       },
     },
     {
@@ -1247,7 +1258,7 @@ export const aviarte202607: SnapshotMontado = {
         oQueTemos: [
           'O investimento, o CTR, o CPC médio e as compras da campanha de Performance Max, na tabela acima.',
         ],
-        dependeDe: DEPENDE_DO_NIVEL,
+        dependeDe: DEPENDE_DO_NIVEL_DE_PRODUTO,
       },
     },
     {
@@ -1363,7 +1374,7 @@ export const aviarte202607: SnapshotMontado = {
     proximosPassos: [
       {
         texto:
-          'As três seções de Google que estão incompletas dependem da mesma alteração na integração, já solicitada. A do Instagram depende de outra, também em fila.',
+          'Das três seções de Google incompletas, duas — termos de pesquisa e palavras-chave — esperam só a montagem, porque a integração já devolve esses níveis; a de produtos do Performance Max continua dependendo de uma alteração já solicitada. A do Instagram depende de outra, também em fila.',
         sustentadaPor: ['termos-de-pesquisa', 'palavras-chave', 'produtos-pmax', 'instagram-organico'],
       },
     ],

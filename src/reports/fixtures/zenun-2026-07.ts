@@ -12,8 +12,19 @@
  *
  * O relatório do Zenun é o mais simples da carteira (só Google, nenhum texto
  * humano) e serve **três clientes**: ele, a Dra. Maria Nazaré e o Dr. Danilo
- * de Sá. Mesmo assim, sete dos vinte e cinco números dele dependem de campos
- * que o conector ainda não expõe, e isso derruba dois blocos inteiros.
+ * de Sá. Mesmo assim, três seções dele saem declaradas em vez de preenchidas.
+ *
+ * **Atualizado em 2026-08-05 — o motivo mudou para duas das três, e o texto
+ * antigo aqui afirmava coisa que deixou de ser verdade.** O conector passou a
+ * devolver os níveis abaixo de campanha (grupo de anúncios, palavra-chave e
+ * termo de pesquisa) e a série diária, medidos contra a API real. Palavras-chave
+ * e conversões por dia esperam agora a **montagem daqui**, não a integração. Só
+ * a separação das conversões por tipo de ação continua faltando na fonte.
+ *
+ * Duas coisas que não mudaram e que a tela precisa continuar dizendo: a soma da
+ * tabela de palavra-chave **não fecha** com o total da conta — parte do
+ * investimento o Google não atribui a palavra nenhuma, e os canais sem busca não
+ * têm palavra-chave —, e o nível que fecha ao centavo é o de grupo de anúncios.
  *
  * A escolha aqui foi **mostrar os buracos como buracos**. Não é o caminho mais
  * bonito; é o único que não produz uma tela que nunca se preenche sozinha. Se
@@ -334,8 +345,8 @@ export const zenun202607: SnapshotMontado = {
       coletadoEm: '2026-08-01T07:02:00-03:00',
       janela: { inicio: '2026-07-01', fim: '2026-07-31' },
       observacoes: [
-        'A separação das conversões por tipo de ação e a série de conversões por dia não são devolvidas pela nossa integração hoje. As duas seções aparecem no relatório dizendo isso.',
-        'As métricas por palavra-chave também não são devolvidas: temos a lista de palavras, sem os números de cada uma.',
+        'A separação das conversões por tipo de ação continua não sendo devolvida pela nossa integração. A seção aparece no relatório dizendo isso.',
+        'A série de conversões por dia e os números por palavra-chave passaram a ser devolvidos pela nossa integração. As duas seções ainda não foram montadas aqui, e aparecem no relatório dizendo isso.',
         '"Aparições no primeiro lugar" é derivado de outras duas medições, e só é apresentado quando nenhuma delas vem como faixa.',
       ],
     },
@@ -374,10 +385,9 @@ export const zenun202607: SnapshotMontado = {
       serie: 'conversoes_dia',
       indisponivel: {
         motivo:
-          'Esta fonte nos devolve o total do período, mas não o dia a dia. Por isso não é possível montar a distribuição diária sem estimar, e estimativa não entra em relatório.',
+          'Esta seção ainda não foi montada. A fonte passou a devolver o dia a dia — o relatório da Karyne já mostra essa distribuição —, e o que falta agora é construirmos a seção aqui.',
         oQueTemos: ['O total do mês e a evolução mês a mês, que está mais abaixo.'],
-        dependeDe:
-          'Depende de uma alteração na nossa integração com a plataforma, já solicitada e em fila.',
+        dependeDe: 'Depende só de montarmos a seção. A fonte já devolve o dia a dia.',
       },
     },
     {
@@ -407,13 +417,12 @@ export const zenun202607: SnapshotMontado = {
       pergunta: 'Quais palavras-chave trouxeram os resultados do mês?',
       indisponivel: {
         motivo:
-          'Conseguimos listar as palavras-chave ativas, mas ainda não conseguimos trazer o resultado de cada uma separadamente nesta fonte. Mostrar as palavras sem os números seria uma lista sem utilidade, e distribuir o total entre elas seria inventar.',
+          'Esta seção ainda não foi montada. O resultado de cada palavra-chave passou a chegar da fonte, e o que falta agora é construirmos a tabela aqui.',
         oQueTemos: [
           'A lista das palavras-chave ativas e o tipo de correspondência de cada uma.',
-          'O investimento e as conversões do conjunto, que estão na primeira seção.',
+          'O investimento e as conversões do conjunto, que estão na primeira seção. Eles vão continuar sendo maiores do que a soma desta tabela: parte do investimento o Google não atribui a palavra-chave nenhuma, e as campanhas que não são de busca não têm palavra-chave.',
         ],
-        dependeDe:
-          'Depende de uma alteração na nossa integração com a plataforma, já solicitada e em fila.',
+        dependeDe: 'Depende só de montarmos a tabela. A fonte já devolve este nível.',
       },
     },
   ],
@@ -440,7 +449,7 @@ export const zenun202607: SnapshotMontado = {
       },
       {
         texto:
-          'Três seções deste relatório estão incompletas por limitação da nossa integração com a plataforma, e cada uma diz o que falta no próprio lugar.',
+          'Três seções deste relatório estão incompletas, e cada uma diz no próprio lugar o que falta: duas esperam apenas ser montadas, e a separação das conversões por tipo de contato continua dependendo da nossa integração com a plataforma.',
         sustentadaPor: ['tipo-de-conversao', 'conversoes-por-dia', 'palavras-chave'],
       },
     ],
@@ -471,7 +480,7 @@ export const zenun202607: SnapshotMontado = {
     proximosPassos: [
       {
         texto:
-          'As três seções incompletas dependem da mesma alteração na integração, já solicitada. Nenhuma delas afeta os números que já estão neste relatório.',
+          'Nenhuma das três seções incompletas afeta os números que já estão neste relatório. Duas delas esperam só a montagem; a separação das conversões por tipo de contato segue na fila da integração.',
         sustentadaPor: ['tipo-de-conversao', 'conversoes-por-dia', 'palavras-chave'],
       },
     ],
