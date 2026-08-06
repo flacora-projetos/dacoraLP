@@ -26,7 +26,15 @@ import {
   extrairTokenBearer,
   lerListaAutorizada,
   type UsuarioSupabase,
-} from './_painel-autorizacao';
+  // A extensão `.js` é OBRIGATÓRIA aqui, e a falta dela derrubou a função
+  // inteira na primeira prévia publicada: a Vercel compila cada arquivo de
+  // `api/` para ESM sem juntar os módulos vizinhos, e o Node em ESM não
+  // completa extensão sozinho — o import extensionless virava
+  // `ERR_MODULE_NOT_FOUND` e todo pedido respondia 500. Localmente nada
+  // aparecia, porque o `tsx` e o `esbuild` completam a extensão por conta.
+  // O TypeScript resolve `.js` para o arquivo `.ts` ao lado, então isto
+  // compila e continua sendo o mesmo módulo compartilhado.
+} from './_painel-autorizacao.js';
 
 export default async function handler(req: Request, res: Response) {
   // Resposta de autorização nunca pode ser guardada por cache intermediário.
