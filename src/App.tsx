@@ -23,6 +23,13 @@ const RelatorioDemoKaryne = lazy(() => import('./pages/RelatorioDemoKaryne'));
 const RelatorioDemoVetsell = lazy(() => import('./pages/RelatorioDemoVetsell'));
 const RelatorioDemoZenun = lazy(() => import('./pages/RelatorioDemoZenun'));
 
+/**
+ * Painel de aprovação (fase P0). Também privado, também `lazy`: só quem abre o
+ * painel baixa o cliente de autenticação. Fica fora de `scripts/seo-routes.mjs`
+ * pelo mesmo motivo das rotas de relatório.
+ */
+const PainelRelatorios = lazy(() => import('./pages/PainelRelatorios'));
+
 export default function App() {
   return (
     <Routes>
@@ -93,7 +100,35 @@ export default function App() {
           </Suspense>
         }
       />
+      <Route
+        path="/painel-de-relatorios"
+        element={
+          <Suspense fallback={<CarregandoPainel />}>
+            <PainelRelatorios />
+          </Suspense>
+        }
+      />
     </Routes>
+  );
+}
+
+function CarregandoPainel() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        minHeight: '60vh',
+        display: 'grid',
+        placeItems: 'center',
+        color: '#4A5E55',
+        fontSize: '0.85rem',
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+      }}
+    >
+      Carregando painel
+    </div>
   );
 }
 

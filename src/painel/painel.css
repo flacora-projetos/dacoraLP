@@ -1,0 +1,486 @@
+/* =====================================================================
+   Painel de aprovação de relatórios — pele (fase P0)
+
+   Mesma paleta e mesma tipografia do relatório, OUTRA densidade. Essa
+   diferença é o ponto de design principal desta superfície, não um
+   detalhe: o relatório é documento e respira (seções de até 5,5rem,
+   largura de 68rem); o painel é ferramenta, e um painel com o
+   espaçamento do relatório mostra oito linhas por tela — virando
+   exatamente a "lista de links" que o Flávio recusou.
+
+   Regras de densidade (§6.1 do handoff): linha de tabela entre 44 e
+   52 px, espaçamento interno de 12 a 16 px, largura livre até 1400 px.
+
+   Os tokens abaixo são espelho de `src/reports/report.css`, pelo mesmo
+   motivo que aquele arquivo é espelho de `src/index.css`: o painel não
+   deve depender de a folha do relatório ter sido carregada antes. Ao
+   mudar um valor lá, mude aqui.
+   ===================================================================== */
+
+.dc-painel {
+  --dc-canvas: #f2efeb;
+  --dc-superficie: #ffffff;
+  --dc-verde: #014029;
+  --dc-verde-medio: #02593a;
+  --dc-tinta: #0d1f18;
+  --dc-cinza: #4a5e55;
+  --dc-sage: #8a9e95;
+  --dc-sinal: #9c4b2f;
+
+  --dc-filete: rgba(13, 31, 24, 0.12);
+  --dc-filete-forte: rgba(13, 31, 24, 0.2);
+
+  --dc-fonte-base: 'Red Hat Display', ui-sans-serif, system-ui, sans-serif;
+
+  --dc-raio: 18px;
+  --dc-raio-grande: 22px;
+
+  /* Ferramenta, não documento. */
+  --dcp-largura: 1400px;
+  --dcp-altura-linha: 48px;
+  --dcp-respiro: 14px;
+
+  background-color: var(--dc-canvas);
+  color: var(--dc-tinta);
+  font-family: var(--dc-fonte-base);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dc-painel *,
+.dc-painel *::before,
+.dc-painel *::after {
+  box-sizing: border-box;
+}
+
+.dc-painel :focus-visible {
+  outline: 2px solid var(--dc-verde);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.dcp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Barra do topo -------------------------------------------- */
+
+.dcp-topo {
+  border-bottom: 1px solid var(--dc-filete);
+  background: var(--dc-superficie);
+}
+
+.dcp-topo__conteudo {
+  width: 100%;
+  max-width: var(--dcp-largura);
+  margin-inline: auto;
+  padding: 10px clamp(1rem, 0.6rem + 1.4vw, 1.75rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  min-height: 56px;
+}
+
+.dcp-topo__marca {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dc-verde);
+}
+
+.dcp-topo__separador {
+  width: 1px;
+  height: 1rem;
+  background: var(--dc-filete-forte);
+}
+
+.dcp-topo__titulo {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--dc-cinza);
+  letter-spacing: 0.01em;
+}
+
+.dcp-topo__identidade {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--dc-cinza);
+}
+
+.dcp-topo__email {
+  font-weight: 500;
+  color: var(--dc-tinta);
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .dcp-topo__identidade {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ---------- Corpo ----------------------------------------------------- */
+
+.dcp-corpo {
+  flex: 1;
+  width: 100%;
+  max-width: var(--dcp-largura);
+  margin-inline: auto;
+  padding: clamp(1.25rem, 0.9rem + 1.4vw, 2rem) clamp(1rem, 0.6rem + 1.4vw, 1.75rem) 3rem;
+}
+
+/* Telas de portão (entrar, barrado, erro): centralizadas e estreitas.
+   Só ESTAS telas usam largura de leitura — a fila e a revisão, que vêm
+   nas fases seguintes, usam a largura de ferramenta. */
+.dcp-portao {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 1rem + 3vw, 4rem) 1.25rem;
+}
+
+.dcp-cartao {
+  width: 100%;
+  max-width: 30rem;
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio-grande);
+  padding: clamp(1.5rem, 1.1rem + 1.8vw, 2.25rem);
+  box-shadow: 0 6px 26px rgba(13, 31, 24, 0.05);
+}
+
+.dcp-cartao--largo {
+  max-width: 34rem;
+}
+
+.dcp-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+}
+
+.dcp-titulo {
+  margin: 0.7rem 0 0;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.95rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--dc-tinta);
+}
+
+.dcp-texto {
+  margin: 0.85rem 0 0;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--dc-cinza);
+  max-width: 46ch;
+}
+
+.dcp-texto strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dcp-acoes {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.dcp-dado {
+  margin-top: 1.25rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 12px;
+  background: var(--dc-canvas);
+}
+
+.dcp-dado__rotulo {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+}
+
+.dcp-dado__valor {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dc-tinta);
+  word-break: break-all;
+}
+
+/* ---------- Botões ---------------------------------------------------- */
+
+.dcp-botao {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+}
+
+.dcp-botao--primario {
+  background: var(--dc-verde);
+  color: var(--dc-canvas);
+}
+
+.dcp-botao--primario:hover:not(:disabled) {
+  background: var(--dc-verde-medio);
+}
+
+.dcp-botao--discreto {
+  background: transparent;
+  border-color: var(--dc-filete-forte);
+  color: var(--dc-cinza);
+}
+
+.dcp-botao--discreto:hover:not(:disabled) {
+  border-color: var(--dc-verde);
+  color: var(--dc-verde);
+}
+
+.dcp-botao:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dcp-google {
+  margin-top: 1.6rem;
+}
+
+/* Marca Google: fundo claro e borda. Não vira botão verde. */
+.dcp-botao-google {
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--dc-tinta);
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  box-shadow: 0 1px 2px rgba(13, 31, 24, 0.06);
+  transition: background-color 160ms ease-out, border-color 160ms ease-out;
+}
+
+.dcp-botao-google:hover:not(:disabled) {
+  background: var(--dc-canvas);
+  border-color: var(--dc-verde);
+}
+
+.dcp-botao-google:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ---------- Mensagens ------------------------------------------------- */
+
+.dcp-erro {
+  margin: 0.85rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--dc-sinal);
+  border-left: 2px solid var(--dc-sinal);
+  padding-left: 0.65rem;
+}
+
+.dcp-nota {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dc-filete);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--dc-cinza);
+}
+
+.dcp-lista-config {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--dc-cinza);
+}
+
+.dcp-lista-config code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.76rem;
+  background: var(--dc-canvas);
+  border: 1px solid var(--dc-filete);
+  border-radius: 5px;
+  padding: 0.05rem 0.3rem;
+}
+
+/* ---------- Espera ---------------------------------------------------- */
+
+/*
+ * Esqueleto com a altura das linhas reais, nunca um `spinner` no meio da
+ * tela: o salto de layout quando o conteúdo chega é o que faz a coisa
+ * parecer amadora. Aqui, na P0, ele ainda representa uma fila vazia — as
+ * linhas de verdade entram na P1.
+ */
+.dcp-espera {
+  width: 100%;
+  max-width: var(--dcp-largura);
+  margin-inline: auto;
+  padding: clamp(1.25rem, 0.9rem + 1.4vw, 2rem) clamp(1rem, 0.6rem + 1.4vw, 1.75rem);
+}
+
+.dcp-espera__rotulo {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  margin: 0 0 0.9rem;
+}
+
+.dcp-espera__linhas {
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  overflow: hidden;
+  background: var(--dc-superficie);
+}
+
+.dcp-espera__linha {
+  height: var(--dcp-altura-linha);
+  border-bottom: 1px solid var(--dc-filete);
+  display: flex;
+  align-items: center;
+  padding-inline: var(--dcp-respiro);
+}
+
+.dcp-espera__linha:last-child {
+  border-bottom: 0;
+}
+
+.dcp-espera__barra {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(13, 31, 24, 0.07);
+  animation: dcp-pulso 1.4s ease-in-out infinite;
+}
+
+@keyframes dcp-pulso {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dcp-espera__barra {
+    animation: none;
+  }
+  .dcp-botao,
+  .dcp-botao-google {
+    transition: none;
+  }
+}
+
+/* ---------- Tela autenticada vazia (P0) -------------------------------- */
+
+.dcp-secao {
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  padding: clamp(1.1rem, 0.9rem + 0.8vw, 1.5rem);
+}
+
+.dcp-secao + .dcp-secao {
+  margin-top: 1rem;
+}
+
+.dcp-secao__titulo {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--dc-tinta);
+}
+
+.dcp-secao__apoio {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--dc-cinza);
+  max-width: 62ch;
+}
+
+.dcp-proximas {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--dc-filete);
+}
+
+.dcp-proximas li {
+  min-height: var(--dcp-altura-linha);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 var(--dcp-respiro);
+  border-bottom: 1px solid var(--dc-filete);
+  font-size: 0.88rem;
+  color: var(--dc-cinza);
+}
+
+.dcp-proximas__chave {
+  flex: none;
+  width: 2.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--dc-sage);
+  font-variant-numeric: tabular-nums;
+}
+
+.dcp-proximas__texto strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
