@@ -3,12 +3,11 @@
 **Rota:** `/painel-de-relatorios`
 **Fases concluídas localmente:** P0 (fundação e login) · **P1 inteira —
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
-**P2 no código — relatório dentro da bancada e faixa responsiva de revisão;
-smoke visual autenticado ainda pendente no celular e aguardando reconfirmação
-final no desktop**
-**Produção:** somente P0/P1 estão integradas na `main` e publicadas. A P2 está
-apenas na branch local `codex/p2-revisao-painel` e não foi integrada nem
-publicada. Rota atual de produção: <https://www.dacora.com.br/painel-de-relatorios>.
+**P2 concluída e validada — relatório dentro da bancada, faixa responsiva e
+smoke autenticado aprovados pelo Flávio em desktop e celular**
+**Produção:** P0/P1 já estavam publicadas; a integração e a publicação da P2
+foram autorizadas pelo Flávio nesta entrega. Rota:
+<https://www.dacora.com.br/painel-de-relatorios>.
 **Última atualização:** 2026-08-06
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -29,9 +28,9 @@ custou caro descobrir.
 **A fila do mês está em produção, lendo do banco, com os dois relatórios reais
 dentro.** A P2 está concluída e corrigida na branch local: a fila abre o
 relatório completo dentro da bancada, com deep-link e faixa responsiva;
-carregamento ou erro nunca mostram controles de decisão. Ela ainda depende da
-prova humana autenticada final e de autorização separada para integração e
-publicação. Só depois disso a P3 começa em uma nova sessão (seção 7).
+carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
+aprovou o smoke autenticado em desktop e celular. A P3 é o próximo passo e
+começa em uma nova sessão (seção 7).
 
 ### Checkpoint local da P2
 
@@ -55,9 +54,9 @@ tinha sido iniciado antes do endpoint da P2 e devolvia a SPA no lugar da API;
 depois do reinício, a Karyne quebrava porque o snapshot usa a fonte válida
 `crm`, ausente do catálogo visual. O primeiro foi resolvido reiniciando o
 servidor; o segundo está corrigido e coberto pela regressão no checkpoint
-`05323e2`. Antes de integrar ou publicar, ainda falta o Flávio reconfirmar no
-desktop fila → Karyne → voltar → nomes clicáveis e repetir o fluxo autenticado
-no celular.
+`05323e2`. Depois da correção, o Flávio reconfirmou fila → Karyne → voltar →
+nomes clicáveis e repetiu o fluxo autenticado no celular. Os dois foram
+validados; integração e push foram autorizados na sequência.
 
 ---
 
@@ -102,9 +101,8 @@ numa tela de erro. Ninguém procuraria num `import`.
 
 ### O que continua sem conferir
 
-O login real e a fila já foram provados pelo Flávio. O que falta agora é o
-smoke autenticado da revisão corrigida: reconfirmação no desktop e execução no
-celular. A configuração da seção 3.1 já foi feita.
+O login real, a fila e a revisão corrigida foram provados pelo Flávio em desktop
+e celular. A configuração da seção 3.1 já foi feita.
 
 ---
 
@@ -317,8 +315,6 @@ Registrado com todas as letras para ninguém achar que foi testado.
 
 | Não conferido | Motivo |
 |---|---|
-| **P2 corrigida no desktop com a conta real** | o Flávio encontrou a falha de renderização; a correção passou no navegador isolado, mas aguarda a reconfirmação fila → Karyne → voltar |
-| **P2 no celular com a conta real** | o layout passou em 390×844 no navegador isolado; falta percorrer o fluxo com a sessão Google real |
 | **A tela de barrado com um e-mail real** | provada no servidor (seção 5.2) e renderizada sem erro; não foi usada uma terceira conta Google real |
 
 **Dois itens saíram desta lista em 2026-08-06, porque a prévia os resolveu:** o
@@ -474,17 +470,13 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Fechar o smoke autenticado da P2:** reconfirmar o desktop e percorrer o
-   fluxo no celular. O teste isolado já passou nos dois tamanhos.
-2. **Integração e publicação da P2:** continuam bloqueadas até autorização
-   explícita do Flávio, separada para cada ação.
-3. **P3, em sessão nova:** habilitar aprovar e recusar, com checksum carimbado
+1. **P3, em sessão nova:** habilitar aprovar e recusar, com checksum carimbado
    e motivo obrigatório. Não iniciar nesta sessão organizacional antes do
-   fechamento da P2 e da autorização do Flávio.
-4. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
+   handoff explícito.
+2. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
-5. **P4:** recusa avisa o grupo `Dácora - Agentes`.
-6. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
+3. **P4:** recusa avisa o grupo `Dácora - Agentes`.
+4. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
 
 **Dashboard operacional:** é uma proposta para as próximas fases, ainda não
 aprovada nem numerada. Deve ser avaliada sem transformar estes relatórios
@@ -727,11 +719,8 @@ desejado.
 
 ### 11.6 O que NÃO foi provado
 
-**O fluxo autenticado completo da P2 depois da correção.** O Flávio entrou, viu
-a fila e foi quem encontrou o defeito de renderização; depois da correção, o
-comportamento passou na regressão e no navegador isolado, mas ainda falta a
-reconfirmação dele no desktop e o mesmo percurso no celular. A P2 não foi
-publicada.
+O fluxo autenticado completo da P2 saiu desta lista: depois da correção, o
+Flávio validou desktop e celular.
 
 ### 11.7 A recarga ao trocar de janela — corrigida e com regressão
 
@@ -765,6 +754,21 @@ mais regressão direta para o preenchimento. A mesma rodada eliminou a rolagem
 horizontal móvel causada pelos rótulos de unidade e pela tabela de campanhas.
 Karyne passou com oito gráficos em desktop e celular; Aviarte passou nos dois
 tamanhos. Nenhum banco remoto foi alterado.
+
+### 11.9 Pendência de dado histórico da Karyne — pertence à fábrica
+
+Até 21/06/2026, as campanhas da Karyne levavam direto ao WhatsApp e o resultado
+otimizado era **mensagens iniciadas**. A partir de 22/06/2026, passaram a usar a
+conversão do site. A evolução anual atual aplica o evento novo retroativamente e
+por isso deixa de contar as mensagens dos meses anteriores: janeiro a junho
+ficam historicamente errados, embora os dados atuais não sejam afetados.
+
+Não é correção do painel: ele reproduz fielmente o snapshot persistido. A
+fábrica no `OpenClaw-Dacora` deve rastrear qual evento de conversão cada
+campanha/conjunto otimizava em cada período, por ID e vigência, e agregar cada
+mês com a definição que valia naquele momento. Nunca aplicar a conversão atual
+ao histórico inteiro. A pendência precisa ser resolvida antes de escalar a
+montagem para mais relatórios com mudança de objetivo ao longo do tempo.
 
 ---
 
