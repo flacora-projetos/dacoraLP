@@ -1,7 +1,8 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
 **Rota:** `/painel-de-relatorios`
-**Fase concluída:** P0 (fundação e login)
+**Fase concluída:** P0 (fundação e login) · **Fase A da P1** (o carregador dos
+relatórios para o banco) — escrita e exercitada, **falta rodar de verdade**
 **Branch:** `feat/p0-painel-fundacao-login` — publicada no `origin` com autorização
 do Flávio. **Sem merge na `main` e sem produção.**
 **Prévia no ar:**
@@ -30,6 +31,22 @@ endereço da prévia no Supabase** (seção 3.1).
 O provedor Google **já foi ligado** no projeto `Dácora Reports` desde que este
 documento foi escrito, e as duas contas autorizadas entraram na máquina local.
 Os passos A, B, C e D da seção 3 estão feitos.
+
+**E falta uma quarta variável, que ainda não existe em lugar nenhum: a chave
+de serviço** (seção 3.3). Sem ela nada de relatório entra no banco e a fila
+não tem o que mostrar.
+
+---
+
+## 1.2 A tabela de relatórios ainda está VAZIA, e é por isso que a fila
+## aparece vazia
+
+Registrado com todas as letras porque é a primeira coisa que alguém vai achar
+que é defeito: **`public.relatorios` tem zero linhas hoje.** O carregador
+existe, foi exercitado e está provado no que dava para provar sem a chave — só
+não foi executado de verdade, porque a chave de serviço não existe ainda.
+
+Quando ela existir, são dois comandos (seção 9) e a fila se enche sozinha.
 
 ---
 
@@ -160,6 +177,30 @@ mesma medida serve para a próxima vez:
 - E, com um token inventado, ele respondeu `sessao_invalida` — o que só acontece
   se o servidor **conseguiu falar com o Supabase de verdade**. Isso prova que o
   endereço e a chave não são só existentes, são válidos.
+
+### 3.3 — FALTA FAZER: a chave de serviço (a quarta variável)
+
+Sem ela, **nenhum relatório entra no banco e a fila fica vazia**. Ela é a
+única porta de leitura da tabela, por desenho (seção 7).
+
+**Onde o Flávio pega:** <https://supabase.com/dashboard> → projeto **Dácora
+Reports** → **Project Settings** → **API** → a chave **`service_role`** (a
+secreta, com aviso de "never share"). **Não** é a `anon`.
+
+**Onde ele cola — dois lugares, e o nome é o mesmo nos dois:
+`SUPABASE_SERVICE_ROLE_KEY`.**
+
+1. **Para rodar na máquina dele:** no arquivo `.env.local`, na raiz deste
+   projeto, uma linha nova `SUPABASE_SERVICE_ROLE_KEY=...`. Esse arquivo não
+   vai para o repositório.
+2. **Para a prévia e a produção:** Vercel → projeto **dacora-lp** →
+   **Settings** → **Environment Variables**, marcando **Production** e
+   **Preview**. Depois, **Redeploy** — a Vercel não aplica variável em quem já
+   está no ar.
+
+> **Ela NUNCA leva `VITE_` na frente.** Tudo que começa com `VITE_` é embutido
+> na página e qualquer visitante consegue ler. Com essa chave no navegador,
+> qualquer visitante leria os relatórios de todos os clientes de uma vez.
 
 ### Passo A — Google Cloud (FEITO)
 
@@ -399,26 +440,101 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 **Em ordem:**
 
-1. **O Flávio faz a seção 3.1** — um endereço a mais na lista de retorno do
-   Supabase. É o único passo de console que falta.
-2. **O Flávio e a Fernanda entram na prévia pelo celular**, cada um com a sua
+1. **O Flávio pega a chave de serviço e cola nos dois lugares** — seção 3.3. É
+   o que destrava tudo o que vem depois: sem ela a tabela continua vazia e a
+   fila não tem o que mostrar.
+2. **Rodar os dois comandos da seção 9** para os relatórios da Karyne e da
+   Aviarte entrarem no banco.
+3. **O Flávio faz a seção 3.1** — um endereço a mais na lista de retorno do
+   Supabase, para o login funcionar na prévia.
+4. **O Flávio e a Fernanda entram na prévia pelo celular**, cada um com a sua
    conta, e o resultado volta para cá. Se sobrar um terceiro e-mail à mão, vale
    ver a tela de barrado de verdade.
-3. **Aí sim, a P1 (a fila).** Ela depende de outra coisa que **ainda não
-   existe**: a fase W2, no `OpenClaw-Dacora`, é o que faz o relatório gerado
-   virar linha na tabela `public.relatorios`. Hoje a tabela está vazia. Sem a
-   W2, a P1 não tem o que listar.
 
-**Quando a P1 começar**, ela vai precisar de uma variável nova, que ainda não
-existe em lugar nenhum: `SUPABASE_SERVICE_ROLE_KEY`, só no servidor e **nunca**
-com prefixo `VITE_`. A RLS da tabela está ligada **sem nenhuma política, de
-propósito** — o acesso público lê zero, e a única porta é essa chave, no
-servidor. **Criar política de leitura pública ali entrega o relatório de um
-cliente para outro.**
+> **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
+> dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
+> gerado virar linha no banco. Na prática o que faltava era **um carregador**,
+> e ele agora existe aqui (seção 9): os dois snapshots que a W1 já produziu
+> vão para o banco com um comando cada. A W2 continua valendo como automação
+> (gerar e gravar num passo só), não como pré-requisito.
+
+**A RLS da tabela está ligada sem nenhuma política, de propósito** — o acesso
+público lê zero, e a única porta é a chave de serviço, no servidor. **Criar
+política de leitura pública ali entrega o relatório de um cliente para
+outro.**
 
 ---
 
-## 8. Achado fora do escopo, para quem cuidar do `OpenClaw-Dacora`
+## 9. O carregador de relatórios (fase A da P1)
+
+`npm run carrega:relatorio -- "<caminho do snapshot>.json"` —
+`scripts/carrega-relatorio.mts`. Lê **um** snapshot do disco e grava **uma**
+linha em `public.relatorios`.
+
+Os dois comandos que enchem a fila, quando a chave da seção 3.3 existir:
+
+```
+npm run carrega:relatorio -- "C:\...\OpenClaw-Dacora\out\relatorios\karyne_magalhaes-2026-07.json"
+npm run carrega:relatorio -- "C:\...\OpenClaw-Dacora\out\relatorios\aviarte-2026-07.json"
+```
+
+### 9.1 A regra que o script trava sozinho
+
+**O snapshot nunca entra neste repositório.** Ele tem números reais de cliente
+e o repositório é público. O script **recusa qualquer caminho que esteja
+dentro da pasta do projeto** — não é aviso no comentário, é recusa com saída
+de erro, provada.
+
+### 9.2 O que ele confere, e o que ele deliberadamente NÃO confere
+
+**Não confere:** formato da competência, tamanho do token, versão repetida.
+Isso tudo já é **restrição da tabela**, e reimplementar aqui criaria uma
+segunda fonte de verdade para divergir da primeira. Quando o banco recusa, o
+script mostra a recusa dele inteira, sem traduzir.
+
+**Confere uma coisa só, e ela não duplica nada:** recalcula o checksum a
+partir do conteúdo que vai ser gravado e compara com o que veio no arquivo. Se
+divergirem, o que seria gravado não é o que foi apurado — e aí gravar é pior
+que falhar. Os dois snapshots batem.
+
+### 9.3 Três decisões de formato, e o porquê de cada uma
+
+1. **O `conteudo` gravado é o snapshot SEM o bloco `publicacao`.** Aquele bloco
+   é o envelope (estado, versão, checksum, quem aprovou), e o envelope são as
+   **colunas**. Guardar uma segunda cópia dele dentro de um `conteudo` que é
+   imutável por gatilho congelaria um `"estado": "gerado"` para sempre dentro
+   de um relatório que amanhã estará aprovado e enviado — duas respostas para
+   a mesma pergunta, e a de dentro sempre errada. É também exatamente o objeto
+   que o checksum cobre.
+2. **O token é sorteado** (32 bytes, 43 caracteres), nunca derivado do nome, do
+   slug ou da competência. Não há login no relatório: quem tem o link vê. Se o
+   token derivasse do cliente, o link de um entregaria os outros por
+   adivinhação. **Ele nunca sai inteiro em log** — o script imprime só o
+   tamanho e os quatro primeiros caracteres.
+3. **`gerado_em` é a data da fábrica**, não a de agora. A hora em que alguém
+   rodou a carga não é fato do relatório.
+
+### 9.4 O que foi provado, e o que não deu
+
+**Provado:**
+
+| O quê | Como |
+|---|---|
+| Lê os dois snapshots, monta a linha e sorteia o token | `--simular`, nos dois arquivos |
+| O checksum dos dois bate com o conteúdo | recalculado dos dois, confere |
+| Caminho dentro do repositório é recusado | tentado de propósito, recusou |
+| Sem a chave, ele **para e explica onde pegar e onde colar** | rodado sem a chave |
+| A tabela aceita exatamente as colunas que o script preenche | linha-sonda gravada e apagada, direto no banco |
+| A tabela recusa versão repetida, competência torta e token curto | as três tentadas contra o banco real; **as três recusadas**, e a tabela voltou a zero linhas |
+
+**Não deu para provar — e é uma coisa só:** a gravação de verdade, com os dois
+relatórios. **Falta a chave de serviço** (seção 3.3), que não existe em lugar
+nenhum ainda e não pode ser contornada: a RLS está ligada sem política de
+propósito, e a chave pública lê zero. Enquanto isso, a tabela tem zero linhas.
+
+---
+
+## 10. Achado fora do escopo, para quem cuidar do `OpenClaw-Dacora`
 
 Esta sessão trabalhou só no `dacoraLP` e não tocou no outro repositório. Fica
 registrado aqui para outra sessão levar:
