@@ -4,9 +4,11 @@
 **Fases concluídas localmente:** P0 (fundação e login) · **P1 inteira —
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
 **P2 no código — relatório dentro da bancada e faixa responsiva de revisão;
-smoke visual autenticado ainda pendente**
-**Produção:** integrada na `main` e publicada com autorização do Flávio em
-2026-08-06. Rota: <https://www.dacora.com.br/painel-de-relatorios>.
+smoke visual autenticado ainda pendente no celular e aguardando reconfirmação
+final no desktop**
+**Produção:** somente P0/P1 estão integradas na `main` e publicadas. A P2 está
+apenas na branch local `codex/p2-revisao-painel` e não foi integrada nem
+publicada. Rota atual de produção: <https://www.dacora.com.br/painel-de-relatorios>.
 **Última atualização:** 2026-08-06
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -25,29 +27,37 @@ custou caro descobrir.
 ## 1. Situação em uma frase
 
 **A fila do mês está em produção, lendo do banco, com os dois relatórios reais
-dentro.** A P2 está concluída em branch local: a fila abre o relatório completo
-dentro da bancada, com deep-link e faixa responsiva; carregamento ou erro nunca
-mostram controles de decisão. O próximo passo é a P3, que habilita aprovar e
-recusar com os carimbos e motivos persistidos no banco (seção 7).
+dentro.** A P2 está concluída e corrigida na branch local: a fila abre o
+relatório completo dentro da bancada, com deep-link e faixa responsiva;
+carregamento ou erro nunca mostram controles de decisão. Ela ainda depende da
+prova humana autenticada final e de autorização separada para integração e
+publicação. Só depois disso a P3 começa em uma nova sessão (seção 7).
 
 ### Checkpoint local da P2
 
-Branch `codex/p2-revisao-painel`. A API de detalhe repete sessão e allow-list no
+Branch `codex/p2-revisao-painel`, checkpoint de código `05323e2`. A API de detalhe repete sessão e allow-list no
 servidor e não devolve o token público. A revisão usa o mesmo snapshot e o mesmo
 renderizador da página do cliente, traz sinais com alvo de seção, mantém a URL
 `?relatorio=...` e preserva esse deep-link no retorno do Google. Os botões de
 aprovar e recusar existem desabilitados, porque a mutação pertence à P3.
 
 Passaram `npm run verifica:painel`, `npm run verifica:fila`,
-`npm run verifica:refoco` e `npm run verifica:revisao`. O build completo da P2
-já havia passado antes deste fechamento; a repetição nesta sessão não chegou à
-compilação porque o sandbox recusou a leitura acima do repositório ao carregar
-`vite.config.ts`, e nenhuma ampliação de permissão foi pedida. A prova visual
-autenticada completa também não foi concluída: a tentativa automatizada foi
-cancelada antes de validar o fluxo, e nenhuma conta real foi usada. Não restou
-arnês nem artefato temporário no repositório. Antes de publicar a P2, ainda é
-necessário percorrer fila → revisão → sinal → voltar e recarregar o deep-link em
-desktop e celular com uma sessão real.
+`npm run verifica:refoco`, `npm run verifica:revisao` e o build completo. O
+`lint` continua nos mesmos seis erros TypeScript preexistentes, sem erro novo
+desta rodada. Um navegador real, em isolamento local e com leitura somente do
+snapshot persistido, abriu Karyne e Aviarte em 1440×900 e 390×844: documento e
+faixa presentes, zero erro de página e zero rolagem lateral. A Karyne exercitou
+oito gráficos. Nenhum snapshot foi gravado no repositório e o arnês temporário
+foi removido.
+
+O primeiro teste humano autenticado encontrou dois defeitos: o servidor local
+tinha sido iniciado antes do endpoint da P2 e devolvia a SPA no lugar da API;
+depois do reinício, a Karyne quebrava porque o snapshot usa a fonte válida
+`crm`, ausente do catálogo visual. O primeiro foi resolvido reiniciando o
+servidor; o segundo está corrigido e coberto pela regressão no checkpoint
+`05323e2`. Antes de integrar ou publicar, ainda falta o Flávio reconfirmar no
+desktop fila → Karyne → voltar → nomes clicáveis e repetir o fluxo autenticado
+no celular.
 
 ---
 
@@ -92,9 +102,9 @@ numa tela de erro. Ninguém procuraria num `import`.
 
 ### O que continua sem conferir
 
-**O login de verdade.** Quem fez esta rodada não tem as contas do Flávio nem da
-Fernanda, e não deve ter. A volta completa pelo Google só é provada por eles —
-e **antes disso falta o passo da seção 3.1**.
+O login real e a fila já foram provados pelo Flávio. O que falta agora é o
+smoke autenticado da revisão corrigida: reconfirmação no desktop e execução no
+celular. A configuração da seção 3.1 já foi feita.
 
 ---
 
@@ -108,7 +118,7 @@ e **antes disso falta o passo da seção 3.1**.
 | Botão do Google | `src/painel/BotaoGoogle.tsx` |
 | Portão (espera → entrar → barrado → erro → conteúdo) | `src/painel/Portao.tsx` |
 | As cinco telas de portão | `src/painel/telas.tsx` |
-| Tela autenticada vazia | `src/painel/PainelInicio.tsx` |
+| Tela autenticada com fila e revisão | `src/painel/PainelInicio.tsx` |
 | Pele do painel (tokens `--dc-*`, densidade de ferramenta) | `src/painel/painel.css` |
 | **Autorização por e-mail, no servidor** | `api/painel-sessao.ts` + `api/_painel-autorizacao.ts` |
 | `noindex` por cabeçalho | `vercel.json` |
@@ -117,6 +127,9 @@ e **antes disso falta o passo da seção 3.1**.
 | **A fila, no servidor** | `api/painel-fila.ts` + `api/_painel-fila-dados.ts` |
 | **Carregador de snapshot** | `scripts/carrega-relatorio.mts` (`npm run carrega:relatorio`) |
 | **Regressão da fila** | `scripts/verifica-painel-fila.mts` (`npm run verifica:fila`) |
+| **Bancada e faixa responsiva da P2** | `src/painel/Revisao.tsx`, `src/painel/RevisaoMoldura.tsx` |
+| **Detalhe protegido do relatório** | `api/painel-relatorio.ts` |
+| **Regressão da revisão e da fonte CRM** | `scripts/verifica-painel-revisao.mts` (`npm run verifica:revisao`) |
 
 ### O que veio da SmartBio, e o que não veio
 
@@ -250,7 +263,7 @@ Reaproveitando o cliente OAuth que a SmartBio já usa, por decisão sua.
    que o passo A.5 pede.** Copie de lá.
 6. **Save**.
 
-### Passo C — Supabase, autorizar os endereços de volta (FEITO para produção e localhost; falta o da prévia, seção 3.1)
+### Passo C — Supabase, autorizar os endereços de volta (FEITO para produção, localhost e prévia)
 
 Sem isto o login entra no Google, volta, e para numa tela de erro sem
 explicação.
@@ -304,7 +317,8 @@ Registrado com todas as letras para ninguém achar que foi testado.
 
 | Não conferido | Motivo |
 |---|---|
-| **O refoco da versão corrigida com a conta real** | o Flávio provou o defeito com sessão viva; a correção está coberta pela regressão, mas ainda merece a reconfirmação visual de trocar de janela e voltar |
+| **P2 corrigida no desktop com a conta real** | o Flávio encontrou a falha de renderização; a correção passou no navegador isolado, mas aguarda a reconfirmação fila → Karyne → voltar |
+| **P2 no celular com a conta real** | o layout passou em 390×844 no navegador isolado; falta percorrer o fluxo com a sessão Google real |
 | **A tela de barrado com um e-mail real** | provada no servidor (seção 5.2) e renderizada sem erro; não foi usada uma terceira conta Google real |
 
 **Dois itens saíram desta lista em 2026-08-06, porque a prévia os resolveu:** o
@@ -460,14 +474,22 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Prova visual da P2:** percorrer o fluxo local em desktop e celular antes de
-   publicar. A falta dessa prova está registrada no checkpoint acima.
-2. **P3:** habilitar aprovar e recusar, com checksum carimbado e motivo
-   obrigatório. A P2 já deixa os controles presentes e desabilitados.
-3. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
+1. **Fechar o smoke autenticado da P2:** reconfirmar o desktop e percorrer o
+   fluxo no celular. O teste isolado já passou nos dois tamanhos.
+2. **Integração e publicação da P2:** continuam bloqueadas até autorização
+   explícita do Flávio, separada para cada ação.
+3. **P3, em sessão nova:** habilitar aprovar e recusar, com checksum carimbado
+   e motivo obrigatório. Não iniciar nesta sessão organizacional antes do
+   fechamento da P2 e da autorização do Flávio.
+4. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
-4. **P4:** recusa avisa o grupo `Dácora - Agentes`.
-5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
+5. **P4:** recusa avisa o grupo `Dácora - Agentes`.
+6. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
+
+**Dashboard operacional:** é uma proposta para as próximas fases, ainda não
+aprovada nem numerada. Deve ser avaliada sem transformar estes relatórios
+fechados e versionados em BI ao vivo e sem entrar silenciosamente no escopo da
+P3.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
@@ -705,10 +727,11 @@ desejado.
 
 ### 11.6 O que NÃO foi provado
 
-**A reconfirmação visual do refoco depois da correção, com a conta real.** O
-Flávio entrou, viu a fila e foi quem encontrou o defeito; depois da correção, o
-comportamento foi provado pelo teste de regressão e pela publicação, mas a troca
-de janela com a sessão Google dele ainda é o último smoke humano útil.
+**O fluxo autenticado completo da P2 depois da correção.** O Flávio entrou, viu
+a fila e foi quem encontrou o defeito de renderização; depois da correção, o
+comportamento passou na regressão e no navegador isolado, mas ainda falta a
+reconfirmação dele no desktop e o mesmo percurso no celular. A P2 não foi
+publicada.
 
 ### 11.7 A recarga ao trocar de janela — corrigida e com regressão
 
@@ -726,6 +749,22 @@ Na publicação de 2026-08-06, o build completo passou, as doze rotas públicas
 responderam `200`, o painel manteve `X-Robots-Tag: noindex, nofollow, noarchive`
 e `/api/painel-sessao` e `/api/painel-fila` responderam `401 sem_sessao`, sem
 devolver item de cliente.
+
+### 11.8 A Karyne não dependia do Supabase do site para abrir
+
+O diagnóstico leu, sem alterar, as duas linhas do `Dácora Reports` e montou os
+dois snapshots no navegador. A revisão não faz chamada ao projeto da Karyne:
+os dados do funil já estão congelados no snapshot. A quebra acontecia porque
+três blocos desse snapshot declaram `plataforma: "crm"`, valor produzido pelo
+gerador do `OpenClaw-Dacora`, mas o `PlataformaId` e o tema visual deste
+repositório ainda não conheciam `crm`. `preenchimentoBarra` recebia a fonte e
+tentava ler `textura` de uma série inexistente.
+
+O checkpoint `05323e2` incluiu `crm` no contrato, no nome exibido e no tema,
+mais regressão direta para o preenchimento. A mesma rodada eliminou a rolagem
+horizontal móvel causada pelos rótulos de unidade e pela tabela de campanhas.
+Karyne passou com oito gráficos em desktop e celular; Aviarte passou nos dois
+tamanhos. Nenhum banco remoto foi alterado.
 
 ---
 
