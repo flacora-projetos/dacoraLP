@@ -3,7 +3,8 @@
 **Rota:** `/painel-de-relatorios`
 **Fases concluídas localmente:** P0 (fundação e login) · **P1 inteira —
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
-**P2 — relatório dentro da bancada e faixa responsiva de revisão**
+**P2 no código — relatório dentro da bancada e faixa responsiva de revisão;
+smoke visual autenticado ainda pendente**
 **Produção:** integrada na `main` e publicada com autorização do Flávio em
 2026-08-06. Rota: <https://www.dacora.com.br/painel-de-relatorios>.
 **Última atualização:** 2026-08-06
@@ -38,12 +39,15 @@ renderizador da página do cliente, traz sinais com alvo de seção, mantém a U
 aprovar e recusar existem desabilitados, porque a mutação pertence à P3.
 
 Passaram `npm run verifica:painel`, `npm run verifica:fila`,
-`npm run verifica:refoco`, `npm run verifica:revisao` e `npm run build`. A prova
-visual automatizada completa não foi concluída: a ferramenta de navegador parou
-num pedido de aprovação antes de subir o arnês local. O arnês temporário foi
-removido e não faz parte do commit. Antes de publicar a P2, ainda é necessário
-percorrer fila → revisão → sinal → voltar e recarregar o deep-link em desktop e
-celular.
+`npm run verifica:refoco` e `npm run verifica:revisao`. O build completo da P2
+já havia passado antes deste fechamento; a repetição nesta sessão não chegou à
+compilação porque o sandbox recusou a leitura acima do repositório ao carregar
+`vite.config.ts`, e nenhuma ampliação de permissão foi pedida. A prova visual
+autenticada completa também não foi concluída: a tentativa automatizada foi
+cancelada antes de validar o fluxo, e nenhuma conta real foi usada. Não restou
+arnês nem artefato temporário no repositório. Antes de publicar a P2, ainda é
+necessário percorrer fila → revisão → sinal → voltar e recarregar o deep-link em
+desktop e celular com uma sessão real.
 
 ---
 

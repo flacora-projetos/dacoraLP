@@ -844,6 +844,10 @@
   touch-action: manipulation;
 }
 
+.dcp-revisao__navegacao a:hover {
+  color: var(--dc-verde-medio);
+}
+
 .dcp-revisao__grade {
   display: grid;
   min-width: 0;
