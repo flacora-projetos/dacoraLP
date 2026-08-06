@@ -227,7 +227,47 @@ console.log(`\n✔ Gravado. id ${gravado.id}`);
  * saiu daqui. `INSERT` que responde 201 e grava outra coisa é raro, mas a
  * conferência custa uma chamada e responde a pergunta que ninguém quer estar
  * fazendo depois de o cliente ter aberto o link.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE A COMPARAÇÃO É CANÔNICA, E NÃO UM CHECKSUM RECALCULADO
+ *
+ * A primeira versão deste trecho recalculava o checksum a partir do `conteudo`
+ * devolvido pelo banco e comparava com o do arquivo. **Isso reprova sempre**, e
+ * a primeira carga real (Karyne, julho/2026) morreu exatamente aí, com a linha
+ * já gravada e correta.
+ *
+ * A causa é do Postgres, não nossa: a coluna é `jsonb`, e `jsonb` **não guarda
+ * o texto — guarda a estrutura**, com as chaves reordenadas por tamanho e
+ * depois alfabeticamente. O que entrou como
+ * `identidade,fontes,montagem,dados,leitura` volta como
+ * `dados,fontes,leitura,montagem,identidade`. Mesmo objeto, mesma quantidade de
+ * caracteres, `JSON.stringify` diferente — e SHA-256 de textos diferentes dá
+ * digest diferente.
+ *
+ * **A regra que sai daí vale muito além deste script:** o checksum é a
+ * impressão digital do *arquivo que a fábrica gerou*, e só pode ser recalculado
+ * a partir dele. Nunca a partir do que o banco devolve. Isso importa na P3, que
+ * vai carimbar `aprovado_checksum` e depois precisar responder "o relatório
+ * mudou desde o GO?" — a resposta é comparar a **coluna** `checksum` com o
+ * checksum da nova geração, jamais recalcular do `conteudo` lido.
+ *
+ * O que este read-back prova, então: (1) a coluna `checksum` guarda a impressão
+ * digital apurada pela fábrica; e (2) o `conteudo` que voltou é o mesmo objeto
+ * que subiu, comparado numa forma que ignora a ordem das chaves — que é a única
+ * coisa que o `jsonb` promete não preservar.
+ * ---------------------------------------------------------------------------
  */
+function canonico(valor: any): any {
+  if (Array.isArray(valor)) return valor.map(canonico);
+  if (valor && typeof valor === 'object') {
+    return Object.fromEntries(
+      Object.keys(valor)
+        .sort()
+        .map((chave) => [chave, canonico(valor[chave])]),
+    );
+  }
+  return valor;
+}
 const conferencia = await fetch(
   `${urlSupabase}/rest/v1/relatorios?id=eq.${gravado.id}&select=cliente_slug,competencia,versao,estado,checksum,gerado_em,conteudo`,
   { headers: cabecalhos },
@@ -240,20 +280,19 @@ if (!conferencia.ok) {
 const [devolvido] = (await conferencia.json()) as any[];
 if (!devolvido) morrer('Gravou, mas a leitura de volta não encontrou a linha.');
 
-const checksumDoQueVoltou = checksumDe(devolvido.conteudo);
-const confere =
+const conteudoIgual = JSON.stringify(canonico(devolvido.conteudo)) === JSON.stringify(canonico(conteudo));
+const envelopeIgual =
   devolvido.cliente_slug === linha.cliente_slug &&
   devolvido.competencia === linha.competencia &&
   devolvido.versao === linha.versao &&
-  devolvido.checksum === linha.checksum &&
-  checksumDoQueVoltou === linha.checksum;
+  devolvido.checksum === linha.checksum;
 
 console.log('\nLido de volta do banco:');
 console.log(`  ${devolvido.cliente_slug} · ${devolvido.competencia} · versão ${devolvido.versao} · ${devolvido.estado}`);
-console.log(`  checksum da coluna:              ${devolvido.checksum}`);
-console.log(`  checksum recalculado do conteúdo: ${checksumDoQueVoltou}`);
+console.log(`  checksum da coluna:  ${devolvido.checksum} ${devolvido.checksum === linha.checksum ? '(igual ao do arquivo)' : '(DIFERENTE do arquivo)'}`);
+console.log(`  conteúdo devolvido:  ${conteudoIgual ? 'idêntico ao que subiu' : 'DIFERENTE do que subiu'}`);
 
-if (!confere) {
+if (!envelopeIgual || !conteudoIgual) {
   morrer('O que voltou do banco NÃO é o que foi mandado. Não use este relatório.');
 }
 

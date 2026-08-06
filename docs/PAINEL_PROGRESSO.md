@@ -1,8 +1,8 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
 **Rota:** `/painel-de-relatorios`
-**Fase concluída:** P0 (fundação e login) · **Fase A da P1** (o carregador dos
-relatórios para o banco) — escrita e exercitada, **falta rodar de verdade**
+**Fase concluída:** P0 (fundação e login) · **Fase A da P1 — o carregador RODOU:
+os dois relatórios estão no banco** (seção 9.5)
 **Branch:** `feat/p0-painel-fundacao-login` — publicada no `origin` com autorização
 do Flávio. **Sem merge na `main` e sem produção.**
 **Prévia no ar:**
@@ -24,29 +24,26 @@ custou caro descobrir.
 
 ## 1. Situação em uma frase
 
-**O painel está publicado numa prévia, com as três variáveis de ambiente
-cadastradas e medidas. Falta uma coisa só para o login funcionar: autorizar o
-endereço da prévia no Supabase** (seção 3.1).
+**A fila do mês está de pé, lendo do banco, com os dois relatórios reais
+dentro.** Na máquina do Flávio ela funciona ponta a ponta. O que falta é de
+console, não de código: **autorizar o endereço da prévia no Supabase**
+(seção 3.1) e **cadastrar a chave de serviço na Vercel** (seção 3.3), sem os
+quais a prévia mostra a tela de entrada e a fila não carrega lá.
 
-O provedor Google **já foi ligado** no projeto `Dácora Reports` desde que este
-documento foi escrito, e as duas contas autorizadas entraram na máquina local.
-Os passos A, B, C e D da seção 3 estão feitos.
-
-**E falta uma quarta variável, que ainda não existe em lugar nenhum: a chave
-de serviço** (seção 3.3). Sem ela nada de relatório entra no banco e a fila
-não tem o que mostrar.
+O provedor Google **já está ligado** no projeto `Dácora Reports`, as duas contas
+autorizadas entraram na máquina local, e a chave de serviço **já está no
+`.env.local`**. Os passos A, B, C e D da seção 3 estão feitos.
 
 ---
 
-## 1.2 A tabela de relatórios ainda está VAZIA, e é por isso que a fila
-## aparece vazia
+## 1.2 A tabela de relatórios TEM os dois relatórios — julho de 2026
 
-Registrado com todas as letras porque é a primeira coisa que alguém vai achar
-que é defeito: **`public.relatorios` tem zero linhas hoje.** O carregador
-existe, foi exercitado e está provado no que dava para provar sem a chave — só
-não foi executado de verdade, porque a chave de serviço não existe ainda.
+Esta seção dizia o contrário até 2026-08-06, e a inversão é a notícia da
+rodada: **`public.relatorios` tem duas linhas**, a Karyne e a Aviarte, ambas de
+`2026-07`, versão 1, estado `gerado`. A carga foi conferida linha a linha
+contra os arquivos de origem — seção 9.5.
 
-Quando ela existir, são dois comandos (seção 9) e a fila se enche sozinha.
+A fila deixa de ser tela de espera e passa a ser a tela principal do painel.
 
 ---
 
@@ -178,10 +175,14 @@ mesma medida serve para a próxima vez:
   se o servidor **conseguiu falar com o Supabase de verdade**. Isso prova que o
   endereço e a chave não são só existentes, são válidos.
 
-### 3.3 — FALTA FAZER: a chave de serviço (a quarta variável)
+### 3.3 — A chave de serviço: FEITA na máquina, FALTA na Vercel
 
-Sem ela, **nenhum relatório entra no banco e a fila fica vazia**. Ela é a
-única porta de leitura da tabela, por desenho (seção 7).
+**Ela já está no `.env.local`** e foi usada para carregar os dois relatórios e
+para a fila ler o banco na máquina do Flávio. **O que falta é o segundo lugar:
+cadastrá-la na Vercel**, senão a fila na prévia responde `sem_chave_de_servico`
+e explica isso na própria tela.
+
+Ela é a única porta de leitura da tabela, por desenho (seção 7).
 
 **Onde o Flávio pega:** <https://supabase.com/dashboard> → projeto **Dácora
 Reports** → **Project Settings** → **API** → a chave **`service_role`** (a
@@ -527,10 +528,63 @@ que falhar. Os dois snapshots batem.
 | A tabela aceita exatamente as colunas que o script preenche | linha-sonda gravada e apagada, direto no banco |
 | A tabela recusa versão repetida, competência torta e token curto | as três tentadas contra o banco real; **as três recusadas**, e a tabela voltou a zero linhas |
 
-**Não deu para provar — e é uma coisa só:** a gravação de verdade, com os dois
-relatórios. **Falta a chave de serviço** (seção 3.3), que não existe em lugar
-nenhum ainda e não pode ser contornada: a RLS está ligada sem política de
-propósito, e a chave pública lê zero. Enquanto isso, a tabela tem zero linhas.
+**O que faltava era a gravação de verdade — e ela aconteceu.** Ver 9.5 e 9.6.
+
+### 9.5 A carga real, e o que foi conferido depois dela
+
+Os dois comandos rodaram em 2026-08-06. A tabela tem duas linhas:
+
+| | Karyne Magalhães | Aviarte |
+|---|---|---|
+| `cliente_slug` / `competencia` | `karyne_magalhaes` · `2026-07` | `aviarte` · `2026-07` |
+| versão · estado | 1 · `gerado` | 1 · `gerado` |
+| `checksum` | igual ao do snapshot | igual ao do snapshot |
+| `conteudo` | idêntico ao arquivo | idêntico ao arquivo |
+| `gerado_em` | a data da fábrica, não a da carga | idem |
+| `token` | 43 caracteres | 43 caracteres |
+
+**A conferência do token foi além de contar caracteres**, porque o requisito
+não é comprimento, é não ser adivinhável a partir do cliente:
+
+- não contém o slug, o nome do cliente nem a competência, em nenhuma grafia;
+- **não é hash de nenhum deles** — foram gerados os digests de `slug`,
+  `slug-competencia`, `slug+competencia`, `slug:competencia` e nome, em
+  SHA-256/SHA-1/MD5/SHA-512, nas três codificações, e nenhum casa com o token;
+- os dois tokens **não têm um único caractere em comum no começo**, que é o que
+  se espera de sorteio e não de derivação.
+
+### 9.6 ⚠️ O `jsonb` do Postgres REORDENA as chaves — e isso reprovou a
+### primeira carga com a linha já gravada
+
+A primeira execução real gravou a Karyne corretamente e **morreu logo depois**,
+na conferência de leitura de volta, dizendo *"o que voltou do banco NÃO é o que
+foi mandado"*. Era o script que estava errado, não o banco.
+
+`jsonb` **não guarda o texto do JSON — guarda a estrutura**, com as chaves
+reordenadas por tamanho e depois alfabeticamente. O que subiu como
+`identidade,fontes,montagem,dados,leitura` voltou como
+`dados,fontes,leitura,montagem,identidade`. Mesmo objeto, mesmos 44.372
+caracteres, `JSON.stringify` diferente — e SHA-256 de textos diferentes dá
+digest diferente. Recalcular o checksum a partir do que o banco devolve
+**reprova sempre**.
+
+O read-back hoje compara o conteúdo numa forma canônica (chaves ordenadas nos
+dois lados), que prova a mesma coisa sem depender de uma ordem que o Postgres
+nunca prometeu preservar.
+
+> **A regra que sai daí vale muito além do carregador, e a P3 tropeça nela se
+> ninguém avisar:** o checksum é a impressão digital **do arquivo que a fábrica
+> gerou**, e só pode ser recalculado a partir dele. Para responder *"o
+> relatório mudou desde o GO?"*, compare a **coluna** `aprovado_checksum` com o
+> checksum da nova geração — **nunca** recalcule a partir do `conteudo` lido do
+> banco.
+
+**O efeito colateral:** aquela primeira carga deixou uma linha órfã no banco,
+de uma execução que terminou em erro. Ela foi removida e a carga refeita do
+zero com o script corrigido, para o procedimento documentado valer como está
+escrito. **Quem vir uma carga falhar depois do `✔ Gravado`, confira a tabela
+antes de rodar de novo** — a versão repetida vai ser recusada, e a recusa é
+correta.
 
 ---
 
