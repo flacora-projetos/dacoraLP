@@ -1,12 +1,10 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
 **Rota:** `/painel-de-relatorios`
-**Fase concluída:** P0 (fundação e login) · **P1 inteira — o carregador rodou
-(seção 9.5) e a fila está de pé, lendo do banco** (seção 11)
-**Branch:** `feat/p0-painel-fundacao-login` — publicada no `origin` com autorização
-do Flávio. **Sem merge na `main` e sem produção.**
-**Prévia no ar:**
-<https://dacora-lp-git-feat-p0-painel-funda-f228fb-flavio-coras-projects.vercel.app>
+**Fase concluída:** P0 (fundação e login) · **P1 inteira — carregador, fila e
+correção do refoco de janela** (seções 9, 11 e 11.7)
+**Produção:** integrada na `main` e publicada com autorização do Flávio em
+2026-08-06. Rota: <https://www.dacora.com.br/painel-de-relatorios>.
 **Última atualização:** 2026-08-06
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -24,15 +22,11 @@ custou caro descobrir.
 
 ## 1. Situação em uma frase
 
-**A fila do mês está de pé, lendo do banco, com os dois relatórios reais
-dentro.** Na máquina do Flávio ela funciona ponta a ponta. O que falta é de
-console, não de código: **autorizar o endereço da prévia no Supabase**
-(seção 3.1) e **cadastrar a chave de serviço na Vercel** (seção 3.3), sem os
-quais a prévia mostra a tela de entrada e a fila não carrega lá.
-
-O provedor Google **já está ligado** no projeto `Dácora Reports`, as duas contas
-autorizadas entraram na máquina local, e a chave de serviço **já está no
-`.env.local`**. Os passos A, B, C e D da seção 3 estão feitos.
+**A fila do mês está em produção, lendo do banco, com os dois relatórios reais
+dentro.** Google, retornos do Supabase e variáveis da Vercel estão configurados.
+O defeito que fazia a fila recarregar ao trocar de janela foi corrigido e ganhou
+regressão própria. O próximo corte é vertical: abrir um relatório, decidir e
+chegar ao diálogo de envio (seção 7).
 
 ---
 
@@ -131,12 +125,10 @@ o guard do `lastUserIdRef`, na seção 5.1 abaixo.
 
 Nada disto dá para fazer por código.
 
-> **Os passos A, B, C e D abaixo JÁ FORAM FEITOS** (Google ligado, endereços de
-> retorno de produção e de `localhost` autorizados, três variáveis cadastradas
-> na Vercel). Ficam registrados porque descrevem o desenho e servem de roteiro
-> se algum dia for preciso refazer. **O que falta é a 3.1, e só ela.**
+> **Todos os passos abaixo foram feitos.** Ficam registrados porque descrevem o
+> desenho e servem de roteiro se algum dia for preciso refazer.
 
-### 3.1 — FALTA FAZER: autorizar o endereço da prévia no Supabase
+### 3.1 — FEITO: autorizar o endereço da prévia no Supabase
 
 Sem isto, quem clicar em "Entrar com o Google" na prévia vai ao Google, volta,
 e trava. É um endereço a mais na mesma lista do passo C.
@@ -179,12 +171,12 @@ mesma medida serve para a próxima vez:
   se o servidor **conseguiu falar com o Supabase de verdade**. Isso prova que o
   endereço e a chave não são só existentes, são válidos.
 
-### 3.3 — A chave de serviço: FEITA na máquina, FALTA na Vercel
+### 3.3 — FEITA na máquina e na Vercel
 
-**Ela já está no `.env.local`** e foi usada para carregar os dois relatórios e
-para a fila ler o banco na máquina do Flávio. **O que falta é o segundo lugar:
-cadastrá-la na Vercel**, senão a fila na prévia responde `sem_chave_de_servico`
-e explica isso na própria tela.
+Ela está no `.env.local` e na Vercel, nos ambientes de Preview e Production.
+Foi usada para carregar os dois relatórios e a função publicada da fila está de
+pé. Em produção, sem sessão, a função responde `401 sem_sessao` antes de qualquer
+leitura do banco.
 
 Ela é a única porta de leitura da tabela, por desenho (seção 7).
 
@@ -291,9 +283,8 @@ Registrado com todas as letras para ninguém achar que foi testado.
 
 | Não conferido | Motivo |
 |---|---|
-| **O login de verdade, na prévia** | quem fez esta rodada não tem as contas Google do Flávio e da Fernanda, e não deve ter. E falta a seção 3.1 |
-| **O guard do refoco de aba na prática** | ele só dispara com sessão viva. Foi copiado do arquivo da SmartBio, onde está em produção há meses |
-| **A tela de barrado com um e-mail real** | provada no servidor (seção 5.2) e renderizada sem erro; a volta completa pelo Google não |
+| **O refoco da versão corrigida com a conta real** | o Flávio provou o defeito com sessão viva; a correção está coberta pela regressão, mas ainda merece a reconfirmação visual de trocar de janela e voltar |
+| **A tela de barrado com um e-mail real** | provada no servidor (seção 5.2) e renderizada sem erro; não foi usada uma terceira conta Google real |
 
 **Dois itens saíram desta lista em 2026-08-06, porque a prévia os resolveu:** o
 `noindex` por cabeçalho **está no ar e foi medido** (seção 1.1), e o provedor
@@ -312,16 +303,23 @@ em lugar nenhum do pacote publicado** (seção 5.3).
 
 ### 5.1 O `gotrue-js` reemite `SIGNED_IN` a cada refoco de aba
 
-Não é bug do nosso código, é comportamento da biblioteca: toda vez que a aba
-volta a ficar visível, ela reemite o evento de login **com a mesma sessão**.
-Sem comparar o usuário antes e depois com um `ref`, isso derruba o estado de
-carregamento, o portão volta para a tela de espera e **desmonta a página
-inteira**.
+O evento repetido é comportamento da biblioteca; a recarga era nossa. Ao voltar
+para a janela, o `gotrue-js` relê a sessão do armazenamento e emite `SIGNED_IN`
+com **um objeto novo em memória**, embora pessoa e token sejam os mesmos. O
+guard do `AuthContext` já impedia nova autorização e nova tela de espera, mas
+precisava manter `setSessao` para não prender um token renovado.
+
+A dependência escondida estava na fila: `buscar` dependia do objeto inteiro da
+sessão, e o `useEffect` dependia de `buscar`. Objeto novo → callback novo → nova
+consulta → esqueleto → tabela remontada. A correção em `Fila.tsx` depende apenas
+do id estável da pessoa e lê o token atual por `ref`: refoco e refresh ficam
+silenciosos; troca de pessoa e ação manual continuam usando a sessão atual.
 
 Num painel de aprovação isso é pior que num app comum: quem está lendo um
 relatório de 17 seções, rola até a metade, troca de aba para conferir um número
-no Meta e volta — **perde o lugar**. O guard está em `AuthContext.tsx`, com
-comentário. **Não o remova por parecer redundante.**
+no Meta e volta — **perde o lugar**. O guard do `AuthContext` e a estabilidade da
+busca em `Fila.tsx` são duas metades da mesma proteção; remover qualquer uma
+reabre o defeito.
 
 ### 5.2 O que "provar a autorização" quer dizer aqui
 
@@ -425,10 +423,8 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 4. **"Não autorizado" não é erro.** É resposta legítima e tem tela própria, com o
    e-mail que entrou e o que fazer. Quem cai numa tela genérica conclui que o
    sistema quebrou.
-5. **A tela autenticada da P0 está vazia de propósito.** Uma fila de exemplo
-   numa tela cujo trabalho é decidir o que vai para o cliente seria dado falso no
-   lugar exato onde ele não pode existir. A tabela `public.relatorios` tem zero
-   linhas hoje.
+5. **A tela autenticada da P0 nasceu vazia de propósito.** A P1 substituiu esse
+   vazio pela fila real depois que `public.relatorios` recebeu Karyne e Aviarte.
 6. **Um script de regressão, sem trazer suíte de testes para o projeto.** O
    projeto não tem nenhuma, e montar uma não é escopo da P0; mas a peça que
    decide quem entra não podia ficar sem prova.
@@ -443,30 +439,13 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-**Em ordem. Os dois primeiros são do Flávio, e nenhum é de código.**
-
-1. **Cadastrar a chave de serviço na Vercel** — ela já está no `.env.local` da
-   máquina dele, falta o segundo lugar. Nome exato `SUPABASE_SERVICE_ROLE_KEY`,
-   em Production e Preview, **sem `VITE_` na frente**, e *Redeploy* depois (a
-   Vercel não aplica variável em quem já está no ar). Sem isso, a fila na
-   prévia responde "falta a chave" — e a própria tela explica onde pegar.
-2. **Autorizar o endereço da prévia no Supabase** — seção 3.1, um endereço a
-   mais na lista de retorno, para o login funcionar lá.
-3. **O Flávio e a Fernanda entram na prévia pelo celular**, cada um com a sua
-   conta, e o resultado volta para cá. Se sobrar um terceiro e-mail à mão, vale
-   ver a tela de barrado de verdade.
-4. **Depois disso, a P2** — a tela de revisão: o relatório dentro do painel,
-   com a faixa de aprovação ao lado e os botões ainda desabilitados.
-
-> **A prévia NÃO foi republicada nesta rodada, e é de propósito.** Com relatório
-> real na fila, a lista de e-mails no servidor passa a ser a única coisa entre a
-> internet e o dado dos clientes. As recusas estão provadas na máquina (§11.5:
-> sem sessão e com e-mail de fora, **zero consultas ao banco**), mas a rodada da
-> P0 já mostrou que existe defeito que **só quebra na nuvem e funciona local** —
-> foi um `import` sem extensão, §5.8. Publicar antes de provar as recusas **no
-> ar** é exatamente o risco que não vale a pena correr agora que há dado real.
-> Quem for publicar: faça o passo 1 acima e **prove na prévia** que sem sessão e
-> com e-mail de fora não sai dado nenhum, batendo direto em `/api/painel-fila`.
+1. **Fatia vertical:** abrir um relatório real dentro do painel, aprovar ou
+   recusar e chegar ao diálogo de envio. Une P2, P3 e P5 num corte fino, mas
+   inteiro. "Agora não" continua sendo saída legítima do diálogo.
+2. **P4:** recusa avisa o grupo `Dácora - Agentes`.
+3. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
+4. **Reconfirmação humana curta da correção atual:** com a fila aberta, trocar de
+   janela e voltar. A posição e a tabela devem permanecer exatamente onde estão.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
@@ -704,14 +683,27 @@ desejado.
 
 ### 11.6 O que NÃO foi provado
 
-**A fila dentro do painel, depois do login de verdade.** Quem fez esta rodada
-não tem as contas Google do Flávio e da Fernanda, e não deve ter. A tabela foi
-desenhada e medida fora do portão; o que falta é a volta completa pelo Google,
-que só eles fecham.
+**A reconfirmação visual do refoco depois da correção, com a conta real.** O
+Flávio entrou, viu a fila e foi quem encontrou o defeito; depois da correção, o
+comportamento foi provado pelo teste de regressão e pela publicação, mas a troca
+de janela com a sessão Google dele ainda é o último smoke humano útil.
 
-Foi por isso que a apresentação (`FilaApresentada`) ficou **separada** da busca
-em `Fila.tsx`: enquanto a tabela vivia grudada no `useEffect` que a carrega, a
-única forma de olhar para ela era entrar no painel.
+### 11.7 A recarga ao trocar de janela — corrigida e com regressão
+
+`npm run verifica:refoco` monta a `FilaComSessao` real num DOM isolado e conta
+as consultas. Ele prova quatro contratos:
+
+1. sessão relida como objeto novo, com a mesma pessoa e o mesmo token, não
+   consulta nem remonta a fila;
+2. token renovado também não consulta sozinho;
+3. a próxima ação manual usa o token renovado, não o antigo;
+4. trocar de pessoa é mudança real e consulta novamente.
+
+O teste falhou antes da correção com duas consultas no refoco e passou depois.
+Na publicação de 2026-08-06, o build completo passou, as doze rotas públicas
+responderam `200`, o painel manteve `X-Robots-Tag: noindex, nofollow, noarchive`
+e `/api/painel-sessao` e `/api/painel-fila` responderam `401 sem_sessao`, sem
+devolver item de cliente.
 
 ---
 
