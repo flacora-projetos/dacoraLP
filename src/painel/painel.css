@@ -423,7 +423,7 @@
   }
 }
 
-/* ---------- Tela autenticada vazia (P0) -------------------------------- */
+/* ---------- Blocos de aviso e explicação ------------------------------- */
 
 .dcp-secao {
   background: var(--dc-superficie);
@@ -434,6 +434,20 @@
 
 .dcp-secao + .dcp-secao {
   margin-top: 1rem;
+}
+
+/*
+ * O roadmap embaixo da fila: presente, e claramente em segundo plano.
+ *
+ * Ele não pode competir com a fila — a mesa de trabalho é a fila, e a lista do
+ * que ainda não existe está ali só para quem procurar um botão que não existe
+ * descobrir por quê. Fundo do canvas em vez de superfície branca é o que tira
+ * o bloco do primeiro plano sem escondê-lo.
+ */
+.dcp-secao--recuada {
+  margin-top: 2.5rem;
+  background: transparent;
+  border-style: dashed;
 }
 
 .dcp-secao__titulo {
@@ -486,4 +500,310 @@
 .dcp-proximas__texto strong {
   color: var(--dc-tinta);
   font-weight: 600;
+}
+
+/* =====================================================================
+   A FILA (P1)
+
+   Densidade de ferramenta, e é aqui que ela aparece de verdade: linha de
+   48 px, respiro de 14 px, largura livre até 1400 px. Uma fila com o
+   espaçamento do relatório mostraria oito clientes por tela — e 46
+   clientes em seis rolagens é a "lista de links" recusada pelo Flávio.
+   ===================================================================== */
+
+.dcp-fila__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+}
+
+.dcp-fila__titulo {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--dc-tinta);
+}
+
+.dcp-fila__mes select {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--dc-tinta);
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 0.6rem;
+}
+
+.dcp-fila__resumo {
+  margin: 0.4rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--dc-cinza);
+}
+
+.dcp-fila__ordem {
+  color: var(--dc-cinza);
+  font-style: italic;
+}
+
+.dcp-fila__rodape {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--dc-cinza);
+  max-width: 70ch;
+}
+
+/* Rolagem lateral fica PRESA à tabela, nunca no corpo da página. */
+.dcp-fila__rolagem {
+  overflow-x: auto;
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  background: var(--dc-superficie);
+}
+
+.dcp-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.dcp-tabela thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--dc-superficie);
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+  padding: 0.7rem var(--dcp-respiro);
+  border-bottom: 1px solid var(--dc-filete-forte);
+  white-space: nowrap;
+}
+
+.dcp-tabela tbody tr {
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dcp-tabela tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.dcp-tabela tbody th,
+.dcp-tabela tbody td {
+  height: var(--dcp-altura-linha);
+  padding: 0.35rem var(--dcp-respiro);
+  vertical-align: middle;
+  text-align: left;
+  font-weight: 400;
+  color: var(--dc-cinza);
+}
+
+.dcp-tabela__numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--dc-tinta);
+}
+
+.dcp-tabela__cliente {
+  min-width: 12rem;
+}
+
+.dcp-tabela__nome {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dcp-tabela__versao {
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--dc-cinza);
+}
+
+.dcp-tabela__movel {
+  display: none;
+}
+
+.dcp-tabela__sem-sinal {
+  color: var(--dc-cinza);
+  font-size: 0.8rem;
+}
+
+/* ---------- Estado: forma + texto, nunca só cor ----------------------- */
+
+.dcp-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  color: var(--dc-tinta);
+}
+
+.dcp-estado__forma {
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+/* Aguardando: círculo VAZADO. */
+.dcp-estado--gerado .dcp-estado__forma {
+  border: 2px solid var(--dc-cinza);
+  border-radius: 50%;
+}
+
+/* Aprovado: losango preenchido, verde suave. */
+.dcp-estado--liberado .dcp-estado__forma {
+  background: var(--dc-verde-medio);
+  transform: rotate(45deg);
+}
+
+/* Enviado: círculo CHEIO. */
+.dcp-estado--enviado .dcp-estado__forma {
+  background: var(--dc-verde);
+  border-radius: 50%;
+}
+
+/* Substituído: traço. */
+.dcp-estado--substituido {
+  color: var(--dc-cinza);
+}
+
+.dcp-estado--substituido .dcp-estado__forma {
+  height: 2px;
+  background: var(--dc-sage);
+}
+
+/* Desconhecido: quadrado de sinal — estado que não devia existir aparece. */
+.dcp-estado--desconhecido .dcp-estado__forma {
+  background: var(--dc-sinal);
+}
+
+/* ---------- Etiquetas de sinal ---------------------------------------- */
+
+/*
+ * Etiqueta CONTÁVEL, nunca um ponto de exclamação sem legenda: "2 seções
+ * indisponíveis" diz o que fazer, "⚠" só diz que alguém se preocupou.
+ */
+.dcp-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dcp-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--dc-filete-forte);
+  color: var(--dc-cinza);
+  background: var(--dc-canvas);
+  cursor: help;
+}
+
+.dcp-etiqueta--falha_de_fonte,
+.dcp-etiqueta--valor_ausente {
+  color: var(--dc-sinal);
+  border-color: var(--dc-sinal);
+}
+
+.dcp-etiqueta--sem_resultado,
+.dcp-etiqueta--secoes_indisponiveis {
+  color: var(--dc-tinta);
+  border-color: var(--dc-filete-forte);
+}
+
+/* ---------- Esqueleto da fila ----------------------------------------- */
+
+.dcp-fila__esqueleto {
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  background: var(--dc-superficie);
+  overflow: hidden;
+}
+
+.dcp-fila__esqueleto-linha {
+  height: var(--dcp-altura-linha);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-inline: var(--dcp-respiro);
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dcp-fila__esqueleto-linha:last-child {
+  border-bottom: 0;
+}
+
+/* ---------- Celular ---------------------------------------------------- */
+
+/*
+ * Abaixo de 768px, TRÊS colunas saem da grade — estado, investimento e
+ * resultado — e voltam como linhas de apoio sob o nome do cliente, deixando
+ * cliente e sinais, que é o par que responde "preciso olhar este?".
+ *
+ * O número que motivou isso: em 375px a tabela pedia 517px de largura e só
+ * cabiam 341, e o que sobrava para fora era a coluna de SINAIS. No aparelho em
+ * que a revisão acontece, a fila escondia exatamente aquilo pelo qual ela
+ * existe, atrás de uma rolagem lateral que ninguém adivinha.
+ *
+ * A tabela continua sendo uma tabela de verdade — nada de `display: block` em
+ * `tr`/`td`, que quebra a associação entre célula e cabeçalho no leitor de tela.
+ *
+ * O CORTE EM 820px É MEDIDO, não escolhido pelo nome do aparelho. Com as cinco
+ * colunas, a tabela passa a caber a partir de 800px de janela; em 768 — que é
+ * o iPad em retrato — faltavam 26px, e o que ficava para fora era de novo a
+ * ponta da coluna de sinais. Um corte em 767px, que é o valor "de costume",
+ * deixaria justamente esse aparelho no pior dos dois mundos.
+ *
+ * A rolagem presa ao bloco continua existindo como rede: com 46 clientes,
+ * nomes longos e muitos sinais, alguma linha vai pedir mais largura, e aí
+ * rolar um pouco dentro da tabela é melhor que espremer o texto.
+ */
+@media (max-width: 820px) {
+  .dcp-tabela__secundaria {
+    display: none;
+  }
+
+  .dcp-tabela__movel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-top: 0.25rem;
+    font-size: 0.76rem;
+    font-weight: 400;
+    color: var(--dc-cinza);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* O estado continua com forma E texto no celular — a regra não afrouxa
+     porque a tela ficou menor. */
+  .dcp-tabela__movel .dcp-estado {
+    font-size: 0.76rem;
+    white-space: normal;
+  }
+
+  /* Os 12rem de mínimo da coluna do cliente servem ao desktop, onde eles
+     impedem o nome de espremer entre as outras quatro colunas. Em 375px eles
+     eram o último obstáculo entre a tabela e caber inteira: 353px necessários
+     para 341 disponíveis. Sem o mínimo, cabe. */
+  .dcp-tabela__cliente {
+    min-width: 0;
+  }
+
+  .dcp-tabela tbody th,
+  .dcp-tabela tbody td {
+    height: auto;
+    min-height: var(--dcp-altura-linha);
+    padding-block: 0.55rem;
+  }
 }

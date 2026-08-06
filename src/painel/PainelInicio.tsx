@@ -1,26 +1,20 @@
 /**
- * A tela autenticada da P0 — vazia de propósito.
+ * A tela autenticada do painel — hoje ela é a FILA.
  *
- * A P0 é fundação e login. Nenhum dado de relatório entra aqui: a fila é a P1,
- * e ela depende da W2, que é o que passa a gravar o relatório no banco. Hoje a
- * tabela `public.relatorios` tem zero linhas, e uma fila inventada para
- * "mostrar como vai ficar" seria dado falso numa tela cujo propósito é decidir
- * o que vai para o cliente.
+ * Até a P0 esta tela era vazia de propósito, porque a tabela `public.relatorios`
+ * tinha zero linhas e uma fila inventada para "mostrar como vai ficar" seria
+ * dado falso numa tela cujo trabalho é decidir o que vai para o cliente. Os
+ * relatórios entraram no banco, então a fila deixou de ser exemplo e virou a
+ * mesa de trabalho.
  *
- * Então esta tela diz onde a pessoa está, quem ela é, e o que ainda não existe.
+ * O que ainda não existe continua listado embaixo, e continua ali pelo mesmo
+ * motivo de sempre: quem abre uma ferramenta em construção precisa saber o que
+ * ela ainda não faz, para não procurar botão que não existe.
  */
 import { usarPainelAuth } from './AuthContext';
+import Fila from './Fila';
 
 const PROXIMAS_FASES: Array<{ chave: string; texto: React.ReactNode }> = [
-  {
-    chave: 'P1',
-    texto: (
-      <>
-        <strong>A fila do mês</strong> — uma linha por cliente e competência, ordenada pelo que
-        precisa de atenção. Depende de os relatórios passarem a ser gravados no banco.
-      </>
-    ),
-  },
   {
     chave: 'P2',
     texto: (
@@ -51,8 +45,6 @@ const PROXIMAS_FASES: Array<{ chave: string; texto: React.ReactNode }> = [
 export default function PainelInicio() {
   const { autorizacao, usuario, sair } = usarPainelAuth();
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
-  const nome = autorizacao?.estado === 'autorizado' ? autorizacao.nome : null;
-  const primeiroNome = nome ? nome.split(' ')[0] : null;
 
   return (
     <>
@@ -73,20 +65,10 @@ export default function PainelInicio() {
       </header>
 
       <main className="dcp-corpo">
-        <section className="dcp-secao">
-          <h1 className="dcp-secao__titulo">
-            {primeiroNome ? `Tudo certo, ${primeiroNome}.` : 'Tudo certo.'} Você está dentro do painel.
-          </h1>
-          <p className="dcp-secao__apoio">
-            Esta é a fundação: a entrada funciona e o acesso é conferido no servidor a cada
-            requisição. Ainda não há relatório nenhum para listar — a geração mensal ainda não grava
-            no banco, e inventar uma fila de exemplo numa tela de aprovação seria dado falso no
-            lugar exato onde ele não pode existir.
-          </p>
-        </section>
+        <Fila />
 
-        <section className="dcp-secao">
-          <h2 className="dcp-secao__titulo">O que entra depois</h2>
+        <section className="dcp-secao dcp-secao--recuada">
+          <h2 className="dcp-secao__titulo">O que ainda não dá para fazer aqui</h2>
           <p className="dcp-secao__apoio">
             Cada etapa abaixo entrega algo que funciona sozinho, na ordem.
           </p>

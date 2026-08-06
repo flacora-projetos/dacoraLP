@@ -3,6 +3,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import metaCapiHandler from "./api/meta-capi";
+import painelFilaHandler from "./api/painel-fila";
 import painelSessaoHandler from "./api/painel-sessao";
 
 /**
@@ -33,6 +34,7 @@ async function startServer() {
   // `app.get`) para que um método errado caia no 405 do próprio handler, como
   // cairia na Vercel, em vez de virar 404 e mandar o painel investigar rota.
   app.all("/api/painel-sessao", painelSessaoHandler);
+  app.all("/api/painel-fila", painelFilaHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

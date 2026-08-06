@@ -1,8 +1,8 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
 **Rota:** `/painel-de-relatorios`
-**Fase concluída:** P0 (fundação e login) · **Fase A da P1 — o carregador RODOU:
-os dois relatórios estão no banco** (seção 9.5)
+**Fase concluída:** P0 (fundação e login) · **P1 inteira — o carregador rodou
+(seção 9.5) e a fila está de pé, lendo do banco** (seção 11)
 **Branch:** `feat/p0-painel-fundacao-login` — publicada no `origin` com autorização
 do Flávio. **Sem merge na `main` e sem produção.**
 **Prévia no ar:**
@@ -98,6 +98,10 @@ e **antes disso falta o passo da seção 3.1**.
 | **Autorização por e-mail, no servidor** | `api/painel-sessao.ts` + `api/_painel-autorizacao.ts` |
 | `noindex` por cabeçalho | `vercel.json` |
 | Regressão da autorização | `scripts/verifica-painel-autorizacao.mts` (`npm run verifica:painel`) |
+| **A fila do mês (P1)** | `src/painel/Fila.tsx`, montada em `src/painel/PainelInicio.tsx` |
+| **A fila, no servidor** | `api/painel-fila.ts` + `api/_painel-fila-dados.ts` |
+| **Carregador de snapshot** | `scripts/carrega-relatorio.mts` (`npm run carrega:relatorio`) |
+| **Regressão da fila** | `scripts/verifica-painel-fila.mts` (`npm run verifica:fila`) |
 
 ### O que veio da SmartBio, e o que não veio
 
@@ -439,18 +443,30 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-**Em ordem:**
+**Em ordem. Os dois primeiros são do Flávio, e nenhum é de código.**
 
-1. **O Flávio pega a chave de serviço e cola nos dois lugares** — seção 3.3. É
-   o que destrava tudo o que vem depois: sem ela a tabela continua vazia e a
-   fila não tem o que mostrar.
-2. **Rodar os dois comandos da seção 9** para os relatórios da Karyne e da
-   Aviarte entrarem no banco.
-3. **O Flávio faz a seção 3.1** — um endereço a mais na lista de retorno do
-   Supabase, para o login funcionar na prévia.
-4. **O Flávio e a Fernanda entram na prévia pelo celular**, cada um com a sua
+1. **Cadastrar a chave de serviço na Vercel** — ela já está no `.env.local` da
+   máquina dele, falta o segundo lugar. Nome exato `SUPABASE_SERVICE_ROLE_KEY`,
+   em Production e Preview, **sem `VITE_` na frente**, e *Redeploy* depois (a
+   Vercel não aplica variável em quem já está no ar). Sem isso, a fila na
+   prévia responde "falta a chave" — e a própria tela explica onde pegar.
+2. **Autorizar o endereço da prévia no Supabase** — seção 3.1, um endereço a
+   mais na lista de retorno, para o login funcionar lá.
+3. **O Flávio e a Fernanda entram na prévia pelo celular**, cada um com a sua
    conta, e o resultado volta para cá. Se sobrar um terceiro e-mail à mão, vale
    ver a tela de barrado de verdade.
+4. **Depois disso, a P2** — a tela de revisão: o relatório dentro do painel,
+   com a faixa de aprovação ao lado e os botões ainda desabilitados.
+
+> **A prévia NÃO foi republicada nesta rodada, e é de propósito.** Com relatório
+> real na fila, a lista de e-mails no servidor passa a ser a única coisa entre a
+> internet e o dado dos clientes. As recusas estão provadas na máquina (§11.5:
+> sem sessão e com e-mail de fora, **zero consultas ao banco**), mas a rodada da
+> P0 já mostrou que existe defeito que **só quebra na nuvem e funciona local** —
+> foi um `import` sem extensão, §5.8. Publicar antes de provar as recusas **no
+> ar** é exatamente o risco que não vale a pena correr agora que há dado real.
+> Quem for publicar: faça o passo 1 acima e **prove na prévia** que sem sessão e
+> com e-mail de fora não sai dado nenhum, batendo direto em `/api/painel-fila`.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
@@ -585,6 +601,117 @@ zero com o script corrigido, para o procedimento documentado valer como está
 escrito. **Quem vir uma carga falhar depois do `✔ Gravado`, confira a tabela
 antes de rodar de novo** — a versão repetida vai ser recusada, e a recusa é
 correta.
+
+---
+
+## 11. A fila do mês (P1) — o que ela faz e o que foi medido
+
+**Só leitura.** Não existe botão de aprovar, recusar ou enviar, e a ausência é
+a decisão: aprovar sem o relatório na tela é o que este painel existe para
+impedir, e um botão na lista convida exatamente a isso. Isso é a P2/P3.
+
+Quem calcula é o servidor (`api/_painel-fila-dados.ts`); a tela apresenta.
+
+### 11.1 A ordem, que é a entrega inteira da fase
+
+Duas camadas, nesta ordem: **primeiro o que espera decisão** (um relatório já
+enviado não pede nada de ninguém, por mais sinais que tenha); **dentro de cada
+faixa, o mais pesado primeiro**. Alfabético é só desempate, para a lista não
+dançar entre dois carregamentos.
+
+Os sinais e seus pesos: coleta com falha (50), investimento ausente (40),
+plataforma sem evento de resultado definido (30), seções indisponíveis
+(20 + 5 por seção extra), variação forte contra o mês anterior (12).
+
+### 11.2 Cinco regras da casa que a fila herda, e por quê
+
+1. **Ausência não vira zero.** Sem nenhum investimento apurado, a célula é um
+   traço. `R$ 0,00` ali afirmaria que o cliente não gastou nada no mês — uma
+   frase sobre o negócio dele, dita por engano.
+2. **Só faixas de PLATAFORMA entram na soma.** A Aviarte tem, além do Meta
+   inteiro, faixas por grupo de campanha, todas com uma métrica chamada
+   "Investimento". Somar tudo mostraria o mês em dobro e nada pareceria errado.
+3. **Resultado NÃO soma entre plataformas.** Investimento soma porque dinheiro
+   gasto não se sobrepõe; resultado não, porque a mesma venda pode ser
+   atribuída pelo Meta e pelo Google ao mesmo tempo. A fila mostra lado a lado,
+   dizendo de onde vem cada um: `Meta 158 · Google 60,09 compras`.
+4. **Comparação proibida continua proibida.** Quando o relatório marca uma
+   comparação como não permitida (mês incompleto, valor travado em faixa), a
+   fila não a faz por fora.
+5. **Estado com forma E texto, nunca só cor** — círculo vazado, losango,
+   círculo cheio, traço; e o texto por extenso, com quem aprovou e quando.
+
+### 11.3 A conversão fracionada do Google
+
+O Google Ads atribui conversões em pedaços: uma venda tocada por três anúncios
+vira frações de crédito, e o mês fecha em `60,089809`. Na fila, **as casas
+decimais só aparecem quando existem** — `16,00` vira `16`, `60,089809`
+continua `60,09`. Nenhum número é arredondado para caber; só param de ser
+escritos zeros que não informam. Quando há fração, o detalhe da célula diz por
+quê, senão a pessoa acha que a plataforma contou errado.
+
+Isso vive em `Fila.tsx` e **não** em `src/reports/format.ts` de propósito:
+aquele arquivo formata o relatório que vai ao cliente, que já está fechado.
+
+### 11.4 O celular, com números medidos
+
+A Fernanda revisa no celular, então isto foi medido e não estimado. **Em 375px
+a tabela pedia 517px de largura e só cabiam 341 — e o que ficava para fora era
+a coluna de SINAIS**, ou seja, exatamente a informação pela qual a fila existe,
+atrás de uma rolagem lateral que ninguém adivinha.
+
+Correção: abaixo de 820px, **três** colunas saem da grade (estado,
+investimento, resultado) e voltam como linhas de apoio sob o nome do cliente,
+deixando cliente e sinais. Depois disso: 375px cabe sem rolagem lateral
+nenhuma, e a página nunca rola de lado em nenhuma largura testada (375, 414,
+768, 820, 830, 1024, 1280, 1600).
+
+> **O corte é 820px, e não os 767px de costume.** Com as cinco colunas a tabela
+> só passa a caber a partir de 800px; em 768 — o iPad em retrato — faltavam
+> 26px. Um corte em 767 deixaria justamente esse aparelho no pior dos dois
+> mundos. **O número saiu de medir, não de escolher pelo nome do aparelho.**
+
+Densidade conferida: **linha de 48px no desktop**, dentro da faixa de 44–52 do
+handoff.
+
+### 11.5 O que foi provado, e como
+
+`npm run verifica:fila` — a lógica pura (números, sinais, ordem), o endpoint
+inteiro com o Supabase dublado, **e a tabela desenhada**.
+
+| O quê | Como |
+|---|---|
+| A ordem por atenção, com o enviado no fim e o alfabeto só como desempate | fila de 5 clientes montada no teste |
+| Ausência não vira zero; grupo de campanha não entra na soma | casos próprios |
+| Comparação proibida não vira sinal; plataforma não contratada não vira ruído | casos próprios |
+| **Quem não passa na porta não chega perto do banco** | as consultas são contadas: sem sessão, e-mail fora da lista ou provedor errado → **zero chamadas ao banco** |
+| A coluna `token` nunca é pedida | a URL de cada consulta é inspecionada |
+| Sem a chave de serviço, falha alto — nunca cai para a chave pública | a chave é removida do ambiente e o resultado é 500, não fila vazia |
+| Competência torta é recusada antes de virar consulta | `2026-13` e uma tentativa de injeção |
+| Mês vazio explica; banco vazio explica outra coisa | HTML renderizado, sem `<table>` nos dois |
+| Tabela de verdade, com `scope`, `caption` e estado por forma+texto | HTML renderizado |
+| Nenhum botão de aprovar/recusar/enviar nesta tela | HTML renderizado |
+
+**Além da regressão**, o endpoint real foi rodado contra o **banco real** com os
+dois relatórios, com só a sessão dublada: resposta 200, `no-store`, **2,2 KB**
+para o navegador (o `conteudo` de ~50 KB por relatório fica no servidor), e
+nem o token nem o conteúdo inteiro na resposta.
+
+E o pacote publicado (`npm run build`) foi varrido: o e-mail pessoal do Flávio
+não aparece; a chave de serviço **não** aparece — só o **nome** da variável,
+dentro do texto que a tela mostra quando ela falta, o que é o comportamento
+desejado.
+
+### 11.6 O que NÃO foi provado
+
+**A fila dentro do painel, depois do login de verdade.** Quem fez esta rodada
+não tem as contas Google do Flávio e da Fernanda, e não deve ter. A tabela foi
+desenhada e medida fora do portão; o que falta é a volta completa pelo Google,
+que só eles fecham.
+
+Foi por isso que a apresentação (`FilaApresentada`) ficou **separada** da busca
+em `Fila.tsx`: enquanto a tabela vivia grudada no `useEffect` que a carrega, a
+única forma de olhar para ela era entrar no painel.
 
 ---
 
