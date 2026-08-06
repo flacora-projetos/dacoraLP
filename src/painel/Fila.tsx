@@ -14,7 +14,8 @@
  * Quem calcula tudo isso é o servidor (`api/_painel-fila-dados.ts`). Esta tela
  * não soma, não compara e não decide o que é sinal: ela apresenta.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { usarPainelAuth } from './AuthContext';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
 
@@ -259,14 +260,22 @@ export function FilaApresentada({
 
 export default function Fila() {
   const { sessao } = usarPainelAuth();
+  return <FilaComSessao sessao={sessao} />;
+}
+
+export function FilaComSessao({ sessao }: { sessao: Session | null }) {
   const [dados, setDados] = useState<RespostaFila | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<{ codigo: string; mensagem: string } | null>(null);
   const [competenciaPedida, setCompetenciaPedida] = useState<string | null>(null);
+  const sessaoAtualRef = useRef(sessao);
+  sessaoAtualRef.current = sessao;
+  const usuarioId = sessao?.user?.id ?? null;
 
   const buscar = useCallback(
     async (competencia: string | null) => {
-      if (!sessao) return;
+      const sessaoAtual = sessaoAtualRef.current;
+      if (!usuarioId || !sessaoAtual) return;
       setCarregando(true);
       setErro(null);
       try {
@@ -274,7 +283,7 @@ export default function Fila() {
           ? `/api/painel-fila?competencia=${encodeURIComponent(competencia)}`
           : '/api/painel-fila';
         const resposta = await fetch(endereco, {
-          headers: { Authorization: `Bearer ${sessao.access_token}` },
+          headers: { Authorization: `Bearer ${sessaoAtual.access_token}` },
         });
 
         let corpo: any = null;
@@ -304,7 +313,10 @@ export default function Fila() {
         setCarregando(false);
       }
     },
-    [sessao],
+    // O objeto Session muda quando a aba volta ao foco, mesmo que a pessoa e o
+    // token sejam os mesmos. A identidade estável aqui é o usuário; o ref deixa
+    // a próxima ação usar um token renovado sem refazer a fila por conta própria.
+    [usuarioId],
   );
 
   useEffect(() => {

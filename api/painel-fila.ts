@@ -72,7 +72,7 @@ export default async function handler(req: Request, res: Response) {
   }
 
   const acesso = await conferirAcesso(req.headers['authorization']);
-  if (!acesso.ok) {
+  if (acesso.ok === false) {
     // A resposta de recusa sai ANTES de qualquer leitura do banco: quem não
     // passou daqui não chega perto de dado de cliente nenhum.
     return res.status(acesso.status).json(acesso.corpo);

@@ -41,7 +41,7 @@ export default async function handler(req: Request, res: Response) {
   }
 
   const acesso = await conferirAcesso(req.headers['authorization']);
-  if (!acesso.ok) {
+  if (acesso.ok === false) {
     return res.status(acesso.status).json(acesso.corpo);
   }
 
