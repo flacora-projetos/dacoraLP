@@ -4,6 +4,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import metaCapiHandler from "./api/meta-capi";
 import painelFilaHandler from "./api/painel-fila";
+import painelRelatorioHandler from "./api/painel-relatorio";
 import painelSessaoHandler from "./api/painel-sessao";
 
 /**
@@ -35,6 +36,7 @@ async function startServer() {
   // cairia na Vercel, em vez de virar 404 e mandar o painel investigar rota.
   app.all("/api/painel-sessao", painelSessaoHandler);
   app.all("/api/painel-fila", painelFilaHandler);
+  app.all("/api/painel-relatorio", painelRelatorioHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

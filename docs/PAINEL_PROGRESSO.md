@@ -1,8 +1,9 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
 **Rota:** `/painel-de-relatorios`
-**Fase concluída:** P0 (fundação e login) · **P1 inteira — carregador, fila e
-correção do refoco de janela** (seções 9, 11 e 11.7)
+**Fases concluídas localmente:** P0 (fundação e login) · **P1 inteira —
+carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
+**P2 — relatório dentro da bancada e faixa responsiva de revisão**
 **Produção:** integrada na `main` e publicada com autorização do Flávio em
 2026-08-06. Rota: <https://www.dacora.com.br/painel-de-relatorios>.
 **Última atualização:** 2026-08-06
@@ -23,10 +24,26 @@ custou caro descobrir.
 ## 1. Situação em uma frase
 
 **A fila do mês está em produção, lendo do banco, com os dois relatórios reais
-dentro.** Google, retornos do Supabase e variáveis da Vercel estão configurados.
-O defeito que fazia a fila recarregar ao trocar de janela foi corrigido e ganhou
-regressão própria. O próximo corte é vertical: abrir um relatório, decidir e
-chegar ao diálogo de envio (seção 7).
+dentro.** A P2 está concluída em branch local: a fila abre o relatório completo
+dentro da bancada, com deep-link e faixa responsiva; carregamento ou erro nunca
+mostram controles de decisão. O próximo passo é a P3, que habilita aprovar e
+recusar com os carimbos e motivos persistidos no banco (seção 7).
+
+### Checkpoint local da P2
+
+Branch `codex/p2-revisao-painel`. A API de detalhe repete sessão e allow-list no
+servidor e não devolve o token público. A revisão usa o mesmo snapshot e o mesmo
+renderizador da página do cliente, traz sinais com alvo de seção, mantém a URL
+`?relatorio=...` e preserva esse deep-link no retorno do Google. Os botões de
+aprovar e recusar existem desabilitados, porque a mutação pertence à P3.
+
+Passaram `npm run verifica:painel`, `npm run verifica:fila`,
+`npm run verifica:refoco`, `npm run verifica:revisao` e `npm run build`. A prova
+visual automatizada completa não foi concluída: a ferramenta de navegador parou
+num pedido de aprovação antes de subir o arnês local. O arnês temporário foi
+removido e não faz parte do commit. Antes de publicar a P2, ainda é necessário
+percorrer fila → revisão → sinal → voltar e recarregar o deep-link em desktop e
+celular.
 
 ---
 
@@ -439,13 +456,14 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Fatia vertical:** abrir um relatório real dentro do painel, aprovar ou
-   recusar e chegar ao diálogo de envio. Une P2, P3 e P5 num corte fino, mas
-   inteiro. "Agora não" continua sendo saída legítima do diálogo.
-2. **P4:** recusa avisa o grupo `Dácora - Agentes`.
-3. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
-4. **Reconfirmação humana curta da correção atual:** com a fila aberta, trocar de
-   janela e voltar. A posição e a tabela devem permanecer exatamente onde estão.
+1. **Prova visual da P2:** percorrer o fluxo local em desktop e celular antes de
+   publicar. A falta dessa prova está registrada no checkpoint acima.
+2. **P3:** habilitar aprovar e recusar, com checksum carimbado e motivo
+   obrigatório. A P2 já deixa os controles presentes e desabilitados.
+3. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
+   `Agora não` como saída legítima.
+4. **P4:** recusa avisa o grupo `Dácora - Agentes`.
+5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório

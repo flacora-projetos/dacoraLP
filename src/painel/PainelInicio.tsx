@@ -13,17 +13,11 @@
  */
 import { usarPainelAuth } from './AuthContext';
 import Fila from './Fila';
+import Revisao from './Revisao';
+import { useSearchParams } from 'react-router-dom';
+import type { ReactNode } from 'react';
 
-const PROXIMAS_FASES: Array<{ chave: string; texto: React.ReactNode }> = [
-  {
-    chave: 'P2',
-    texto: (
-      <>
-        <strong>A revisão</strong> — o relatório exatamente como o cliente vê, com a faixa de
-        aprovação ao lado.
-      </>
-    ),
-  },
+const PROXIMAS_FASES: Array<{ chave: string; texto: ReactNode }> = [
   {
     chave: 'P3',
     texto: (
@@ -44,6 +38,8 @@ const PROXIMAS_FASES: Array<{ chave: string; texto: React.ReactNode }> = [
 
 export default function PainelInicio() {
   const { autorizacao, usuario, sair } = usarPainelAuth();
+  const [busca] = useSearchParams();
+  const relatorioId = busca.get('relatorio');
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
 
   return (
@@ -65,9 +61,13 @@ export default function PainelInicio() {
       </header>
 
       <main className="dcp-corpo">
-        <Fila />
+        {relatorioId ? (
+          <Revisao relatorioId={relatorioId} />
+        ) : (
+          <Fila />
+        )}
 
-        <section className="dcp-secao dcp-secao--recuada">
+        {!relatorioId && <section className="dcp-secao dcp-secao--recuada">
           <h2 className="dcp-secao__titulo">O que ainda não dá para fazer aqui</h2>
           <p className="dcp-secao__apoio">
             Cada etapa abaixo entrega algo que funciona sozinho, na ordem.
@@ -80,7 +80,7 @@ export default function PainelInicio() {
               </li>
             ))}
           </ul>
-        </section>
+        </section>}
       </main>
     </>
   );

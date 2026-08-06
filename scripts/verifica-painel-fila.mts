@@ -566,10 +566,13 @@ globalThis.fetch = fetchOriginal;
 
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { FilaApresentada } from '../src/painel/Fila.tsx';
 
 function desenhar(dados: any): string {
-  return renderToStaticMarkup(createElement(FilaApresentada, { dados }));
+  return renderToStaticMarkup(
+    createElement(MemoryRouter, null, createElement(FilaApresentada, { dados })),
+  );
 }
 
 /* A tabela com conteúdo. ---------------------------------------------- */
@@ -634,6 +637,13 @@ function desenhar(dados: any): string {
   for (const proibido of ['Aprovar', 'Recusar', 'Enviar']) {
     assert.ok(!html.includes(`>${proibido}<`), `a fila não pode ter botão "${proibido}" — isso é a P3/P5`);
   }
+
+  // Abrir a revisão é NAVEGAÇÃO: link semântico e deep-link na URL, não
+  // `div onClick` nem botão que perde Cmd/Ctrl+clique.
+  assert.ok(
+    html.includes('<a') && html.includes('relatorio='),
+    'faltou o deep-link semântico da revisão',
+  );
 }
 
 /* Um mês só: sem seletor, que seria um controle com uma opção. -------- */

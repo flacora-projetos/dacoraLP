@@ -208,7 +208,9 @@ export function PainelAuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}${ROTA_PAINEL}`,
+        // Mantém o deep-link da revisão. Se a sessão expirar com um relatório
+        // aberto, o Google devolve a pessoa ao mesmo `?relatorio=...`.
+        redirectTo: `${window.location.origin}${ROTA_PAINEL}${window.location.search}`,
         // `select_account` (e não `consent`): deixa trocar de conta sem forçar
         // a tela de consentimento inteira em todo login. Sem
         // `access_type=offline` — quem cuida da sessão é o Supabase, o refresh
