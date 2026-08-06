@@ -164,6 +164,7 @@ const NOME_PLATAFORMA: Record<PlataformaId, string> = {
   ga4: 'Google Analytics 4',
   instagram: 'Instagram',
   ecommerce: 'Loja',
+  crm: 'CRM',
 };
 
 export function nomePlataforma(id: PlataformaId): string {

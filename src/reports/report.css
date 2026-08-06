@@ -685,6 +685,15 @@
   white-space: nowrap;
 }
 
+@media (max-width: 639px) {
+  .dc-grafico__unidade {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+}
+
 .dc-grafico__barra {
   display: flex;
   flex-wrap: wrap;
@@ -788,6 +797,12 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--dc-cinza);
+}
+
+@media (max-width: 639px) {
+  .dc-tabela-dados thead th {
+    position: static;
+  }
 }
 
 /* Legenda e tooltip */
@@ -1237,6 +1252,10 @@
   }
   .dc-campanha__nome {
     max-width: 22ch;
+    overflow-wrap: anywhere;
+  }
+  .dc-tabela-campanhas {
+    table-layout: fixed;
   }
   .dc-barra-embutida__trilho {
     width: 3.25rem;

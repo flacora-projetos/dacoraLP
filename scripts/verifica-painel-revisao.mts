@@ -1,10 +1,13 @@
 /** Regressão da P2: endpoint protegido + documento e faixa desenhados. */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import handler, { montarRelatorioParaRevisao } from '../api/painel-relatorio.ts';
 import { RevisaoMoldura } from '../src/painel/RevisaoMoldura.tsx';
+import { criarChartTheme, preenchimentoBarra } from '../src/reports/charts/chartTheme.ts';
+import { nomePlataforma } from '../src/reports/componentes.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 
 const ID = '11111111-1111-4111-8111-111111111111';
@@ -41,6 +44,25 @@ assert.ok(relatorio, 'a linha válida precisa montar a revisão');
 assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum precisa vir da coluna persistida');
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
+
+const tema = criarChartTheme('B');
+assert.equal(nomePlataforma('crm'), 'CRM', 'a fonte CRM precisa ter nome legível');
+assert.equal(
+  preenchimentoBarra(tema, 'crm'),
+  tema.series.crm.cor,
+  'um bloco real vindo do CRM precisa ter preenchimento no catálogo visual',
+);
+const cssRelatorio = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
+assert.match(
+  cssRelatorio,
+  /@media \(max-width: 639px\)[\s\S]*?\.dc-grafico__unidade\s*\{[\s\S]*?white-space:\s*normal;[\s\S]*?@media \(max-width: 639px\)[\s\S]*?\.dc-tabela-dados thead th\s*\{[\s\S]*?position:\s*static;/,
+  'rótulo e cabeçalho da tabela não podem alargar a página no celular',
+);
+assert.match(
+  cssRelatorio,
+  /@media \(max-width: 639px\)[\s\S]*?\.dc-campanha__nome\s*\{[\s\S]*?overflow-wrap:\s*anywhere;[\s\S]*?\.dc-tabela-campanhas\s*\{[\s\S]*?table-layout:\s*fixed;/,
+  'a tabela de campanhas precisa caber na revisão móvel',
+);
 
 function desenhar(valor: any): string {
   return renderToStaticMarkup(
