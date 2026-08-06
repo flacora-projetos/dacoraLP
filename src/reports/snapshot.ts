@@ -84,7 +84,8 @@ export type PlataformaId =
   | 'pinterest'
   | 'ga4'
   | 'instagram'
-  | 'ecommerce';
+  | 'ecommerce'
+  | 'crm';
 
 /**
  * `sucesso`        — tudo que se esperava veio.

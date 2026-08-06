@@ -106,6 +106,7 @@ function sessao(token = 'token-a', usuarioId = 'usuario-1') {
 const { createElement } = await import('react');
 const { flushSync } = await import('react-dom');
 const { createRoot } = await import('react-dom/client');
+const { MemoryRouter } = await import('react-router-dom');
 const { FilaComSessao } = await import('../src/painel/Fila.tsx');
 
 const elemento = dom.window.document.getElementById('raiz')!;
@@ -113,7 +114,9 @@ const raiz = createRoot(elemento);
 
 async function renderizar(proximaSessao: any) {
   flushSync(() => {
-    raiz.render(createElement(FilaComSessao, { sessao: proximaSessao }));
+    raiz.render(
+      createElement(MemoryRouter, null, createElement(FilaComSessao, { sessao: proximaSessao })),
+    );
   });
   for (let tentativa = 0; tentativa < 20 && !elemento.querySelector('table'); tentativa += 1) {
     await new Promise((resolve) => setTimeout(resolve, 0));

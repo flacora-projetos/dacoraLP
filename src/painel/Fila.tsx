@@ -16,6 +16,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { Link } from 'react-router-dom';
 import { usarPainelAuth } from './AuthContext';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
 
@@ -29,6 +30,7 @@ interface Sinal {
   tipo: string;
   texto: string;
   detalhe: string;
+  alvo: string;
   peso: number;
 }
 
@@ -466,7 +468,13 @@ function CorpoDaFila({
               {itens.map((item) => (
                 <tr key={item.id}>
                   <th scope="row" className="dcp-tabela__cliente">
-                    <span className="dcp-tabela__nome">{item.clienteNome}</span>
+                    <Link
+                      to={`?relatorio=${encodeURIComponent(item.id)}`}
+                      className="dcp-tabela__abrir"
+                      aria-label={`Revisar o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
+                    >
+                      {item.clienteNome}
+                    </Link>
                     {item.versao > 1 && (
                       <span className="dcp-tabela__versao">versão {item.versao}</span>
                     )}

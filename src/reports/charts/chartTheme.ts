@@ -102,6 +102,7 @@ const SERIES: Record<PlataformaId, EstiloSerie> = {
   ga4: { id: 'ga4', cor: PALETA.sage, tracejado: '2 4', textura: 'hachura' },
   instagram: { id: 'instagram', cor: PALETA.verdeMedio, tracejado: '10 4', textura: 'hachura' },
   ecommerce: { id: 'ecommerce', cor: PALETA.tinta, textura: 'solido' },
+  crm: { id: 'crm', cor: PALETA.verdeMedio, textura: 'solido' },
 };
 
 const BASE: Omit<ChartTheme, 'proposta'> = {

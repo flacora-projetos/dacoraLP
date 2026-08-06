@@ -615,9 +615,19 @@
   min-width: 12rem;
 }
 
-.dcp-tabela__nome {
+.dcp-tabela__abrir {
+  font: inherit;
   color: var(--dc-tinta);
   font-weight: 600;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+}
+
+.dcp-tabela__abrir:hover {
+  color: var(--dc-verde);
+  text-decoration-color: currentColor;
 }
 
 .dcp-tabela__versao {
@@ -805,5 +815,303 @@
     height: auto;
     min-height: var(--dcp-altura-linha);
     padding-block: 0.55rem;
+  }
+}
+
+/* =====================================================================
+   A REVISÃO (P2)
+
+   A faixa vem antes do documento no DOM para o teclado chegar à decisão
+   antes de atravessar todas as seções. A grade muda apenas a posição visual.
+   ===================================================================== */
+
+.dcp-revisao {
+  min-width: 0;
+}
+
+.dcp-revisao__navegacao {
+  margin-bottom: 0.85rem;
+}
+
+.dcp-revisao__navegacao a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--dc-verde);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+}
+
+.dcp-revisao__navegacao a:hover {
+  color: var(--dc-verde-medio);
+}
+
+.dcp-revisao__grade {
+  display: grid;
+  min-width: 0;
+}
+
+.dcp-revisao__documento {
+  min-width: 0;
+  grid-area: documento;
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio-grande);
+  overflow: hidden;
+  background: var(--dc-canvas);
+}
+
+.dcp-revisao__documento .dc-report {
+  min-height: 0;
+}
+
+.dcp-revisao__documento .dc-secao[id] {
+  scroll-margin-top: 1rem;
+}
+
+.dcp-revisao__faixa {
+  grid-area: faixa;
+  min-width: 0;
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  box-shadow: 0 8px 30px rgba(13, 31, 24, 0.1);
+}
+
+.dcp-revisao__faixa-titulo {
+  margin: 0.45rem 0 0;
+  color: var(--dc-tinta);
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.dcp-revisao__faixa-meta,
+.dcp-revisao__bloqueio {
+  margin: 0.35rem 0 0;
+  color: var(--dc-cinza);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.dcp-revisao__rotulo {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dcp-revisao__sinais {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dcp-revisao__sinais a {
+  display: block;
+  border: 1px solid var(--dc-filete);
+  border-left: 3px solid var(--dc-sinal);
+  border-radius: 10px;
+  padding: 0.65rem 0.7rem;
+  color: var(--dc-tinta);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+}
+
+.dcp-revisao__sinais a:hover {
+  border-color: var(--dc-verde);
+}
+
+.dcp-revisao__sinais span {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.dcp-revisao__sinais small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--dc-cinza);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.dcp-revisao__sem-sinal {
+  margin: 0.7rem 0 0;
+  color: var(--dc-cinza);
+  font-size: 0.82rem;
+}
+
+.dcp-revisao__decisoes {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dcp-botao--sinal {
+  background: transparent;
+  border-color: var(--dc-sinal);
+  color: var(--dc-sinal);
+}
+
+.dcp-revisao__sinais-movel {
+  display: none;
+}
+
+.dcp-revisao__carregando {
+  min-height: 65vh;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.dcp-revisao__carregando p {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.86rem;
+}
+
+.dcp-revisao__carregando .dcp-espera__barra {
+  display: block;
+  width: 100%;
+  height: clamp(5rem, 9vw, 8rem);
+}
+
+.dcp-revisao__erro {
+  max-width: 42rem;
+}
+
+@media (min-width: 1200px) {
+  .dcp-revisao__grade {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+    grid-template-areas: 'documento faixa';
+    align-items: start;
+    gap: 1.25rem;
+  }
+
+  .dcp-revisao__faixa {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: var(--dc-raio);
+    padding: 1rem;
+  }
+
+  .dcp-revisao__sinais-desktop {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--dc-filete);
+  }
+
+  .dcp-revisao__decisoes {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--dc-filete);
+  }
+}
+
+@media (max-width: 1199px) {
+  .dcp-revisao {
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom));
+  }
+
+  .dcp-revisao__grade {
+    grid-template-areas: 'documento';
+  }
+
+  .dcp-revisao__faixa {
+    position: fixed;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: min(70vh, 34rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-width: 1px 0 0;
+    padding: 0.8rem clamp(1rem, 0.6rem + 1.4vw, 1.75rem) calc(0.8rem + env(safe-area-inset-bottom));
+  }
+
+  .dcp-revisao__faixa-cabecalho {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0 0.75rem;
+  }
+
+  .dcp-revisao__faixa-cabecalho .dcp-eyebrow {
+    display: none;
+  }
+
+  .dcp-revisao__faixa-meta {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .dcp-revisao__sinais-desktop {
+    display: none;
+  }
+
+  .dcp-revisao__sinais-movel {
+    display: block;
+    margin-top: 0.5rem;
+  }
+
+  .dcp-revisao__sinais-movel summary {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    color: var(--dc-verde);
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .dcp-revisao__decisoes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0.55rem;
+  }
+
+  .dcp-revisao__bloqueio {
+    text-align: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .dcp-revisao__faixa-cabecalho {
+    display: block;
+  }
+
+  .dcp-revisao__faixa-meta {
+    margin-top: 0.2rem;
+    white-space: normal;
+  }
+
+  .dcp-revisao__decisoes {
+    grid-template-columns: 1fr;
+  }
+
+  .dcp-revisao {
+    padding-bottom: calc(13rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dcp-revisao *,
+  .dcp-revisao *::before,
+  .dcp-revisao *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

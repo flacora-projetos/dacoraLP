@@ -76,6 +76,8 @@ export interface Sinal {
   texto: string;
   /** A frase inteira, para o `title` e para leitor de tela. */
   detalhe: string;
+  /** Id da seção do relatório que explica este sinal. */
+  alvo: string;
   peso: number;
 }
 
@@ -195,6 +197,11 @@ function porcentagem(variacao: number): string {
 function sinaisDoRelatorio(conteudo: any): Sinal[] {
   const sinais: Sinal[] = [];
 
+  const secaoDaFaixa = (faixa: any): string =>
+    (conteudo?.montagem ?? []).find(
+      (bloco: any) => bloco?.bloco === 'B1' && bloco?.faixa === faixa?.id,
+    )?.id ?? 'resumo';
+
   /* Seções que o próprio relatório declara que não consegue preencher. ------ */
   const indisponiveis = (conteudo?.montagem ?? []).filter((bloco: any) => bloco?.indisponivel);
   if (indisponiveis.length > 0) {
@@ -208,6 +215,7 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
         indisponiveis
           .map((bloco: any) => `"${bloco.titulo}" — ${bloco.indisponivel?.motivo ?? 'sem motivo declarado'}`)
           .join(' · '),
+      alvo: indisponiveis[0]?.id ?? 'qualidade',
       peso: PESO.secoes_indisponiveis + (quantas - 1) * 5,
     });
   }
@@ -228,6 +236,7 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
       tipo: 'falha_de_fonte',
       texto: `${fonte.rotulo ?? nomeDaPlataforma(fonte.plataforma)}: coleta ${fonte.situacao}`,
       detalhe: `${fonte.rotulo ?? nomeDaPlataforma(fonte.plataforma)} ${comoFalhou}.`,
+      alvo: 'qualidade',
       peso: PESO.falha_de_fonte,
     });
   }
@@ -244,6 +253,7 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
         detalhe:
           `O investimento do ${plataforma} não veio nesta coleta e por isso não entra na soma do mês. ` +
           `Motivo registrado: ${investimento.valor?.motivo ?? 'não informado'}.`,
+        alvo: secaoDaFaixa(faixa),
         peso: PESO.valor_ausente,
       });
     }
@@ -258,6 +268,7 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
           `Este relatório não publica número de resultado para o ${plataforma}. ` +
           `Acontece quando o cadastro do cliente não define qual evento conta como resultado naquela ` +
           `plataforma — sem essa definição, a plataforma não publica número em vez de escolher um sozinha.`,
+        alvo: secaoDaFaixa(faixa),
         peso: PESO.sem_resultado,
       });
     }
@@ -276,6 +287,7 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
         detalhe:
           `${plataforma}: ${metrica.rotulo} variou ${porcentagem(comparativo.variacao)} contra ` +
           `${comparativo.competenciaBase ?? 'o mês anterior'}.`,
+        alvo: secaoDaFaixa(faixa),
         peso: PESO.variacao_forte,
       });
     }
