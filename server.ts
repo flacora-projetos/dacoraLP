@@ -1,14 +1,24 @@
-// Carrega o .env/.env.local antes de tudo. Só vale para o desenvolvimento na
-// máquina: na Vercel as variáveis vêm do painel do projeto, e este arquivo nem
-// é usado para servir o site. Sem isto, as funções em `api/` rodam localmente
-// sem enxergar nenhuma variável, e o painel diria "não configurado" numa
-// máquina que ESTÁ configurada.
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import metaCapiHandler from "./api/meta-capi";
 import painelSessaoHandler from "./api/painel-sessao";
+
+/**
+ * Variáveis de ambiente do desenvolvimento na máquina. Na Vercel elas vêm do
+ * painel do projeto, e este arquivo nem serve o site.
+ *
+ * `.env.local` PRIMEIRO e listado explicitamente: `dotenv` sozinho lê só
+ * `.env`, enquanto `.env.local` é convenção do Vite. Sem esta linha, o
+ * navegador enxerga as variáveis (o Vite as carrega) e as funções em `api/`
+ * não — o painel respondia "não configurado" numa máquina que estava
+ * configurada, e o defeito aparecia só depois do login.
+ *
+ * Quem vem antes ganha: `.env.local` (que não vai para o repositório)
+ * sobrescreve o `.env`.
+ */
+dotenv.config({ path: [".env.local", ".env"] });
 
 async function startServer() {
   const app = express();

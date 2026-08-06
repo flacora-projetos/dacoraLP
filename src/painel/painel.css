@@ -470,13 +470,16 @@
   color: var(--dc-cinza);
 }
 
+/* `--dc-cinza`, e não `--dc-sage`: sobre a superfície branca o sage dá 2,8:1,
+   abaixo do mínimo de 4,5:1 para texto — e este rótulo é pequeno. O sage aqui
+   fica reservado a separador e a texto desativado grande, como manda a §8. */
 .dcp-proximas__chave {
   flex: none;
   width: 2.4rem;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--dc-sage);
+  color: var(--dc-cinza);
   font-variant-numeric: tabular-nums;
 }
 
