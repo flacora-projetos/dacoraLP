@@ -11,7 +11,7 @@ merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
 Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`. A
 validação nominal da Fernanda ainda não foi registrada e é o Gate 3 que fecha o
-visual antes de nova implementação.
+visual antes de nova mudança visual.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -20,6 +20,14 @@ assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
 versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
 confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
 **Última atualização:** 2026-08-07
+
+**Prioridade organizacional decidida em 2026-08-07:** a próxima expansão da
+fábrica será o relatório padrão para clientes menores, sobretudo Allgrotech,
+com campanhas Meta de geração de leads por WhatsApp e módulo condicional de
+tráfego para perfil. O handoff canônico está no `OpenClaw-Dacora`, em
+`docs/HANDOFF_RELATORIO_PADRAO_LEADS_WHATSAPP_META_2026-08-07.md`, e começa pela
+L0 somente leitura. Isso não altera a sequência interna deste painel: Gate 3 e
+P3 continuam separados e sem autorização implícita.
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
@@ -43,9 +51,10 @@ dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
 relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
-checksum ou estado. O próximo passo é o Gate 3 da Fernanda em Karyne e Aviarte;
-depois dele, a P3 é a próxima implementação, mas está pausada e não foi aprovada
-para integração (seção 7).
+checksum ou estado. Dentro do trilho do painel, o próximo passo é o Gate 3 da
+Fernanda em Karyne e Aviarte; depois dele, a P3 é a próxima implementação, mas
+está pausada e não foi aprovada para integração (seção 7). A prioridade
+executável da fábrica corre em trilho separado, conforme o handoff citado acima.
 
 ### Checkpoint integrado da P2
 
@@ -534,6 +543,10 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 ---
 
 ## 7. A próxima coisa a fazer
+
+Esta ordem é exclusiva do painel. A prioridade geral da fábrica é a L0 do
+relatório padrão Meta/WhatsApp, documentada no `OpenClaw-Dacora`; ela não
+autoriza nem altera as fases abaixo.
 
 1. **Gate 3 da Fernanda:** validar nominalmente os relatórios completos
    publicados de Karyne (geração de leads; cliente de serviços) e Aviarte (e-commerce): leitura,
