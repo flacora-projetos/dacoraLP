@@ -24,7 +24,7 @@ dotenv.config({ path: [".env.local", ".env"] });
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
 
   app.use(express.json());
 
@@ -40,8 +40,12 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const hmrPort = process.env.VITE_HMR_PORT ? Number(process.env.VITE_HMR_PORT) : undefined;
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        ...(hmrPort ? { hmr: { port: hmrPort } } : {}),
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import handler, { montarRelatorioParaRevisao } from '../api/painel-relatorio.ts';
+import { resolverMiniaturasPrivadas } from '../api/_miniaturas-relatorio.ts';
 import { RevisaoMoldura } from '../src/painel/RevisaoMoldura.tsx';
 import { criarChartTheme, preenchimentoBarra } from '../src/reports/charts/chartTheme.ts';
 import { nomePlataforma } from '../src/reports/componentes.tsx';
@@ -44,6 +45,44 @@ assert.ok(relatorio, 'a linha válida precisa montar a revisão');
 assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum precisa vir da coluna persistida');
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
+
+{
+  const caminho = 'cliente_exemplo/2026-07/123/0123456789abcdef0123.jpg';
+  const comMiniatura: any = structuredClone(conteudo);
+  comMiniatura.dados.rankingsCriativos = {
+    ranking_meta: {
+      criativos: [{
+        miniatura: { src: `storage://relatorios-miniaturas/${caminho}`, alt: 'Criativo 123' },
+      }],
+    },
+  };
+  const resolvido = await resolverMiniaturasPrivadas(
+    comMiniatura,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07' },
+    { assinar: async caminhos => [{ path: caminhos[0], signedUrl: 'https://exemplo.supabase.co/storage/assinada.jpg' }] },
+  );
+  assert.equal(
+    resolvido.dados.rankingsCriativos.ranking_meta.criativos[0].miniatura.src,
+    'https://exemplo.supabase.co/storage/assinada.jpg',
+  );
+  assert.equal(
+    comMiniatura.dados.rankingsCriativos.ranking_meta.criativos[0].miniatura.src,
+    `storage://relatorios-miniaturas/${caminho}`,
+    'assinar para o navegador não pode alterar o snapshot persistido',
+  );
+
+  const invasao = structuredClone(comMiniatura);
+  invasao.dados.rankingsCriativos.ranking_meta.criativos[0].miniatura.src =
+    'storage://relatorios-miniaturas/outro_cliente/2026-07/123/0123456789abcdef0123.jpg';
+  let tentouAssinar = false;
+  const recusado = await resolverMiniaturasPrivadas(
+    invasao,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07' },
+    { assinar: async () => { tentouAssinar = true; return []; } },
+  );
+  assert.equal(tentouAssinar, false, 'um relatório não pode assinar a imagem de outro cliente');
+  assert.equal(recusado.dados.rankingsCriativos.ranking_meta.criativos[0].miniatura, null);
+}
 
 const tema = criarChartTheme('B');
 assert.equal(nomePlataforma('crm'), 'CRM', 'a fonte CRM precisa ter nome legível');

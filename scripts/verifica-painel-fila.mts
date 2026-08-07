@@ -87,6 +87,8 @@ let contador = 0;
 function linha(parcial: {
   slug: string;
   nome?: string;
+  versao?: number;
+  geradoEm?: string;
   estado?: string;
   enviadoEm?: string | null;
   faixas?: any[];
@@ -98,9 +100,9 @@ function linha(parcial: {
     id: `id-${contador}`,
     cliente_slug: parcial.slug,
     competencia: '2026-07',
-    versao: 1,
+    versao: parcial.versao ?? 1,
     estado: parcial.estado ?? 'gerado',
-    gerado_em: '2026-08-01T10:00:00Z',
+    gerado_em: parcial.geradoEm ?? '2026-08-01T10:00:00Z',
     aprovado_por: null,
     aprovado_em: null,
     enviado_em: parcial.enviadoEm ?? null,
@@ -120,6 +122,17 @@ function linha(parcial: {
 /* ================================================================== */
 /* 1. Os números da linha                                              */
 /* ================================================================== */
+
+/* A fila mostra só a versão corrente; histórico não vira trabalho duplicado. */
+{
+  const antiga = linha({ slug: 'versionado', nome: 'Cliente Versionado', versao: 1, faixas: [] });
+  const intermediaria = linha({ slug: 'versionado', nome: 'Cliente Versionado', versao: 2, faixas: [] });
+  const aprovada = linha({ slug: 'versionado', nome: 'Cliente Versionado', versao: 3, faixas: [] });
+  const fila = montarFila([aprovada, antiga, intermediaria]);
+  assert.equal(fila.length, 1, 'três versões do mesmo relatório viraram três itens na fila');
+  assert.equal(fila[0].versao, 3, 'a fila não escolheu a versão corrente');
+  assert.equal(fila[0].id, aprovada.id);
+}
 
 /* Soma das plataformas, e só das plataformas. -------------------------
    Este é o caso que já existe de verdade na carteira: além da faixa do
@@ -461,6 +474,12 @@ const duasLinhas = [
   linha({ slug: 'dois', nome: 'Dois', faixas: [faixa({ plataforma: 'meta', investimento: null, resultado: 2 })] }),
 ];
 
+const tresVersoesDoMesmoRelatorio = [
+  linha({ slug: 'versionado', nome: 'Versionado', versao: 1, geradoEm: '2026-08-01T10:00:00Z', faixas: [] }),
+  linha({ slug: 'versionado', nome: 'Versionado', versao: 2, geradoEm: '2026-08-02T10:00:00Z', faixas: [] }),
+  linha({ slug: 'versionado', nome: 'Versionado', versao: 3, geradoEm: '2026-08-03T10:00:00Z', faixas: [] }),
+];
+
 /* QUEM NÃO PASSA NA PORTA NÃO CHEGA PERTO DO BANCO. -------------------
    Não basta a resposta ser 401/403: a leitura da tabela não pode nem ter
    sido tentada. É a diferença entre "não te mostrei" e "não busquei". */
@@ -506,6 +525,15 @@ const duasLinhas = [
   assert.equal((chamadasAoBanco[0].cabecalhos as any).apikey, 'chave-de-servico-de-mentira');
 
   assert.match(r.cabecalhos['cache-control'] ?? '', /no-store/);
+}
+
+/* A tabela guarda o histórico, mas o endpoint entrega só a versão corrente. */
+{
+  const r = await chamarFila('Bearer t', googlada('flacora@gmail.com'), tresVersoesDoMesmoRelatorio);
+  assert.equal(r.status, 200);
+  assert.equal(r.corpo.itens.length, 1);
+  assert.equal(r.corpo.itens[0].versao, 3);
+  assert.match(chamadasAoBanco.at(-1)?.url ?? '', /order=cliente_slug\.asc,versao\.desc/);
 }
 
 /* Banco vazio: resposta honesta, não erro. ----------------------------- */
