@@ -1,114 +1,130 @@
-# Resultado da proposta e validação
+# Resultado da expansão e validação local
 
-Status: fatia compartilhada pronta para escolha de direção por Flávio.
+Status: direção A aprovada no Gate 1; implementação completa apresentada para revisão de Flávio no Gate 2 e posterior validação de Fernanda no Gate 3. Nenhuma fase de produto foi declarada concluída.
 
-Não é implementação completa do catálogo e não é o gate final da Fernanda.
+## O que mudou no catálogo compartilhado
 
-## O que foi materializado
+A linguagem **Editorial de Performance** foi expandida sem página, tema ou exceção por cliente:
 
-A direção recomendada, **Editorial de Performance**, foi aplicada somente às peças compartilhadas da fatia combinada:
+- oportunidades e próximos passos ganharam régua por papel editorial, sem inferir “bom” ou “ruim” a partir do número;
+- canais se distinguem por filete funcional de plataforma, mantendo a identidade Dácora como linguagem dominante;
+- confronto entre mídia e loja preserva pesos idênticos e apresenta a diferença em campo neutro;
+- ranking de criativos virou lista editorial compacta, com miniaturas reais preservadas e ausência de miniatura sem ocupar um cartão quadrado inteiro;
+- comentário humano passou a funcionar como leitura assinada, distinto da apuração automática;
+- glossário ganhou numeração e ritmo de referência rápida;
+- indisponibilidade ganhou rótulo textual neutro e continua diferente de falha de coleta;
+- fontes agora separam visualmente plataforma, no topo, de disponibilidade, na lateral e no texto do chip;
+- tabelas, gráficos, KPIs, cobertura parcial, zero medido, comparações e navegação mantêm a fatia aprovada no Gate 1.
 
-- masthead, capa e cabeçalho de seção;
-- KPIs e comparações;
-- tema, legenda e rótulos de gráficos;
-- tabela de entidades e cobertura parcial;
-- estados de zero medido, ausência, falha, não aplicável, pausa e cobertura parcial;
-- correção de níveis de título em criativos e blocos indisponíveis.
+O markup novo é exclusivamente apresentacional (`data-plataforma`, `data-papel`, `data-tom` e rótulo neutro). Snapshot, JSON, checksum, tipos, catálogo, rotas, `noindex` e conteúdo dos fixtures não mudaram. Snapshots antigos continuam usando os mesmos renderizadores compartilhados e uma mudança de CSS não reabre a aprovação de conteúdo da P3.
 
-Não foi criada página por cliente. Karyne, Aviarte, Zenun e Santalberti continuam usando o mesmo esqueleto, catálogo e componentes.
+## Gates
+
+| Critério | Gate | Estado |
+|---|---|---|
+| Direção, marca, hierarquia, densidade e papéis de cor | Flávio — Gate 1 | aprovado: direção A |
+| Catálogo completo, estados, escala, responsividade e regressão | Flávio — Gate 2 | entregue localmente; aguardando revisão |
+| Karyne e Aviarte completas, conteúdo e acabamento | Fernanda — Gate 3 | pendente; não autoaprovado |
+
+A fatia do Gate 1 serviu para escolher direção. Os dois relatórios completos abaixo são a unidade correta para a validação da Fernanda.
+
+## Links locais para revisão
+
+Servidor isolado do worktree, sem deploy:
+
+- Karyne — serviços/leads: `http://127.0.0.1:4173/relatorios/demo/karyne`
+- Aviarte — e-commerce: `http://127.0.0.1:4173/relatorios/demo/aviarte`
+- Zenun — Google-only: `http://127.0.0.1:4173/relatorios/demo/zenun`
+- escala de quatro plataformas: `http://127.0.0.1:4173/relatorios/demo/ecommerce`
+
+A porta 3000 já estava ocupada por outro checkout e foi preservada. A prévia desta branch usa 4173.
 
 ## Antes × depois
 
-| Dimensão | Antes | Proposta |
+| Cenário | Baseline antes | Gate 2 depois |
 |---|---|---|
-| Marca | verde-cinza aplicado a quase todas as funções | Dácora domina a página; cor de canal fica confinada à análise |
-| Capa | escala grande + vazio prolongado | régua de marca, composição mais compacta e primeira seção mais próxima |
-| Seções | filete superior e tamanho | índice + régua vertical + título mais firme |
-| KPI | filetes monocromáticos | grade editorial branca, origem por filete de canal e número tabular |
-| Comparação | seta + cor | seta + valor + palavra “favorável”, “desfavorável” ou “neutra” |
-| Gráfico | canais próximos na rampa verde-cinza | paleta categórica estável + traço/textura + rótulo |
-| Estado | ausência e falha visualmente próximas | texto, forma, contorno e cor por papel semântico |
-| Zero | número sem confirmação | selo textual “medido” em KPI/tabela |
-| Tabela móvel | várias colunas comprimidas | dimensão + métrica principal + detalhes expansíveis |
+| Karyne desktop | `screenshots/antes/karyne-desktop-full.png` | `screenshots/gate2/karyne-desktop-completo.png` |
+| Karyne celular | `screenshots/antes/karyne-mobile-full.png` | `screenshots/gate2/karyne-mobile-completo.png` |
+| Aviarte desktop | `screenshots/antes/aviarte-desktop-full.png` | `screenshots/gate2/aviarte-desktop-completo.png` |
+| Aviarte celular | `screenshots/antes/aviarte-mobile-full.png` | `screenshots/gate2/aviarte-mobile-completo.png` |
+| Zenun Google-only | baseline da fatia: `screenshots/depois/zenun-desktop-viewport.png` | `screenshots/gate2/zenun-google-only-desktop-completo.png` |
+| Quatro plataformas | baseline da fatia: `screenshots/depois/quatro-plataformas-desktop-viewport.png` | `screenshots/gate2/quatro-plataformas-desktop-completo.png` |
 
-Evidências principais:
-
-- antes desktop: `screenshots/antes/karyne-desktop-viewport.png`;
-- depois desktop: `screenshots/depois/karyne-desktop-viewport.png`;
-- antes celular: `screenshots/antes/karyne-mobile-viewport.png`;
-- depois celular: `screenshots/depois/karyne-mobile-viewport.png`;
-- tabela celular com detalhe: `screenshots/depois/karyne-tabela-mobile-detalhe.png`;
-- escala de quatro plataformas: `screenshots/depois/quatro-plataformas-canais-desktop.png` e `screenshots/depois/quatro-plataformas-canais-mobile.png`;
-- explorações A/B/C: `screenshots/exploracoes/comparacao-desktop.png` e `screenshots/exploracoes/comparacao-mobile.png`.
+Versões móveis de regressão: `screenshots/gate2/zenun-google-only-mobile-completo.png` e `screenshots/gate2/quatro-plataformas-mobile-completo.png`.
 
 ## Ciclo `od-design-refine`
 
-### Iteração 1 — direção
+### Iteração 1 — catálogo e densidade
 
-Patch: hierarquia editorial, papéis de cor, KPIs, gráficos e tabela compartilhada.
+Direção: substituir os blocos que ainda pareciam cartões de dashboard por estruturas editoriais compartilhadas.
 
-Crítica: a régua da capa herdou cantos arredondados; a grade de cinco KPIs expôs uma célula vazia cinza; zero medido ainda não estava explícito na tabela.
+Patch: ranking compacto, papéis de leitura, canais, confronto, comentários, glossário, indisponibilidade e fontes.
 
-### Iteração 2 — semântica
+Crítica: a altura móvel de Aviarte caiu de 32.895 px para 27.202 px sem remover conteúdo, mas rankings com quantidade ímpar deixavam uma célula residual vazia no desktop.
 
-Patch: régua reta, fundo residual removido, polaridade escrita, zero medido na tabela, ausência/falha separadas e níveis de título corrigidos.
+### Iteração 2 — escala e convergência
 
-Crítica: Karyne passou com zero violações automáticas, mas o cenário de quatro plataformas revelou sobreposição em tabela móvel densa.
+Direção: resolver apenas a lacuna estrutural encontrada e revisar os blocos mais densos nos quatro cenários.
 
-### Iteração 3 — escala e acabamento
+Patch: último item ímpar ocupa a largura editorial sem mudar o componente; mobile mantém uma coluna; origem e disponibilidade permanecem em eixos diferentes.
 
-Patch: no celular, a tabela mantém dimensão + métrica principal + ação; as demais métricas permanecem no detalhe expansível. Ajustes finais de pausa, contraste e comentários do sistema.
+Crítica: Karyne, Aviarte, Zenun e quatro plataformas não apresentaram overflow, sobreposição, célula residual ou perda de conteúdo. O sistema convergiu em duas iterações.
 
-Crítica final: não houve overflow horizontal, sobreposição ou perda de acesso às métricas nos quatro cenários. O sistema convergiu para a fatia escolhida.
+## `impeccable-design-polish`
+
+- nenhum gradiente decorativo, ícone gratuito, glassmorphism, movimento ou dependência foi adicionado;
+- as hachuras existentes têm função de cobertura parcial ou ausência de miniatura;
+- cor de plataforma fica confinada a origem, série, legenda e filete;
+- atenção não significa resultado negativo; confronto mídia × loja e investimento permanecem neutros quando o contrato assim define;
+- zero medido, sem veiculação, dado ausente, falha, cobertura parcial e não aplicável mantêm texto e forma além da cor;
+- nomes longos quebram dentro do bloco; tabelas densas preservam dimensão, métrica principal e detalhes no celular;
+- `prefers-reduced-motion: reduce` foi emulado e reconhecido pelo runtime.
 
 ## Validação factual
 
 ### Matriz visual
 
-| Cenário | Desktop | Celular | Resultado |
-|---|---:|---:|---|
-| Karyne — serviços/leads | 1440 × 900 | 390 × 844 | sem overflow; 17.037 px de altura móvel |
-| Aviarte — e-commerce | 1440 × 900 | 390 × 844 | sem overflow; 32.895 px de altura móvel |
-| Zenun — Google-only | 1440 × 900 | 390 × 844 | sem overflow; 10.544 px de altura móvel |
-| Santalberti — Meta + Google + Pinterest + GA4/loja | 1440 × 900 | 390 × 844 | sem overflow; cores e filetes permanecem estáveis |
+| Cenário | Desktop 1440 × 900 | Celular 390 × 844 | Overflow horizontal |
+|---|---:|---:|---:|
+| Karyne — serviços/leads | 11.278 px | 15.882 px | não |
+| Aviarte — e-commerce | 18.712 px | 27.202 px | não |
+| Zenun — Google-only | 7.587 px | 9.946 px | não |
+| Quatro plataformas | 10.394 px | 15.995 px | não |
 
-Karyne e Aviarte ficaram mais curtos que o baseline anterior (19.188 px e 36.519 px), sem remover conteúdo.
+Nos quatro cenários, `scrollWidth` foi igual a `innerWidth`: 1440 no desktop e 390 no celular.
 
-### Acessibilidade
+### Acessibilidade e runtime
 
-- Karyne: 0 violações, 1 grupo inconclusivo para revisão manual, 50 verificações aprovadas.
-- Aviarte: 0 violações, 1 grupo inconclusivo para revisão manual, 45 verificações aprovadas.
-- O inconclusivo é o contraste em controles/SVG com composição transparente; a paleta foi verificada numericamente.
-- Contraste das cores de canal sobre o papel: entre 5,25:1 e 5,78:1.
-- Menor distância CIE76 entre canais: 18,94 (Pinterest × Instagram), contra 9,0 no par problemático anterior.
-- Cor nunca atua sozinha: séries têm traço/textura/rótulo; estados têm texto/forma; comparações têm palavra de leitura.
+| Cenário | Violações axe | Inconclusivos | Verificações aprovadas |
+|---|---:|---:|---:|
+| Karyne | 0 | 1 | 49 |
+| Aviarte | 0 | 1 | 45 |
+| Zenun | 0 | 1 | 47 |
+| Quatro plataformas | 0 | 1 | 47 |
 
-### Responsividade e estados
+O único grupo inconclusivo é contraste automático em SVG/Recharts e elementos sobre hachura, cuja cor de fundo o axe não consegue determinar. Não houve erro JavaScript registrado. Estados e séries não dependem só de cor.
 
-- `scrollWidth = innerWidth = 390` nos quatro cenários.
-- Nome longo quebra sem alargar a página.
-- Tabela densa preserva todas as métricas no detalhe acionável.
-- `R$ 0,00 — medido`, “sem veiculação”, “dado indisponível”, “falha na coleta”, “cobertura parcial” e “não se aplica” têm tratamentos distintos.
-- Preferência `prefers-reduced-motion: reduce` foi emulada e reconhecida pelo runtime.
+### Build, contratos e performance
 
-### Contratos e build
-
-- `npm.cmd run build`: passou; cliente, SSR, prerender, sitemap e servidor gerados.
-- `npm.cmd run verifica:revisao`: passou; snapshot carregado, checksum persistido e decisões protegidas.
-- Snapshot, fixtures, JSON, checksum, catálogo, `RelatorioMontado`, `Esqueleto`, rotas e `noindex`: sem diff.
-- Nenhuma dependência foi adicionada.
-- Bundle de relatório atual: CSS 42,57 kB (7,99 kB gzip) e chunk compartilhado com Recharts 413,26 kB (121,31 kB gzip).
-- A rota carregou uma folha do Google Fonts e um WOFF2 de Red Hat Display; nenhuma fonte nova foi introduzida pela proposta. Source Serif permanece apenas na proposta A já existente.
-- `npm.cmd run lint` continua vermelho com seis erros de tipagem React já localizados em superfícies não modificadas por esta proposta; nenhum erro novo apareceu nos arquivos alterados.
+- `npm.cmd run build`: passou, incluindo cliente, SSR, prerender, sitemap e servidor;
+- `npm.cmd run verifica:revisao`: passou;
+- `npm.cmd run verifica:fila`: passou;
+- `npm.cmd run verifica:painel`: passou;
+- `npm.cmd run verifica:refoco`: passou;
+- fixtures, snapshot, tipos, catálogo, rotas, checksum e `noindex`: sem diff;
+- nenhuma dependência, fonte ou imagem decorativa adicionada;
+- CSS de relatórios: 49,28 kB, 8,83 kB gzip;
+- chunk compartilhado com Recharts: 413,32 kB, 121,32 kB gzip;
+- `npm.cmd run lint` permanece vermelho com os mesmos seis erros de tipagem React já documentados antes desta expansão; nenhum erro novo foi introduzido.
 
 ## Integridade do gate
 
-- nenhuma alteração em P3;
-- nenhum push, merge, deploy ou operação Supabase;
-- nenhuma mensagem real;
-- nenhum relatório completo declarado como aprovado;
-- nenhum pedido de reaprovação de conteúdo/checksum por mudança visual.
+- nenhuma alteração em P3 ou Supabase;
+- nenhum push, merge, deploy ou envio real;
+- nenhuma página ou exceção por cliente;
+- nenhum relatório declarado aprovado por Fernanda;
+- nenhuma reaprovação de conteúdo solicitada por mudança apresentacional.
 
-## Recomendação ao Flávio
+## Recomendação
 
-Aprovar a direção **Editorial de Performance** como base do Gate 1. Se aprovada, a próxima tarefa deve aplicar o sistema ao catálogo inteiro e produzir dois relatórios completos realistas para o Gate 3 da Fernanda: um de serviços/leads e um de e-commerce.
+Flávio deve revisar primeiro Karyne e Aviarte completas nos links locais. Se o Gate 2 for aceito, as mesmas duas páginas podem seguir para a validação final da Fernanda; qualquer ajuste deve continuar no sistema compartilhado, nunca por cliente.

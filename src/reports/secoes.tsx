@@ -142,7 +142,11 @@ export function CartoesDeCanal({
         const fonte = fontes.find((f) => f.plataforma === canal.plataforma);
         const incompletas = canal.metricas.filter((m) => m.valor.estado !== 'ok');
         return (
-          <article key={canal.plataforma} className="dc-superficie dc-canal">
+          <article
+            key={canal.plataforma}
+            className="dc-superficie dc-canal"
+            data-plataforma={canal.plataforma}
+          >
             <header className="dc-canal__cabecalho">
               <h3 className="dc-canal__nome">
                 <span

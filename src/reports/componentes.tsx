@@ -280,7 +280,7 @@ export function BlocoLeitura({
 }) {
   if (!itens.length) return null;
   return (
-    <div className="dc-superficie">
+    <div className="dc-superficie dc-bloco-leitura" data-tom={tom}>
       <h3 className="dc-bloco-leitura__titulo">{titulo}</h3>
       <ul className="dc-lista-afirmacoes" data-tom={tom}>
         {itens.map((item) => (

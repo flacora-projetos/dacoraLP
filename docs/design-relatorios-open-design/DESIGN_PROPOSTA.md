@@ -1,6 +1,6 @@
 # Proposta Open Design — relatórios mensais Dácora
 
-Status: proposta em avaliação; nenhuma fase de produto foi concluída.
+Status: Gate 1 aprovado por Flávio em 06/08/2026; direção A — Editorial de Performance — autorizada para expansão. Gates 2 e 3 ainda aguardam revisão humana.
 
 Este arquivo é separado de qualquer `DESIGN.md` do produto e não substitui a identidade existente.
 
@@ -130,12 +130,12 @@ A página não vira um arco-íris: os matizes de plataforma ficam confinados a s
 
 ## Gates e critérios de aceitação
 
-### Gate 1 — escolha da direção por Flávio
+### Gate 1 — escolha da direção por Flávio — aprovado
 
-- comparar A/B/C usando exatamente o mesmo conteúdo;
-- aprovar identidade, contraste de hierarquia, densidade e papel das cores;
-- confirmar a direção para uma fatia compartilhada: cabeçalho, KPIs, gráfico e tabela/alerta;
-- não tratar a fatia como aprovação final da Fernanda.
+- A/B/C foram comparadas com exatamente o mesmo conteúdo;
+- Flávio aprovou a direção A — Editorial de Performance;
+- a aprovação cobre identidade, hierarquia, densidade e papéis de cor;
+- a fatia não foi tratada como aprovação final da Fernanda.
 
 ### Gate 2 — implementação completa do catálogo
 
@@ -151,6 +151,6 @@ A página não vira um arco-íris: os matizes de plataforma ficam confinados a s
 - Fernanda valida leitura, conteúdo, estados indisponíveis, tabelas e acabamento no desktop;
 - somente essa validação pode autorizar o fechamento visual; mudanças de CSS/componentes não reabrem a aprovação do conteúdo P3.
 
-## Limite desta proposta
+## Limite atual desta proposta
 
-Nesta branch será materializada somente a direção A em uma fatia representativa e compartilhada. O restante do catálogo fica explicitamente fora até a escolha de Flávio.
+Nesta branch a direção A foi expandida para o catálogo compartilhado e materializada nos relatórios completos de Karyne e Aviarte, com Zenun e o cenário de quatro plataformas como regressão. O trabalho continua sendo uma proposta local: Gate 2 depende da revisão de Flávio e Gate 3 depende da validação da Fernanda. Nenhuma mudança visual autoriza P3, publicação ou reaprovação de conteúdo.

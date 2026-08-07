@@ -23,6 +23,7 @@ import type { Indisponibilidade } from './tipos';
 export default function BlocoIndisponivel({ info }: { info: Indisponibilidade }) {
   return (
     <div className="dc-indisponivel">
+      <p className="dc-indisponivel__rotulo">Dado indisponível</p>
       <p className="dc-indisponivel__motivo">{info.motivo}</p>
 
       {info.oQueTemos && info.oQueTemos.length > 0 && (

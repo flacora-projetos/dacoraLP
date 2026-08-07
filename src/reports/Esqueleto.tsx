@@ -208,7 +208,12 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
         >
           <div className="dc-fontes">
             {snapshot.fontes.map((fonte) => (
-              <div className="dc-fonte" key={fonte.plataforma} data-situacao={fonte.situacao}>
+              <div
+                className="dc-fonte"
+                key={fonte.plataforma}
+                data-plataforma={fonte.plataforma}
+                data-situacao={fonte.situacao}
+              >
                 <div className="dc-fonte__topo">
                   <span className="dc-fonte__nome">{fonte.rotulo}</span>
                   <ChipFonte situacao={fonte.situacao} />

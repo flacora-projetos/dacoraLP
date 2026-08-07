@@ -43,7 +43,7 @@ function LadoDoConfronto({
 
 function LinhaFonte({ fonte }: { fonte: FonteDeVenda }) {
   return (
-    <tr data-soma={fonte.soma ? 'sim' : undefined}>
+    <tr data-papel={fonte.papel} data-soma={fonte.soma ? 'sim' : undefined}>
       <th scope="row">
         <span className="dc-fonte-venda__nome">{fonte.rotulo}</span>
         {fonte.observacao && (
