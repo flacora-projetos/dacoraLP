@@ -1,14 +1,16 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
 **Rota:** `/painel-de-relatorios`
-**Fases concluídas localmente:** P0 (fundação e login) · **P1 inteira —
+**Fases concluídas e publicadas:** P0 (fundação e login) · **P1 inteira —
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
 **P2 concluída e validada — relatório dentro da bancada, faixa responsiva e
 smoke autenticado aprovados pelo Flávio em desktop e celular**
 **Produção:** P0/P1 já estavam publicadas; a P2 foi integrada na `main` pelo
 merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 <https://www.dacora.com.br/painel-de-relatorios>.
-**Última atualização:** 2026-08-06
+O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
+Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`.
+**Última atualização:** 2026-08-07
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
@@ -29,8 +31,10 @@ custou caro descobrir.
 dentro.** A P2 está concluída e publicada: a fila abre o relatório completo
 dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
-aprovou o smoke autenticado em desktop e celular. A P3 é o próximo passo e
-começa em uma nova sessão (seção 7).
+aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
+relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
+checksum ou estado. A P3 continua sendo o próximo passo, mas está pausada e não
+foi aprovada para integração (seção 7).
 
 ### Checkpoint integrado da P2
 
@@ -58,6 +62,23 @@ servidor; o segundo está corrigido e coberto pela regressão no checkpoint
 `05323e2`. Depois da correção, o Flávio reconfirmou fila → Karyne → voltar →
 nomes clicáveis e repetiu o fluxo autenticado no celular. Os dois foram
 validados; integração e push foram autorizados na sequência.
+
+### Checkpoint visual publicado em 07/08/2026
+
+A direção **Editorial de Performance** foi aplicada ao catálogo compartilhado,
+validada em Karyne, Aviarte, Zenun e no cenário de quatro plataformas e
+publicada na Vercel. O código do redesign está em `e4d6f13`; a aprovação e a
+publicação foram registradas em `a181e73`; o checkpoint que levou o código
+aprovado à produção é `61e27c8`. Evidências, before/after e critérios dos gates
+ficam em `docs/design-relatorios-open-design/`.
+
+O “aprovado pelo Flávio” neste registro é a decisão de produto, direção visual
+e publicação dada pelo PO no chat; não significa revisão de código. A revisão
+técnica, os testes e as evidências de produção são responsabilidade do agente.
+
+Não foi criada página, tema ou exceção por cliente. A mudança é
+apresentacional: não altera o conteúdo persistido nem exige novo GO para um
+snapshot já aprovado.
 
 ---
 
@@ -471,9 +492,11 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **P3, em sessão nova:** habilitar aprovar e recusar, com checksum carimbado
-   e motivo obrigatório. Não iniciar nesta sessão organizacional antes do
-   handoff explícito.
+1. **P3, em sessão própria:** habilitar aprovar e recusar, com checksum
+   carimbado e motivo obrigatório. Está **pausada e não aprovada para merge** no
+   checkout `repo`, branch `codex/p3-aprovacao-recusa`, com a migração
+   `supabase/migrations/20260807001052_painel_p3_aprovacao_recusa.sql` ainda não
+   rastreada. Não mover, commitar, aplicar no Supabase ou integrar por inferência.
 2. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
 3. **P4:** recusa avisa o grupo `Dácora - Agentes`.

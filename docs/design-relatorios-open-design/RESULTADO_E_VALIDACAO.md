@@ -2,6 +2,10 @@
 
 Status: direção A e implementação completa aprovadas por Flávio; publicação em produção autorizada e verificada em 07/08/2026. A validação nominal de Fernanda não foi registrada neste documento e a P3 continua separada.
 
+Neste documento, a aprovação do Flávio é uma decisão de produto, direção visual
+e publicação dada pelo PO no chat; não é revisão de código. Validação técnica,
+testes e evidências são responsabilidade do agente executor.
+
 ## O que mudou no catálogo compartilhado
 
 A linguagem **Editorial de Performance** foi expandida sem página, tema ou exceção por cliente:
@@ -37,16 +41,19 @@ A fatia do Gate 1 serviu para escolher direção. Os dois relatórios completos 
 
 Todos responderam `200`; as rotas de relatório mantêm `X-Robots-Tag: noindex, nofollow, noarchive`.
 
-## Prévia local preservada
+## Como reabrir a prévia local
 
-Servidor isolado do worktree, mantido apenas como comparação local:
+O servidor de validação foi encerrado depois da publicação. Para refazer a
+comparação no worktree, inicie o Vite em 4173 e use:
 
 - Karyne — serviços/leads: `http://127.0.0.1:4173/relatorios/demo/karyne`
 - Aviarte — e-commerce: `http://127.0.0.1:4173/relatorios/demo/aviarte`
 - Zenun — Google-only: `http://127.0.0.1:4173/relatorios/demo/zenun`
 - escala de quatro plataformas: `http://127.0.0.1:4173/relatorios/demo/ecommerce`
 
-A porta 3000 já estava ocupada pelo checkout protegido da P3 e foi preservada. A prévia desta branch usa 4173.
+A porta 3000 pertence ao checkout protegido da P3 e não deve ser interrompida.
+4173 é a porta reservada para uma nova prévia deste worktree; ela não fica ativa
+depois do gate.
 
 ## Antes × depois
 
@@ -125,6 +132,10 @@ O único grupo inconclusivo é contraste automático em SVG/Recharts e elementos
 - CSS de relatórios: 49,28 kB, 8,83 kB gzip;
 - chunk compartilhado com Recharts: 413,32 kB, 121,32 kB gzip;
 - `npm.cmd run lint` permanece vermelho com os mesmos seis erros de tipagem React já documentados antes desta expansão; nenhum erro novo foi introduzido.
+- `npm.cmd audit --omit=dev` sinaliza a advisory `GHSA-qwww-vcr4-c8h2` por
+  faixa de versão do React Router. Ela afeta somente APIs RSC instáveis; este
+  projeto usa `BrowserRouter` e não usa RSC. Não foi aplicado o downgrade
+  forçado e incompatível sugerido pelo `npm audit`.
 
 ## Integridade do gate
 
