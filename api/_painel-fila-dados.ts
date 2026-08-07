@@ -402,5 +402,22 @@ export function ordenarPorAtencao(itens: ItemDaFila[]): ItemDaFila[] {
 }
 
 export function montarFila(linhas: LinhaDoBanco[]): ItemDaFila[] {
-  return ordenarPorAtencao(linhas.map(montarItem));
+  // A tabela é versionada para preservar auditoria, mas a FILA responde "qual
+  // documento precisa de decisão agora?". Mostrar v1, v2 e v3 como três
+  // trabalhos diferentes faz uma correção parecer três clientes pendentes.
+  // A versão mais alta é a corrente; as anteriores continuam no banco e podem
+  // ser recuperadas pelo histórico quando essa superfície existir.
+  const atuais = new Map<string, LinhaDoBanco>();
+  for (const linha of linhas) {
+    const chave = `${linha.cliente_slug}\u0000${linha.competencia}`;
+    const atual = atuais.get(chave);
+    if (
+      !atual ||
+      linha.versao > atual.versao ||
+      (linha.versao === atual.versao && String(linha.gerado_em) > String(atual.gerado_em))
+    ) {
+      atuais.set(chave, linha);
+    }
+  }
+  return ordenarPorAtencao([...atuais.values()].map(montarItem));
 }

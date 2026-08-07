@@ -2,6 +2,8 @@
 
 Status: direção A e implementação completa aprovadas por Flávio; publicação em produção autorizada e verificada em 07/08/2026. A validação nominal de Fernanda não foi registrada neste documento e a P3 continua separada.
 
+**Correção funcional posterior, aprovada pelo Flávio em 2026-08-07:** o redesign já preservava miniaturas quando elas existiam, mas os snapshots reais sempre traziam `miniatura: null`. A branch `codex/criativos-relatorios` liga o painel ao Storage privado e foi provada com Karyne v3 (8/8) e Aviarte v3 (30/30) em HTTP 200, com custo por resultado e status traduzido/datado. A fila mostra somente a versão corrente e mantém as anteriores no banco. Isso não altera nem autoriza P3.
+
 Neste documento, a aprovação do Flávio é uma decisão de produto, direção visual
 e publicação dada pelo PO no chat; não é revisão de código. Validação técnica,
 testes e evidências são responsabilidade do agente executor.
@@ -51,9 +53,24 @@ comparação no worktree, inicie o Vite em 4173 e use:
 - Zenun — Google-only: `http://127.0.0.1:4173/relatorios/demo/zenun`
 - escala de quatro plataformas: `http://127.0.0.1:4173/relatorios/demo/ecommerce`
 
-A porta 3000 pertence ao checkout protegido da P3 e não deve ser interrompida.
-4173 é a porta reservada para uma nova prévia deste worktree; ela não fica ativa
-depois do gate.
+A porta 3000 pertencia ao processo local do checkout protegido da P3. Em
+07/08/2026, o Flávio mandou colocarmos esta validação nela porque é o callback
+local autorizado no Supabase. Somente o processo foi parado; arquivos da P3
+permanecem intocados. 4173 continua reservada para comparação das fixtures.
+
+## Adendo — prova dos criativos reais
+
+Esta prova é funcional e posterior ao gate visual histórico acima. As versões 3
+foram gravadas no banco com estado `gerado`, preservando as versões anteriores. O painel
+mantém o snapshot privado no banco, valida cliente e competência no servidor e
+assina apenas a cópia enviada ao navegador. O teste real obteve 38/38 imagens em
+HTTP 200; `npm.cmd run verifica:revisao` cobre imutabilidade e bloqueio de caminho
+de outro cliente. O Flávio confirmou as imagens carregadas e autorizou commit,
+merge e push desta correção.
+
+Regra permanente: implementação e documentação são a mesma unidade de entrega;
+nenhum gate, commit, merge ou push encerra trabalho com estado canônico atrasado.
+Atualizar documentos vigentes sem reescrever evidência histórica concluída.
 
 ## Antes × depois
 

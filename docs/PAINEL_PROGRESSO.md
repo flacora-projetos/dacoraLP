@@ -12,6 +12,12 @@ O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
 Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`. A
 validação nominal da Fernanda ainda não foi registrada e é o Gate 3 que fecha o
 visual antes de nova implementação.
+**Correção aprovada pelo Flávio em 2026-08-07, com integração autorizada:** `codex/criativos-relatorios`
+resolve caminhos privados `storage://relatorios-miniaturas/...` somente depois
+da autorização do painel. Karyne v3 tem 8/8 cards e Aviarte v3 tem 30/30 com
+assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
+versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
+confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
 **Última atualização:** 2026-08-07
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -21,9 +27,10 @@ custou caro descobrir.
 
 > ### Regra que vale para todas as fases
 >
-> Ao terminar uma fase — **e também ao parar no meio dela** — atualize este
-> arquivo e faça o commit no mesmo passo. Ele é o que faz a próxima sessão
-> continuar em vez de recomeçar.
+> Código e documentação são uma unidade de entrega. Ao terminar uma fase — **e
+> também ao parar no meio dela** — atualize este arquivo e os documentos
+> canônicos aplicáveis antes de validação, commit, merge ou push. Atualize a
+> fonte vigente; não reescreva histórico concluído nem crie diário cumulativo.
 
 ---
 
@@ -83,14 +90,44 @@ Não foi criada página, tema ou exceção por cliente. A mudança é
 apresentacional: não altera o conteúdo persistido nem exige novo GO para um
 snapshot já aprovado.
 
+### Correção dos criativos — aprovada pelo Flávio
+
+O snapshot real passou a carregar caminho imutável do bucket privado, nunca o
+link temporário da Meta. `api/painel-relatorio.ts` repete a autorização da P2 e,
+antes de responder, valida que cada caminho pertence ao `cliente_slug` e à
+competência da linha; só então cria uma URL assinada por uma hora. A operação
+acontece numa cópia: banco e checksum continuam intactos. Caminho cruzado de
+outro cliente é recusado e volta para o estado explícito sem miniatura.
+
+As versões 3 de julho foram gravadas como `gerado` e lidas de volta: Karyne
+`6176a8dd-294b-481a-ae41-153c07548271`, Aviarte
+`3755f9ea-7bc1-4264-905f-0cbc0e196966`. O smoke direto do Storage fechou 8/8 e
+30/30 imagens em HTTP 200, com status traduzido e datado em todos os cards.
+Nenhum token público foi exibido ou reutilizado. Versões 1 e 2 permanecem intactas.
+`npm run verifica:revisao` passou. A tentativa na porta 3001 caiu no `SITE_URL`
+porque o callback local autorizado no Supabase é o da 3000. Por instrução do
+Flávio, somente o processo local da P3 foi parado e este worktree assumiu a
+porta 3000; nenhum arquivo do checkout protegido foi alterado.
+
+Antes da entrega ao Flávio, passaram as quatro regressões do painel e o build
+completo. O `lint` continua somente nos seis erros React/TypeScript
+preexistentes já registrados; esta entrega não acrescentou erro de tipagem.
+
+A fila antes mapeava cada linha versionada do banco diretamente para a tela.
+Por isso v1, v2 e v3 pareciam três relatórios. Agora ela consolida por
+`cliente_slug + competencia` e escolhe a maior `versao`; o histórico continua
+no banco e não vira trabalho duplicado.
+
 ---
 
-## 1.2 A tabela de relatórios TEM os dois relatórios — julho de 2026
+## 1.2 A tabela tem dois clientes e três versões de cada — julho de 2026
 
 Esta seção dizia o contrário até 2026-08-06, e a inversão é a notícia da
-rodada: **`public.relatorios` tem duas linhas**, a Karyne e a Aviarte, ambas de
-`2026-07`, versão 1, estado `gerado`. A carga foi conferida linha a linha
-contra os arquivos de origem — seção 9.5.
+rodada: `public.relatorios` começou com Karyne e Aviarte v1. A correção dos
+criativos acrescentou v2 e depois v3 sem sobrescrever histórico: hoje são seis
+linhas, todas de `2026-07`, estado `gerado`. A fila mostra somente Karyne v3 e
+Aviarte v3; v1/v2 continuam no banco para auditoria. Cada carga foi conferida
+linha a linha contra o arquivo de origem — seção 9.5.
 
 A fila deixa de ser tela de espera e passa a ser a tela principal do painel.
 

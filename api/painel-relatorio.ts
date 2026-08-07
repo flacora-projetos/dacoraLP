@@ -8,6 +8,7 @@
 import type { Request, Response } from 'express';
 import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarItem, type LinhaDoBanco } from './_painel-fila-dados.js';
+import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -120,6 +121,12 @@ export default async function handler(req: Request, res: Response) {
         mensagem: 'O relatório existe, mas o conteúdo não chegou inteiro. Ele não pode ser revisado.',
       });
     }
+
+    relatorio.snapshot = await resolverMiniaturasPrivadas(
+      relatorio.snapshot,
+      { clienteSlug: linha.cliente_slug, competencia: linha.competencia },
+      { urlSupabase, chaveDeServico },
+    );
 
     return res.status(200).json({ relatorio });
   } catch (erro) {

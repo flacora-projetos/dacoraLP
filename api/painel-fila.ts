@@ -131,7 +131,7 @@ export default async function handler(req: Request, res: Response) {
 
     /* A fila. --------------------------------------------------------------- */
     const respostaLinhas = await fetch(
-      `${urlSupabase}/rest/v1/relatorios?competencia=eq.${competencia}&select=${COLUNAS}&order=cliente_slug.asc`,
+      `${urlSupabase}/rest/v1/relatorios?competencia=eq.${competencia}&select=${COLUNAS}&order=cliente_slug.asc,versao.desc`,
       { headers: cabecalhos },
     );
     if (!respostaLinhas.ok) {
