@@ -9,7 +9,9 @@ smoke autenticado aprovados pelo Flávio em desktop e celular**
 merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 <https://www.dacora.com.br/painel-de-relatorios>.
 O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
-Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`.
+Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`. A
+validação nominal da Fernanda ainda não foi registrada e é o Gate 3 que fecha o
+visual antes de nova implementação.
 **Última atualização:** 2026-08-07
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -33,8 +35,9 @@ dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
 relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
-checksum ou estado. A P3 continua sendo o próximo passo, mas está pausada e não
-foi aprovada para integração (seção 7).
+checksum ou estado. O próximo passo é o Gate 3 da Fernanda em Karyne e Aviarte;
+depois dele, a P3 é a próxima implementação, mas está pausada e não foi aprovada
+para integração (seção 7).
 
 ### Checkpoint integrado da P2
 
@@ -492,15 +495,20 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **P3, em sessão própria:** habilitar aprovar e recusar, com checksum
+1. **Gate 3 da Fernanda:** validar nominalmente os relatórios completos
+   publicados de Karyne (serviços/leads) e Aviarte (e-commerce): leitura,
+   conteúdo, estados indisponíveis, tabelas e acabamento. Registrar o resultado;
+   o GO visual do Flávio não substitui esse gate de uso.
+2. **P3, em sessão própria e só depois de autorização específica:** habilitar aprovar e recusar, com checksum
    carimbado e motivo obrigatório. Está **pausada e não aprovada para merge** no
    checkout `repo`, branch `codex/p3-aprovacao-recusa`, com a migração
-   `supabase/migrations/20260807001052_painel_p3_aprovacao_recusa.sql` ainda não
-   rastreada. Não mover, commitar, aplicar no Supabase ou integrar por inferência.
-2. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
+   `supabase/migrations/20260807001052_painel_p3_aprovacao_recusa.sql` vazia e
+   ainda não rastreada. É placeholder, não implementação. Não mover, commitar,
+   aplicar no Supabase ou integrar por inferência.
+3. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
-3. **P4:** recusa avisa o grupo `Dácora - Agentes`.
-4. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
+4. **P4:** recusa avisa o grupo `Dácora - Agentes`.
+5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
 
 **Dashboard operacional:** é uma proposta para as próximas fases, ainda não
 aprovada nem numerada. Deve ser avaliada sem transformar estes relatórios
