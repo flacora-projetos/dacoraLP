@@ -2,7 +2,7 @@
 
 Status: direção A e implementação completa aprovadas por Flávio; publicação em produção autorizada e verificada em 07/08/2026. A validação nominal de Fernanda não foi registrada neste documento e a P3 continua separada.
 
-**Correção funcional posterior, aprovada pelo Flávio em 2026-08-07:** o redesign já preservava miniaturas quando elas existiam, mas os snapshots reais sempre traziam `miniatura: null`. A branch `codex/criativos-relatorios` liga o painel ao Storage privado e foi provada com Karyne v3 (8/8) e Aviarte v3 (30/30) em HTTP 200, com custo por resultado e status traduzido/datado. A fila mostra somente a versão corrente e mantém as anteriores no banco. Isso não altera nem autoriza P3.
+**Correção funcional posterior, aprovada e integrada pelo merge `9e287b1` em `main` em 2026-08-07:** o redesign já preservava miniaturas quando elas existiam, mas os snapshots reais sempre traziam `miniatura: null`. O painel liga o snapshot ao Storage privado e foi provado com Karyne v3 (8/8) e Aviarte v3 (30/30) em HTTP 200, com custo por resultado e status traduzido/datado. A fila mostra somente a versão corrente e mantém as anteriores no banco. O fechamento foi enviado ao GitHub; isso não altera nem autoriza P3.
 
 Neste documento, a aprovação do Flávio é uma decisão de produto, direção visual
 e publicação dada pelo PO no chat; não é revisão de código. Validação técnica,
