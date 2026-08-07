@@ -36,7 +36,7 @@ A fatia do Gate 1 serviu para escolher direção. Os dois relatórios completos 
 
 ## Links publicados
 
-- Karyne — serviços/leads: <https://www.dacora.com.br/relatorios/demo/karyne>
+- Karyne — geração de leads (cliente de serviços): <https://www.dacora.com.br/relatorios/demo/karyne>
 - Aviarte — e-commerce: <https://www.dacora.com.br/relatorios/demo/aviarte>
 - Zenun — Google-only: <https://www.dacora.com.br/relatorios/demo/zenun>
 - escala de quatro plataformas: <https://www.dacora.com.br/relatorios/demo/ecommerce>
@@ -48,7 +48,7 @@ Todos responderam `200`; as rotas de relatório mantêm `X-Robots-Tag: noindex, 
 O servidor de validação foi encerrado depois da publicação. Para refazer a
 comparação no worktree, inicie o Vite em 4173 e use:
 
-- Karyne — serviços/leads: `http://127.0.0.1:4173/relatorios/demo/karyne`
+- Karyne — geração de leads (cliente de serviços): `http://127.0.0.1:4173/relatorios/demo/karyne`
 - Aviarte — e-commerce: `http://127.0.0.1:4173/relatorios/demo/aviarte`
 - Zenun — Google-only: `http://127.0.0.1:4173/relatorios/demo/zenun`
 - escala de quatro plataformas: `http://127.0.0.1:4173/relatorios/demo/ecommerce`
@@ -122,7 +122,7 @@ Crítica: Karyne, Aviarte, Zenun e quatro plataformas não apresentaram overflow
 
 | Cenário | Desktop 1440 × 900 | Celular 390 × 844 | Overflow horizontal |
 |---|---:|---:|---:|
-| Karyne — serviços/leads | 11.278 px | 15.882 px | não |
+| Karyne — geração de leads | 11.278 px | 15.882 px | não |
 | Aviarte — e-commerce | 18.712 px | 27.202 px | não |
 | Zenun — Google-only | 7.587 px | 9.946 px | não |
 | Quatro plataformas | 10.394 px | 15.995 px | não |

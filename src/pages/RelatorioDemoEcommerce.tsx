@@ -27,10 +27,10 @@ export default function RelatorioDemoEcommerce() {
       competencias={competenciasSantalberti}
       proposta="B"
       demo={{
-        rotulo: 'Ver o modelo de serviços e leads',
+        rotulo: 'Ver o modelo de geração de leads',
         href: '/relatorios/demo/b',
         descricao:
-          'Modelo de e-commerce. Mesma pele, mesmo esqueleto e mesmo tema de gráfico do modelo de serviços — o que muda é o tipo do relatório.',
+          'Modelo de e-commerce. Mesma pele, mesmo esqueleto e mesmo tema de gráfico do modelo de geração de leads — o que muda é o tipo do relatório.',
       }}
     />
   );

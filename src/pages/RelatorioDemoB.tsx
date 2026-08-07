@@ -25,7 +25,7 @@ export default function RelatorioDemoB() {
         rotulo: 'Ver o modelo de e-commerce',
         href: '/relatorios/demo/ecommerce',
         descricao:
-          'Modelo de serviços e leads. O modelo de e-commerce usa esta mesma pele, com outro miolo.',
+          'Modelo de geração de leads para clientes de serviços. O modelo de e-commerce usa esta mesma pele, com outro miolo.',
       }}
     />
   );

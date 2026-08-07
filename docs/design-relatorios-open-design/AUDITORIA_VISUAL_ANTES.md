@@ -10,7 +10,7 @@ Base auditada: `21ba67386b91d6c08d9fd2ba9905cb7ede32f2f1`
 
 Foram auditados os fixtures montados que representam os dois formatos que chegarão ao gate final:
 
-- Karyne Magalhães — serviços/leads;
+- Karyne Magalhães — geração de leads (cliente de serviços);
 - Aviarte — e-commerce.
 
 Viewports usados:

@@ -1,7 +1,7 @@
 /**
  * Seções que os DOIS tipos de relatório usam com o mesmo desenho.
  *
- * O que mora aqui é o que não muda entre serviços/leads e e-commerce: o
+ * O que mora aqui é o que não muda entre geração de leads e e-commerce: o
  * gráfico de evolução com seu seletor, o gráfico de comparação entre canais
  * e os cartões de canal. O que muda é QUAIS séries e QUAIS métricas entram —
  * e isso quem decide é o módulo do tipo, em `src/reports/tipos/`.

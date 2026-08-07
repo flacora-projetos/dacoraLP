@@ -536,7 +536,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 ## 7. A próxima coisa a fazer
 
 1. **Gate 3 da Fernanda:** validar nominalmente os relatórios completos
-   publicados de Karyne (serviços/leads) e Aviarte (e-commerce): leitura,
+   publicados de Karyne (geração de leads; cliente de serviços) e Aviarte (e-commerce): leitura,
    conteúdo, estados indisponíveis, tabelas e acabamento. Registrar o resultado;
    o GO visual do Flávio não substitui esse gate de uso.
 2. **P3, em sessão própria e só depois de autorização específica:** habilitar aprovar e recusar, com checksum

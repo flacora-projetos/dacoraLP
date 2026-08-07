@@ -147,7 +147,7 @@ A página não vira um arco-íris: os matizes de plataforma ficam confinados a s
 
 ### Gate 3 — validação final da Fernanda
 
-- apresentar dois relatórios completos e realistas: serviços/leads e e-commerce;
+- apresentar dois relatórios completos e realistas: geração de leads e e-commerce;
 - Fernanda valida leitura, conteúdo, estados indisponíveis, tabelas e acabamento no desktop;
 - somente essa validação pode autorizar o fechamento visual; mudanças de CSS/componentes não reabrem a aprovação do conteúdo P3.
 

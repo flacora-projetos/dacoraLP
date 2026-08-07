@@ -2,7 +2,8 @@
  * Relatório resolvido por TIPO — o formato do protótipo inicial da W0.
  *
  * O miolo vem de `src/reports/tipos/`, escolhido por `identidade.tipoRelatorio`
- * (serviços/leads x e-commerce). O esqueleto é compartilhado.
+ * (geração de leads x e-commerce). O esqueleto é compartilhado. “Serviços”
+ * classifica o negócio do cliente; não existe campanha de serviços.
  *
  * > **Este caminho está sendo substituído.** A W0 mudou de abordagem: em vez
  * > de propor um formato e pedir aprovação, os relatórios passam a reproduzir
