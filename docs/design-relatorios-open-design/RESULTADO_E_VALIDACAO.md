@@ -53,10 +53,13 @@ comparação no worktree, inicie o Vite em 4173 e use:
 - Zenun — Google-only: `http://127.0.0.1:4173/relatorios/demo/zenun`
 - escala de quatro plataformas: `http://127.0.0.1:4173/relatorios/demo/ecommerce`
 
-A porta 3000 pertencia ao processo local do checkout protegido da P3. Em
+A porta 3000 estava ocupada pelo processo local do checkout protegido da P3. Em
 07/08/2026, o Flávio mandou colocarmos esta validação nela porque é o callback
-local autorizado no Supabase. Somente o processo foi parado; arquivos da P3
-permanecem intocados. 4173 continua reservada para comparação das fixtures.
+local autorizado no Supabase e definiu a regra permanente: **a porta 3000 é
+reservada ao checkout em validação humana, não à P3; ela só pode ser usada pela
+P3 quando a própria P3 for o alvo autorizado do teste.** Somente o processo foi
+parado; arquivos da P3 permanecem intocados. 4173 continua reservada para
+comparação das fixtures.
 
 ## Adendo — prova dos criativos reais
 

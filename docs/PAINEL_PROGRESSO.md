@@ -105,9 +105,11 @@ As versões 3 de julho foram gravadas como `gerado` e lidas de volta: Karyne
 30/30 imagens em HTTP 200, com status traduzido e datado em todos os cards.
 Nenhum token público foi exibido ou reutilizado. Versões 1 e 2 permanecem intactas.
 `npm run verifica:revisao` passou. A tentativa na porta 3001 caiu no `SITE_URL`
-porque o callback local autorizado no Supabase é o da 3000. Por instrução do
+porque o callback local autorizado no Supabase é o da 3000. **A porta 3000 fica
+reservada ao checkout em validação humana, não à P3 por identidade; a P3 só a
+usa quando ela própria for o alvo autorizado do teste.** Por instrução do
 Flávio, somente o processo local da P3 foi parado e este worktree assumiu a
-porta 3000; nenhum arquivo do checkout protegido foi alterado.
+porta; nenhum arquivo do checkout protegido foi alterado.
 
 Antes da entrega ao Flávio, passaram as quatro regressões do painel e o build
 completo. O `lint` continua somente nos seis erros React/TypeScript
