@@ -5,8 +5,8 @@
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
 **P2 concluída e validada — relatório dentro da bancada, faixa responsiva e
 smoke autenticado aprovados pelo Flávio em desktop e celular**
-**Produção:** P0/P1 já estavam publicadas; a integração e a publicação da P2
-foram autorizadas pelo Flávio nesta entrega. Rota:
+**Produção:** P0/P1 já estavam publicadas; a P2 foi integrada na `main` pelo
+merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 <https://www.dacora.com.br/painel-de-relatorios>.
 **Última atualização:** 2026-08-06
 
@@ -26,15 +26,16 @@ custou caro descobrir.
 ## 1. Situação em uma frase
 
 **A fila do mês está em produção, lendo do banco, com os dois relatórios reais
-dentro.** A P2 está concluída e corrigida na branch local: a fila abre o
-relatório completo dentro da bancada, com deep-link e faixa responsiva;
+dentro.** A P2 está concluída e publicada: a fila abre o relatório completo
+dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. A P3 é o próximo passo e
 começa em uma nova sessão (seção 7).
 
-### Checkpoint local da P2
+### Checkpoint integrado da P2
 
-Branch `codex/p2-revisao-painel`, checkpoint de código `05323e2`. A API de detalhe repete sessão e allow-list no
+Branch de origem `codex/p2-revisao-painel`, checkpoint de código `05323e2`,
+integrada na `main` pelo merge `335a2f5`. A API de detalhe repete sessão e allow-list no
 servidor e não devolve o token público. A revisão usa o mesmo snapshot e o mesmo
 renderizador da página do cliente, traz sinais com alvo de seção, mantém a URL
 `?relatorio=...` e preserva esse deep-link no retorno do Google. Os botões de
