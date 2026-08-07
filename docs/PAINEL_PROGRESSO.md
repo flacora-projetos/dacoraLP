@@ -12,8 +12,9 @@ O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
 Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`. A
 validação nominal da Fernanda ainda não foi registrada e é o Gate 3 que fecha o
 visual antes de nova implementação.
-**Correção aprovada pelo Flávio em 2026-08-07, com integração autorizada:** `codex/criativos-relatorios`
-resolve caminhos privados `storage://relatorios-miniaturas/...` somente depois
+**Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
+enviado ao GitHub na sequência autorizada, resolve caminhos privados
+`storage://relatorios-miniaturas/...` somente depois
 da autorização do painel. Karyne v3 tem 8/8 cards e Aviarte v3 tem 30/30 com
 assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
 versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
