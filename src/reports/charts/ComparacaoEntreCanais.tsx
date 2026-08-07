@@ -67,6 +67,7 @@ export default function ComparacaoEntreCanais({
      * do rótulo errado é o pior defeito possível aqui, porque parece correto.
      */
     plot: item.valor.estado === 'ok' ? item.valor.numero : 0,
+    estado: item.valor.estado,
     ausencia: item.valor.estado === 'ok' ? null : textoDoEstadoVazio(item.valor),
   }));
 
@@ -180,6 +181,8 @@ export default function ComparacaoEntreCanais({
                   if (!item || !larguraPlot) return null;
                   const y = Number(props.y ?? 0) - 10;
                   const semValor = item.valor === null;
+                  const corDoEstado =
+                    item.estado === 'falha' ? PALETA.falha : PALETA.dadoAusente;
                   return (
                     <g>
                       <text
@@ -198,11 +201,11 @@ export default function ComparacaoEntreCanais({
                         x={MARGEM.left + larguraPlot}
                         y={y}
                         textAnchor="end"
-                        fill={semValor ? PALETA.sinal : theme.corEixoForte}
+                        fill={semValor ? corDoEstado : theme.corEixoForte}
                         fontFamily={theme.fonte}
                         fontSize={theme.tamanhoEixo + 2.5}
                         fontWeight={semValor ? 500 : 600}
-                        fontStyle={semValor ? 'italic' : 'normal'}
+                        fontStyle="normal"
                       >
                         {semValor
                           ? (item.ausencia ?? '—')

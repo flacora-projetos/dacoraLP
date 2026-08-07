@@ -74,7 +74,8 @@ function AvisoCobertura({
   somaListada: Valor | null;
 }) {
   return (
-    <div className="dc-cobertura">
+    <div className="dc-cobertura" role="note" aria-label="Cobertura parcial da tabela">
+      <p className="dc-cobertura__rotulo">Cobertura parcial</p>
       <p className="dc-cobertura__linha">
         {rotuloColuna} da lista abaixo:{' '}
         <strong>{textoValor(somaListada ?? SEM_COLUNA, unidade, sufixo)}</strong>, de{' '}

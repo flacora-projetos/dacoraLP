@@ -74,10 +74,14 @@ export function ValorExibido({
   className?: string;
 }) {
   if (valor.estado === 'ok') {
+    const zeroMedido = valor.numero === 0;
     return (
       <span className={className}>
-        <span className="dc-numero">{formatarNumero(valor.numero, unidade)}</span>
+        <span className="dc-numero" data-estado={zeroMedido ? 'zero' : 'medido'}>
+          {formatarNumero(valor.numero, unidade)}
+        </span>
         {sufixo && <span className="dc-kpi__sufixo">{sufixo}</span>}
+        {zeroMedido && <span className="dc-estado-medicao">medido</span>}
       </span>
     );
   }
@@ -113,6 +117,12 @@ function leituraDaVariacao(
   return subiu ? 'desfavoravel' : 'favoravel';
 }
 
+const ROTULO_LEITURA = {
+  favoravel: 'favorável',
+  desfavoravel: 'desfavorável',
+  neutra: 'neutra',
+} as const;
+
 export function ComparativoExibido({
   comparativo,
   direcao,
@@ -143,6 +153,7 @@ export function ComparativoExibido({
         {seta}
       </span>
       <span>{formatarVariacao(comparativo.variacao)}</span>
+      <span className="dc-comparativo__leitura">{ROTULO_LEITURA[leitura]}</span>
       {comparativo.competenciaBase && (
         <span className="dc-comparativo__base">
           ante {formatarCompetencia(comparativo.competenciaBase)}
@@ -187,8 +198,11 @@ export function OrigemExibida({ metrica }: { metrica: Metrica }) {
 /* ------------------------------------------------------------------ */
 
 export function Indicador({ metrica }: { metrica: Metrica }) {
+  const plataforma =
+    metrica.origem.fontes.length === 1 ? metrica.origem.fontes[0] : 'multiplataforma';
+
   return (
-    <article className="dc-kpi">
+    <article className="dc-kpi" data-plataforma={plataforma}>
       <h3 className="dc-kpi__rotulo">{metrica.rotulo}</h3>
 
       <ValorExibido

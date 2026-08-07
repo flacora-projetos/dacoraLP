@@ -24,28 +24,26 @@ import { formatarEixo, formatarNumero } from '../format';
 export type PropostaId = 'A' | 'B';
 
 /**
- * Paleta do relatório, derivada dos tokens da marca em src/index.css.
- * Nenhuma cor de plataforma (azul Meta, azul/verde/amarelo Google) entra aqui:
- * a linguagem é a da Dácora, e a distinção entre canais é feita por
- * luminosidade + traço + textura, não só por matiz.
+ * A página continua pertencendo à Dácora. Matizes de plataforma ficam
+ * confinados a séries, legendas e marcas de origem, sempre reforçados por
+ * traço, textura e texto para a leitura não depender só de cor.
  */
 export const PALETA = {
   verde: '#014029', // dacora-primary
   verdeMedio: '#02593A', // dacora-medium
   tinta: '#0D1F18', // dacora-dark
-  cinza: '#4A5E55', // dacora-gray
-  sage: '#8A9E95', // dacora-sage
-  /**
-   * Degrau intermediário da MESMA rampa verde-cinza da marca, entre `cinza` e
-   * `sage`. Entrou para o Pinterest ter identidade própria num gráfico com
-   * Meta e Google sem estrear um matiz novo. Contraste de 4,0:1 sobre branco,
-   * acima do mínimo de 3:1 exigido para elemento gráfico.
-   */
-  sageEscuro: '#6E837A',
+  cinza: '#40544B',
+  sage: '#52665D',
   papel: '#F2EFEB', // dacora-offwhite
   superficie: '#FFFFFF',
-  /** Único acento fora dos tokens: sinal de atenção. Nunca é série de gráfico. */
-  sinal: '#9C4B2F',
+  meta: '#176B87',
+  google: '#8A5700',
+  pinterest: '#9B3D4D',
+  ga4: '#6955A3',
+  instagram: '#9B416F',
+  crm: '#006B5B',
+  dadoAusente: '#6A6257',
+  falha: '#8E3D32',
 } as const;
 
 export interface EstiloSerie {
@@ -96,13 +94,13 @@ export interface ChartTheme {
 }
 
 const SERIES: Record<PlataformaId, EstiloSerie> = {
-  meta: { id: 'meta', cor: PALETA.verde, textura: 'solido' },
-  google: { id: 'google', cor: PALETA.cinza, tracejado: '6 4', textura: 'hachura' },
-  pinterest: { id: 'pinterest', cor: PALETA.sageEscuro, tracejado: '3 3', textura: 'hachura' },
-  ga4: { id: 'ga4', cor: PALETA.sage, tracejado: '2 4', textura: 'hachura' },
-  instagram: { id: 'instagram', cor: PALETA.verdeMedio, tracejado: '10 4', textura: 'hachura' },
+  meta: { id: 'meta', cor: PALETA.meta, textura: 'solido' },
+  google: { id: 'google', cor: PALETA.google, tracejado: '6 4', textura: 'hachura' },
+  pinterest: { id: 'pinterest', cor: PALETA.pinterest, tracejado: '3 3', textura: 'hachura' },
+  ga4: { id: 'ga4', cor: PALETA.ga4, tracejado: '2 4', textura: 'hachura' },
+  instagram: { id: 'instagram', cor: PALETA.instagram, tracejado: '10 4', textura: 'hachura' },
   ecommerce: { id: 'ecommerce', cor: PALETA.tinta, textura: 'solido' },
-  crm: { id: 'crm', cor: PALETA.verdeMedio, textura: 'solido' },
+  crm: { id: 'crm', cor: PALETA.crm, textura: 'solido' },
 };
 
 const BASE: Omit<ChartTheme, 'proposta'> = {
@@ -138,8 +136,8 @@ const BASE: Omit<ChartTheme, 'proposta'> = {
  * Único ponto onde as duas propostas divergem no gráfico.
  * Proposta A é editorial: grade tracejada quase invisível, traço mais grosso,
  * leve preenchimento sob a linha — parece impresso.
- * Proposta B é analítica: grade contínua fina, traço mais leve, marcadores
- * semanais, sem preenchimento — parece instrumento de medida.
+ * Proposta B é a Editorial de Performance: grade contínua fina, traço leve,
+ * marcadores estáveis e sem preenchimento decorativo.
  */
 export function criarChartTheme(proposta: PropostaId): ChartTheme {
   if (proposta === 'A') {

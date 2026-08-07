@@ -6,9 +6,9 @@
 
    A  — Editorial: serif nos títulos e nos números, filetes, capa em verde
         profundo como única superfície de destaque, cartões de papel.
-   B  — Composição: tudo em Red Hat Display; autoridade por escala, espaço
-        e alinhamento. Indicadores sem caixa, separados por filete; o
-        resumo executivo é a única superfície de destaque.
+   B  — Editorial de Performance: tudo em Red Hat Display; autoridade por
+        escala, réguas editoriais e alinhamento. Cores de canal ficam restritas
+        à leitura analítica e nunca substituem texto, traço ou textura.
 
    Regra que vale nas duas: o canvas quente nunca some, o branco é
    reservado para superfície, e nenhuma cor de plataforma vira linguagem.
@@ -21,9 +21,19 @@
   --dc-verde: #014029;
   --dc-verde-medio: #02593a;
   --dc-tinta: #0d1f18;
-  --dc-cinza: #4a5e55;
-  --dc-sage: #8a9e95;
-  --dc-sinal: #9c4b2f;
+  --dc-cinza: #40544b;
+  --dc-sage: #52665d;
+  --dc-sinal: #8e3d32;
+  --dc-atencao: #98500f;
+  --dc-falha: #8e3d32;
+  --dc-favoravel: #176b52;
+  --dc-neutro: #52665d;
+  --dc-meta: #176b87;
+  --dc-google: #8a5700;
+  --dc-pinterest: #9b3d4d;
+  --dc-ga4: #6955a3;
+  --dc-instagram: #9b416f;
+  --dc-crm: #006b5b;
 
   --dc-filete: rgba(13, 31, 24, 0.12);
   --dc-filete-forte: rgba(13, 31, 24, 0.2);
@@ -67,13 +77,13 @@
   font-weight: 600;
 }
 
-/* ---------- Proposta B: composição --------------------------------- */
+/* ---------- Proposta B: Editorial de Performance -------------------- */
 
 .dc-report[data-proposta='B'] {
-  --dc-raio: 22px;
-  --dc-raio-grande: 24px;
+  --dc-raio: 12px;
+  --dc-raio-grande: 14px;
   --dc-largura: 70rem;
-  --dc-espaco-secao: clamp(3.5rem, 1.6rem + 6.5vw, 7rem);
+  --dc-espaco-secao: clamp(3rem, 1.8rem + 4.2vw, 5.25rem);
 }
 
 /* ---------- Utilidades --------------------------------------------- */
@@ -321,17 +331,17 @@
   border-color: rgba(1, 64, 41, 0.32);
 }
 .dc-chip[data-tom='atencao'] {
-  color: var(--dc-sinal);
-  border-color: rgba(156, 75, 47, 0.4);
+  color: var(--dc-atencao);
+  border-color: color-mix(in srgb, var(--dc-atencao) 44%, transparent);
 }
 .dc-chip[data-tom='atencao']::before {
   border-radius: 1px;
   transform: rotate(45deg);
 }
 .dc-chip[data-tom='falha'] {
-  color: var(--dc-sinal);
-  border-color: rgba(156, 75, 47, 0.4);
-  background: rgba(156, 75, 47, 0.07);
+  color: var(--dc-falha);
+  border-color: color-mix(in srgb, var(--dc-falha) 44%, transparent);
+  background: color-mix(in srgb, var(--dc-falha) 7%, transparent);
 }
 .dc-chip[data-tom='falha']::before {
   border-radius: 1px;
@@ -1083,7 +1093,7 @@
   background: rgba(74, 94, 85, 0.1);
 }
 
-/* Mesma rampa verde-cinza da marca; nenhuma cor de plataforma entra aqui. */
+/* Cores de canal são funcionais e ficam confinadas à etiqueta de origem. */
 .dc-chip-canal[data-plataforma='pinterest'] {
   color: #57685f;
   background: rgba(110, 131, 122, 0.16);
@@ -2303,6 +2313,410 @@
   line-height: 1.6;
   color: var(--dc-cinza);
   max-width: 56ch;
+}
+
+/* ---------- Open Design: Editorial de Performance ---------------------- */
+
+/*
+ * Evolução da proposta B escolhida para a fatia de avaliação. A identidade
+ * permanece Dácora; cores de canal só entram em origem, legenda e séries.
+ */
+.dc-report [data-plataforma='meta'] {
+  --dc-canal: var(--dc-meta);
+}
+
+.dc-report [data-plataforma='google'] {
+  --dc-canal: var(--dc-google);
+}
+
+.dc-report [data-plataforma='pinterest'] {
+  --dc-canal: var(--dc-pinterest);
+}
+
+.dc-report [data-plataforma='ga4'] {
+  --dc-canal: var(--dc-ga4);
+}
+
+.dc-report [data-plataforma='instagram'] {
+  --dc-canal: var(--dc-instagram);
+}
+
+.dc-report [data-plataforma='ecommerce'] {
+  --dc-canal: var(--dc-tinta);
+}
+
+.dc-report [data-plataforma='crm'] {
+  --dc-canal: var(--dc-crm);
+}
+
+.dc-report [data-plataforma='multiplataforma'] {
+  --dc-canal: var(--dc-verde);
+}
+
+.dc-report[data-proposta='B'] .dc-topo {
+  border-top: 6px solid var(--dc-verde);
+  border-bottom-color: var(--dc-filete-forte);
+}
+
+.dc-report[data-proposta='B'] .dc-topo__conteudo {
+  min-height: 58px;
+}
+
+.dc-report[data-proposta='B'] .dc-topo__marca {
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.dc-report[data-proposta='B'] .dc-capa {
+  margin-top: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+
+.dc-report[data-proposta='B'] .dc-capa__caixa {
+  position: relative;
+  padding-top: clamp(1.35rem, 1rem + 1.4vw, 2rem);
+  padding-bottom: clamp(1.4rem, 1rem + 2vw, 2.25rem);
+  border-top: 4px solid var(--dc-verde);
+  border-bottom-color: var(--dc-filete-forte);
+  border-radius: 0;
+}
+
+.dc-report[data-proposta='B'] .dc-capa__eyebrow {
+  color: var(--dc-verde-medio);
+  font-weight: 700;
+}
+
+.dc-report[data-proposta='B'] .dc-capa__titulo {
+  max-width: 18ch;
+  font-size: clamp(2.45rem, 1.45rem + 5vw, 4.65rem);
+  font-weight: 450;
+}
+
+.dc-report[data-proposta='B'] .dc-capa__linha {
+  margin-top: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+}
+
+.dc-report[data-proposta='B'] .dc-secao__cabecalho {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.85rem;
+  border-top: 0;
+  border-left: 3px solid var(--dc-verde);
+  padding: 0 0 0 0.85rem;
+}
+
+.dc-report[data-proposta='B'] .dc-secao__indice {
+  margin: 0.35rem 0 0;
+  color: var(--dc-verde-medio);
+}
+
+.dc-report[data-proposta='B'] .dc-secao__titulo {
+  font-size: clamp(1.55rem, 1.2rem + 1.65vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.dc-report[data-proposta='B'] .dc-secao__apoio {
+  color: var(--dc-cinza);
+  max-width: 58ch;
+}
+
+.dc-report[data-proposta='B'] .dc-superficie,
+.dc-report[data-proposta='B'] .dc-destaque {
+  border-radius: var(--dc-raio);
+}
+
+.dc-report[data-proposta='B'] .dc-destaque {
+  border-left: 5px solid var(--dc-verde-medio);
+  padding: clamp(1.35rem, 1rem + 1.8vw, 2.1rem);
+}
+
+.dc-report[data-proposta='B'] .dc-kpis {
+  gap: 1px;
+  background: transparent;
+  border-inline: 0;
+  border-bottom: 0;
+  border-top: 4px solid var(--dc-verde);
+}
+
+.dc-report[data-proposta='B'] .dc-kpi {
+  position: relative;
+  background: var(--dc-superficie);
+  padding: clamp(1.1rem, 0.9rem + 1vw, 1.55rem);
+  border-top: 3px solid var(--dc-canal, var(--dc-verde));
+  border-right: 1px solid var(--dc-filete);
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dc-report[data-proposta='B'] .dc-kpi__rotulo {
+  color: var(--dc-cinza);
+  letter-spacing: 0.11em;
+}
+
+.dc-report[data-proposta='B'] .dc-kpi__valor {
+  font-size: clamp(2.15rem, 1.5rem + 2.6vw, 3.05rem);
+  font-weight: 450;
+}
+
+.dc-estado-medicao {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  margin-left: 0.25rem;
+  padding: 0.2rem 0.42rem;
+  border: 1px solid var(--dc-filete-forte);
+  color: var(--dc-cinza);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dc-valor-tabela {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.dc-estado-medicao--tabela {
+  margin-left: 0;
+  padding: 0.12rem 0.3rem;
+  font-size: 0.56rem;
+}
+
+.dc-comparativo__leitura {
+  padding: 0.14rem 0.38rem;
+  border: 1px solid currentColor;
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dc-comparativo[data-leitura='favoravel'] {
+  color: var(--dc-favoravel);
+}
+
+.dc-comparativo[data-leitura='desfavoravel'] {
+  color: var(--dc-falha);
+}
+
+.dc-comparativo[data-leitura='neutra'] {
+  color: var(--dc-neutro);
+}
+
+.dc-valor--indisponivel {
+  color: #6a6257;
+  font-style: normal;
+}
+
+.dc-valor--indisponivel::before {
+  width: 13px;
+  height: 9px;
+  border: 1px dashed currentColor;
+  background: transparent;
+}
+
+.dc-valor--indisponivel[data-estado='falha'] {
+  color: var(--dc-falha);
+  font-weight: 650;
+}
+
+.dc-valor--indisponivel[data-estado='falha']::before {
+  content: '×';
+  width: auto;
+  height: auto;
+  border: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dc-valor--indisponivel[data-estado='nao_aplicavel'] {
+  color: var(--dc-neutro);
+}
+
+.dc-report[data-proposta='B'] .dc-grafico__cabecalho {
+  border-left: 3px solid var(--dc-verde);
+  padding-left: 0.8rem;
+}
+
+.dc-report[data-proposta='B'] .dc-grafico__pergunta {
+  font-weight: 650;
+}
+
+.dc-report[data-proposta='B'] .dc-grafico__unidade {
+  color: var(--dc-cinza);
+}
+
+.dc-report[data-proposta='B'] .dc-grafico__barra {
+  padding: 0.55rem 0;
+  border-block: 1px solid var(--dc-filete);
+}
+
+.dc-legenda__item {
+  color: var(--dc-tinta);
+  border-left: 3px solid var(--dc-canal, var(--dc-verde));
+  padding-left: 0.45rem;
+}
+
+.dc-chip-canal {
+  color: var(--dc-canal, var(--dc-verde));
+  background: color-mix(in srgb, var(--dc-canal, var(--dc-verde)) 9%, white);
+  border-left: 3px solid var(--dc-canal, var(--dc-verde));
+  border-radius: 2px;
+}
+
+.dc-chip-canal[data-plataforma='google'],
+.dc-chip-canal[data-plataforma='pinterest'],
+.dc-chip-canal[data-plataforma='ga4'],
+.dc-chip-canal[data-plataforma='ecommerce'] {
+  color: var(--dc-canal);
+  background: color-mix(in srgb, var(--dc-canal) 9%, white);
+}
+
+.dc-report[data-proposta='B'] .dc-tabela-campanhas thead th {
+  padding-top: 0.7rem;
+  background: color-mix(in srgb, var(--dc-canvas) 68%, white);
+  border-bottom: 2px solid var(--dc-tinta);
+}
+
+.dc-report[data-proposta='B'] .dc-tabela-campanhas tbody tr.dc-linha > :first-child {
+  box-shadow: inset 3px 0 var(--dc-canal, var(--dc-verde));
+  padding-left: 0.85rem;
+}
+
+.dc-campanha__situacao[data-situacao='pausada'],
+.dc-campanha__situacao[data-situacao='encerrada'] {
+  color: var(--dc-neutro);
+  padding: 0.12rem 0.35rem;
+  border: 1px dashed var(--dc-neutro);
+}
+
+.dc-campanha__situacao[data-situacao='pausada']::before,
+.dc-campanha__situacao[data-situacao='encerrada']::before {
+  content: 'Ⅱ ';
+  display: inline-block;
+  letter-spacing: 0;
+  margin-right: 0.25rem;
+}
+
+.dc-cobertura {
+  max-width: none;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(2, 89, 58, 0.28);
+  border-left: 4px solid var(--dc-verde-medio);
+  background-color: rgba(2, 89, 58, 0.04);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 8px,
+    rgba(2, 89, 58, 0.035) 8px 10px
+  );
+}
+
+.dc-cobertura__rotulo {
+  margin: 0 0 0.35rem;
+  color: var(--dc-verde-medio);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dc-fonte[data-situacao='parcial'] {
+  border-left: 4px solid var(--dc-verde-medio);
+}
+
+.dc-fonte[data-situacao='erro'],
+.dc-fonte[data-situacao='indisponivel'] {
+  border-left: 4px solid var(--dc-falha);
+}
+
+@media (max-width: 639px) {
+  .dc-report[data-proposta='B'] {
+    --dc-espaco-secao: 3.2rem;
+  }
+
+  .dc-report[data-proposta='B'] .dc-topo__conteudo {
+    gap: 0.6rem 0.9rem;
+  }
+
+  .dc-report[data-proposta='B'] .dc-capa__titulo {
+    font-size: clamp(2.25rem, 12vw, 3rem);
+  }
+
+  .dc-report[data-proposta='B'] .dc-secao__cabecalho {
+    grid-template-columns: 1.8rem minmax(0, 1fr);
+    padding-left: 0.65rem;
+  }
+
+  .dc-report[data-proposta='B'] .dc-kpi {
+    padding: 1rem 0.85rem;
+  }
+
+  .dc-report[data-proposta='B'] .dc-kpi__valor {
+    font-size: clamp(1.85rem, 9vw, 2.45rem);
+  }
+
+  .dc-comparativo {
+    flex-wrap: wrap;
+  }
+
+  .dc-report[data-proposta='B'] .dc-superficie:has(.dc-tabela-campanhas) {
+    padding: 0.7rem 0.5rem;
+  }
+
+  .dc-tabela-campanhas thead th:first-child {
+    width: 52%;
+  }
+
+  .dc-tabela-campanhas thead th:nth-child(2) {
+    width: 36%;
+  }
+
+  .dc-tabela-campanhas thead th:last-child {
+    width: 42px;
+  }
+
+  /*
+   * No celular a grade mostra dimensão + métrica principal. As demais
+   * métricas continuam no botão de detalhes da própria linha; assim nomes e
+   * valores não se sobrepõem e nenhuma informação depende de rolagem lateral.
+   */
+  .dc-tabela-campanhas thead th:not(:first-child):not(:nth-child(2)):not(:last-child),
+  .dc-tabela-campanhas tbody tr.dc-linha > td:not(:nth-child(2)):not(:last-child),
+  .dc-tabela-campanhas tfoot tr > td:not(:nth-child(2)):not(:last-child) {
+    display: none;
+  }
+
+  .dc-tabela-campanhas tbody th[scope='row'] {
+    padding-left: 0.55rem;
+  }
+
+  .dc-tabela-campanhas tbody td,
+  .dc-tabela-campanhas tfoot th,
+  .dc-tabela-campanhas tfoot td {
+    font-size: 0.78rem;
+  }
+
+  .dc-barra-embutida__valor {
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .dc-chip-canal,
+  .dc-campanha__natureza,
+  .dc-campanha__situacao {
+    font-size: 0.6rem;
+  }
+
+  .dc-tabela-campanhas tfoot th {
+    overflow-wrap: anywhere;
+  }
 }
 
 /* ---------- Movimento -------------------------------------------------- */

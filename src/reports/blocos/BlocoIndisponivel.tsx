@@ -27,7 +27,7 @@ export default function BlocoIndisponivel({ info }: { info: Indisponibilidade })
 
       {info.oQueTemos && info.oQueTemos.length > 0 && (
         <div className="dc-indisponivel__temos">
-          <h4 className="dc-indisponivel__subtitulo">O que já está disponível</h4>
+          <h3 className="dc-indisponivel__subtitulo">O que já está disponível</h3>
           <ul>
             {info.oQueTemos.map((item) => (
               <li key={item}>{item}</li>

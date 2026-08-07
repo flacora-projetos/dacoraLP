@@ -92,6 +92,18 @@ function ordenavel(valor: Valor): number {
   return valor.estado === 'ok' ? valor.numero : -1;
 }
 
+function ValorTabela({ valor, coluna }: { valor: Valor; coluna: ColunaEntidade }) {
+  const zeroMedido = valor.estado === 'ok' && valor.numero === 0;
+  return (
+    <span className="dc-valor-tabela">
+      <span>{textoValor(valor, coluna.unidade, coluna.sufixo)}</span>
+      {zeroMedido && (
+        <span className="dc-estado-medicao dc-estado-medicao--tabela">medido</span>
+      )}
+    </span>
+  );
+}
+
 export default function TabelaDeEntidades({
   pergunta,
   theme,
@@ -152,7 +164,11 @@ export default function TabelaDeEntidades({
                 : '—';
 
             return [
-              <tr key={linha.id} className={aberta ? 'dc-linha dc-linha--aberta' : 'dc-linha'}>
+              <tr
+                key={linha.id}
+                className={aberta ? 'dc-linha dc-linha--aberta' : 'dc-linha'}
+                data-plataforma={linha.plataforma}
+              >
                 <th scope="row">
                   <span className="dc-campanha__nome">{linha.nome}</span>
                   <span className="dc-campanha__meta">
@@ -186,7 +202,7 @@ export default function TabelaDeEntidades({
                       />
                     </span>
                     <span className="dc-barra-embutida__valor">
-                      {textoValor(linha.principal, principal.unidade, principal.sufixo)}
+                      <ValorTabela valor={linha.principal} coluna={principal} />
                     </span>
                   </span>
                 </td>
@@ -196,9 +212,11 @@ export default function TabelaDeEntidades({
                     key={coluna.id}
                     className={coluna.secundaria ? 'dc-num dc-col-secundaria' : 'dc-num'}
                   >
-                    {linha.colunas[coluna.id]
-                      ? textoValor(linha.colunas[coluna.id], coluna.unidade, coluna.sufixo)
-                      : '—'}
+                    {linha.colunas[coluna.id] ? (
+                      <ValorTabela valor={linha.colunas[coluna.id]} coluna={coluna} />
+                    ) : (
+                      '—'
+                    )}
                   </td>
                 ))}
 
@@ -251,7 +269,7 @@ export default function TabelaDeEntidades({
           <tr>
             <th scope="row">{total.rotulo}</th>
             <td className="dc-num">
-              {textoValor(total.principal, principal.unidade, principal.sufixo)}
+              <ValorTabela valor={total.principal} coluna={principal} />
             </td>
             {colunas.map((coluna) => {
               const valor = total.colunas[coluna.id];
@@ -260,7 +278,7 @@ export default function TabelaDeEntidades({
                   key={coluna.id}
                   className={coluna.secundaria ? 'dc-num dc-col-secundaria' : 'dc-num'}
                 >
-                  {valor ? textoValor(valor, coluna.unidade, coluna.sufixo) : ''}
+                  {valor ? <ValorTabela valor={valor} coluna={coluna} /> : ''}
                 </td>
               );
             })}

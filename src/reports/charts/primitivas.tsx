@@ -214,7 +214,7 @@ export function LegendaRelatorio({
       {itens.map((item) => {
         const estilo = theme.series[item.plataforma];
         return (
-          <li key={item.id} className="dc-legenda__item">
+          <li key={item.id} className="dc-legenda__item" data-plataforma={item.plataforma}>
             <MarcaSerie cor={estilo.cor} tracejado={estilo.tracejado} />
             <span>{item.rotulo}</span>
           </li>

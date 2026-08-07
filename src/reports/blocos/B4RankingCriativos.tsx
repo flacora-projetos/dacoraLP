@@ -78,7 +78,7 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
             </div>
 
             <div className="dc-criativo__corpo">
-              <h4 className="dc-criativo__nome">{criativo.nome}</h4>
+              <h3 className="dc-criativo__nome">{criativo.nome}</h3>
 
               {criativo.situacao && (
                 <p
