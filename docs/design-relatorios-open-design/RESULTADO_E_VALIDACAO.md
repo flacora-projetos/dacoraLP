@@ -1,6 +1,6 @@
 # Resultado da expansão e validação local
 
-Status: direção A aprovada no Gate 1; implementação completa apresentada para revisão de Flávio no Gate 2 e posterior validação de Fernanda no Gate 3. Nenhuma fase de produto foi declarada concluída.
+Status: direção A e implementação completa aprovadas por Flávio; publicação em produção autorizada e verificada em 07/08/2026. A validação nominal de Fernanda não foi registrada neste documento e a P3 continua separada.
 
 ## O que mudou no catálogo compartilhado
 
@@ -23,21 +23,30 @@ O markup novo é exclusivamente apresentacional (`data-plataforma`, `data-papel`
 | Critério | Gate | Estado |
 |---|---|---|
 | Direção, marca, hierarquia, densidade e papéis de cor | Flávio — Gate 1 | aprovado: direção A |
-| Catálogo completo, estados, escala, responsividade e regressão | Flávio — Gate 2 | entregue localmente; aguardando revisão |
-| Karyne e Aviarte completas, conteúdo e acabamento | Fernanda — Gate 3 | pendente; não autoaprovado |
+| Catálogo completo, estados, escala, responsividade e regressão | Flávio — Gate 2 | aprovado em 07/08/2026 |
+| Karyne e Aviarte completas, conteúdo e acabamento | Fernanda — Gate 3 | sem registro nominal neste documento |
 
 A fatia do Gate 1 serviu para escolher direção. Os dois relatórios completos abaixo são a unidade correta para a validação da Fernanda.
 
-## Links locais para revisão
+## Links publicados
 
-Servidor isolado do worktree, sem deploy:
+- Karyne — serviços/leads: <https://www.dacora.com.br/relatorios/demo/karyne>
+- Aviarte — e-commerce: <https://www.dacora.com.br/relatorios/demo/aviarte>
+- Zenun — Google-only: <https://www.dacora.com.br/relatorios/demo/zenun>
+- escala de quatro plataformas: <https://www.dacora.com.br/relatorios/demo/ecommerce>
+
+Todos responderam `200`; as rotas de relatório mantêm `X-Robots-Tag: noindex, nofollow, noarchive`.
+
+## Prévia local preservada
+
+Servidor isolado do worktree, mantido apenas como comparação local:
 
 - Karyne — serviços/leads: `http://127.0.0.1:4173/relatorios/demo/karyne`
 - Aviarte — e-commerce: `http://127.0.0.1:4173/relatorios/demo/aviarte`
 - Zenun — Google-only: `http://127.0.0.1:4173/relatorios/demo/zenun`
 - escala de quatro plataformas: `http://127.0.0.1:4173/relatorios/demo/ecommerce`
 
-A porta 3000 já estava ocupada por outro checkout e foi preservada. A prévia desta branch usa 4173.
+A porta 3000 já estava ocupada pelo checkout protegido da P3 e foi preservada. A prévia desta branch usa 4173.
 
 ## Antes × depois
 
@@ -120,11 +129,12 @@ O único grupo inconclusivo é contraste automático em SVG/Recharts e elementos
 ## Integridade do gate
 
 - nenhuma alteração em P3 ou Supabase;
-- nenhum push, merge, deploy ou envio real;
+- publicação limitada aos commits aprovados do redesign e desta atualização documental;
+- nenhum merge no checkout da P3, nenhuma operação Supabase e nenhum envio real;
 - nenhuma página ou exceção por cliente;
 - nenhum relatório declarado aprovado por Fernanda;
 - nenhuma reaprovação de conteúdo solicitada por mudança apresentacional.
 
-## Recomendação
+## Estado de produção
 
-Flávio deve revisar primeiro Karyne e Aviarte completas nos links locais. Se o Gate 2 for aceito, as mesmas duas páginas podem seguir para a validação final da Fernanda; qualquer ajuste deve continuar no sistema compartilhado, nunca por cliente.
+O redesign compartilhado está publicado. Qualquer ajuste posterior deve continuar no sistema compartilhado, nunca por cliente. P3, Supabase e envio de relatórios permanecem fora deste escopo.

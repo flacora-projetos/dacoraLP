@@ -1,6 +1,6 @@
 # Proposta Open Design — relatórios mensais Dácora
 
-Status: Gate 1 aprovado por Flávio em 06/08/2026; direção A — Editorial de Performance — autorizada para expansão. Gates 2 e 3 ainda aguardam revisão humana.
+Status: direção A — Editorial de Performance — aprovada por Flávio e publicada em produção em 07/08/2026. A validação nominal de Fernanda não foi registrada neste documento.
 
 Este arquivo é separado de qualquer `DESIGN.md` do produto e não substitui a identidade existente.
 
@@ -137,7 +137,7 @@ A página não vira um arco-íris: os matizes de plataforma ficam confinados a s
 - a aprovação cobre identidade, hierarquia, densidade e papéis de cor;
 - a fatia não foi tratada como aprovação final da Fernanda.
 
-### Gate 2 — implementação completa do catálogo
+### Gate 2 — implementação completa do catálogo — aprovado por Flávio
 
 - aplicar a direção aprovada a todos os blocos compartilhados, sem exceção por cliente;
 - completar a taxonomia dos cinco estados e validar nomes longos/tabelas densas;
@@ -153,4 +153,4 @@ A página não vira um arco-íris: os matizes de plataforma ficam confinados a s
 
 ## Limite atual desta proposta
 
-Nesta branch a direção A foi expandida para o catálogo compartilhado e materializada nos relatórios completos de Karyne e Aviarte, com Zenun e o cenário de quatro plataformas como regressão. O trabalho continua sendo uma proposta local: Gate 2 depende da revisão de Flávio e Gate 3 depende da validação da Fernanda. Nenhuma mudança visual autoriza P3, publicação ou reaprovação de conteúdo.
+Nesta branch a direção A foi expandida para o catálogo compartilhado e materializada nos relatórios completos de Karyne e Aviarte, com Zenun e o cenário de quatro plataformas como regressão. Flávio aprovou o resultado e autorizou a publicação em produção. Essa autorização visual não retoma a P3, não altera conteúdo/checksum e não substitui um registro nominal de validação da Fernanda.
