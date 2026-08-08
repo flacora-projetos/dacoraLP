@@ -285,7 +285,37 @@ export interface QuebraPorDimensao {
   pergunta: string;
   unidade: Unidade;
   unidadeTexto: string;
+  /**
+   * Como se chama a coisa em que a métrica foi dividida — "Região", "Dia da
+   * semana", "Tipo de conversão". Vira o cabeçalho da primeira coluna na
+   * versão em tabela.
+   *
+   * Existe porque o gráfico reusado aqui nasceu comparando CANAIS, e o rótulo
+   * ficou fixo nele: a primeira quebra de região que chegou à tela imprimiu
+   * "Canal · Goiás". Rótulo herdado do primeiro uso é o mesmo problema do
+   * `ADSET_PAUSED` em inglês — está errado e não parece erro.
+   *
+   * Sem declaração, cai em "Categoria", que é neutro e nunca fica falso. A
+   * palavra certa é de quem monta o dado, não de quem desenha.
+   */
+  rotuloDimensao?: string;
   itens: ItemQuebra[];
+  /**
+   * O total apurado da quebra, quando ele existe. **A página não soma** — vale
+   * aqui a mesma regra do B2 e do B3.
+   *
+   * Quando a soma das partes fecha com o total (investimento por região fecha
+   * com o mês), omitir o total é pior do que parece: quem soma as linhas na
+   * mão não tem como saber que fechou, e quem não soma lê a parte como se
+   * fosse o todo. Quando NÃO fecha, o total é justamente o que denuncia isso.
+   */
+  total?: { rotulo: string; valor: Valor };
+  /**
+   * Notas que explicam o que a quebra mede, escritas por quem apurou. Na
+   * quebra por região, uma delas evita a leitura errada mais provável: a
+   * região é a de quem **viu** o anúncio, não a de quem comprou ou escreveu.
+   */
+  definicoes?: string[];
 }
 
 /* ------------------------------------------------------------------ */
