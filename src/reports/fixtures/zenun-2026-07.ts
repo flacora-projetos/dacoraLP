@@ -364,6 +364,7 @@ const quebraTipoDeConversao: QuebraPorDimensao = {
   pergunta: 'Por onde as pessoas entraram em contato?',
   unidade: 'inteiro',
   unidadeTexto: 'Conversões registradas no período, por tipo de contato',
+  rotuloDimensao: 'Tipo de contato',
   itens: [
     { id: 'whatsapp', rotulo: 'Conversa no WhatsApp', valor: ok(14) },
     { id: 'ligacao', rotulo: 'Ligação recebida', valor: ok(7) },

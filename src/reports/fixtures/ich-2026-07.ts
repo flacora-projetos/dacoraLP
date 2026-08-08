@@ -442,6 +442,7 @@ const quebraRegiao: QuebraPorDimensao = {
   pergunta: 'Onde o investimento foi aplicado?',
   unidade: 'brl',
   unidadeTexto: 'Reais investidos no período',
+  rotuloDimensao: 'Região',
   itens: [
     { id: 'mg', rotulo: 'Minas Gerais', valor: ok(612.4) },
     { id: 'go', rotulo: 'Goiás', valor: ok(498.15) },

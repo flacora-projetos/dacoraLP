@@ -342,6 +342,7 @@ const quebraDiaDaSemana: QuebraPorDimensao = {
   pergunta: 'Em que dia da semana as conversas começam?',
   unidade: 'inteiro',
   unidadeTexto: 'Mensagens iniciadas no período',
+  rotuloDimensao: 'Dia da semana',
   itens: [
     { id: 'dom', rotulo: 'Domingo', valor: ok(41) },
     { id: 'seg', rotulo: 'Segunda', valor: ok(48) },

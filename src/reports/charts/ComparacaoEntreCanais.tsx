@@ -32,6 +32,13 @@ interface Props {
   theme: ChartTheme;
   /** Quando true, o resumo cita a participação de cada canal no total. */
   mostrarParticipacao?: boolean;
+  /**
+   * Cabeçalho da primeira coluna na versão em tabela. O padrão é "Canal"
+   * porque é para isso que este gráfico nasceu — mas ele é reusado para
+   * comparar meses, regiões e tipos de conversão, e nenhum deles é canal.
+   * Quem chama sabe do que está falando; o gráfico não.
+   */
+  rotuloCategoria?: string;
 }
 
 const MARGEM = { top: 22, right: 0, bottom: 2, left: 0 };
@@ -43,6 +50,7 @@ export default function ComparacaoEntreCanais({
   itens,
   theme,
   mostrarParticipacao = true,
+  rotuloCategoria = 'Canal',
 }: Props) {
   const reduzido = usaMovimentoReduzido();
   const { ref, largura } = usaLargura<HTMLDivElement>();
@@ -100,7 +108,7 @@ export default function ComparacaoEntreCanais({
       alturaLivre
       tabela={{
         titulo: pergunta,
-        colunas: ['Canal', unidadeTexto],
+        colunas: [rotuloCategoria, unidadeTexto],
         linhas: dados.map((d) => ({
           rotulo: d.rotulo,
           celulas: [d.valor === null ? (d.ausencia ?? '—') : theme.completo(d.valor, unidade)],
