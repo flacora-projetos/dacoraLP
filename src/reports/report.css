@@ -2228,6 +2228,110 @@
   border-top: 1px solid var(--dc-filete);
 }
 
+/* ---------- Leitura em áudio do relatório ----------------------------- */
+
+/* O player é uma ferramenta de leitura, não uma chamada promocional. A
+   régua verde o liga ao relatório sem disputar atenção com os indicadores. */
+.dc-audio {
+  width: min(100%, 46rem);
+  padding: clamp(1rem, 0.75rem + 1.2vw, 1.5rem);
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-top: 3px solid var(--dc-verde);
+  border-radius: var(--dc-raio);
+}
+
+.dc-report[data-proposta='B'] .dc-audio {
+  border-radius: 10px;
+}
+
+.dc-audio__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.dc-audio__marca {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--dc-canvas);
+  background: var(--dc-verde);
+  border-radius: 50%;
+}
+
+.dc-audio__marca span {
+  display: block;
+  width: 2px;
+  height: 0.65rem;
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.dc-audio__marca span:nth-child(2),
+.dc-audio__marca span:nth-child(3) {
+  height: 1rem;
+}
+
+.dc-audio__rotulo {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--dc-verde-medio);
+}
+
+.dc-audio__descricao,
+.dc-audio__motivo,
+.dc-audio__complemento {
+  margin: 0;
+  color: var(--dc-cinza);
+  line-height: 1.55;
+}
+
+.dc-audio__descricao {
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+}
+
+.dc-audio__player {
+  display: block;
+  width: 100%;
+  min-height: 3.35rem;
+  accent-color: var(--dc-verde);
+}
+
+.dc-audio__complemento {
+  margin-top: 0.8rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dc-filete);
+  font-size: 0.76rem;
+}
+
+/* Indisponível não é erro do mês: mesma linguagem sóbria dos outros
+   blocos sem dado, com texto explícito no lugar de um controle quebrado. */
+.dc-audio--indisponivel {
+  border-top-width: 1px;
+  border-style: dashed;
+  background: color-mix(in srgb, var(--dc-superficie) 55%, transparent);
+}
+
+.dc-audio--indisponivel .dc-audio__rotulo {
+  color: var(--dc-sage);
+}
+
+.dc-audio__motivo {
+  margin-top: 0.65rem;
+  font-size: 0.92rem;
+  color: var(--dc-tinta);
+}
+
 /* ---------- B8: comentário humano -------------------------------------- */
 
 /* A distinção visual é o ponto do bloco, não decoração. Um relatório que
@@ -3066,7 +3170,8 @@
   .dc-topo__seletor,
   .dc-demo,
   .dc-botao-detalhe,
-  .dc-acao {
+  .dc-acao,
+  .dc-audio__player {
     display: none !important;
   }
 
@@ -3086,7 +3191,8 @@
   .dc-grafico,
   .dc-fonte,
   .dc-confronto__quadro,
-  .dc-confronto__texto {
+  .dc-confronto__texto,
+  .dc-audio {
     break-inside: avoid;
   }
 

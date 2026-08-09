@@ -9,6 +9,7 @@ import type { Request, Response } from 'express';
 import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarItem, type LinhaDoBanco } from './_painel-fila-dados.js';
 import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
+import { resolverAudiosPrivados } from './_audios-relatorio.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -37,6 +38,7 @@ interface LinhaDoRelatorio extends LinhaDoBanco {
 export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
   if (!linha.conteudo || typeof linha.conteudo !== 'object') return null;
   if (!linha.gerado_em || !linha.checksum) return null;
+  if (!Number.isSafeInteger(linha.versao) || linha.versao < 1) return null;
   const identidade = (linha.conteudo as any).identidade;
   const montagem = (linha.conteudo as any).montagem;
   if (!identidade || !Array.isArray(montagem)) return null;
@@ -125,6 +127,15 @@ export default async function handler(req: Request, res: Response) {
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,
       { clienteSlug: linha.cliente_slug, competencia: linha.competencia },
+      { urlSupabase, chaveDeServico },
+    );
+    relatorio.snapshot = await resolverAudiosPrivados(
+      relatorio.snapshot,
+      {
+        clienteSlug: linha.cliente_slug,
+        competencia: linha.competencia,
+        versao: linha.versao,
+      },
       { urlSupabase, chaveDeServico },
     );
 
