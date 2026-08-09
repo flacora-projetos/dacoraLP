@@ -2,8 +2,8 @@
 
 **Repositório:** `dacoraLP`
 **Branch de origem:** `codex/voz-v4-audio-relatorio`
-**Integração:** merge `7591452` na `main`
-**Estado:** capacidade base integrada e publicada em 2026-08-09; o botão destacado pedido depois pelo PO está implementado e validado somente nesta branch local, sem novo merge, push ou deploy. Nenhum relatório ou cliente foi ativado.
+**Integração:** merge base `7591452`; botão destacado no merge `1e8f4ba` da `main`
+**Estado:** capacidade e botão destacado publicados em 2026-08-09. Nenhum relatório ou cliente foi ativado.
 
 ## O que esta fase entrega
 
@@ -124,7 +124,7 @@ do objeto sintético. A URI permaneceu privada no snapshot e foi resolvida pela
 API autenticada para uma assinatura curta; nenhuma fixture ou URL assinada foi
 commitada.
 
-Depois da ressalva do PO, `npm run verifica:revisao` e o build completo passaram novamente com o botão destacado, alternância de reprodução/pausa e os controles nativos preservados. Essa segunda validação é local e não muda a evidência de produção abaixo.
+Depois da ressalva do PO, `npm run verifica:revisao` e o build completo passaram novamente com o botão destacado, alternância de reprodução/pausa e os controles nativos preservados. O merge `1e8f4ba` foi enviado à `main`; o status Vercel terminou em `success`. O bundle de produção confirmou o texto, `aria-pressed` e ausência de `autoplay`.
 
 ## Evidência de produção — 2026-08-09
 
@@ -149,10 +149,9 @@ Depois da ressalva do PO, `npm run verifica:revisao` e o build completo passaram
 1. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
    revisão autenticada; quando a W3 existir, ela deve reaproveitar o mesmo
    resolvedor depois de validar o token do relatório.
-2. O botão destacado desta branch ainda precisa de autorização específica para merge/deploy.
-3. A v3 sintética com a voz autorizada da Fernanda ainda não existe; produção continua servindo somente a v2 sintética anterior.
-4. Nenhum relatório real foi alterado e nenhum cliente foi habilitado.
-5. A escolha nominal do primeiro cliente, o primeiro snapshot real e a primeira
+2. A v3 sintética com a voz autorizada da Fernanda existe no Storage privado; falta somente repetir a inspeção visual autenticada quando houver sessão Google válida no navegador de QA.
+3. Nenhum relatório real foi alterado e nenhum cliente foi habilitado.
+4. A escolha nominal do primeiro cliente, o primeiro snapshot real e a primeira
    entrega continuam sob gates próprios.
-6. A linha e o objeto sintéticos v2 podem ser removidos depois da revisão; o
+5. As linhas e objetos sintéticos v2/v3 podem ser removidos por ID e caminho exatos depois da auditoria; o
    bucket privado deve permanecer para a operação futura.

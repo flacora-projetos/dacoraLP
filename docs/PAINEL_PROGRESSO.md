@@ -96,7 +96,7 @@ mostraram controles, sem autoplay, erro ou overflow. Isso não ativa cliente,
 não carrega snapshot real e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
 
-**Continuação local em 2026-08-09:** o bloco ganhou o botão destacado **“Ouvir a versão falada”**, com alternância para pausa, `aria-controls`/`aria-pressed`, controles nativos mantidos e nenhum autoplay. `verifica:revisao` e o build completo passaram. A mudança está apenas na branch `codex/voz-v4-storage-smoke`; não houve novo push, merge ou deploy, e a produção continua com o player base do merge `7591452` e somente a v2 sintética anterior.
+**Botão destacado publicado em 2026-08-09:** o bloco ganhou **“Ouvir a versão falada”**, com alternância para pausa, `aria-controls`/`aria-pressed`, controles nativos mantidos e nenhum autoplay. `verifica:revisao` e o build completo passaram depois do merge `1e8f4ba`; a Vercel concluiu o deployment da `main`. O bundle servido por `www.dacora.com.br` contém o botão e `aria-pressed`, sem `autoplay`; raiz HTTP 200 e API sem sessão HTTP 401. A fábrica publicou também a v3 exclusivamente sintética com a voz autorizada da Fernanda. A inspeção visual autenticada da v3 ainda depende de uma sessão Google válida no navegador de QA; nenhuma credencial foi fabricada ou solicitada durante o deploy.
 
 ### Checkpoint visual publicado em 07/08/2026
 
