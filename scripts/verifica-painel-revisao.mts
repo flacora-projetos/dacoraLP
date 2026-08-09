@@ -92,6 +92,34 @@ const configAudio: BlocoAudio = {
   assert.ok(htmlIndisponivel.includes('relatório escrito continua completo'));
   assert.ok(!htmlIndisponivel.includes('<audio'));
 
+  for (const audioInvalido of [
+    {
+      id: 'leitura_completa',
+      estado: 'erro',
+      src: 'https://exemplo.supabase.co/storage/audio.mp3',
+      mimeType: 'audio/mpeg',
+    },
+    {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: 'https://exemplo.supabase.co/storage/audio.mp3',
+      mimeType: 'text/html',
+    },
+    {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: 'https://exemplo.supabase.co/storage/audio.mp3',
+      mimeType: 'audio/mpeg',
+      duracaoSegundos: 0,
+    },
+  ]) {
+    const htmlInvalido = renderToStaticMarkup(createElement(BlocoAudioRelatorio, {
+      audio: audioInvalido as any,
+    }));
+    assert.ok(!htmlInvalido.includes('<audio'), 'contrato inválido não pode montar player');
+    assert.ok(htmlInvalido.includes('Leitura em áudio indisponível'));
+  }
+
   const htmlAusente = renderToStaticMarkup(createElement(
     'div',
     null,
@@ -144,7 +172,7 @@ const configAudio: BlocoAudio = {
 }
 
 {
-  const caminho = 'cliente_exemplo/2026-07/relatorio-exemplo/0123456789abcdef0123456789abcdef.mp3';
+  const caminho = 'cliente_exemplo/2026-07/v1/0123456789abcdef0123456789abcdef.mp3';
   const comAudio: any = structuredClone(conteudo);
   comAudio.dados.audios = {
     leitura_completa: {
@@ -158,7 +186,7 @@ const configAudio: BlocoAudio = {
 
   const resolvido = await resolverAudiosPrivados(
     comAudio,
-    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 1 },
     { assinar: async caminhos => [{ path: caminhos[0], signedUrl: 'https://exemplo.supabase.co/storage/audio-assinado.mp3' }] },
   );
   assert.equal(
@@ -173,11 +201,11 @@ const configAudio: BlocoAudio = {
 
   const invasao = structuredClone(comAudio);
   invasao.dados.audios.leitura_completa.src =
-    'storage://relatorios-audios/outro_cliente/2026-07/relatorio-exemplo/0123456789abcdef0123456789abcdef.mp3';
+    'storage://relatorios-audios/outro_cliente/2026-07/v1/0123456789abcdef0123456789abcdef.mp3';
   let tentouAssinar = false;
   const recusado = await resolverAudiosPrivados(
     invasao,
-    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 1 },
     { assinar: async () => { tentouAssinar = true; return []; } },
   );
   assert.equal(tentouAssinar, false, 'um relatório não pode assinar o áudio de outro cliente');
@@ -186,10 +214,10 @@ const configAudio: BlocoAudio = {
 
   const outraVersao = structuredClone(comAudio);
   outraVersao.dados.audios.leitura_completa.src =
-    'storage://relatorios-audios/cliente_exemplo/2026-07/outro-relatorio/0123456789abcdef0123456789abcdef.mp3';
+    'storage://relatorios-audios/cliente_exemplo/2026-07/v2/0123456789abcdef0123456789abcdef.mp3';
   const versaoRecusada = await resolverAudiosPrivados(
     outraVersao,
-    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 1 },
     { assinar: async () => { throw new Error('não deveria assinar outra versão'); } },
   );
   assert.equal(versaoRecusada.dados.audios.leitura_completa.estado, 'indisponivel');
@@ -198,11 +226,73 @@ const configAudio: BlocoAudio = {
   urlDuradoura.dados.audios.leitura_completa.src = 'https://privado.exemplo.com/audio.mp3';
   const semPersistirUrl = await resolverAudiosPrivados(
     urlDuradoura,
-    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 1 },
     { assinar: async () => { throw new Error('não deveria assinar URL pronta'); } },
   );
   assert.equal(semPersistirUrl.dados.audios.leitura_completa.estado, 'indisponivel');
   assert.equal(semPersistirUrl.dados.audios.leitura_completa.src, undefined);
+
+  for (const registroInvalido of [
+    {
+      id: 'leitura_completa',
+      estado: 'indisponivel',
+      motivo: 'Ainda não foi gerado.',
+      src: 'https://privado.exemplo.com/audio.mp3',
+      mimeType: 'audio/mpeg',
+      duracaoSegundos: 154,
+    },
+    {
+      id: 'leitura_completa',
+      estado: 'erro',
+      src: 'storage://relatorios-audios/outro_cliente/2026-07/v1/0123456789abcdef0123456789abcdef.mp3',
+      mimeType: 'audio/mpeg',
+    },
+    {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: `storage://relatorios-audios/${caminho}`,
+      mimeType: 'text/html',
+    },
+    {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: `storage://relatorios-audios/${caminho}`,
+      mimeType: 'audio/mpeg',
+      duracaoSegundos: -1,
+    },
+  ]) {
+    const entradaInvalida = structuredClone(comAudio);
+    entradaInvalida.dados.audios.leitura_completa = registroInvalido;
+    let assinouInvalido = false;
+    const saidaInvalida = await resolverAudiosPrivados(
+      entradaInvalida,
+      { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 1 },
+      { assinar: async () => { assinouInvalido = true; return []; } },
+    );
+    const audioSanitizado = saidaInvalida.dados.audios.leitura_completa;
+    assert.equal(assinouInvalido, false, 'registro inválido não pode chegar ao assinador');
+    assert.equal(audioSanitizado.estado, 'indisponivel');
+    assert.equal(audioSanitizado.src, undefined);
+    assert.equal(audioSanitizado.mimeType, undefined);
+    assert.equal(audioSanitizado.duracaoSegundos, undefined);
+  }
+
+  const versaoInvalida = await resolverAudiosPrivados(
+    comAudio,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 0 },
+    { assinar: async () => { throw new Error('versão inválida não pode assinar'); } },
+  );
+  assert.equal(versaoInvalida.dados.audios.leitura_completa.estado, 'indisponivel');
+  assert.equal(versaoInvalida.dados.audios.leitura_completa.src, undefined);
+
+  const colecaoInvalida = structuredClone(comAudio);
+  colecaoInvalida.dados.audios = ['https://privado.exemplo.com/audio.mp3'];
+  const colecaoSanitizada = await resolverAudiosPrivados(
+    colecaoInvalida,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', versao: 1 },
+    { assinar: async () => { throw new Error('coleção inválida não pode assinar'); } },
+  );
+  assert.deepEqual(colecaoSanitizada.dados.audios, {}, 'coleção inválida precisa sair vazia');
 }
 
 const tema = criarChartTheme('B');
@@ -255,15 +345,28 @@ assert.ok(!semConteudo.includes('Recusar com motivo'));
 
 const fetchOriginal = globalThis.fetch;
 let chamadasAoBanco: string[] = [];
+let chamadasAoStorage: Array<{ url: string; corpo: any }> = [];
 
 function dublar(usuario: unknown | null, linhas: unknown[] = [linha]) {
   chamadasAoBanco = [];
-  globalThis.fetch = (async (entrada: any) => {
+  chamadasAoStorage = [];
+  globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
     const url = String(entrada);
     if (url.includes('/auth/v1/user')) {
       return usuario
         ? new Response(JSON.stringify(usuario), { status: 200, headers: { 'content-type': 'application/json' } })
         : new Response('{}', { status: 401 });
+    }
+    if (url.includes('/storage/v1/object/sign/relatorios-audios')) {
+      const corpo = JSON.parse(String(init?.body ?? '{}'));
+      chamadasAoStorage.push({ url, corpo });
+      return new Response(JSON.stringify(
+        (corpo.paths ?? []).map((path: string) => ({
+          error: null,
+          path,
+          signedURL: `/object/sign/relatorios-audios/${path}?token=teste`,
+        })),
+      ), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     chamadasAoBanco.push(url);
     return new Response(JSON.stringify(linhas), {
@@ -340,6 +443,41 @@ const autorizada = {
   assert.equal(chamadasAoBanco.length, 1);
   assert.ok(!chamadasAoBanco[0].includes('token'), 'a credencial pública não pode ser consultada na P2');
   assert.match(resposta.cabecalhos['cache-control'], /no-store/);
+}
+{
+  const comAudio: any = structuredClone(linha);
+  comAudio.conteudo.identidade.relatorioId = 'id-autodeclarado-ignorado';
+  comAudio.conteudo.dados.audios = {
+    leitura_completa: {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: 'storage://relatorios-audios/cliente_exemplo/2026-07/v1/0123456789abcdef0123456789abcdef.mp3',
+      mimeType: 'audio/mpeg',
+    },
+  };
+  const resposta = await chamar({ usuario: autorizada, linhas: [comAudio] });
+  assert.equal(resposta.status, 200);
+  assert.equal(chamadasAoStorage.length, 1, 'o endpoint precisa assinar o caminho da versão da linha');
+  assert.deepEqual(chamadasAoStorage[0].corpo.paths, [
+    'cliente_exemplo/2026-07/v1/0123456789abcdef0123456789abcdef.mp3',
+  ]);
+  assert.match(resposta.corpo.relatorio.snapshot.dados.audios.leitura_completa.src, /token=teste/);
+
+  const caminhoAutodeclarado: any = structuredClone(comAudio);
+  caminhoAutodeclarado.conteudo.identidade.relatorioId = 'outro-relatorio';
+  caminhoAutodeclarado.conteudo.dados.audios.leitura_completa.src =
+    'storage://relatorios-audios/cliente_exemplo/2026-07/outro-relatorio/0123456789abcdef0123456789abcdef.mp3';
+  const recusada = await chamar({ usuario: autorizada, linhas: [caminhoAutodeclarado] });
+  assert.equal(recusada.status, 200);
+  assert.equal(chamadasAoStorage.length, 0, 'id do snapshot não pode autorizar o próprio caminho');
+  assert.equal(recusada.corpo.relatorio.snapshot.dados.audios.leitura_completa.estado, 'indisponivel');
+  assert.equal(recusada.corpo.relatorio.snapshot.dados.audios.leitura_completa.src, undefined);
+}
+{
+  const versaoInvalida: any = { ...linha, versao: 0 };
+  const resposta = await chamar({ usuario: autorizada, linhas: [versaoInvalida] });
+  assert.equal(resposta.status, 422);
+  assert.equal(chamadasAoStorage.length, 0, 'versão inválida precisa falhar antes do Storage');
 }
 {
   const resposta = await chamar({ usuario: autorizada, linhas: [] });

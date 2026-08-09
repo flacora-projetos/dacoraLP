@@ -1,17 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import {
+  audioDisponivelTemContratoValido,
+  type AudioDisponivelValido,
+} from '../src/reports/blocos/audio-contrato.js';
 
 const BUCKET = 'relatorios-audios';
 const PREFIXO = `storage://${BUCKET}/`;
 const VALIDADE_SEGUNDOS = 60 * 60;
-
-interface AudioDisponivelDoSnapshot {
-  id: string;
-  estado: 'disponivel';
-  src: string;
-  mimeType?: string;
-  duracaoSegundos?: number;
-  motivo?: string;
-}
 
 interface Assinatura {
   path?: string | null;
@@ -34,21 +29,25 @@ interface Opcoes {
  */
 export async function resolverAudiosPrivados(
   snapshot: any,
-  identidadeEsperada: { clienteSlug: string; competencia: string; relatorioId: string },
+  identidadeEsperada: { clienteSlug: string; competencia: string; versao: number },
   opcoes: Opcoes = {},
 ) {
   const copia = structuredClone(snapshot);
-  const audios = listarAudios(copia);
+  const audios = sanitizarEAcharDisponiveis(copia);
+  if (!versaoValida(identidadeEsperada.versao)) {
+    for (const audio of audios) marcarIndisponivel(audio, 'A versão desta leitura em áudio é inválida.');
+    return copia;
+  }
   const prefixoEsperado = [
     identidadeEsperada.clienteSlug,
     identidadeEsperada.competencia,
-    identidadeEsperada.relatorioId,
+    `v${identidadeEsperada.versao}`,
     '',
   ].join('/');
-  const porCaminho = new Map<string, AudioDisponivelDoSnapshot[]>();
+  const porCaminho = new Map<string, AudioDisponivelValido[]>();
 
   for (const audio of audios) {
-    if (typeof audio.src !== 'string' || !audio.src.startsWith(PREFIXO)) {
+    if (!audio.src.startsWith(PREFIXO)) {
       marcarIndisponivel(audio, 'A leitura em áudio não está guardada no armazenamento privado deste relatório.');
       continue;
     }
@@ -85,7 +84,7 @@ export async function resolverAudiosPrivados(
 
       for (const audio of porCaminho.get(caminho) ?? []) {
         audio.src = assinatura.signedUrl;
-        delete audio.motivo;
+        delete (audio as any).motivo;
       }
     }
   } catch (erro) {
@@ -119,12 +118,32 @@ function criarAssinador({ urlSupabase, chaveDeServico }: Opcoes): Assinar {
   };
 }
 
-function listarAudios(snapshot: any): AudioDisponivelDoSnapshot[] {
-  const audios = snapshot?.dados?.audios;
-  if (!audios || typeof audios !== 'object') return [];
-  return Object.values(audios).filter(
-    (audio: any): audio is AudioDisponivelDoSnapshot => audio?.estado === 'disponivel',
-  );
+function sanitizarEAcharDisponiveis(snapshot: any): AudioDisponivelValido[] {
+  const dados = snapshot?.dados;
+  if (!dados || typeof dados !== 'object' || Array.isArray(dados)) return [];
+  const audios = dados.audios;
+  if (audios === undefined) return [];
+  if (!audios || typeof audios !== 'object' || Array.isArray(audios)) {
+    dados.audios = {};
+    return [];
+  }
+
+  const disponiveis: AudioDisponivelValido[] = [];
+  for (const [id, audio] of Object.entries(audios)) {
+    if (audioDisponivelTemContratoValido(audio, 'storage') && audio.id === id) {
+      disponiveis.push(audio);
+      continue;
+    }
+
+    const motivo = audio && typeof audio === 'object'
+      && (audio as any).estado === 'indisponivel'
+      && typeof (audio as any).motivo === 'string'
+      && (audio as any).motivo.trim()
+      ? (audio as any).motivo
+      : 'A leitura em áudio desta versão não está disponível.';
+    audios[id] = { id, estado: 'indisponivel', motivo };
+  }
+  return disponiveis;
 }
 
 function caminhoValido(caminho: string, prefixoEsperado: string) {
@@ -134,14 +153,18 @@ function caminhoValido(caminho: string, prefixoEsperado: string) {
     && segmentos.every(segmento => segmento.length > 0 && segmento !== '.' && segmento !== '..')
     && /^[a-zA-Z0-9_-]+$/.test(segmentos[0])
     && /^\d{4}-\d{2}$/.test(segmentos[1])
-    && /^[a-zA-Z0-9_-]+$/.test(segmentos[2])
+    && /^v[1-9]\d*$/.test(segmentos[2])
     && /^[a-f0-9]{20,64}\.(?:mp3|ogg|m4a|wav|webm)$/.test(segmentos[3]);
 }
 
-function marcarIndisponivel(audio: AudioDisponivelDoSnapshot, motivo: string) {
+function marcarIndisponivel(audio: AudioDisponivelValido, motivo: string) {
   (audio as any).estado = 'indisponivel';
   (audio as any).motivo = motivo;
   delete (audio as any).src;
   delete (audio as any).mimeType;
   delete (audio as any).duracaoSegundos;
+}
+
+function versaoValida(versao: number) {
+  return Number.isSafeInteger(versao) && versao > 0;
 }

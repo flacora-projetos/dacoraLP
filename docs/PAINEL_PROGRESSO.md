@@ -79,7 +79,10 @@ validados; integração e push foram autorizados na sequência.
 A capacidade genérica de leitura em áudio foi implementada em worktree e
 branch separados, sem alterar o placeholder da P3. Ela acrescenta o bloco
 configurável `AUDIO`, estados disponível/indisponível, controles acessíveis sem
-autoplay e assinatura server-side de URI privada do Storage. Não cria bucket,
+autoplay e assinatura server-side de URI privada do Storage. O caminho é
+isolado por cliente, competência e `v<versão>` vindos das colunas da linha; o
+snapshot não certifica a própria identidade. Contrato malformado é sanitizado
+antes da resposta e nunca monta player. Não cria bucket,
 não carrega snapshot, não publica e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
 

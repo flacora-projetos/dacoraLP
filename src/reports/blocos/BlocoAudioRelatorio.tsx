@@ -1,4 +1,5 @@
 import type { AudioRelatorio } from './tipos';
+import { audioDisponivelTemContratoValido } from './audio-contrato';
 
 function formatarDuracao(segundos: number | undefined) {
   if (!Number.isFinite(segundos) || segundos === undefined || segundos < 0) return null;
@@ -9,11 +10,14 @@ function formatarDuracao(segundos: number | undefined) {
 }
 
 export default function BlocoAudioRelatorio({ audio }: { audio: AudioRelatorio }) {
-  if (audio.estado === 'indisponivel') {
+  if (!audioDisponivelTemContratoValido(audio, 'navegador')) {
+    const motivo = audio?.estado === 'indisponivel' && typeof audio.motivo === 'string' && audio.motivo.trim()
+      ? audio.motivo
+      : 'A leitura em áudio desta versão não está disponível.';
     return (
       <div className="dc-audio dc-audio--indisponivel" role="status">
         <p className="dc-audio__rotulo">Leitura em áudio indisponível</p>
-        <p className="dc-audio__motivo">{audio.motivo}</p>
+        <p className="dc-audio__motivo">{motivo}</p>
         <p className="dc-audio__complemento">
           O relatório escrito continua completo nesta página.
         </p>

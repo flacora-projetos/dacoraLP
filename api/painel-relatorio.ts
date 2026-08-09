@@ -38,6 +38,7 @@ interface LinhaDoRelatorio extends LinhaDoBanco {
 export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
   if (!linha.conteudo || typeof linha.conteudo !== 'object') return null;
   if (!linha.gerado_em || !linha.checksum) return null;
+  if (!Number.isSafeInteger(linha.versao) || linha.versao < 1) return null;
   const identidade = (linha.conteudo as any).identidade;
   const montagem = (linha.conteudo as any).montagem;
   if (!identidade || !Array.isArray(montagem)) return null;
@@ -133,7 +134,7 @@ export default async function handler(req: Request, res: Response) {
       {
         clienteSlug: linha.cliente_slug,
         competencia: linha.competencia,
-        relatorioId: relatorio.snapshot.identidade.relatorioId,
+        versao: linha.versao,
       },
       { urlSupabase, chaveDeServico },
     );

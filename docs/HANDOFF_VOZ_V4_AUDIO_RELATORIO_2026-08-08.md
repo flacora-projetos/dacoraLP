@@ -43,7 +43,7 @@ O registro disponível correspondente vive em `dados.audios`:
   "leitura_completa": {
     "id": "leitura_completa",
     "estado": "disponivel",
-    "src": "storage://relatorios-audios/cliente_slug/2026-07/relatorio-id/0123456789abcdef0123456789abcdef.mp3",
+    "src": "storage://relatorios-audios/cliente_slug/2026-07/v1/0123456789abcdef0123456789abcdef.mp3",
     "mimeType": "audio/mpeg",
     "duracaoSegundos": 154
   }
@@ -73,16 +73,25 @@ hexadecimal de 20 a 64 caracteres.
 O snapshot persiste somente uma URI estável no formato:
 
 ```text
-storage://relatorios-audios/<clienteSlug>/<AAAA-MM>/<relatorioId>/<digest>.<extensão>
+storage://relatorios-audios/<clienteSlug>/<AAAA-MM>/v<versão>/<digest>.<extensão>
 ```
 
 Extensões aceitas pelo portal: `mp3`, `ogg`, `m4a`, `wav` e `webm`.
+`versão` é o inteiro positivo da coluna `relatorios.versao`; não vem de
+`conteudo.identidade` e não pode ser autocertificado pelo snapshot.
 
 Na API autenticada do painel, `resolverAudiosPrivados` cria uma cópia do
-snapshot, confirma cliente e competência no caminho e troca a URI por uma URL
-assinada de uma hora. O snapshot persistido e o checksum não mudam. Caminho de
-outro cliente, URL pronta no snapshot, assinatura ausente ou falha do Storage
-viram estado `indisponivel`, nunca URL quebrada nem vazamento silencioso.
+snapshot, confirma cliente, competência e versão contra as colunas da linha e
+troca a URI por uma URL assinada de uma hora. O snapshot persistido e o checksum
+não mudam. Caminho de outro cliente ou versão, URL pronta no snapshot,
+assinatura ausente ou falha do Storage viram estado `indisponivel`, nunca URL
+quebrada nem vazamento silencioso.
+
+Todo registro de `dados.audios` é normalizado antes de a resposta sair. Estado
+desconhecido, MIME incompatível com a extensão, duração inválida e registro
+`indisponivel` com campos de reprodução perdem `src`, `mimeType` e
+`duracaoSegundos`. O componente repete a validação no navegador e só cria o
+player para contrato estritamente válido.
 
 O bucket esperado se chama `relatorios-audios`. Esta branch não cria bucket,
 política ou objeto remoto: banco e Storage continuam sob gate separado.
@@ -103,7 +112,8 @@ política ou objeto remoto: banco e Storage continuam sob gate separado.
 - `npm run verifica:fila`: passou;
 - `npm run verifica:refoco`: passou;
 - `npm run verifica:revisao`: passou, incluindo player, ausência,
-  indisponibilidade, ausência de autoplay, assinatura e recusa cruzada;
+  indisponibilidade, ausência de autoplay, sanitização de contrato, assinatura,
+  recusa cruzada e uso autoritativo da versão da linha no endpoint;
 - `npm run build`: passou, incluindo SSR, pré-renderização e sitemap;
 - `npm run lint`: permanece nas mesmas seis falhas TypeScript da base; nenhuma
   falha nova veio da V4.

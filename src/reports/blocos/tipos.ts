@@ -37,6 +37,7 @@ import type {
   Unidade,
   Valor,
 } from '../snapshot';
+import type { MimeAudioSuportado } from './audio-contrato';
 
 /* ------------------------------------------------------------------ */
 /* Escopo                                                              */
@@ -387,7 +388,7 @@ export type AudioRelatorio =
       estado: 'disponivel';
       /** `storage://relatorios-audios/...` no snapshot; URL assinada na resposta. */
       src: string;
-      mimeType: 'audio/mpeg' | 'audio/ogg' | 'audio/mp4' | 'audio/wav' | 'audio/webm';
+      mimeType: MimeAudioSuportado;
       /** Opcional porque nem todo encoder entrega duração no mesmo passo. */
       duracaoSegundos?: number;
     }
