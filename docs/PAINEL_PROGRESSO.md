@@ -19,11 +19,12 @@ da autorização do painel. Karyne v3 tem 8/8 cards e Aviarte v3 tem 30/30 com
 assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
 versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
 confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
-**Áudio privado publicado em 2026-08-09:** o merge `7591452` acrescentou o bloco
-genérico `AUDIO` e o resolvedor privado sem retomar a P3. A Vercel marcou o
-deployment de produção como concluído; domínio e deployment responderam 200, e
-a API sem sessão permaneceu fechada em 401. Não existe bucket, objeto, snapshot
-com áudio ou cliente habilitado.
+**Áudio privado publicado e provado em 2026-08-09:** o merge `7591452`
+acrescentou o bloco genérico `AUDIO` e o resolvedor privado sem retomar a P3. A
+Vercel marcou o deployment de produção como concluído; domínio e deployment
+responderam 200, e a API sem sessão permaneceu fechada em 401. O bucket privado
+e um relatório exclusivamente sintético foram criados para o smoke autenticado;
+nenhum cliente foi habilitado.
 **Última atualização:** 2026-08-09
 
 **Correção organizacional em validação na branch `codex/painel-carteiras-atualidade`:** a fila passa a separar **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. A produção continua no estado anterior até integração e publicação; P3 permanece intocada.
@@ -105,9 +106,15 @@ configurável `AUDIO`, estados disponível/indisponível, controles acessíveis 
 autoplay e assinatura server-side de URI privada do Storage. O caminho é
 isolado por cliente, competência e `v<versão>` vindos das colunas da linha; o
 snapshot não certifica a própria identidade. Contrato malformado é sanitizado
-antes da resposta e nunca monta player. Não cria bucket,
-não carrega snapshot, não ativa cliente e não antecipa a rota externa W3. Contrato,
+antes da resposta e nunca monta player. O bucket privado e o player foram
+provados em produção com um relatório exclusivamente sintético: uma única linha
+v2 e um único OGG permanecem isolados para inspeção; a v1 de teste foi removida
+depois de revelar codificação defeituosa no shell. Chrome desktop e 390 × 844
+mostraram controles, sem autoplay, erro ou overflow. Isso não ativa cliente,
+não carrega snapshot real e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
+
+**Botão destacado publicado em 2026-08-09:** o bloco ganhou **“Ouvir a versão falada”**, com alternância para pausa, `aria-controls`/`aria-pressed`, controles nativos mantidos e nenhum autoplay. `verifica:revisao` e o build completo passaram depois do merge `1e8f4ba`; a Vercel concluiu o deployment da `main`. O bundle servido por `www.dacora.com.br` contém o botão e `aria-pressed`, sem `autoplay`; raiz HTTP 200 e API sem sessão HTTP 401. A fábrica publicou também a v3 exclusivamente sintética com a voz autorizada da Fernanda. A inspeção visual autenticada da v3 ainda depende de uma sessão Google válida no navegador de QA; nenhuma credencial foi fabricada ou solicitada durante o deploy.
 
 ### Checkpoint visual publicado em 07/08/2026
 

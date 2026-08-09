@@ -1,3 +1,5 @@
+import { useRef, useState } from 'react';
+
 import type { AudioRelatorio } from './tipos';
 import { audioDisponivelTemContratoValido } from './audio-contrato';
 
@@ -10,6 +12,18 @@ function formatarDuracao(segundos: number | undefined) {
 }
 
 export default function BlocoAudioRelatorio({ audio }: { audio: AudioRelatorio }) {
+  const player = useRef<HTMLAudioElement>(null);
+  const [tocando, setTocando] = useState(false);
+
+  const alternarReproducao = async () => {
+    if (!player.current) return;
+    if (!player.current.paused) {
+      player.current.pause();
+      return;
+    }
+    await player.current.play().catch(() => setTocando(false));
+  };
+
   if (!audioDisponivelTemContratoValido(audio, 'navegador')) {
     const motivo = audio?.estado === 'indisponivel' && typeof audio.motivo === 'string' && audio.motivo.trim()
       ? audio.motivo
@@ -45,11 +59,27 @@ export default function BlocoAudioRelatorio({ audio }: { audio: AudioRelatorio }
         </div>
       </div>
 
+      <button
+        className="dc-audio__acao"
+        type="button"
+        onClick={alternarReproducao}
+        aria-controls={`audio-${audio.id}`}
+        aria-pressed={tocando}
+      >
+        <span aria-hidden="true">{tocando ? 'Ⅱ' : '▶'}</span>
+        {tocando ? 'Pausar versão falada' : 'Ouvir a versão falada'}
+      </button>
+
       <audio
+        id={`audio-${audio.id}`}
+        ref={player}
         className="dc-audio__player"
         controls
         preload="metadata"
         aria-label="Ouvir a leitura deste relatório"
+        onPlay={() => setTocando(true)}
+        onPause={() => setTocando(false)}
+        onEnded={() => setTocando(false)}
       >
         <source src={audio.src} type={audio.mimeType} />
         Seu navegador não consegue reproduzir este áudio. O conteúdo completo permanece escrito
