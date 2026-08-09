@@ -23,6 +23,7 @@ import B5SerieTemporal from './B5SerieTemporal';
 import B6QuebraPorDimensao from './B6QuebraPorDimensao';
 import B7Glossario from './B7Glossario';
 import B8ComentarioHumano from './B8ComentarioHumano';
+import BlocoAudioRelatorio from './BlocoAudioRelatorio';
 import BlocoIndisponivel from './BlocoIndisponivel';
 import type { BlocoConfigurado, DadosDeBloco } from './tipos';
 
@@ -111,6 +112,12 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
        */
       const comentario = ctx.dados.comentarios?.[config.comentario];
       return comentario ? <B8ComentarioHumano comentario={comentario} /> : null;
+    }
+
+    case 'AUDIO': {
+      const audio = ctx.dados.audios?.[config.audio];
+      if (!audio) return <DadoFaltando bloco="AUDIO" chave={config.audio} />;
+      return <BlocoAudioRelatorio audio={audio} />;
     }
   }
 }

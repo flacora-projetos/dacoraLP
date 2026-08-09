@@ -5,8 +5,12 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import handler, { montarRelatorioParaRevisao } from '../api/painel-relatorio.ts';
+import { resolverAudiosPrivados } from '../api/_audios-relatorio.ts';
 import { resolverMiniaturasPrivadas } from '../api/_miniaturas-relatorio.ts';
 import { RevisaoMoldura } from '../src/painel/RevisaoMoldura.tsx';
+import BlocoAudioRelatorio from '../src/reports/blocos/BlocoAudioRelatorio.tsx';
+import { renderizarBloco } from '../src/reports/blocos/catalogo.tsx';
+import type { BlocoAudio, DadosDeBloco } from '../src/reports/blocos/tipos.ts';
 import { criarChartTheme, preenchimentoBarra } from '../src/reports/charts/chartTheme.ts';
 import { nomePlataforma } from '../src/reports/componentes.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
@@ -46,6 +50,61 @@ assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum p
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
 
+const dadosVazios: DadosDeBloco = {
+  faixas: {},
+  tabelas: {},
+  evolucoesMensais: {},
+  rankingsCriativos: {},
+  quebras: {},
+};
+
+const configAudio: BlocoAudio = {
+  bloco: 'AUDIO',
+  id: 'ouvir-relatorio',
+  titulo: 'Ouvir este relatório',
+  apoio: 'O texto completo permanece na página.',
+  audio: 'leitura_completa',
+};
+
+{
+  const htmlDisponivel = renderToStaticMarkup(createElement(BlocoAudioRelatorio, {
+    audio: {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: 'https://exemplo.supabase.co/storage/assinado.mp3',
+      mimeType: 'audio/mpeg',
+      duracaoSegundos: 154,
+    },
+  }));
+  assert.match(htmlDisponivel, /<audio[^>]*controls=""[^>]*preload="metadata"/);
+  assert.ok(!htmlDisponivel.includes('autoplay'), 'o relatório nunca pode iniciar áudio sozinho');
+  assert.ok(htmlDisponivel.includes('Duração: 2:34'));
+  assert.ok(htmlDisponivel.includes('O áudio é complementar'));
+
+  const htmlIndisponivel = renderToStaticMarkup(createElement(BlocoAudioRelatorio, {
+    audio: {
+      id: 'leitura_completa',
+      estado: 'indisponivel',
+      motivo: 'A leitura ainda não foi gerada para esta versão.',
+    },
+  }));
+  assert.ok(htmlIndisponivel.includes('Leitura em áudio indisponível'));
+  assert.ok(htmlIndisponivel.includes('relatório escrito continua completo'));
+  assert.ok(!htmlIndisponivel.includes('<audio'));
+
+  const htmlAusente = renderToStaticMarkup(createElement(
+    'div',
+    null,
+    renderizarBloco(configAudio, {
+      dados: dadosVazios,
+      theme: criarChartTheme('B'),
+      rotulosPlataforma: {},
+    }),
+  ));
+  assert.ok(htmlAusente.includes('não existe neste relatório'));
+  assert.ok(htmlAusente.includes('erro de montagem'));
+}
+
 {
   const caminho = 'cliente_exemplo/2026-07/123/0123456789abcdef0123.jpg';
   const comMiniatura: any = structuredClone(conteudo);
@@ -82,6 +141,68 @@ assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
   );
   assert.equal(tentouAssinar, false, 'um relatório não pode assinar a imagem de outro cliente');
   assert.equal(recusado.dados.rankingsCriativos.ranking_meta.criativos[0].miniatura, null);
+}
+
+{
+  const caminho = 'cliente_exemplo/2026-07/relatorio-exemplo/0123456789abcdef0123456789abcdef.mp3';
+  const comAudio: any = structuredClone(conteudo);
+  comAudio.dados.audios = {
+    leitura_completa: {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: `storage://relatorios-audios/${caminho}`,
+      mimeType: 'audio/mpeg',
+      duracaoSegundos: 154,
+    },
+  };
+
+  const resolvido = await resolverAudiosPrivados(
+    comAudio,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { assinar: async caminhos => [{ path: caminhos[0], signedUrl: 'https://exemplo.supabase.co/storage/audio-assinado.mp3' }] },
+  );
+  assert.equal(
+    resolvido.dados.audios.leitura_completa.src,
+    'https://exemplo.supabase.co/storage/audio-assinado.mp3',
+  );
+  assert.equal(
+    comAudio.dados.audios.leitura_completa.src,
+    `storage://relatorios-audios/${caminho}`,
+    'assinar o áudio para o navegador não pode alterar o snapshot persistido',
+  );
+
+  const invasao = structuredClone(comAudio);
+  invasao.dados.audios.leitura_completa.src =
+    'storage://relatorios-audios/outro_cliente/2026-07/relatorio-exemplo/0123456789abcdef0123456789abcdef.mp3';
+  let tentouAssinar = false;
+  const recusado = await resolverAudiosPrivados(
+    invasao,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { assinar: async () => { tentouAssinar = true; return []; } },
+  );
+  assert.equal(tentouAssinar, false, 'um relatório não pode assinar o áudio de outro cliente');
+  assert.equal(recusado.dados.audios.leitura_completa.estado, 'indisponivel');
+  assert.equal(recusado.dados.audios.leitura_completa.src, undefined);
+
+  const outraVersao = structuredClone(comAudio);
+  outraVersao.dados.audios.leitura_completa.src =
+    'storage://relatorios-audios/cliente_exemplo/2026-07/outro-relatorio/0123456789abcdef0123456789abcdef.mp3';
+  const versaoRecusada = await resolverAudiosPrivados(
+    outraVersao,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { assinar: async () => { throw new Error('não deveria assinar outra versão'); } },
+  );
+  assert.equal(versaoRecusada.dados.audios.leitura_completa.estado, 'indisponivel');
+
+  const urlDuradoura = structuredClone(comAudio);
+  urlDuradoura.dados.audios.leitura_completa.src = 'https://privado.exemplo.com/audio.mp3';
+  const semPersistirUrl = await resolverAudiosPrivados(
+    urlDuradoura,
+    { clienteSlug: 'cliente_exemplo', competencia: '2026-07', relatorioId: 'relatorio-exemplo' },
+    { assinar: async () => { throw new Error('não deveria assinar URL pronta'); } },
+  );
+  assert.equal(semPersistirUrl.dados.audios.leitura_completa.estado, 'indisponivel');
+  assert.equal(semPersistirUrl.dados.audios.leitura_completa.src, undefined);
 }
 
 const tema = criarChartTheme('B');
@@ -232,4 +353,4 @@ const autorizada = {
 }
 
 globalThis.fetch = fetchOriginal;
-console.log('OK — revisão do painel: acesso fechado, snapshot carregado e decisões impossíveis sem conteúdo');
+console.log('OK — revisão do painel: acesso fechado, snapshot, miniaturas e áudio privado validados');

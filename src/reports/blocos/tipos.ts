@@ -366,6 +366,39 @@ export interface ComentarioHumano {
 }
 
 /* ------------------------------------------------------------------ */
+/* Áudio — leitura complementar do relatório                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Uma leitura em áudio do mesmo texto determinístico que sustenta a página.
+ *
+ * O caminho persistido é privado e estável (`storage://...`). O servidor o
+ * troca por uma URL assinada curta somente no envelope enviado ao navegador;
+ * credencial e URL temporária nunca entram no snapshot nem no build.
+ *
+ * O estado indisponível é dado, não falha visual: permite distinguir um
+ * relatório que ainda não recebeu áudio de um player quebrado ou de uma leitura
+ * que simplesmente sumiu. O texto do relatório continua completo nos dois
+ * estados — áudio é complemento, nunca substituição.
+ */
+export type AudioRelatorio =
+  | {
+      id: string;
+      estado: 'disponivel';
+      /** `storage://relatorios-audios/...` no snapshot; URL assinada na resposta. */
+      src: string;
+      mimeType: 'audio/mpeg' | 'audio/ogg' | 'audio/mp4' | 'audio/wav' | 'audio/webm';
+      /** Opcional porque nem todo encoder entrega duração no mesmo passo. */
+      duracaoSegundos?: number;
+    }
+  | {
+      id: string;
+      estado: 'indisponivel';
+      /** Motivo pronto para o cliente ler, sem detalhe de infraestrutura. */
+      motivo: string;
+    };
+
+/* ------------------------------------------------------------------ */
 /* A montagem                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -517,6 +550,16 @@ export interface BlocoB8 extends BlocoBase {
   comentario: string;
 }
 
+/**
+ * Leitura opcional do relatório. Não recebe número B9 porque B9–B11 já estão
+ * reservados no catálogo para as seções da Sant'Alberti.
+ */
+export interface BlocoAudio extends BlocoBase {
+  bloco: 'AUDIO';
+  /** Id em `dados.audios`. */
+  audio: string;
+}
+
 export type BlocoConfigurado =
   | BlocoB1
   | BlocoB2
@@ -525,7 +568,8 @@ export type BlocoConfigurado =
   | BlocoB5
   | BlocoB6
   | BlocoB7
-  | BlocoB8;
+  | BlocoB8
+  | BlocoAudio;
 
 export type BlocoId = BlocoConfigurado['bloco'];
 
@@ -551,6 +595,12 @@ export interface DadosDeBloco {
   series?: Record<string, Serie>;
   /** Ausente quando ninguém escreveu nada naquele mês. Não é falha. */
   comentarios?: Record<string, ComentarioHumano>;
+  /**
+   * Ausente quando a montagem não oferece leitura em áudio. Se a montagem
+   * pedir o bloco, o registro correspondente deve existir, inclusive quando
+   * seu estado for `indisponivel`.
+   */
+  audios?: Record<string, AudioRelatorio>;
 }
 
 /**
