@@ -1,8 +1,8 @@
 # Handoff — V4: áudio no relatório web
 
-**Repositório:** `dacoraLP`  
-**Branch:** `codex/voz-v4-audio-relatorio`  
-**Base:** `origin/main` em `2fcb9e5`  
+**Repositório:** `dacoraLP`
+**Branch:** `codex/voz-v4-audio-relatorio`
+**Base:** `origin/main` em `2fcb9e5`
 **Estado:** capacidade do portal implementada e validada localmente; não integrada e não publicada.
 
 ## O que esta fase entrega
@@ -124,4 +124,3 @@ regressão SSR; reprodução real depende do primeiro objeto de teste no bucket.
    banco foi tocado e nenhum deploy foi feito.
 5. A branch não deve ser enviada ao GitHub sem gate: este projeto cria preview
    automática por branch, e o push conta como publicação.
-
