@@ -61,7 +61,7 @@ const dadosVazios: DadosDeBloco = {
 const configAudio: BlocoAudio = {
   bloco: 'AUDIO',
   id: 'ouvir-relatorio',
-  titulo: 'Ouvir este relatório',
+  titulo: 'Ouvir a versão falada',
   apoio: 'O texto completo permanece na página.',
   audio: 'leitura_completa',
 };
@@ -77,6 +77,9 @@ const configAudio: BlocoAudio = {
     },
   }));
   assert.match(htmlDisponivel, /<audio[^>]*controls=""[^>]*preload="metadata"/);
+  assert.match(htmlDisponivel, /Ouvir a versão falada/);
+  assert.match(htmlDisponivel, /aria-controls="audio-leitura_completa"/);
+  assert.match(htmlDisponivel, /aria-pressed="false"/);
   assert.ok(!htmlDisponivel.includes('autoplay'), 'o relatório nunca pode iniciar áudio sozinho');
   assert.ok(htmlDisponivel.includes('Duração: 2:34'));
   assert.ok(htmlDisponivel.includes('O áudio é complementar'));

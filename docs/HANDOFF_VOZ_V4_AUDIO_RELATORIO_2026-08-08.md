@@ -3,7 +3,7 @@
 **Repositório:** `dacoraLP`
 **Branch de origem:** `codex/voz-v4-audio-relatorio`
 **Integração:** merge `7591452` na `main`
-**Estado:** capacidade do portal integrada, publicada e verificada em produção em 2026-08-09; nenhum relatório ou cliente foi ativado.
+**Estado:** capacidade base integrada e publicada em 2026-08-09; o botão destacado pedido depois pelo PO está implementado e validado somente nesta branch local, sem novo merge, push ou deploy. Nenhum relatório ou cliente foi ativado.
 
 ## O que esta fase entrega
 
@@ -11,8 +11,8 @@ O catálogo de relatórios ganhou um bloco genérico `AUDIO`. Ele é escolhido
 pela montagem como qualquer outro bloco e não conhece cliente, carteira ou tipo
 de relatório.
 
-Quando o áudio está disponível, a página mostra controles nativos e acessíveis,
-sem reprodução automática e com carregamento inicial limitado a metadados. A
+Quando o áudio está disponível, a página mostra o botão destacado **“Ouvir a versão falada”** e preserva os controles nativos e acessíveis,
+sem reprodução automática e com carregamento inicial limitado a metadados. O botão alterna reprodução e pausa, com estado exposto por `aria-controls` e `aria-pressed`. A
 página diz explicitamente que a leitura falada é complementar e que o texto
 continua sendo a versão conferível do relatório.
 
@@ -30,7 +30,7 @@ A montagem recebe uma entrada como esta:
 {
   "bloco": "AUDIO",
   "id": "ouvir-relatorio",
-  "titulo": "Ouvir este relatório",
+  "titulo": "Ouvir a versão falada",
   "apoio": "Leitura em áudio do mesmo conteúdo apresentado nesta página.",
   "audio": "leitura_completa"
 }
@@ -124,6 +124,8 @@ do objeto sintético. A URI permaneceu privada no snapshot e foi resolvida pela
 API autenticada para uma assinatura curta; nenhuma fixture ou URL assinada foi
 commitada.
 
+Depois da ressalva do PO, `npm run verifica:revisao` e o build completo passaram novamente com o botão destacado, alternância de reprodução/pausa e os controles nativos preservados. Essa segunda validação é local e não muda a evidência de produção abaixo.
+
 ## Evidência de produção — 2026-08-09
 
 - merge `7591452` enviado à `main`;
@@ -147,8 +149,10 @@ commitada.
 1. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
    revisão autenticada; quando a W3 existir, ela deve reaproveitar o mesmo
    resolvedor depois de validar o token do relatório.
-2. Nenhum relatório real foi alterado e nenhum cliente foi habilitado.
-3. A escolha nominal do primeiro cliente, o primeiro snapshot real e a primeira
+2. O botão destacado desta branch ainda precisa de autorização específica para merge/deploy.
+3. A v3 sintética com a voz autorizada da Fernanda ainda não existe; produção continua servindo somente a v2 sintética anterior.
+4. Nenhum relatório real foi alterado e nenhum cliente foi habilitado.
+5. A escolha nominal do primeiro cliente, o primeiro snapshot real e a primeira
    entrega continuam sob gates próprios.
-4. A linha e o objeto sintéticos v2 podem ser removidos depois da revisão; o
+6. A linha e o objeto sintéticos v2 podem ser removidos depois da revisão; o
    bucket privado deve permanecer para a operação futura.

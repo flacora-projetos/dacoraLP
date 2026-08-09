@@ -96,6 +96,8 @@ mostraram controles, sem autoplay, erro ou overflow. Isso não ativa cliente,
 não carrega snapshot real e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
 
+**Continuação local em 2026-08-09:** o bloco ganhou o botão destacado **“Ouvir a versão falada”**, com alternância para pausa, `aria-controls`/`aria-pressed`, controles nativos mantidos e nenhum autoplay. `verifica:revisao` e o build completo passaram. A mudança está apenas na branch `codex/voz-v4-storage-smoke`; não houve novo push, merge ou deploy, e a produção continua com o player base do merge `7591452` e somente a v2 sintética anterior.
+
 ### Checkpoint visual publicado em 07/08/2026
 
 A direção **Editorial de Performance** foi aplicada ao catálogo compartilhado,
