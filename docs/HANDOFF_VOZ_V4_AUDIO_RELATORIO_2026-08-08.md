@@ -1,9 +1,9 @@
 # Handoff — V4: áudio no relatório web
 
 **Repositório:** `dacoraLP`
-**Branch:** `codex/voz-v4-audio-relatorio`
-**Base:** `origin/main` em `2fcb9e5`
-**Estado:** capacidade do portal implementada e validada localmente; não integrada e não publicada.
+**Branch de origem:** `codex/voz-v4-audio-relatorio`
+**Integração:** merge `7591452` na `main`
+**Estado:** capacidade do portal integrada, publicada e verificada em produção em 2026-08-09; nenhum relatório ou cliente foi ativado.
 
 ## O que esta fase entrega
 
@@ -92,7 +92,7 @@ desconhecido, MIME incompatível com a extensão, duração inválida e registro
 `duracaoSegundos`. O componente repete a validação no navegador e só cria o
 player para contrato estritamente válido.
 
-O bucket esperado se chama `relatorios-audios`. Esta branch não cria bucket,
+O bucket esperado se chama `relatorios-audios`. Esta entrega não cria bucket,
 política ou objeto remoto: banco e Storage continuam sob gate separado.
 
 ## Arquivos principais
@@ -122,16 +122,24 @@ URL assinada duradoura e este checkout não usa credencial para fabricar uma
 durante a demonstração. A estrutura renderizada e o CSS foram exercitados pela
 regressão SSR; reprodução real depende do primeiro objeto de teste no bucket.
 
+## Evidência de produção — 2026-08-09
+
+- merge `7591452` enviado à `main`;
+- Vercel marcou o deployment de produção como `success`;
+- deployment imutável: `dacora-8o2e8lsiu-flavio-coras-projects.vercel.app`;
+- deployment e domínio `www.dacora.com.br`: HTTP 200 na raiz;
+- API `/api/painel-relatorio` sem sessão: HTTP 401 nos dois endereços, preservando acesso fechado;
+- `npm run verifica:revisao` e build completo passaram novamente já no tronco.
+
 ## Gates que continuam fechados
 
-1. A fábrica foi implementada separadamente no `OpenClaw-Dacora`, branch
-   `codex/voz-completa`. Ainda falta revisar e integrar as duas branches e provar
+1. A fábrica também foi integrada à `master` do `OpenClaw-Dacora`; falta provar
    o primeiro objeto somente depois da criação governada do Storage.
 2. O bucket privado `relatorios-audios` ainda não foi criado nem validado.
 3. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
    revisão autenticada; quando a W3 existir, ela deve reaproveitar o mesmo
    resolvedor depois de validar o token do relatório.
-4. Nenhum relatório real foi alterado, nenhum snapshot foi carregado, nenhum
-   banco foi tocado e nenhum deploy foi feito.
-5. A branch não deve ser enviada ao GitHub sem gate: este projeto cria preview
-   automática por branch, e o push conta como publicação.
+4. Nenhum relatório real foi alterado, nenhum snapshot foi carregado e nenhum
+   banco ou objeto de Storage foi tocado.
+5. Primeiro objeto sintético, reprodução autenticada e opt-in nominal continuam
+   sob gates próprios.

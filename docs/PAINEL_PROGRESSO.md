@@ -19,7 +19,12 @@ da autorização do painel. Karyne v3 tem 8/8 cards e Aviarte v3 tem 30/30 com
 assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
 versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
 confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
-**Última atualização:** 2026-08-08
+**Áudio privado publicado em 2026-08-09:** o merge `7591452` acrescentou o bloco
+genérico `AUDIO` e o resolvedor privado sem retomar a P3. A Vercel marcou o
+deployment de produção como concluído; domínio e deployment responderam 200, e
+a API sem sessão permaneceu fechada em 401. Não existe bucket, objeto, snapshot
+com áudio ou cliente habilitado.
+**Última atualização:** 2026-08-09
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
@@ -74,16 +79,16 @@ servidor; o segundo está corrigido e coberto pela regressão no checkpoint
 nomes clicáveis e repetiu o fluxo autenticado no celular. Os dois foram
 validados; integração e push foram autorizados na sequência.
 
-### Frente paralela de voz — V4 preparada sem tocar na P3
+### Frente de voz — V4 publicada sem tocar na P3
 
-A capacidade genérica de leitura em áudio foi implementada em worktree e
-branch separados, sem alterar o placeholder da P3. Ela acrescenta o bloco
+A capacidade genérica de leitura em áudio foi implementada separadamente e
+integrada à `main` pelo merge `7591452`, sem alterar o placeholder da P3. Ela acrescenta o bloco
 configurável `AUDIO`, estados disponível/indisponível, controles acessíveis sem
 autoplay e assinatura server-side de URI privada do Storage. O caminho é
 isolado por cliente, competência e `v<versão>` vindos das colunas da linha; o
 snapshot não certifica a própria identidade. Contrato malformado é sanitizado
 antes da resposta e nunca monta player. Não cria bucket,
-não carrega snapshot, não publica e não antecipa a rota externa W3. Contrato,
+não carrega snapshot, não ativa cliente e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
 
 ### Checkpoint visual publicado em 07/08/2026
