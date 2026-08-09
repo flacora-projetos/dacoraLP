@@ -19,11 +19,12 @@ da autorização do painel. Karyne v3 tem 8/8 cards e Aviarte v3 tem 30/30 com
 assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
 versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
 confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
-**Áudio privado publicado em 2026-08-09:** o merge `7591452` acrescentou o bloco
-genérico `AUDIO` e o resolvedor privado sem retomar a P3. A Vercel marcou o
-deployment de produção como concluído; domínio e deployment responderam 200, e
-a API sem sessão permaneceu fechada em 401. Não existe bucket, objeto, snapshot
-com áudio ou cliente habilitado.
+**Áudio privado publicado e provado em 2026-08-09:** o merge `7591452`
+acrescentou o bloco genérico `AUDIO` e o resolvedor privado sem retomar a P3. A
+Vercel marcou o deployment de produção como concluído; domínio e deployment
+responderam 200, e a API sem sessão permaneceu fechada em 401. O bucket privado
+e um relatório exclusivamente sintético foram criados para o smoke autenticado;
+nenhum cliente foi habilitado.
 **Última atualização:** 2026-08-09
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -87,9 +88,15 @@ configurável `AUDIO`, estados disponível/indisponível, controles acessíveis 
 autoplay e assinatura server-side de URI privada do Storage. O caminho é
 isolado por cliente, competência e `v<versão>` vindos das colunas da linha; o
 snapshot não certifica a própria identidade. Contrato malformado é sanitizado
-antes da resposta e nunca monta player. Não cria bucket,
-não carrega snapshot, não ativa cliente e não antecipa a rota externa W3. Contrato,
+antes da resposta e nunca monta player. O bucket privado e o player foram
+provados em produção com um relatório exclusivamente sintético: uma única linha
+v2 e um único OGG permanecem isolados para inspeção; a v1 de teste foi removida
+depois de revelar codificação defeituosa no shell. Chrome desktop e 390 × 844
+mostraram controles, sem autoplay, erro ou overflow. Isso não ativa cliente,
+não carrega snapshot real e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
+
+**Continuação local em 2026-08-09:** o bloco ganhou o botão destacado **“Ouvir a versão falada”**, com alternância para pausa, `aria-controls`/`aria-pressed`, controles nativos mantidos e nenhum autoplay. `verifica:revisao` e o build completo passaram. A mudança está apenas na branch `codex/voz-v4-storage-smoke`; não houve novo push, merge ou deploy, e a produção continua com o player base do merge `7591452` e somente a v2 sintética anterior.
 
 ### Checkpoint visual publicado em 07/08/2026
 

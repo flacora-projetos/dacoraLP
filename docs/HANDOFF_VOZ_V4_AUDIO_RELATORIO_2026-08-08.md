@@ -3,7 +3,7 @@
 **Repositório:** `dacoraLP`
 **Branch de origem:** `codex/voz-v4-audio-relatorio`
 **Integração:** merge `7591452` na `main`
-**Estado:** capacidade do portal integrada, publicada e verificada em produção em 2026-08-09; nenhum relatório ou cliente foi ativado.
+**Estado:** capacidade base integrada e publicada em 2026-08-09; o botão destacado pedido depois pelo PO está implementado e validado somente nesta branch local, sem novo merge, push ou deploy. Nenhum relatório ou cliente foi ativado.
 
 ## O que esta fase entrega
 
@@ -11,8 +11,8 @@ O catálogo de relatórios ganhou um bloco genérico `AUDIO`. Ele é escolhido
 pela montagem como qualquer outro bloco e não conhece cliente, carteira ou tipo
 de relatório.
 
-Quando o áudio está disponível, a página mostra controles nativos e acessíveis,
-sem reprodução automática e com carregamento inicial limitado a metadados. A
+Quando o áudio está disponível, a página mostra o botão destacado **“Ouvir a versão falada”** e preserva os controles nativos e acessíveis,
+sem reprodução automática e com carregamento inicial limitado a metadados. O botão alterna reprodução e pausa, com estado exposto por `aria-controls` e `aria-pressed`. A
 página diz explicitamente que a leitura falada é complementar e que o texto
 continua sendo a versão conferível do relatório.
 
@@ -30,7 +30,7 @@ A montagem recebe uma entrada como esta:
 {
   "bloco": "AUDIO",
   "id": "ouvir-relatorio",
-  "titulo": "Ouvir este relatório",
+  "titulo": "Ouvir a versão falada",
   "apoio": "Leitura em áudio do mesmo conteúdo apresentado nesta página.",
   "audio": "leitura_completa"
 }
@@ -92,8 +92,10 @@ desconhecido, MIME incompatível com a extensão, duração inválida e registro
 `duracaoSegundos`. O componente repete a validação no navegador e só cria o
 player para contrato estritamente válido.
 
-O bucket esperado se chama `relatorios-audios`. Esta entrega não cria bucket,
-política ou objeto remoto: banco e Storage continuam sob gate separado.
+O bucket esperado se chama `relatorios-audios`. Ele foi criado e validado em
+2026-08-09 como privado, limitado a 25 MiB e somente `audio/ogg`. O smoke
+operacional preserva um único objeto e uma única linha exclusivamente
+sintéticos; nenhum relatório de cliente foi alterado.
 
 ## Arquivos principais
 
@@ -117,10 +119,12 @@ política ou objeto remoto: banco e Storage continuam sob gate separado.
 - `npm run lint`: permanece nas mesmas seis falhas TypeScript da base; nenhuma
   falha nova veio da V4.
 
-Não houve smoke em navegador real porque nenhuma fixture pública pode conter
-URL assinada duradoura e este checkout não usa credencial para fabricar uma
-durante a demonstração. A estrutura renderizada e o CSS foram exercitados pela
-regressão SSR; reprodução real depende do primeiro objeto de teste no bucket.
+O primeiro smoke em navegador real foi concluído depois da criação governada
+do objeto sintético. A URI permaneceu privada no snapshot e foi resolvida pela
+API autenticada para uma assinatura curta; nenhuma fixture ou URL assinada foi
+commitada.
+
+Depois da ressalva do PO, `npm run verifica:revisao` e o build completo passaram novamente com o botão destacado, alternância de reprodução/pausa e os controles nativos preservados. Essa segunda validação é local e não muda a evidência de produção abaixo.
 
 ## Evidência de produção — 2026-08-09
 
@@ -130,16 +134,25 @@ regressão SSR; reprodução real depende do primeiro objeto de teste no bucket.
 - deployment e domínio `www.dacora.com.br`: HTTP 200 na raiz;
 - API `/api/painel-relatorio` sem sessão: HTTP 401 nos dois endereços, preservando acesso fechado;
 - `npm run verifica:revisao` e build completo passaram novamente já no tronco.
+- bucket `relatorios-audios`: `public: false`, limite 25 MiB e MIME
+  `audio/ogg`; acesso anônimo/público ao objeto recusado, listagem anônima vazia;
+- relatório sintético v2 `ce4ec080-9137-42d5-a9b0-ba71471ed5fc`, sem dado de
+  cliente, com um único objeto de 139.381 bytes e assinatura `OggS`;
+- revisão autenticada em Chrome desktop e 390 × 844: controles presentes,
+  `autoplay: false`, 0:00, `readyState: 4`, duração 34,7565 s, sem erro e sem
+  overflow horizontal;
+- a v1 sintética que revelou erro de codificação do shell foi removida com seu
+  objeto após o read-back da v2. A v2 permanece isolada para inspeção do PO.
 
 ## Gates que continuam fechados
 
-1. A fábrica também foi integrada à `master` do `OpenClaw-Dacora`; falta provar
-   o primeiro objeto somente depois da criação governada do Storage.
-2. O bucket privado `relatorios-audios` ainda não foi criado nem validado.
-3. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
+1. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
    revisão autenticada; quando a W3 existir, ela deve reaproveitar o mesmo
    resolvedor depois de validar o token do relatório.
-4. Nenhum relatório real foi alterado, nenhum snapshot foi carregado e nenhum
-   banco ou objeto de Storage foi tocado.
-5. Primeiro objeto sintético, reprodução autenticada e opt-in nominal continuam
-   sob gates próprios.
+2. O botão destacado desta branch ainda precisa de autorização específica para merge/deploy.
+3. A v3 sintética com a voz autorizada da Fernanda ainda não existe; produção continua servindo somente a v2 sintética anterior.
+4. Nenhum relatório real foi alterado e nenhum cliente foi habilitado.
+5. A escolha nominal do primeiro cliente, o primeiro snapshot real e a primeira
+   entrega continuam sob gates próprios.
+6. A linha e o objeto sintéticos v2 podem ser removidos depois da revisão; o
+   bucket privado deve permanecer para a operação futura.
