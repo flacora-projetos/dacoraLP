@@ -27,7 +27,7 @@ e um relatório exclusivamente sintético foram criados para o smoke autenticado
 nenhum cliente foi habilitado.
 **Última atualização:** 2026-08-09
 
-**Correção organizacional em validação na branch `codex/painel-carteiras-atualidade`:** a fila passa a separar **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. A produção continua no estado anterior até integração e publicação; P3 permanece intocada.
+**Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. O banco tem 78 versões da competência 2026-07; as 34 correntes são 19 Allgrotech e 15 Dácora, todas em `gerado`, sem áudio e sem aviso de coleta parcial. P3 permanece intocada.
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
@@ -51,18 +51,20 @@ dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
 relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
-checksum ou estado. A organização por carteira/produto está em validação na
-branch registrada acima. O Gate 3 da Fernanda continua aberto para Karyne e
+checksum ou estado. A organização por carteira/produto está em produção desde
+2026-08-09. O Gate 3 da Fernanda continua aberto para Karyne e
 Aviarte; P3 está pausada e não foi aprovada para integração (seção 7).
 
 ### Auditoria da fila corrente em 2026-08-09
 
-A leitura somente do banco encontrou 44 linhas, das quais 34 são as versões
+A leitura inicial do banco encontrou 44 linhas, das quais 34 eram as versões
 correntes de julho: 23 `small_cap`, cinco `ecommerce` e seis `servicos_leads`.
 Dez avisos de coleta parcial Meta eram falsos positivos do consumidor: os
 relatórios com várias conversões já publicavam cada resultado e cada ranking,
 mas a fonte ainda verificava o ranking único obsoleto. A correção pertence à
-fábrica no `OpenClaw-Dacora`.
+fábrica no `OpenClaw-Dacora`. Depois da carga, o banco passou a ter 78 versões;
+as 34 correntes não contêm aviso de coleta parcial nem mensagem de conversão
+pendente.
 
 Não existe correção de palavras-chave pendente: o conector já entrega a lista e
 a cobertura que dimensiona a diferença para o total da conta. Hannover e
