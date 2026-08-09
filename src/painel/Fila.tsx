@@ -45,6 +45,8 @@ interface ItemDaFila {
   id: string;
   clienteSlug: string;
   clienteNome: string;
+  carteira: 'DACORA' | 'ALLGROTECH' | 'NAO_IDENTIFICADA';
+  produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'NAO_IDENTIFICADO';
   competencia: string;
   versao: number;
   estado: EstadoNaTela;
@@ -207,6 +209,100 @@ function detalheDoResultado(item: ItemDaFila): string {
     partes.push('valor com casas decimais: a plataforma divide o crédito da conversão entre anúncios');
   }
   return partes.join(' · ');
+}
+
+function TabelaDeRelatorios({
+  titulo,
+  itens,
+  competencia,
+}: {
+  key?: string;
+  titulo: string;
+  itens: ItemDaFila[];
+  competencia: string;
+}) {
+  const idTitulo = `grupo-${titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\W+/g, '-').toLowerCase()}`;
+
+  return (
+    <section className="dcp-fila__grupo" aria-labelledby={idTitulo}>
+      <div className="dcp-fila__grupo-cabecalho">
+        <h2 id={idTitulo} className="dcp-fila__grupo-titulo">
+          {titulo}
+        </h2>
+        <span className="dcp-fila__grupo-contagem">{itens.length}</span>
+      </div>
+      <div className="dcp-fila__rolagem">
+        <table className="dcp-tabela">
+          <caption className="dcp-sr">
+            {titulo}, {formatarCompetencia(competencia)}, em ordem de atenção
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Cliente</th>
+              <th scope="col" className="dcp-tabela__secundaria">Estado</th>
+              <th scope="col" className="dcp-tabela__numero dcp-tabela__secundaria">Investimento</th>
+              <th scope="col" className="dcp-tabela__secundaria">Resultado</th>
+              <th scope="col">Sinais de atenção</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itens.map((item) => (
+              <tr key={item.id}>
+                <th scope="row" className="dcp-tabela__cliente">
+                  <Link
+                    to={`?relatorio=${encodeURIComponent(item.id)}`}
+                    className="dcp-tabela__abrir"
+                    aria-label={`Revisar o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
+                  >
+                    {item.clienteNome}
+                  </Link>
+                  {item.versao > 1 && <span className="dcp-tabela__versao">versão {item.versao}</span>}
+                  <span className="dcp-tabela__movel">
+                    <span className={`dcp-estado dcp-estado--${item.estado}`}>
+                      <span className="dcp-estado__forma" aria-hidden="true" />
+                      {textoDoEstado(item)}
+                    </span>
+                    <span className="dcp-tabela__movel-numeros">
+                      {textoDoInvestimento(item)} · {textoDoResultado(item)}
+                    </span>
+                  </span>
+                </th>
+                <td className="dcp-tabela__secundaria">
+                  <span className={`dcp-estado dcp-estado--${item.estado}`}>
+                    <span className="dcp-estado__forma" aria-hidden="true" />
+                    {textoDoEstado(item)}
+                  </span>
+                </td>
+                <td className="dcp-tabela__numero dcp-tabela__secundaria" title={detalheDoInvestimento(item)}>
+                  {textoDoInvestimento(item)}
+                </td>
+                <td className="dcp-tabela__secundaria" title={detalheDoResultado(item)}>
+                  {textoDoResultado(item)}
+                </td>
+                <td>
+                  {item.sinais.length === 0 ? (
+                    <span className="dcp-tabela__sem-sinal">sem sinal</span>
+                  ) : (
+                    <span className="dcp-etiquetas">
+                      {item.sinais.map((sinal, indice) => (
+                        <span
+                          key={`${sinal.tipo}-${indice}`}
+                          className={`dcp-etiqueta dcp-etiqueta--${sinal.tipo}`}
+                          title={sinal.detalhe}
+                        >
+                          {sinal.texto}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -403,6 +499,30 @@ function CorpoDaFila({
 
   const esperando = itens.filter((i) => i.estado === 'gerado').length;
   const comSinal = itens.filter((i) => i.sinais.length > 0).length;
+  const grupos = [
+    {
+      chave: 'externos-dacora',
+      titulo: 'Mensais externos · Carteira Dácora',
+      itens: itens.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'DACORA'),
+    },
+    {
+      chave: 'externos-allgrotech',
+      titulo: 'Mensais externos · Carteira Allgrotech',
+      itens: itens.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'ALLGROTECH'),
+    },
+    {
+      chave: 'internos-allgrotech',
+      titulo: 'Mensais internos · Allgrotech',
+      itens: itens.filter((item) => item.produto === 'mensal_interno_allgrotech'),
+    },
+    {
+      chave: 'nao-identificados',
+      titulo: 'Classificação pendente no snapshot',
+      itens: itens.filter(
+        (item) => item.produto === 'NAO_IDENTIFICADO' || item.carteira === 'NAO_IDENTIFICADA',
+      ),
+    },
+  ].filter((grupo) => grupo.itens.length > 0);
 
   return (
     <section className="dcp-fila">
@@ -443,104 +563,15 @@ function CorpoDaFila({
           </p>
         </div>
       ) : (
-        <div className="dcp-fila__rolagem">
-          <table className="dcp-tabela">
-            <caption className="dcp-sr">
-              Relatórios de {formatarCompetencia(competencia)}, ordenados pelo que precisa de mais
-              atenção
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Cliente</th>
-                <th scope="col" className="dcp-tabela__secundaria">
-                  Estado
-                </th>
-                <th scope="col" className="dcp-tabela__numero dcp-tabela__secundaria">
-                  Investimento
-                </th>
-                <th scope="col" className="dcp-tabela__secundaria">
-                  Resultado
-                </th>
-                <th scope="col">Sinais de atenção</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itens.map((item) => (
-                <tr key={item.id}>
-                  <th scope="row" className="dcp-tabela__cliente">
-                    <Link
-                      to={`?relatorio=${encodeURIComponent(item.id)}`}
-                      className="dcp-tabela__abrir"
-                      aria-label={`Revisar o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
-                    >
-                      {item.clienteNome}
-                    </Link>
-                    {item.versao > 1 && (
-                      <span className="dcp-tabela__versao">versão {item.versao}</span>
-                    )}
-                    {/*
-                      No celular, TRÊS colunas saem da grade — estado,
-                      investimento e resultado — e voltam aqui embaixo do nome.
-
-                      Medido, não estimado: em 375px a tabela precisava de
-                      517px e só cabiam 341, e o que ficava para fora era
-                      justamente a coluna de SINAIS. Ou seja, no aparelho em
-                      que a Fernanda revisa, a fila escondia exatamente a
-                      informação pela qual ela existe, atrás de uma rolagem
-                      lateral que ninguém adivinha. Com as três aqui, sobram
-                      cliente e sinais, que é o par que responde "preciso olhar
-                      este?".
-                    */}
-                    <span className="dcp-tabela__movel">
-                      <span className={`dcp-estado dcp-estado--${item.estado}`}>
-                        <span className="dcp-estado__forma" aria-hidden="true" />
-                        {textoDoEstado(item)}
-                      </span>
-                      <span className="dcp-tabela__movel-numeros">
-                        {textoDoInvestimento(item)} · {textoDoResultado(item)}
-                      </span>
-                    </span>
-                  </th>
-
-                  <td className="dcp-tabela__secundaria">
-                    <span className={`dcp-estado dcp-estado--${item.estado}`}>
-                      <span className="dcp-estado__forma" aria-hidden="true" />
-                      {textoDoEstado(item)}
-                    </span>
-                  </td>
-
-                  <td
-                    className="dcp-tabela__numero dcp-tabela__secundaria"
-                    title={detalheDoInvestimento(item)}
-                  >
-                    {textoDoInvestimento(item)}
-                  </td>
-
-                  <td className="dcp-tabela__secundaria" title={detalheDoResultado(item)}>
-                    {textoDoResultado(item)}
-                  </td>
-
-                  <td>
-                    {item.sinais.length === 0 ? (
-                      <span className="dcp-tabela__sem-sinal">sem sinal</span>
-                    ) : (
-                      <span className="dcp-etiquetas">
-                        {item.sinais.map((sinal, indice) => (
-                          <span
-                            key={`${sinal.tipo}-${indice}`}
-                            className={`dcp-etiqueta dcp-etiqueta--${sinal.tipo}`}
-                            title={sinal.detalhe}
-                          >
-                            {sinal.texto}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="dcp-fila__grupos">
+          {grupos.map((grupo) => (
+            <TabelaDeRelatorios
+              key={grupo.chave}
+              titulo={grupo.titulo}
+              itens={grupo.itens}
+              competencia={competencia}
+            />
+          ))}
         </div>
       )}
 

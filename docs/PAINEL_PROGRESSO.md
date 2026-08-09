@@ -26,6 +26,8 @@ a API sem sessão permaneceu fechada em 401. Não existe bucket, objeto, snapsho
 com áudio ou cliente habilitado.
 **Última atualização:** 2026-08-09
 
+**Correção organizacional em validação na branch `codex/painel-carteiras-atualidade`:** a fila passa a separar **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. A produção continua no estado anterior até integração e publicação; P3 permanece intocada.
+
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
 arquivo é o de continuidade:** ele diz o que existe, o que falta, e o que já
@@ -42,15 +44,31 @@ custou caro descobrir.
 
 ## 1. Situação em uma frase
 
-**A fila do mês está em produção, lendo do banco, com os dois relatórios reais
-dentro.** A P2 está concluída e publicada: a fila abre o relatório completo
+**A fila do mês está em produção, lendo do banco, com 34 relatórios correntes da
+competência 2026-07.** A P2 está concluída e publicada: a fila abre o relatório completo
 dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
 relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
-checksum ou estado. O próximo passo é o Gate 3 da Fernanda em Karyne e Aviarte;
-depois dele, a P3 é a próxima implementação, mas está pausada e não foi aprovada
-para integração (seção 7).
+checksum ou estado. A organização por carteira/produto está em validação na
+branch registrada acima. O Gate 3 da Fernanda continua aberto para Karyne e
+Aviarte; P3 está pausada e não foi aprovada para integração (seção 7).
+
+### Auditoria da fila corrente em 2026-08-09
+
+A leitura somente do banco encontrou 44 linhas, das quais 34 são as versões
+correntes de julho: 23 `small_cap`, cinco `ecommerce` e seis `servicos_leads`.
+Dez avisos de coleta parcial Meta eram falsos positivos do consumidor: os
+relatórios com várias conversões já publicavam cada resultado e cada ranking,
+mas a fonte ainda verificava o ranking único obsoleto. A correção pertence à
+fábrica no `OpenClaw-Dacora`.
+
+O aviso Google do Hannover é real: faltam paginação completa de palavras-chave
+e resultado por produto em Performance Max. Syntonics também não possui o
+resultado por produto. O handoff do conector está em
+`docs/HANDOFF_CONECTOR_GOOGLE_PAGINACAO_E_PRODUTOS_PMAX_2026-08-09.md` no
+`OpenClaw-Dacora`. Nenhum relatório mensal interno Allgrotech existe hoje; a
+seção correspondente só aparecerá quando snapshots desse produto existirem.
 
 ### Checkpoint integrado da P2
 
