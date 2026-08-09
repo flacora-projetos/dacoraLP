@@ -43,9 +43,8 @@ O registro disponível correspondente vive em `dados.audios`:
   "leitura_completa": {
     "id": "leitura_completa",
     "estado": "disponivel",
-    "src": "storage://relatorios-audios/cliente_slug/2026-07/v1/0123456789abcdef0123456789abcdef.mp3",
-    "mimeType": "audio/mpeg",
-    "duracaoSegundos": 154
+    "src": "storage://relatorios-audios/cliente_slug/2026-07/v1/0123456789abcdef0123456789abcdef.ogg",
+    "mimeType": "audio/ogg"
   }
 }
 ```
@@ -125,7 +124,9 @@ regressão SSR; reprodução real depende do primeiro objeto de teste no bucket.
 
 ## Gates que continuam fechados
 
-1. A fábrica ainda precisa gerar o arquivo, armazená-lo e preencher o contrato.
+1. A fábrica foi implementada separadamente no `OpenClaw-Dacora`, branch
+   `codex/voz-completa`. Ainda falta revisar e integrar as duas branches e provar
+   o primeiro objeto somente depois da criação governada do Storage.
 2. O bucket privado `relatorios-audios` ainda não foi criado nem validado.
 3. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
    revisão autenticada; quando a W3 existir, ela deve reaproveitar o mesmo
