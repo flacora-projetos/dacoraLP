@@ -64,10 +64,11 @@ relatórios com várias conversões já publicavam cada resultado e cada ranking
 mas a fonte ainda verificava o ranking único obsoleto. A correção pertence à
 fábrica no `OpenClaw-Dacora`.
 
-O aviso Google do Hannover é real: faltam paginação completa de palavras-chave
-e resultado por produto em Performance Max. Syntonics também não possui o
-resultado por produto. O handoff do conector está em
-`docs/HANDOFF_CONECTOR_GOOGLE_PAGINACAO_E_PRODUTOS_PMAX_2026-08-09.md` no
+Não existe correção de palavras-chave pendente: o conector já entrega a lista e
+a cobertura que dimensiona a diferença para o total da conta. Hannover e
+Syntonics continuam sem resultado por produto em Performance Max, mas o PO
+adiou essa ampliação em 2026-08-09 e ela não bloqueia esta publicação. O registro
+está em `docs/PENDENCIA_ADIADA_CONECTOR_GOOGLE_PRODUTOS_PMAX_2026-08-09.md` no
 `OpenClaw-Dacora`. Nenhum relatório mensal interno Allgrotech existe hoje; a
 seção correspondente só aparecerá quando snapshots desse produto existirem.
 
