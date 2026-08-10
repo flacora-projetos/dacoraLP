@@ -29,6 +29,7 @@ const RelatorioDemoZenun = lazy(() => import('./pages/RelatorioDemoZenun'));
  * pelo mesmo motivo das rotas de relatório.
  */
 const PainelRelatorios = lazy(() => import('./pages/PainelRelatorios'));
+const RelatorioPublico = lazy(() => import('./pages/RelatorioPublico'));
 
 export default function App() {
   return (
@@ -105,6 +106,14 @@ export default function App() {
         element={
           <Suspense fallback={<CarregandoPainel />}>
             <PainelRelatorios />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/relatorios/:token"
+        element={
+          <Suspense fallback={<CarregandoRelatorio />}>
+            <RelatorioPublico />
           </Suspense>
         }
       />

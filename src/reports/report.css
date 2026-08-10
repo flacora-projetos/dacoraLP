@@ -3257,3 +3257,19 @@
     content: '';
   }
 }
+/* Estado mínimo da rota externa antes de o documento estar disponível. */
+.dc-publico-estado {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #f4f1e9;
+  color: #173f34;
+}
+
+.dc-publico-estado > div {
+  width: min(34rem, 100%);
+  padding: 2rem;
+  border: 1px solid rgba(23, 63, 52, 0.16);
+  background: #fffdf8;
+}

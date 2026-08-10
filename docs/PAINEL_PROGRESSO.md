@@ -123,6 +123,15 @@ evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VO
 
 **Piloto real Karyne e checksum alinhado:** a v6 `c8103cb6-e7fe-48e3-a9c1-a34d92e5a075` foi carregada e lida de volta com checksum `e090c5abe85965a2810467977b34f5ac`, bloco `AUDIO` disponível e URI privada. A v5 permaneceu intacta e tem o mesmo checksum porque somente a representação opcional mudou. O carregador agora aplica a neutralização estreita da fábrica: remove do cálculo apenas `dados.audios` e blocos `AUDIO`; regressões provam que mudar um número ou acrescentar qualquer outro bloco continua alterando o checksum.
 
+**W3 externa implementada para o piloto da Karyne:** a rota
+`/relatorios/<token>` e a API server-side correspondente leem somente versão
+`liberado`, não revogada, não substituída e com o checksum do GO ainda atual.
+Token, UUID e sinais internos da bancada não voltam no JSON; miniaturas e áudio
+continuam privados e são assinados apenas na cópia de resposta. Página e API
+impõem `noindex`, `no-store` e `no-referrer`. `verifica:publico`,
+`verifica:revisao` e o build passaram; o deploy e o primeiro envio autorizado
+serão registrados no handoff operacional do OpenClaw.
+
 ### Checkpoint visual publicado em 07/08/2026
 
 A direção **Editorial de Performance** foi aplicada ao catálogo compartilhado,
