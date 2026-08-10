@@ -47,7 +47,7 @@ function resposta() {
   } as any;
 }
 
-async function chamar(token: string, linhas: any[], metodo = 'GET') {
+async function chamar(token: string, linhas: any[], metodo = 'GET', sufixo = '') {
   let urlConsultada = '';
   globalThis.fetch = (async (entrada: any) => {
     urlConsultada = String(entrada);
@@ -57,7 +57,10 @@ async function chamar(token: string, linhas: any[], metodo = 'GET') {
     });
   }) as typeof fetch;
   const res = resposta();
-  await handler({ method: metodo, query: { token } } as any, res);
+  await handler({
+    method: metodo,
+    url: `/api/relatorio-publico?token=${encodeURIComponent(token)}${sufixo}`,
+  } as any, res);
   return { ...res.ler(), urlConsultada };
 }
 
@@ -109,6 +112,10 @@ try {
   const invalido = await chamar('curto', [linha]);
   assert.equal(invalido.status, 404);
   assert.equal(invalido.urlConsultada, '', 'token inválido não pode consultar o banco');
+
+  const duplicado = await chamar(TOKEN, [linha], 'GET', `&token=${TOKEN}`);
+  assert.equal(duplicado.status, 404, 'dois tokens na URL precisam falhar fechado');
+  assert.equal(duplicado.urlConsultada, '', 'token ambiguo nao pode consultar o banco');
 
   const metodo = await chamar(TOKEN, [linha], 'POST');
   assert.equal(metodo.status, 405);

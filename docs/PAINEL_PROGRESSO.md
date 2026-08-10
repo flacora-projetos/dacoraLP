@@ -136,10 +136,10 @@ foi confirmada e a reexecução ficou deduplicada. Recibo, migrações e evidên
 sanitizada estão no handoff operacional do OpenClaw.
 
 O primeiro request real da rota pública também expôs um aviso legado de
-`url.parse()` dentro do cliente Supabase usado para assinar Storage. O caminho
-de miniaturas e áudio passou a chamar diretamente a API privada por `fetch` e
-montar a URL com `new URL`, mantendo o mesmo contrato de uma hora sem carregar
-o cliente de autenticação nessa função server-side.
+`url.parse()`. A assinatura de miniaturas e áudio passou a chamar diretamente a
+API privada por `fetch`, e a própria rota deixou de consultar `req.query`, que
+acionava o parser legado do adaptador Express: ambos os caminhos agora usam a
+API WHATWG `URL`. O contrato privado de uma hora permanece o mesmo.
 
 ### Checkpoint visual publicado em 07/08/2026
 
