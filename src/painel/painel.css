@@ -1152,3 +1152,291 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* =====================================================================
+   Visão geral da operação (fase D2)
+
+   Mesma paleta, mesma tipografia e a mesma densidade de ferramenta do
+   resto do painel. Nenhum token novo, nenhuma fonte nova, nenhum
+   gradiente, nenhum ícone decorativo e nenhum movimento novo — a direção
+   Editorial de Performance vale aqui como vale no relatório.
+
+   A régua e o número grande fazem a hierarquia; a cor só reforça. Quem
+   ler isto impresso, em preto e branco ou com daltonismo continua
+   distinguindo tudo, porque nada é dito só por cor.
+   ===================================================================== */
+
+/* ---------- Abas ------------------------------------------------------ */
+
+.dcp-abas {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 1.1rem;
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dcp-abas__item {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--dc-cinza);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.dcp-abas__item:hover {
+  color: var(--dc-tinta);
+}
+
+/* A aba ativa é dita por peso, cor E régua — três sinais, não só um. */
+.dcp-abas__item--ativa {
+  color: var(--dc-verde);
+  font-weight: 700;
+  border-bottom-color: var(--dc-verde);
+}
+
+/* ---------- Filtros ativos -------------------------------------------- */
+
+.dcp-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+}
+
+.dcp-filtros__rotulo {
+  font-size: 0.8rem;
+  color: var(--dc-cinza);
+}
+
+.dcp-filtros__chip {
+  appearance: none;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--dc-verde);
+  background: rgba(1, 64, 41, 0.06);
+  border: 1px solid rgba(1, 64, 41, 0.22);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.dcp-filtros__chip:hover {
+  background: rgba(1, 64, 41, 0.12);
+}
+
+/* ---------- Indicadores ----------------------------------------------- */
+
+.dcp-visao__intro,
+.dcp-visao__rodape {
+  margin: 0 0 1.2rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--dc-cinza);
+  max-width: 76ch;
+}
+
+.dcp-visao__rodape {
+  margin: 1.5rem 0 0;
+  font-size: 0.8rem;
+}
+
+.dcp-visao__indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.6rem;
+}
+
+.dcp-indicador {
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* A régua da esquerda é a assinatura editorial do sistema. */
+  border-left: 3px solid var(--dc-verde);
+}
+
+.dcp-indicador--atencao {
+  border-left-color: var(--dc-sinal);
+}
+
+.dcp-indicador__valor {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--dc-verde);
+  /* Tabular: dois cartões lado a lado alinham os dígitos. */
+  font-variant-numeric: tabular-nums;
+}
+
+.dcp-indicador--atencao .dcp-indicador__valor {
+  color: var(--dc-sinal);
+}
+
+.dcp-indicador__rotulo {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dc-tinta);
+}
+
+.dcp-indicador__apoio {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+  margin-top: 0.2rem;
+}
+
+/* ---------- Distribuições --------------------------------------------- */
+
+.dcp-visao__blocos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.dcp-distribuicao {
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.dcp-distribuicao__titulo {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--dc-tinta);
+}
+
+.dcp-distribuicao__explicacao {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+}
+
+.dcp-distribuicao__lista {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* Cada fatia é um botão que leva à fila filtrada — por isso ela tem alvo
+   confortável e foco visível, e não é um texto com onClick. */
+.dcp-fatia {
+  appearance: none;
+  background: none;
+  border: 0;
+  width: 100%;
+  padding: 0.4rem 0.35rem;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.1rem 0.6rem;
+  align-items: baseline;
+  text-align: left;
+  min-height: 44px;
+}
+
+.dcp-fatia:hover {
+  background: rgba(1, 64, 41, 0.05);
+}
+
+.dcp-fatia__rotulo {
+  font-size: 0.85rem;
+  color: var(--dc-tinta);
+}
+
+.dcp-fatia__numero {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--dc-verde);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A barra acompanha o número; ela nunca substitui o número, porque
+   estimar a olho o que já está escrito ao lado não ajuda ninguém. */
+.dcp-fatia__trilho {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(13, 31, 24, 0.08);
+  overflow: hidden;
+}
+
+.dcp-fatia__barra {
+  display: block;
+  height: 100%;
+  background: var(--dc-verde-medio);
+  border-radius: 2px;
+}
+
+/* ---------- Retrabalho ------------------------------------------------ */
+
+.dcp-retrabalho {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--dc-tinta);
+}
+
+.dcp-retrabalho strong {
+  font-weight: 700;
+  color: var(--dc-verde);
+  font-variant-numeric: tabular-nums;
+}
+
+.dcp-retrabalho__extremo {
+  font-size: 0.8rem;
+  color: var(--dc-cinza);
+  border-top: 1px solid var(--dc-filete);
+  padding-top: 0.5rem;
+}
+
+.dcp-retrabalho__extremo strong {
+  color: var(--dc-tinta);
+}
+
+/* ---------- Celular --------------------------------------------------- */
+
+@media (max-width: 560px) {
+  .dcp-visao__indicadores,
+  .dcp-visao__blocos {
+    grid-template-columns: 1fr;
+  }
+
+  .dcp-indicador__valor {
+    font-size: 1.75rem;
+  }
+
+  /* A aba não pode rolar de lado nem quebrar em duas linhas: são duas. */
+  .dcp-abas__item {
+    flex: 1;
+    text-align: center;
+    padding-inline: 0.5rem;
+  }
+}

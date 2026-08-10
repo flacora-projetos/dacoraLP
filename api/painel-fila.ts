@@ -32,6 +32,7 @@ import type { Request, Response } from 'express';
 // extensão sozinho. Sem ela, todo pedido responde 500 só depois de publicado.
 import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarFila, type LinhaDoBanco } from './_painel-fila-dados.js';
+import { montarVisaoGeral } from './_painel-visao-geral-dados.js';
 
 /** As colunas que a fila lê. `token` e `conteudo` completo à parte — ver abaixo. */
 const COLUNAS = [
@@ -139,7 +140,24 @@ export default async function handler(req: Request, res: Response) {
     }
 
     const linhas = (await respostaLinhas.json()) as LinhaDoBanco[];
-    return res.status(200).json({ competencia, competencias, itens: montarFila(linhas) });
+
+    /* A visão geral sai da MESMA leitura, de propósito.
+     *
+     * Um endpoint separado significaria uma segunda consulta de ~2 MB ao
+     * Supabase, uma segunda porta de autorização para manter em dia e — o pior
+     * — dois retratos tirados em momentos diferentes. Uma carga entrando entre
+     * as duas chamadas faria o resumo dizer 34 e a fila mostrar 35, sem nada
+     * parecer errado em lugar nenhum.
+     *
+     * As linhas COMPLETAS vão para a visão geral, não só as correntes: o
+     * retrabalho é justamente o que a fila descarta.
+     */
+    return res.status(200).json({
+      competencia,
+      competencias,
+      itens: montarFila(linhas),
+      visaoGeral: montarVisaoGeral(linhas, competencia, new Date().toISOString()),
+    });
   } catch (err) {
     console.error('[painel-fila] Falha ao ler os relatórios:', err instanceof Error ? err.message : err);
     return res.status(502).json({
