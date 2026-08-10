@@ -129,8 +129,11 @@ evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VO
 Token, UUID e sinais internos da bancada não voltam no JSON; miniaturas e áudio
 continuam privados e são assinados apenas na cópia de resposta. Página e API
 impõem `noindex`, `no-store` e `no-referrer`. `verifica:publico`,
-`verifica:revisao` e o build passaram; o deploy e o primeiro envio autorizado
-serão registrados no handoff operacional do OpenClaw.
+`verifica:revisao` e o build passaram. O merge `59c34dc` entrou em produção no
+deployment `dpl_4kVJrSfCBDrKumY7aPYf5nW1NdTj`; o token real ficou bloqueado
+antes do GO e abriu depois dele com áudio assinado. A primeira entrega à Karyne
+foi confirmada e a reexecução ficou deduplicada. Recibo, migrações e evidência
+sanitizada estão no handoff operacional do OpenClaw.
 
 ### Checkpoint visual publicado em 07/08/2026
 
