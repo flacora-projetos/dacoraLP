@@ -23,8 +23,10 @@ confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
 acrescentou o bloco genérico `AUDIO` e o resolvedor privado sem retomar a P3. A
 Vercel marcou o deployment de produção como concluído; domínio e deployment
 responderam 200, e a API sem sessão permaneceu fechada em 401. O bucket privado
-e um relatório exclusivamente sintético foram criados para o smoke autenticado;
-nenhum cliente foi habilitado.
+e relatórios exclusivamente sintéticos foram criados para o smoke autenticado.
+Depois disso, Karyne virou o primeiro opt-in real: a versão 6 de julho foi
+gravada como nova linha com áudio privado, preservando integralmente as versões
+1–5. Isso não habilitou envio nem retomou a P3.
 **Última atualização:** 2026-08-09
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
@@ -97,6 +99,8 @@ não carrega snapshot real e não antecipa a rota externa W3. Contrato,
 evidências e gates: [`HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md`](HANDOFF_VOZ_V4_AUDIO_RELATORIO_2026-08-08.md).
 
 **Botão destacado publicado em 2026-08-09:** o bloco ganhou **“Ouvir a versão falada”**, com alternância para pausa, `aria-controls`/`aria-pressed`, controles nativos mantidos e nenhum autoplay. `verifica:revisao` e o build completo passaram depois do merge `1e8f4ba`; a Vercel concluiu o deployment da `main`. O bundle servido por `www.dacora.com.br` contém o botão e `aria-pressed`, sem `autoplay`; raiz HTTP 200 e API sem sessão HTTP 401. A fábrica publicou também a v3 exclusivamente sintética com a voz autorizada da Fernanda. A inspeção visual autenticada da v3 ainda depende de uma sessão Google válida no navegador de QA; nenhuma credencial foi fabricada ou solicitada durante o deploy.
+
+**Piloto real Karyne e checksum alinhado:** a v6 `c8103cb6-e7fe-48e3-a9c1-a34d92e5a075` foi carregada e lida de volta com checksum `e090c5abe85965a2810467977b34f5ac`, bloco `AUDIO` disponível e URI privada. A v5 permaneceu intacta e tem o mesmo checksum porque somente a representação opcional mudou. O carregador agora aplica a neutralização estreita da fábrica: remove do cálculo apenas `dados.audios` e blocos `AUDIO`; regressões provam que mudar um número ou acrescentar qualquer outro bloco continua alterando o checksum.
 
 ### Checkpoint visual publicado em 07/08/2026
 

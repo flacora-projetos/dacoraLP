@@ -3,7 +3,7 @@
 **Repositório:** `dacoraLP`
 **Branch de origem:** `codex/voz-v4-audio-relatorio`
 **Integração:** merge base `7591452`; botão destacado no merge `1e8f4ba` da `main`
-**Estado:** capacidade e botão destacado publicados em 2026-08-09. Nenhum relatório ou cliente foi ativado.
+**Estado:** capacidade e botão destacado publicados em 2026-08-09. Karyne é o primeiro opt-in mensal real; a v6 de julho está carregada, sem envio de WhatsApp.
 
 ## O que esta fase entrega
 
@@ -31,7 +31,7 @@ A montagem recebe uma entrada como esta:
   "bloco": "AUDIO",
   "id": "ouvir-relatorio",
   "titulo": "Ouvir a versão falada",
-  "apoio": "Leitura em áudio do mesmo conteúdo apresentado nesta página.",
+  "apoio": "Resumo falado dos principais resultados, alertas e próximos passos desta página.",
   "audio": "leitura_completa"
 }
 ```
@@ -62,10 +62,10 @@ bloco e envia o estado honesto:
 }
 ```
 
-O áudio deve ser gerado do texto determinístico do próprio relatório. Ele nunca
-substitui esse texto e nunca recebe prosa paralela criada especialmente para a
-voz. O arquivo precisa ser imutável e o nome final deve conter um digest
-hexadecimal de 20 a 64 caracteres.
+O áudio deve ser gerado da leitura editorial determinística do próprio
+relatório: resumo executivo, destaques, alertas e próximos passos. Ele nunca
+substitui a página nem recebe prosa paralela de LLM. O arquivo precisa ser
+imutável e o nome final deve conter um digest hexadecimal de 20 a 64 caracteres.
 
 ## Armazenamento e acesso
 
@@ -143,15 +143,22 @@ Depois da ressalva do PO, `npm run verifica:revisao` e o build completo passaram
   overflow horizontal;
 - a v1 sintética que revelou erro de codificação do shell foi removida com seu
   objeto após o read-back da v2. A v2 permanece isolada para inspeção do PO.
+- Karyne v6: linha `c8103cb6-e7fe-48e3-a9c1-a34d92e5a075`, checksum
+  `e090c5abe85965a2810467977b34f5ac`, 15 blocos e URI privada
+  `storage://relatorios-audios/karyne_magalhaes/2026-07/v6/ab9bfba45e963e0234e4a7c4624368e8227ec10d1a842991f55ecbdbf0b18fed.ogg`;
+- objeto real: 556.624 bytes, MIME `audio/ogg`, bucket privado; rota pública
+  recusada. A v5 continua intacta, sem áudio e com o mesmo checksum;
+- o carregador compartilha o contrato de checksum audio-neutral da fábrica.
+  A verificação cobre neutralidade de `AUDIO` e sensibilidade a número e bloco
+  não-AUDIO.
 
 ## Gates que continuam fechados
 
 1. O portal ainda não tem a rota externa W3 por token. A V4 funciona hoje na
    revisão autenticada; quando a W3 existir, ela deve reaproveitar o mesmo
    resolvedor depois de validar o token do relatório.
-2. A v3 sintética com a voz autorizada da Fernanda existe no Storage privado; falta somente repetir a inspeção visual autenticada quando houver sessão Google válida no navegador de QA.
-3. Nenhum relatório real foi alterado e nenhum cliente foi habilitado.
-4. A escolha nominal do primeiro cliente, o primeiro snapshot real e a primeira
-   entrega continuam sob gates próprios.
+2. Falta revisar visualmente e ouvir a v6 real da Karyne na sessão autenticada.
+3. A primeira entrega continua sob gate próprio; o piloto não envia WhatsApp.
+4. Qualquer novo cliente exige opt-in nominal próprio.
 5. As linhas e objetos sintéticos v2/v3 podem ser removidos por ID e caminho exatos depois da auditoria; o
    bucket privado deve permanecer para a operação futura.

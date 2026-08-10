@@ -25,11 +25,12 @@
  * gravado e compara com a que veio no arquivo. Se divergirem, o que seria
  * gravado não é o que foi apurado, e aí gravar é pior que falhar.
  */
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import { checksumDoConteudo } from './checksum-relatorio.mts';
 
 // Mesma ordem do `server.ts`: `.env.local` primeiro, porque `dotenv` sozinho lê
 // só `.env` e `.env.local` é convenção do Vite. Quem vem antes ganha.
@@ -105,19 +106,7 @@ if (!publicacao?.checksum) {
  *
  * É também exatamente o objeto que o checksum cobre, conferido abaixo.
  */
-function checksumDe(alvo: Record<string, any>): string {
-  // O `coletadoEm` de cada fonte sai antes da conta — é o que a fábrica faz, e
-  // pelo mesmo motivo: com ele dentro, duas gerações do mesmo mês com os mesmos
-  // números dariam checksums diferentes, e o checksum passaria a responder "foi
-  // gerado noutro instante?" em vez de "o relatório mudou?".
-  const semCarimbo = {
-    ...alvo,
-    fontes: (alvo.fontes ?? []).map(({ coletadoEm, ...resto }: any) => resto),
-  };
-  return createHash('sha256').update(JSON.stringify(semCarimbo)).digest('hex').slice(0, 32);
-}
-
-const checksumRecalculado = checksumDe(conteudo);
+const checksumRecalculado = checksumDoConteudo(conteudo);
 if (checksumRecalculado !== publicacao.checksum) {
   morrer(
     'O checksum do arquivo não bate com o conteúdo dele.\n\n' +

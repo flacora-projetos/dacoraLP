@@ -14,6 +14,7 @@ import type { BlocoAudio, DadosDeBloco } from '../src/reports/blocos/tipos.ts';
 import { criarChartTheme, preenchimentoBarra } from '../src/reports/charts/chartTheme.ts';
 import { nomePlataforma } from '../src/reports/componentes.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
+import { checksumDoConteudo } from './checksum-relatorio.mts';
 
 const ID = '11111111-1111-4111-8111-111111111111';
 const { publicacao: _publicacao, ...conteudoDaFixture } = karyneMontada202607;
@@ -43,6 +44,45 @@ const linha = {
   substituido_por: null,
   conteudo,
 };
+
+{
+  const base: any = structuredClone(conteudo);
+  const comAudio: any = structuredClone(base);
+  comAudio.montagem = [
+    { bloco: 'AUDIO', id: 'ouvir-relatorio', audio: 'leitura_completa' },
+    ...comAudio.montagem,
+  ];
+  comAudio.dados.audios = {
+    leitura_completa: {
+      id: 'leitura_completa',
+      estado: 'disponivel',
+      src: 'storage://relatorios-audios/cliente_exemplo/2026-07/v1/exemplo.ogg',
+      mimeType: 'audio/ogg',
+    },
+  };
+
+  assert.equal(
+    checksumDoConteudo(comAudio),
+    checksumDoConteudo(base),
+    'a representação opcional de áudio não pode mudar o checksum das afirmações',
+  );
+
+  const numeroAlterado: any = structuredClone(comAudio);
+  numeroAlterado.dados.faixas.faixa_meta.metricas[0].valor.valor = 123456;
+  assert.notEqual(
+    checksumDoConteudo(numeroAlterado),
+    checksumDoConteudo(comAudio),
+    'um número do relatório precisa continuar mudando o checksum',
+  );
+
+  const blocoDesconhecido: any = structuredClone(comAudio);
+  blocoDesconhecido.montagem.push({ bloco: 'FUTURO', id: 'nao-neutralizar' });
+  assert.notEqual(
+    checksumDoConteudo(blocoDesconhecido),
+    checksumDoConteudo(comAudio),
+    'a neutralização deve ser estreita e exclusiva do bloco AUDIO',
+  );
+}
 
 const relatorio = montarRelatorioParaRevisao(linha);
 assert.ok(relatorio, 'a linha válida precisa montar a revisão');
