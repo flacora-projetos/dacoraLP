@@ -19,6 +19,11 @@ import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import { usarPainelAuth } from './AuthContext';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
+import VisaoGeral, {
+  type CampoDeFiltro,
+  type DadosDaVisaoGeral,
+  type Filtros,
+} from './VisaoGeral';
 
 /* ------------------------------------------------------------------ */
 /* O que o servidor devolve                                            */
@@ -47,6 +52,8 @@ interface ItemDaFila {
   clienteNome: string;
   carteira: 'DACORA' | 'ALLGROTECH' | 'NAO_IDENTIFICADA';
   produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'NAO_IDENTIFICADO';
+  /** `small_cap`, `ecommerce`, `servicos_leads` — ou `null` se o snapshot não declara. */
+  formato: string | null;
   competencia: string;
   versao: number;
   estado: EstadoNaTela;
@@ -65,6 +72,75 @@ interface RespostaFila {
   competencia: string | null;
   competencias: string[];
   itens: ItemDaFila[];
+  /**
+   * O resumo da operação, calculado no mesmo pedido.
+   *
+   * Opcional no tipo de propósito: as regressões que desenham a tabela montam
+   * respostas sem ele, e uma resposta antiga em cache também não o tem. A aba
+   * de visão geral some quando ele falta, em vez de a tela quebrar.
+   */
+  visaoGeral?: DadosDaVisaoGeral;
+}
+
+/* ------------------------------------------------------------------ */
+/* Abas e filtros                                                      */
+/* ------------------------------------------------------------------ */
+
+type Aba = 'visao-geral' | 'fila';
+
+/**
+ * Aplica os filtros escolhidos.
+ *
+ * Os nomes das chaves são os mesmos que a visão geral usa nas fatias, e não
+ * por acaso: é o que faz clicar num número levar exatamente àquele conjunto,
+ * sem tradução no meio para alguém errar depois.
+ *
+ * `sinal` é o único que não compara igualdade: um relatório entra se **tem**
+ * aquele tipo de sinal, entre os vários que pode ter.
+ */
+function aplicarFiltros(itens: ItemDaFila[], filtros: Filtros): ItemDaFila[] {
+  return itens.filter((item) => {
+    if (filtros.carteira && item.carteira !== filtros.carteira) return false;
+    if (filtros.produto && item.produto !== filtros.produto) return false;
+    if (filtros.formato && (item.formato ?? 'NAO_DECLARADO') !== filtros.formato) return false;
+    if (filtros.estado && item.estado !== filtros.estado) return false;
+    if (filtros.sinal && !item.sinais.some((sinal) => sinal.tipo === filtros.sinal)) return false;
+    return true;
+  });
+}
+
+/** Como cada filtro ativo aparece escrito na tela. */
+const ROTULO_DO_FILTRO: Record<CampoDeFiltro, string> = {
+  carteira: 'Carteira',
+  produto: 'Finalidade',
+  formato: 'Formato',
+  estado: 'Estado',
+  sinal: 'Sinal',
+};
+
+/**
+ * O texto do valor filtrado sai da PRÓPRIA visão geral, e não de um segundo
+ * dicionário aqui.
+ *
+ * Dois dicionários para os mesmos rótulos é como a tela passaria a chamar a
+ * mesma coisa por dois nomes conforme o lugar — e ninguém percebe até um
+ * cliente perguntar.
+ */
+function rotuloDoValor(
+  campo: CampoDeFiltro,
+  valor: string,
+  visaoGeral: DadosDaVisaoGeral | undefined,
+): string {
+  const fatias = visaoGeral
+    ? {
+        carteira: visaoGeral.cobertura.porCarteira,
+        produto: visaoGeral.cobertura.porProduto,
+        formato: visaoGeral.cobertura.porFormato,
+        estado: visaoGeral.fila.porEstado,
+        sinal: visaoGeral.qualidade.porTipo,
+      }[campo]
+    : [];
+  return fatias.find((fatia) => fatia.chave === valor)?.rotulo ?? valor;
 }
 
 /* ------------------------------------------------------------------ */
@@ -478,6 +554,25 @@ function CorpoDaFila({
   const competencias = dados?.competencias ?? [];
   const competencia = dados?.competencia ?? null;
   const itens = dados?.itens ?? [];
+  const visaoGeral = dados?.visaoGeral;
+
+  /* Os dois estados de navegação ficam ANTES do primeiro `return`, porque
+     hook não pode ser chamado depois de uma saída antecipada. */
+  const [aba, setAba] = useState<Aba>(visaoGeral ? 'visao-geral' : 'fila');
+  const [filtros, setFiltros] = useState<Filtros>({});
+
+  /**
+   * Clicar num número da visão geral SUBSTITUI os filtros, não acumula.
+   *
+   * Se acumulasse, o número clicado e a quantidade de linhas que aparecem na
+   * fila passariam a discordar — a pessoa clicaria em "19 Allgrotech" e veria
+   * 4 linhas, porque um filtro de estado continuava ligado de antes. O painel
+   * estaria mentindo sem errar uma conta sequer.
+   */
+  const filtrarEIrParaFila = (novos: Filtros) => {
+    setFiltros(novos);
+    setAba('fila');
+  };
 
   /* Nenhum relatório em lugar nenhum. Não é erro, e não pode virar tabela
      vazia: quem vê uma tabela sem linhas procura defeito onde não há. */
@@ -497,28 +592,31 @@ function CorpoDaFila({
     );
   }
 
-  const esperando = itens.filter((i) => i.estado === 'gerado').length;
-  const comSinal = itens.filter((i) => i.sinais.length > 0).length;
+  const visiveis = aplicarFiltros(itens, filtros);
+  const filtrando = Object.keys(filtros).length > 0;
+
+  const esperando = visiveis.filter((i) => i.estado === 'gerado').length;
+  const comSinal = visiveis.filter((i) => i.sinais.length > 0).length;
   const grupos = [
     {
       chave: 'externos-dacora',
       titulo: 'Mensais externos · Carteira Dácora',
-      itens: itens.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'DACORA'),
+      itens: visiveis.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'DACORA'),
     },
     {
       chave: 'externos-allgrotech',
       titulo: 'Mensais externos · Carteira Allgrotech',
-      itens: itens.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'ALLGROTECH'),
+      itens: visiveis.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'ALLGROTECH'),
     },
     {
       chave: 'internos-allgrotech',
       titulo: 'Mensais internos · Allgrotech',
-      itens: itens.filter((item) => item.produto === 'mensal_interno_allgrotech'),
+      itens: visiveis.filter((item) => item.produto === 'mensal_interno_allgrotech'),
     },
     {
       chave: 'nao-identificados',
       titulo: 'Classificação pendente no snapshot',
-      itens: itens.filter(
+      itens: visiveis.filter(
         (item) => item.produto === 'NAO_IDENTIFICADO' || item.carteira === 'NAO_IDENTIFICADA',
       ),
     },
@@ -527,7 +625,10 @@ function CorpoDaFila({
   return (
     <section className="dcp-fila">
       <div className="dcp-fila__cabecalho">
-        <h1 className="dcp-fila__titulo">Fila de {formatarCompetencia(competencia)}</h1>
+        <h1 className="dcp-fila__titulo">
+          {aba === 'visao-geral' ? 'Visão geral de ' : 'Fila de '}
+          {formatarCompetencia(competencia)}
+        </h1>
 
         {competencias.length > 1 && (
           <label className="dcp-fila__mes">
@@ -546,33 +647,105 @@ function CorpoDaFila({
         )}
       </div>
 
-      <p className="dcp-fila__resumo">
-        {itens.length} {itens.length === 1 ? 'relatório' : 'relatórios'} · {esperando} esperando
-        revisão · {comSinal} com sinal de atenção
-        <span className="dcp-fila__ordem"> — em ordem de atenção, não alfabética</span>
-      </p>
-
-      {itens.length === 0 ? (
-        <div className="dcp-secao">
-          <h2 className="dcp-secao__titulo">
-            Nenhum relatório gerado em {formatarCompetencia(competencia)}
-          </h2>
-          <p className="dcp-secao__apoio">
-            Este mês existe no banco, mas sem nenhum relatório dentro. A geração ainda não rodou para
-            esta competência, ou rodou e não foi carregada.
-          </p>
-        </div>
-      ) : (
-        <div className="dcp-fila__grupos">
-          {grupos.map((grupo) => (
-            <TabelaDeRelatorios
-              key={grupo.chave}
-              titulo={grupo.titulo}
-              itens={grupo.itens}
-              competencia={competencia}
-            />
+      {/* As abas só aparecem quando há visão geral para mostrar. Uma aba que
+          abre vazia é pior que aba nenhuma. */}
+      {visaoGeral && (
+        <div className="dcp-abas" role="tablist" aria-label="Como ver os relatórios do mês">
+          {(
+            [
+              ['visao-geral', 'Visão geral'],
+              ['fila', 'Fila'],
+            ] as Array<[Aba, string]>
+          ).map(([chave, texto]) => (
+            <button
+              key={chave}
+              type="button"
+              role="tab"
+              aria-selected={aba === chave}
+              className={`dcp-abas__item${aba === chave ? ' dcp-abas__item--ativa' : ''}`}
+              onClick={() => setAba(chave)}
+            >
+              {texto}
+            </button>
           ))}
         </div>
+      )}
+
+      {aba === 'visao-geral' && visaoGeral ? (
+        <VisaoGeral dados={visaoGeral} aoFiltrar={filtrarEIrParaFila} />
+      ) : (
+        <>
+          {filtrando && (
+            <div className="dcp-filtros">
+              <span className="dcp-filtros__rotulo">Filtrando por</span>
+              {(Object.keys(filtros) as CampoDeFiltro[]).map((campo) => (
+                <button
+                  key={campo}
+                  type="button"
+                  className="dcp-filtros__chip"
+                  onClick={() => {
+                    const resto = { ...filtros };
+                    delete resto[campo];
+                    setFiltros(resto);
+                  }}
+                  title="Remover este filtro"
+                >
+                  {ROTULO_DO_FILTRO[campo]}: {rotuloDoValor(campo, filtros[campo] as string, visaoGeral)}
+                  <span aria-hidden="true"> ×</span>
+                  <span className="dcp-sr">— remover</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                className="dcp-botao dcp-botao--discreto"
+                onClick={() => setFiltros({})}
+              >
+                Limpar
+              </button>
+            </div>
+          )}
+
+          <p className="dcp-fila__resumo">
+            {filtrando
+              ? `${visiveis.length} de ${itens.length} ${itens.length === 1 ? 'relatório' : 'relatórios'}`
+              : `${visiveis.length} ${visiveis.length === 1 ? 'relatório' : 'relatórios'}`}{' '}
+            · {esperando} esperando revisão · {comSinal} com sinal de atenção
+            <span className="dcp-fila__ordem"> — em ordem de atenção, não alfabética</span>
+          </p>
+
+          {filtrando && visiveis.length === 0 && (
+            <div className="dcp-secao">
+              <h2 className="dcp-secao__titulo">Nenhum relatório com esse filtro</h2>
+              <p className="dcp-secao__apoio">
+                Os {itens.length} relatórios do mês continuam lá — é o filtro que não encontrou
+                nenhum. Remova um dos filtros acima para voltar a vê-los.
+              </p>
+            </div>
+          )}
+
+          {itens.length === 0 ? (
+            <div className="dcp-secao">
+              <h2 className="dcp-secao__titulo">
+                Nenhum relatório gerado em {formatarCompetencia(competencia)}
+              </h2>
+              <p className="dcp-secao__apoio">
+                Este mês existe no banco, mas sem nenhum relatório dentro. A geração ainda não rodou
+                para esta competência, ou rodou e não foi carregada.
+              </p>
+            </div>
+          ) : (
+            <div className="dcp-fila__grupos">
+              {grupos.map((grupo) => (
+                <TabelaDeRelatorios
+                  key={grupo.chave}
+                  titulo={grupo.titulo}
+                  itens={grupo.itens}
+                  competencia={competencia}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <p className="dcp-fila__rodape">

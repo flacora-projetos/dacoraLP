@@ -27,6 +27,10 @@
  *    +38% contra junho"), nunca por que aconteceu.
  */
 
+// A extensão `.js` é OBRIGATÓRIA nos imports relativos de `api/` — ver o
+// comentário em `painel-fila.ts`.
+import { separarPorVersaoCorrente } from './_painel-versao-corrente.js';
+
 /* ------------------------------------------------------------------ */
 /* O que chega do banco                                                */
 /* ------------------------------------------------------------------ */
@@ -96,6 +100,17 @@ export interface ItemDaFila {
   clienteNome: string;
   carteira: 'DACORA' | 'ALLGROTECH' | 'NAO_IDENTIFICADA';
   produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'NAO_IDENTIFICADO';
+  /**
+   * O tipo do relatório como o snapshot declara (`small_cap`, `ecommerce`,
+   * `servicos_leads`), ou `null` quando não declara.
+   *
+   * **String livre de propósito, e não uma união fechada dos três de hoje.**
+   * Um formato novo saindo da fábrica cairia, numa união fechada, no mesmo
+   * balde de "não declarado" — e o painel diria que falta classificação num
+   * relatório que se classificou muito bem. É a diferença entre "encontrou e
+   * não diz nada" e "diz que não", que já custou caro neste projeto.
+   */
+  formato: string | null;
   competencia: string;
   versao: number;
   estado: EstadoNaTela;
@@ -394,6 +409,10 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
     produto: ['mensal_externo_cliente', 'mensal_interno_allgrotech'].includes(identidade.produto)
       ? identidade.produto
       : 'NAO_IDENTIFICADO',
+    formato:
+      typeof identidade.tipoRelatorio === 'string' && identidade.tipoRelatorio.trim() !== ''
+        ? identidade.tipoRelatorio
+        : null,
     competencia: linha.competencia,
     versao: linha.versao,
     estado,
@@ -428,19 +447,13 @@ export function montarFila(linhas: LinhaDoBanco[]): ItemDaFila[] {
   // A tabela é versionada para preservar auditoria, mas a FILA responde "qual
   // documento precisa de decisão agora?". Mostrar v1, v2 e v3 como três
   // trabalhos diferentes faz uma correção parecer três clientes pendentes.
-  // A versão mais alta é a corrente; as anteriores continuam no banco e podem
-  // ser recuperadas pelo histórico quando essa superfície existir.
-  const atuais = new Map<string, LinhaDoBanco>();
-  for (const linha of linhas) {
-    const chave = `${linha.cliente_slug}\u0000${linha.competencia}`;
-    const atual = atuais.get(chave);
-    if (
-      !atual ||
-      linha.versao > atual.versao ||
-      (linha.versao === atual.versao && String(linha.gerado_em) > String(atual.gerado_em))
-    ) {
-      atuais.set(chave, linha);
-    }
-  }
-  return ordenarPorAtencao([...atuais.values()].map(montarItem));
+  // A versão mais alta é a corrente; as anteriores continuam no banco e
+  // alimentam a medida de retrabalho da visão geral.
+  //
+  // A regra de "qual é a corrente" mora em `_painel-versao-corrente.ts` desde
+  // que a visão geral passou a precisar dela: duas cópias da mesma regra são
+  // como a fila e o resumo passariam a discordar sobre quantos relatórios
+  // existem no mês, cada um passando no próprio teste.
+  const { correntes } = separarPorVersaoCorrente(linhas);
+  return ordenarPorAtencao(correntes.map(montarItem));
 }

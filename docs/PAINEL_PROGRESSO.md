@@ -27,6 +27,11 @@ e relatórios exclusivamente sintéticos foram criados para o smoke autenticado.
 Depois disso, Karyne virou o primeiro opt-in real: a versão 6 de julho foi
 gravada como nova linha com áudio privado, preservando integralmente as versões
 1–5. Isso não habilitou envio nem retomou a P3.
+**Visão geral da operação (D1/D2), 2026-08-10:** o painel ganhou a aba
+**Visão geral** ao lado da Fila, com cobertura, estado da fila, qualidade,
+retrabalho e prazo de liberação, e todo número abrindo a fila já filtrada.
+Está em branch, com regressões e build passando; **não integrada e não
+publicada**. Detalhe na seção 12.
 **Última atualização:** 2026-08-10
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. P3 permanece intocada.
@@ -260,6 +265,10 @@ e celular. A configuração da seção 3.1 já foi feita.
 | **Bancada e faixa responsiva da P2** | `src/painel/Revisao.tsx`, `src/painel/RevisaoMoldura.tsx` |
 | **Detalhe protegido do relatório** | `api/painel-relatorio.ts` |
 | **Regressão da revisão e da fonte CRM** | `scripts/verifica-painel-revisao.mts` (`npm run verifica:revisao`) |
+| **Regra de versão corrente, compartilhada** | `api/_painel-versao-corrente.ts` |
+| **Agregação da visão geral (D1)** | `api/_painel-visao-geral-dados.ts`, servida por `api/painel-fila.ts` |
+| **Aba Visão geral, cartões e filtros (D2)** | `src/painel/VisaoGeral.tsx` + abas/filtros em `src/painel/Fila.tsx` |
+| **Regressão da visão geral** | `scripts/verifica-painel-visao-geral.mts` (`npm run verifica:visao-geral`) |
 
 ### O que veio da SmartBio, e o que não veio
 
@@ -617,13 +626,13 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 4. **P4:** recusa avisa o grupo `Dácora - Agentes`.
 5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
 
-**Dashboard operacional:** a separação por carteira foi publicada, mas a visão
-gerencial de cobertura, fila, qualidade e retrabalho ainda não existe. A frente
-ganhou especificação e continuidade próprias em
-`OpenClaw-Dacora/docs/HANDOFF_DASHBOARD_OPERACIONAL_RELATORIOS_2026-08-10.md`.
-O handoff registra as fases D0–D4 e as métricas possíveis agora, mas **não
-autoriza implementação**, não transforma os relatórios fechados em BI ao vivo e
-não entra silenciosamente no escopo da P3.
+**Dashboard operacional — D0 fechado pelo Flávio e D1/D2 implementadas em
+2026-08-10, em branch, aguardando validação humana.** O que existe está na
+seção 12. As fases D3 (tempos de ciclo, aprovação e recusa) e D4 (evolução
+entre competências) continuam dependendo de eventos que ainda não existem —
+D3 depende de P3/P5, D4 de uma segunda competência real. Nada disso entra por
+inferência, e o dashboard continua sem transformar relatório fechado em BI ao
+vivo. Especificação: `OpenClaw-Dacora/docs/HANDOFF_DASHBOARD_OPERACIONAL_RELATORIOS_2026-08-10.md`.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
@@ -911,6 +920,87 @@ campanha/conjunto otimizava em cada período, por ID e vigência, e agregar cada
 mês com a definição que valia naquele momento. Nunca aplicar a conversão atual
 ao histórico inteiro. A pendência precisa ser resolvida antes de escalar a
 montagem para mais relatórios com mudança de objetivo ao longo do tempo.
+
+---
+
+## 12. A visão geral da operação (D1 e D2)
+
+**Estado: implementada na branch `codex/d1-d2-dashboard-operacional`, com as
+seis regressões e o build passando. Não integrada, não publicada e ainda sem
+smoke autenticado humano.**
+
+### 12.1 As decisões do Flávio que a definiram (D0, 2026-08-10)
+
+| Pergunta | Decisão |
+|---|---|
+| Onde fica | **Aba na mesma rota**, ao lado da Fila — não é página separada |
+| Quando construir | **Agora**; é só leitura e ajuda na conferência em curso |
+| O que mostra | Cobertura, onde a fila parou, qualidade **e** retrabalho |
+| Prazo | **Dia 5 do mês seguinte é o limite de LIBERAÇÃO** |
+
+O dia 5 mede liberação, **não geração** — ele corrigiu isso explicitamente
+enquanto a fase era construída. Gerar é trabalho interno; o marco combinado é o
+documento estar liberado.
+
+### 12.2 O que ela responde, e o que ela se recusa a responder
+
+Quatro indicadores no topo (relatórios do mês, esperando revisão, com sinal de
+atenção, prazo) e seis distribuições: carteira, finalidade, formato, estado,
+tipo de sinal e retrabalho. **Todo número abre a fila já filtrada** — é isso
+que a impede de virar uma segunda lista paralela.
+
+**Ela não soma performance entre clientes.** Não há total de investimento da
+carteira, de leads nem de receita, e a própria tela escreve isso. Leads de
+clientes diferentes têm definições diferentes; empilhá-los daria um número
+grande e sem significado. A regressão trava a frase: apagá-la quebra o teste.
+
+### 12.3 Cinco decisões que mudam números, e ficam registradas
+
+1. **A regra de versão corrente virou módulo próprio** (`_painel-versao-corrente.ts`).
+   Enquanto a fila era a única leitora, ela morava dentro de `montarFila`. Duas
+   cópias da mesma regra é como a fila e o resumo passariam a discordar sobre
+   quantos relatórios existem no mês — **cada um passando no próprio teste**. A
+   regressão amarra os dois ao mesmo número.
+2. **A visão geral sai da MESMA leitura da fila**, no mesmo endpoint. Um
+   endpoint separado significaria outra consulta de ~2 MB, outra porta de
+   autorização e — pior — dois retratos de momentos diferentes: uma carga
+   entrando no meio faria o resumo dizer 34 e a fila mostrar 35.
+3. **O prazo conta a PRIMEIRA liberação, não a da versão corrente.** Medindo a
+   corrente, uma correção liberada depois transformaria um mês pontual em mês
+   atrasado — o painel passaria a punir o ato de consertar. Retrabalho é medido
+   à parte, que é onde essa informação pertence.
+4. **"Ainda não liberado" é dito separado de "liberado com atraso".** Os dois
+   perderam a data, mas um está pronto e chegou tarde e o outro não saiu.
+5. **O formato é string livre, não união fechada dos três de hoje.** Um formato
+   novo saindo da fábrica cairia, numa união fechada, no balde de "não
+   declarado" — e o painel acusaria falta de classificação num relatório que se
+   classificou muito bem.
+
+### 12.4 O que o prazo mostra hoje, e por que
+
+Medido no banco em 2026-08-10, competência 2026-07: **0 liberados no prazo, 1
+liberado com atraso, 33 ainda não liberados** — as três parcelas fecham com os
+34 relatórios. O número é verdadeiro e vai continuar assim: **o botão de
+liberar é a P3, que está adiada por decisão do PO** enquanto layout e dados
+estão em validação. A única liberação registrada é a Karyne v6, do piloto W3.
+
+Isto está escrito aqui porque um cartão vermelho sem explicação leva a próxima
+sessão a procurar defeito onde não há: **não é falha do dashboard nem da
+fábrica; é a etapa de liberação ainda não existir no painel.**
+
+### 12.5 O que passou
+
+As seis regressões (`painel`, `fila`, `revisao`, `refoco`, `publico`,
+`visao-geral`) e o build completo — 3 rotas institucionais pré-renderizadas,
+sitemap com 3 URLs e nenhuma rota de relatório dentro dele. O `lint` continua
+**nos mesmos seis erros TypeScript preexistentes**, sem nenhum novo. O pacote
+publicado não contém o e-mail pessoal do Flávio; `SUPABASE_SERVICE_ROLE_KEY`
+aparece só como **nome**, dentro do texto que a tela mostra quando ela falta —
+o mesmo caso já registrado na seção 11.5.
+
+**O que NÃO foi feito:** smoke autenticado humano em desktop e celular,
+integração na `main` e publicação. Os três continuam abertos e são gates
+próprios.
 
 ---
 
