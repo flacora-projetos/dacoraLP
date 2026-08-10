@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { criarAssinadorStoragePrivado } from './_storage-privado.js';
 
 const BUCKET = 'relatorios-miniaturas';
 const PREFIXO = `storage://${BUCKET}/`;
@@ -96,19 +96,12 @@ export async function resolverMiniaturasPrivadas(
 }
 
 function criarAssinador({ urlSupabase, chaveDeServico }: Opcoes): Assinar {
-  if (!urlSupabase || !chaveDeServico) {
-    throw new Error('faltam URL ou service role para assinar as miniaturas');
-  }
-  const supabase = createClient(urlSupabase, chaveDeServico, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  return criarAssinadorStoragePrivado({
+    bucket: BUCKET,
+    urlSupabase,
+    chaveDeServico,
+    validadeSegundos: VALIDADE_SEGUNDOS,
   });
-  return async caminhos => {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrls(caminhos, VALIDADE_SEGUNDOS);
-    if (error) throw error;
-    return data ?? [];
-  };
 }
 
 function listarCriativos(snapshot: any): CriativoDoSnapshot[] {

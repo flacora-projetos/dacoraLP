@@ -135,6 +135,12 @@ antes do GO e abriu depois dele com áudio assinado. A primeira entrega à Karyn
 foi confirmada e a reexecução ficou deduplicada. Recibo, migrações e evidência
 sanitizada estão no handoff operacional do OpenClaw.
 
+O primeiro request real da rota pública também expôs um aviso legado de
+`url.parse()` dentro do cliente Supabase usado para assinar Storage. O caminho
+de miniaturas e áudio passou a chamar diretamente a API privada por `fetch` e
+montar a URL com `new URL`, mantendo o mesmo contrato de uma hora sem carregar
+o cliente de autenticação nessa função server-side.
+
 ### Checkpoint visual publicado em 07/08/2026
 
 A direção **Editorial de Performance** foi aplicada ao catálogo compartilhado,

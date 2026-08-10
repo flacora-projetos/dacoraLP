@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
 import {
   audioDisponivelTemContratoValido,
   type AudioDisponivelValido,
 } from '../src/reports/blocos/audio-contrato.js';
+import { criarAssinadorStoragePrivado } from './_storage-privado.js';
 
 const BUCKET = 'relatorios-audios';
 const PREFIXO = `storage://${BUCKET}/`;
@@ -103,19 +103,12 @@ export async function resolverAudiosPrivados(
 }
 
 function criarAssinador({ urlSupabase, chaveDeServico }: Opcoes): Assinar {
-  if (!urlSupabase || !chaveDeServico) {
-    throw new Error('faltam URL ou service role para assinar o áudio');
-  }
-  const supabase = createClient(urlSupabase, chaveDeServico, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  return criarAssinadorStoragePrivado({
+    bucket: BUCKET,
+    urlSupabase,
+    chaveDeServico,
+    validadeSegundos: VALIDADE_SEGUNDOS,
   });
-  return async caminhos => {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrls(caminhos, VALIDADE_SEGUNDOS);
-    if (error) throw error;
-    return data ?? [];
-  };
 }
 
 function sanitizarEAcharDisponiveis(snapshot: any): AudioDisponivelValido[] {
