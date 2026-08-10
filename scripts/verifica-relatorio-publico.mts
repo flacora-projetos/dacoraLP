@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import handler from '../api/relatorio-publico.ts';
+import { criarAssinadorStoragePrivado } from '../api/_storage-privado.ts';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 
 const TOKEN = 'A'.repeat(43);
@@ -61,6 +62,28 @@ async function chamar(token: string, linhas: any[], metodo = 'GET') {
 }
 
 try {
+  {
+    let endpoint = '';
+    const assinar = criarAssinadorStoragePrivado({
+      bucket: 'relatorios-audios',
+      urlSupabase: 'https://projeto.supabase.co',
+      chaveDeServico: 'segredo-de-teste',
+      validadeSegundos: 3600,
+      fetchImpl: (async (entrada: any, init?: RequestInit) => {
+        endpoint = String(entrada);
+        const pedido = JSON.parse(String(init?.body));
+        return new Response(JSON.stringify(pedido.paths.map((path: string) => ({
+          path,
+          error: null,
+          signedURL: `/object/sign/relatorios-audios/${path}?token=teste`,
+        }))), { status: 200, headers: { 'content-type': 'application/json' } });
+      }) as typeof fetch,
+    });
+    const [assinatura] = await assinar(['cliente/2026-07/v1/audio.ogg']);
+    assert.equal(endpoint, 'https://projeto.supabase.co/storage/v1/object/sign/relatorios-audios');
+    assert.equal(assinatura.signedUrl, 'https://projeto.supabase.co/storage/v1/object/sign/relatorios-audios/cliente/2026-07/v1/audio.ogg?token=teste');
+  }
+
   const ok = await chamar(TOKEN, [linha]);
   assert.equal(ok.status, 200);
   assert.equal(ok.body.relatorio.snapshot.publicacao.checksum, checksum);
