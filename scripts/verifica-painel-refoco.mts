@@ -57,6 +57,8 @@ const RESPOSTA = {
       id: 'um',
       clienteSlug: 'cliente-de-mentira',
       clienteNome: 'Cliente De Mentira',
+      carteira: 'DACORA',
+      produto: 'mensal_externo_cliente',
       competencia: '2026-07',
       versao: 1,
       estado: 'gerado',
