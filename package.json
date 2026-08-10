@@ -15,6 +15,7 @@
     "verifica:painel": "tsx scripts/verifica-painel-autorizacao.mts",
     "verifica:fila": "tsx scripts/verifica-painel-fila.mts",
     "verifica:revisao": "tsx scripts/verifica-painel-revisao.mts",
+    "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",
     "start": "node dist/server.cjs"
