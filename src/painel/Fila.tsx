@@ -98,7 +98,7 @@ type Aba = 'visao-geral' | 'fila';
  * `sinal` é o único que não compara igualdade: um relatório entra se **tem**
  * aquele tipo de sinal, entre os vários que pode ter.
  */
-function aplicarFiltros(itens: ItemDaFila[], filtros: Filtros): ItemDaFila[] {
+export function aplicarFiltros(itens: ItemDaFila[], filtros: Filtros): ItemDaFila[] {
   return itens.filter((item) => {
     if (filtros.carteira && item.carteira !== filtros.carteira) return false;
     if (filtros.produto && item.produto !== filtros.produto) return false;

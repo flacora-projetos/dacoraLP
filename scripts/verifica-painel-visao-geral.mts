@@ -495,7 +495,7 @@ globalThis.fetch = fetchOriginal;
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { FilaApresentada } from '../src/painel/Fila.tsx';
+import { FilaApresentada, aplicarFiltros } from '../src/painel/Fila.tsx';
 
 function desenhar(dados: any): string {
   return renderToStaticMarkup(
@@ -600,6 +600,67 @@ const linhasDeExemplo = [
   );
 }
 
+/* ================================================================== */
+/* 11. O número do cartão bate com as linhas que ele abre              */
+/* ================================================================== */
+
+/* A promessa central da tela: clicar em "19 Allgrotech" mostra 19 linhas.
+ *
+ * Ela se quebra de dois jeitos, e nenhum dos dois erra uma conta sozinha:
+ * a agregação e o filtro passando a discordar sobre o que é cada fatia, ou o
+ * clique somando um filtro novo em cima de um antigo. Nos dois casos o painel
+ * mentiria com números individualmente corretos — que é a pior forma.
+ *
+ * Este teste varre TODAS as fatias de TODAS as dimensões e exige a igualdade.
+ */
+{
+  const linhasVariadas = [
+    linha({ slug: 'a', carteira: 'DACORA', formato: 'small_cap' }),
+    linha({ slug: 'b', carteira: 'DACORA', formato: 'ecommerce', estado: 'liberado' }),
+    linha({ slug: 'c', carteira: 'ALLGROTECH', formato: 'servicos_leads' }),
+    linha({ slug: 'd', carteira: 'ALLGROTECH', formato: 'small_cap', enviadoEm: '2026-08-09T10:00:00Z' }),
+    linha({ slug: 'e', carteira: null, produto: null, formato: null }),
+    linha({
+      slug: 'f',
+      carteira: 'ALLGROTECH',
+      fontes: [{ plataforma: 'meta', rotulo: 'Meta Ads', situacao: 'erro' }],
+    }),
+  ];
+
+  const itens = montarFila(linhasVariadas);
+  const v = visao(linhasVariadas);
+
+  const dimensoes: Array<[CampoDeFiltro, { chave: string; quantidade: number }[]]> = [
+    ['carteira', v.cobertura.porCarteira],
+    ['produto', v.cobertura.porProduto],
+    ['formato', v.cobertura.porFormato],
+    ['estado', v.fila.porEstado],
+    ['sinal', v.qualidade.porTipo],
+  ];
+
+  for (const [campo, fatias] of dimensoes) {
+    assert.ok(fatias.length > 0, `a dimensão ${campo} não produziu nenhuma fatia para testar`);
+    for (const f of fatias) {
+      const linhasNaFila = aplicarFiltros(itens, { [campo]: f.chave }).length;
+      assert.equal(
+        linhasNaFila,
+        f.quantidade,
+        `o cartão diz ${f.quantidade} em ${campo}=${f.chave}, mas a fila filtrada mostra ${linhasNaFila}`,
+      );
+    }
+  }
+
+  /* Filtros combinados continuam sendo interseção, sem surpresa: da Allgrotech,
+     `d` e `f` são enxutos; `c` é geração de leads e fica de fora. */
+  assert.equal(aplicarFiltros(itens, { carteira: 'ALLGROTECH', formato: 'small_cap' }).length, 2);
+  assert.equal(
+    aplicarFiltros(itens, { carteira: 'DACORA', formato: 'small_cap' }).length,
+    1,
+    'a interseção precisa cruzar as duas dimensões, não ignorar uma',
+  );
+  assert.equal(aplicarFiltros(itens, {}).length, itens.length, 'sem filtro nada pode ser escondido');
+}
+
 console.log(
-  'OK — visão geral: cobertura, fila, qualidade, retrabalho, prazo, pureza, zero escrita no banco e a tela desenhada',
+  'OK — visão geral: cobertura, fila, qualidade, retrabalho, prazo, pureza, zero escrita no banco, a tela desenhada e o cartão batendo com a fila filtrada',
 );
