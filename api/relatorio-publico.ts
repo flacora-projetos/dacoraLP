@@ -73,7 +73,9 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ erro: 'metodo_nao_permitido' });
   }
 
-  const token = typeof req.query?.token === 'string' ? req.query.token : '';
+  const parametros = new URL(req.url, 'https://relatorio.dacora.local').searchParams;
+  const tokens = parametros.getAll('token');
+  const token = tokens.length === 1 ? tokens[0] : '';
   if (!TOKEN_VALIDO.test(token)) return indisponivel(res);
 
   const urlSupabase = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
