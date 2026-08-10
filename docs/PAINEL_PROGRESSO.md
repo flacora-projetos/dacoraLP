@@ -27,9 +27,9 @@ e relatórios exclusivamente sintéticos foram criados para o smoke autenticado.
 Depois disso, Karyne virou o primeiro opt-in real: a versão 6 de julho foi
 gravada como nova linha com áudio privado, preservando integralmente as versões
 1–5. Isso não habilitou envio nem retomou a P3.
-**Última atualização:** 2026-08-09
+**Última atualização:** 2026-08-10
 
-**Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. O banco tem 78 versões da competência 2026-07; as 34 correntes são 19 Allgrotech e 15 Dácora, todas em `gerado`, sem áudio e sem aviso de coleta parcial. P3 permanece intocada.
+**Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. P3 permanece intocada.
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
@@ -64,9 +64,9 @@ correntes de julho: 23 `small_cap`, cinco `ecommerce` e seis `servicos_leads`.
 Dez avisos de coleta parcial Meta eram falsos positivos do consumidor: os
 relatórios com várias conversões já publicavam cada resultado e cada ranking,
 mas a fonte ainda verificava o ranking único obsoleto. A correção pertence à
-fábrica no `OpenClaw-Dacora`. Depois da carga, o banco passou a ter 78 versões;
-as 34 correntes não contêm aviso de coleta parcial nem mensagem de conversão
-pendente.
+fábrica no `OpenClaw-Dacora`. Depois da carga e da versão posterior da Karyne,
+o banco passou a ter 79 versões em julho; as 34 correntes não contêm aviso de
+coleta parcial nem mensagem de conversão pendente.
 
 Não existe correção de palavras-chave pendente: o conector já entrega a lista e
 a cobertura que dimensiona a diferença para o total da conta. Hannover e
@@ -617,10 +617,13 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 4. **P4:** recusa avisa o grupo `Dácora - Agentes`.
 5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
 
-**Dashboard operacional:** é uma proposta para as próximas fases, ainda não
-aprovada nem numerada. Deve ser avaliada sem transformar estes relatórios
-fechados e versionados em BI ao vivo e sem entrar silenciosamente no escopo da
-P3.
+**Dashboard operacional:** a separação por carteira foi publicada, mas a visão
+gerencial de cobertura, fila, qualidade e retrabalho ainda não existe. A frente
+ganhou especificação e continuidade próprias em
+`OpenClaw-Dacora/docs/HANDOFF_DASHBOARD_OPERACIONAL_RELATORIOS_2026-08-10.md`.
+O handoff registra as fases D0–D4 e as métricas possíveis agora, mas **não
+autoriza implementação**, não transforma os relatórios fechados em BI ao vivo e
+não entra silenciosamente no escopo da P3.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
