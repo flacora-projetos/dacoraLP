@@ -6,7 +6,9 @@ carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
 **P2 concluída e validada — relatório dentro da bancada, faixa responsiva e
 smoke autenticado aprovados pelo Flávio em desktop e celular** ·
 **D1/D2 — visão geral da operação, integrada e publicada em 2026-08-10** ·
-**P3 — aprovar e recusar, integrada e publicada em 2026-08-11** (seção 13).
+**P3 — aprovar e recusar, integrada e publicada em 2026-08-11** (seção 13) ·
+**P4 — ordens de correção e worker controlado, integrada e publicada** ·
+**P5B — intenção segura de envio, integrada e publicada** (seção 15).
 **Produção:** P0/P1 já estavam publicadas; a P2 foi integrada na `main` pelo
 merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 <https://www.dacora.com.br/painel-de-relatorios>.
@@ -44,12 +46,14 @@ na `main` pelo merge `9c987b2` e mostra os estados reais `pendente`, `reservado`
 `enviando`, `enviado`, `incerto` e `falhou`. O worker da fábrica continua fora
 do runtime e sem agenda; preview é o padrão e executar exige gate duplo. Nenhum
 relatório real foi decidido e nenhuma mensagem foi enviada. Detalhe na seção 14.
-**P5B implementada em branch dedicada, ainda não integrada nem publicada:** o
+**P5B integrada e publicada em 2026-08-11:** o
 portal lê o contrato P5A somente no servidor, mostra o destinatário canônico
 antes de oferecer **Enviar** e **Agora não**, cria uma intenção idempotente e só
 usa a palavra “enviado” quando o read-back traz recibo confirmado. A migração da
-fábrica já está aplicada, mas não há recipients sincronizados, itens acionáveis,
-worker agendado ou envio real. Detalhe na seção 15.
+fábrica está aplicada, mas a leitura remota confirmou zero recipients
+sincronizados e zero itens acionáveis; por isso a interface falha fechada e não
+oferece envio enganoso. O worker continua sem execução ou agenda e não houve
+decisão nem envio real. Detalhe na seção 15.
 **Última atualização:** 2026-08-11
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
@@ -83,8 +87,10 @@ da Fernanda continua aberto para Karyne e Aviarte. **A P3 foi concluída em
 publicação — sem nenhuma decisão sobre relatório real (seções 7 e 13).
 As migrações `0006` e `0007` da P4 foram aplicadas e provadas no Supabase. O
 portal foi integrado, publicado e conferido com sessão real sem decidir nenhum
-relatório. A P5B está pronta apenas na branch `codex/p5-envio-painel`: ainda não
-houve merge, deploy ou smoke autenticado dessa interface.
+relatório. A P5B foi integrada na `main`, publicada e conferida em produção sem
+decidir ou enviar relatório real. A sessão autenticada anterior não estava
+disponível nesta rodada; por isso o caminho autenticado ficou limitado às provas
+por dublê, enquanto o gate de login e as negações `401` foram exercitados no site.
 
 ### Auditoria da fila corrente em 2026-08-09
 
@@ -654,11 +660,15 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 3. **P4 concluída:** banco, worker e portal estão publicados. O worker não foi
    agendado nem acoplado ao runtime; executar uma mensagem continua dependendo
    de recusa real, gate explícito e executor habilitado naquele processo.
-4. **P5B pronta para integração:** revisar a branch `codex/p5-envio-painel`,
-   integrar somente após o gate da coordenação e então fazer smoke autenticado
-   sem clicar em **Enviar**. A branch ainda não foi publicada.
+4. **P5B concluída:** branch revisada, integrada e publicada sem decisão ou envio
+   real. Com zero recipients sincronizados e zero itens acionáveis, o painel
+   permanece fechado e não oferece a ação. Resta apenas repetir o smoke visual
+   autenticado quando houver uma sessão existente, sempre sem clicar em
+   **Enviar**; o diálogo acionável continua provado somente por dublê.
 5. **P6 permanece fora desta entrega. P7 foi retirada da frente pela
    coordenação** e não deve ser reintroduzida como pendência.
+6. **Karyne v8/v9:** não há pendência técnica do painel registrada para essas
+   versões; qualquer decisão ou envio real continua sujeito aos gates de negócio.
 
 **Dashboard operacional — D0 fechado pelo Flávio e D1/D2 integradas na `main`
 em 2026-08-10** (merge `6bc5b37`). O que existe está na seção 12. As fases D3
@@ -1304,16 +1314,17 @@ efeito automático desta publicação.
 
 ## 15. Intenção de envio ao cliente (P5B)
 
-**Estado: implementada e verificada na branch `codex/p5-envio-painel`, sem merge
-na `main` e sem deploy. Nenhum relatório real foi aprovado, recusado ou colocado
-na fila de envio.**
+**Estado: integrada na `main` pelo merge normal `4ad29ee`, corrigida contra o
+contrato remoto em `4045c6e` e publicada. Nenhum relatório real foi aprovado,
+recusado ou colocado na fila de envio.**
 
-O contrato veio da fábrica na branch `codex/p5-contrato-envio-fabrica`, commit
-`f148b9c`. A migração remota
+O contrato veio da fábrica, hoje em `origin/master` no commit `0aefcf5`. A
+migração remota
 `20260811163152_painel_p5_intencoes_envio` foi aplicada e teve read-back
-aprovado antes desta implementação. O retrato entregue pela fábrica tinha zero
-recipients sincronizados, zero itens acionáveis e worker P5 fora do runtime e
-sem agenda.
+aprovado. A leitura direta desta publicação encontrou 102 linhas na view, zero
+recipients sincronizados, zero destinos prontos e zero itens acionáveis. O único
+registro de intenção visível é o recibo legado do W3; o worker P5 não foi
+executado, não está no runtime e não tem agenda.
 
 O portal ganhou `GET/POST /api/painel-envio`. As duas operações repetem a sessão
 e a allow-list existentes antes de falar com o Supabase; `service_role` fica no
@@ -1332,20 +1343,32 @@ Clique duplo é contido na interface e a deduplicação definitiva continua send
 a intenção durável da RPC. Checksum obsoleto, destino ausente ou não
 sincronizado e read-back divergente falham fechados.
 
+Na revisão de integração, a introspecção da view remota encontrou
+`destinatario_sincronizado_em` como timestamp, em vez do booleano fabricado pelo
+dublê inicial. O commit `4045c6e` alinhou a regra e a regressão ao contrato real.
+Com os contadores acima, nenhuma linha oferece ação: a P5 falha fechada sem
+inventar destinatário nem exibir **Enviar**.
+
 Os estados apresentados são `pendente`, `reservado`, `enviando`, `confirmado`,
 `incerto` e `falhou`. O painel só diz **Enviado** quando a view devolve ao mesmo
 tempo `envio_estado=confirmado`, `confirmado_em` e o envelope persistido de
 envio; qualquer divergência reprova o read-back. Não existe editor de snapshot,
 undo, P6, P7, D3 ou D4 nesta entrega.
 
-Validação local em 2026-08-11: `npm run verifica:envio` e as sete regressões do
+Validação após o merge em 2026-08-11: `npm run verifica:envio` e as sete regressões do
 painel/relatório passaram; `npm run build` passou incluindo cliente, SSR,
 prerender, sitemap e bundle do servidor. O lint global continua com as mesmas
 seis falhas anteriores em `telas.tsx` e cinco blocos de relatório, sem falha em
 arquivo da P5B. O smoke desta rodada usou dublês de sessão, view e RPC e provou o
 diálogo, **Agora não** sem mutação, retry idempotente, checksum obsoleto e recibo
-divergente. Ainda faltam revisão de integração e, depois de eventual deploy,
-smoke autenticado somente leitura/visual; clicar em **Enviar** exige outro gate.
+divergente. O deployment de código
+`6zqAZFsMMNaqEDVWduDKhxE639fS` ficou `READY` em
+<https://dacora-2wf0wi7ce-flavio-coras-projects.vercel.app>; o domínio respondeu
+`200` com `noindex`, e as APIs sem sessão responderam `401`. O navegador
+disponível não tinha sessão autenticada: desktop e celular ficaram no login, sem
+erro de console nem rolagem lateral. Assim, o smoke autenticado real não foi
+alegado e o diálogo acionável permanece provado somente por dublê. Clicar em
+**Enviar**, sincronizar recipients ou executar/agendar o worker exige outro gate.
 
 ---
 
