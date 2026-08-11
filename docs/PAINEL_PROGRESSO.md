@@ -44,6 +44,12 @@ na `main` pelo merge `9c987b2` e mostra os estados reais `pendente`, `reservado`
 `enviando`, `enviado`, `incerto` e `falhou`. O worker da fábrica continua fora
 do runtime e sem agenda; preview é o padrão e executar exige gate duplo. Nenhum
 relatório real foi decidido e nenhuma mensagem foi enviada. Detalhe na seção 14.
+**P5B implementada em branch dedicada, ainda não integrada nem publicada:** o
+portal lê o contrato P5A somente no servidor, mostra o destinatário canônico
+antes de oferecer **Enviar** e **Agora não**, cria uma intenção idempotente e só
+usa a palavra “enviado” quando o read-back traz recibo confirmado. A migração da
+fábrica já está aplicada, mas não há recipients sincronizados, itens acionáveis,
+worker agendado ou envio real. Detalhe na seção 15.
 **Última atualização:** 2026-08-11
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
@@ -77,7 +83,8 @@ da Fernanda continua aberto para Karyne e Aviarte. **A P3 foi concluída em
 publicação — sem nenhuma decisão sobre relatório real (seções 7 e 13).
 As migrações `0006` e `0007` da P4 foram aplicadas e provadas no Supabase. O
 portal foi integrado, publicado e conferido com sessão real sem decidir nenhum
-relatório.
+relatório. A P5B está pronta apenas na branch `codex/p5-envio-painel`: ainda não
+houve merge, deploy ou smoke autenticado dessa interface.
 
 ### Auditoria da fila corrente em 2026-08-09
 
@@ -291,6 +298,10 @@ e celular. A configuração da seção 3.1 já foi feita.
 | **A decisão na tela, com eco e diálogo** | `src/painel/DecisaoDaRevisao.tsx`, montada por `src/painel/RevisaoMoldura.tsx` |
 | **Regressão da decisão** | `scripts/verifica-painel-decisao.mts` (`npm run verifica:decisao`) |
 | **Migração dos estados da P3** | `OpenClaw-Dacora/db/migrations/0005_painel_p3_aprovacao_recusa.sql` — aplicada em 2026-08-11 |
+| **Contrato seguro da intenção de envio (P5B)** | `api/_painel-envio-regras.ts`, sem identificador bruto, token, referência interna ou chave idempotente no navegador |
+| **Leitura e solicitação P5 server-side** | `api/painel-envio.ts`, depois da sessão e allow-list atuais |
+| **Diálogo de envio depois do GO confirmado** | `src/painel/EnvioDaRevisao.tsx`, montado por `src/painel/RevisaoMoldura.tsx` |
+| **Regressão e smoke com dublês da P5B** | `scripts/verifica-painel-envio.mts` (`npm run verifica:envio`) |
 
 ### O que veio da SmartBio, e o que não veio
 
@@ -643,9 +654,11 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 3. **P4 concluída:** banco, worker e portal estão publicados. O worker não foi
    agendado nem acoplado ao runtime; executar uma mensagem continua dependendo
    de recusa real, gate explícito e executor habilitado naquele processo.
-4. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
-   `Agora não` como saída legítima.
-5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
+4. **P5B pronta para integração:** revisar a branch `codex/p5-envio-painel`,
+   integrar somente após o gate da coordenação e então fazer smoke autenticado
+   sem clicar em **Enviar**. A branch ainda não foi publicada.
+5. **P6 permanece fora desta entrega. P7 foi retirada da frente pela
+   coordenação** e não deve ser reintroduzida como pendência.
 
 **Dashboard operacional — D0 fechado pelo Flávio e D1/D2 integradas na `main`
 em 2026-08-10** (merge `6bc5b37`). O que existe está na seção 12. As fases D3
@@ -1288,6 +1301,51 @@ deployment de produção `dpl_A2BFqpqWbEJZAfHLt99EziTXLpoR` ficou `READY`. A rot
 respondeu `200` com `noindex` e as duas APIs sem sessão responderam `401`.
 Qualquer mensagem real permanece uma operação governada posterior, não um
 efeito automático desta publicação.
+
+## 15. Intenção de envio ao cliente (P5B)
+
+**Estado: implementada e verificada na branch `codex/p5-envio-painel`, sem merge
+na `main` e sem deploy. Nenhum relatório real foi aprovado, recusado ou colocado
+na fila de envio.**
+
+O contrato veio da fábrica na branch `codex/p5-contrato-envio-fabrica`, commit
+`f148b9c`. A migração remota
+`20260811163152_painel_p5_intencoes_envio` foi aplicada e teve read-back
+aprovado antes desta implementação. O retrato entregue pela fábrica tinha zero
+recipients sincronizados, zero itens acionáveis e worker P5 fora do runtime e
+sem agenda.
+
+O portal ganhou `GET/POST /api/painel-envio`. As duas operações repetem a sessão
+e a allow-list existentes antes de falar com o Supabase; `service_role` fica no
+servidor. A leitura consulta `relatorio_p5_portal`. A solicitação chama
+`relatorio_p5_solicitar_envio` com o id, o checksum visto e o e-mail resolvido
+pela sessão no servidor, e depois relê a view. A resposta ao navegador é uma
+projeção estreita: não inclui id bruto do grupo, token, referência interna,
+`envio_id` nem chave idempotente.
+
+`EnvioDaRevisao` é irmão da decisão na faixa de revisão e só é montado depois de
+o read-back P3 devolver `liberado` ou `enviado`. A view ainda governa se a ação
+pode aparecer. Quando pode, o diálogo escreve o nome canônico do destinatário
+antes dos botões **Enviar** e **Agora não**. **Agora não** apenas fecha o diálogo:
+não chama API, não cria intenção e volta a aparecer quando a revisão é reaberta.
+Clique duplo é contido na interface e a deduplicação definitiva continua sendo
+a intenção durável da RPC. Checksum obsoleto, destino ausente ou não
+sincronizado e read-back divergente falham fechados.
+
+Os estados apresentados são `pendente`, `reservado`, `enviando`, `confirmado`,
+`incerto` e `falhou`. O painel só diz **Enviado** quando a view devolve ao mesmo
+tempo `envio_estado=confirmado`, `confirmado_em` e o envelope persistido de
+envio; qualquer divergência reprova o read-back. Não existe editor de snapshot,
+undo, P6, P7, D3 ou D4 nesta entrega.
+
+Validação local em 2026-08-11: `npm run verifica:envio` e as sete regressões do
+painel/relatório passaram; `npm run build` passou incluindo cliente, SSR,
+prerender, sitemap e bundle do servidor. O lint global continua com as mesmas
+seis falhas anteriores em `telas.tsx` e cinco blocos de relatório, sem falha em
+arquivo da P5B. O smoke desta rodada usou dublês de sessão, view e RPC e provou o
+diálogo, **Agora não** sem mutação, retry idempotente, checksum obsoleto e recibo
+divergente. Ainda faltam revisão de integração e, depois de eventual deploy,
+smoke autenticado somente leitura/visual; clicar em **Enviar** exige outro gate.
 
 ---
 

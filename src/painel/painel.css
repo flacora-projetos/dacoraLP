@@ -1061,6 +1061,50 @@
   color: var(--dc-sinal);
 }
 
+/* ---------- A intenção de envio (P5) -------------------------------- */
+
+.dcp-envio {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--dc-filete);
+}
+
+.dcp-envio__rotulo {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dcp-envio__estado {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
+.dcp-envio__destino {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 0.75rem;
+  color: var(--dc-cinza);
+  background: color-mix(in srgb, var(--dc-verde) 4%, var(--dc-superficie));
+  font-size: 0.82rem;
+}
+
+.dcp-envio__destino strong {
+  color: var(--dc-tinta);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- O diálogo da recusa --------------------------------------- */
 
 .dcp-modal {

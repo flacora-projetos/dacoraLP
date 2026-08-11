@@ -17,6 +17,7 @@
     "verifica:visao-geral": "tsx scripts/verifica-painel-visao-geral.mts",
     "verifica:revisao": "tsx scripts/verifica-painel-revisao.mts",
     "verifica:decisao": "tsx scripts/verifica-painel-decisao.mts",
+    "verifica:envio": "tsx scripts/verifica-painel-envio.mts",
     "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",

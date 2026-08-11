@@ -15,26 +15,6 @@ import { usarPainelAuth } from './AuthContext';
 import Fila from './Fila';
 import Revisao from './Revisao';
 import { useSearchParams } from 'react-router-dom';
-import type { ReactNode } from 'react';
-
-/**
- * O que ainda NÃO existe aqui.
- *
- * A P3 saiu desta lista quando aprovar e recusar passaram a funcionar de
- * verdade, na tela de revisão. Item que já existe e continua listado como
- * pendência manda a próxima pessoa procurar um botão que está bem à frente
- * dela — é a mesma falsa pendência que os documentos deste projeto proíbem.
- */
-const PROXIMAS_FASES: Array<{ chave: string; texto: ReactNode }> = [
-  {
-    chave: 'P5',
-    texto: (
-      <>
-        <strong>Envio</strong> — com o nome do grupo escrito antes de disparar.
-      </>
-    ),
-  },
-];
 
 export default function PainelInicio() {
   const { autorizacao, usuario, sair } = usarPainelAuth();
@@ -67,20 +47,6 @@ export default function PainelInicio() {
           <Fila />
         )}
 
-        {!relatorioId && <section className="dcp-secao dcp-secao--recuada">
-          <h2 className="dcp-secao__titulo">O que ainda não dá para fazer aqui</h2>
-          <p className="dcp-secao__apoio">
-            Cada etapa abaixo entrega algo que funciona sozinho, na ordem.
-          </p>
-          <ul className="dcp-proximas">
-            {PROXIMAS_FASES.map((fase) => (
-              <li key={fase.chave}>
-                <span className="dcp-proximas__chave">{fase.chave}</span>
-                <span className="dcp-proximas__texto">{fase.texto}</span>
-              </li>
-            ))}
-          </ul>
-        </section>}
       </main>
     </>
   );
