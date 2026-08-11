@@ -29,6 +29,14 @@ export const MAXIMO_DO_MOTIVO = 600;
 
 export type Decisao = 'aprovar' | 'recusar';
 
+export type EstadoDaNotificacaoInterna =
+  | 'pendente'
+  | 'reservado'
+  | 'enviando'
+  | 'enviado'
+  | 'incerto'
+  | 'falhou';
+
 export interface PedidoDeDecisao {
   decisao: Decisao;
   motivo?: string;
@@ -61,7 +69,7 @@ export interface RelatorioDecidivel {
   } | null;
   notificacaoInterna?: {
     id: string;
-    estado: 'pendente';
+    estado: EstadoDaNotificacaoInterna;
     destinoReferencia: string;
   } | null;
 }
@@ -74,6 +82,22 @@ function diaEMes(iso: string | null): string {
   if (!iso) return '';
   const [, mes, dia] = iso.slice(0, 10).split('-');
   return dia && mes ? `${dia}/${mes}` : '';
+}
+
+export function textoDaNotificacaoInterna(estado: EstadoDaNotificacaoInterna): string {
+  if (estado === 'pendente') {
+    return 'O aviso interno está pendente na fila de saída; o painel não enviou WhatsApp.';
+  }
+  if (estado === 'reservado' || estado === 'enviando') {
+    return 'O aviso interno está em processamento; uma tentativa em curso não é repetida automaticamente.';
+  }
+  if (estado === 'enviado') {
+    return 'O aviso interno foi enviado ao grupo canônico e confirmado pelo recibo do gateway.';
+  }
+  if (estado === 'incerto') {
+    return 'O aviso interno ficou com confirmação incerta; exige conferência manual e não será repetido automaticamente.';
+  }
+  return 'O aviso interno falhou antes do transporte; exige revisão manual.';
 }
 
 /**
@@ -125,8 +149,8 @@ export function textoDoJaDecidido(relatorio: RelatorioDecidivel): string | null 
       `“${relatorio.recusaMotivo ?? 'sem motivo legível'}”.`
     );
     if (relatorio.correcao?.estado === 'aguardando_nova_versao') {
-      const aviso = relatorio.notificacaoInterna?.estado === 'pendente'
-        ? ' O aviso interno está pendente na fila de saída; o painel não enviou WhatsApp.'
+      const aviso = relatorio.notificacaoInterna
+        ? ` ${textoDaNotificacaoInterna(relatorio.notificacaoInterna.estado)}`
         : '';
       return `${base} Ordem de correção: aguardando uma versão nova da fábrica.${aviso}`;
     }

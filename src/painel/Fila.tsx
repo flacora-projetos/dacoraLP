@@ -37,6 +37,14 @@ type EstadoNaTela =
   | 'substituido'
   | 'desconhecido';
 
+type EstadoDaNotificacaoInterna =
+  | 'pendente'
+  | 'reservado'
+  | 'enviando'
+  | 'enviado'
+  | 'incerto'
+  | 'falhou';
+
 interface Sinal {
   tipo: string;
   texto: string;
@@ -78,7 +86,7 @@ interface ItemDaFila {
   } | null;
   notificacaoInterna?: {
     id: string;
-    estado: 'pendente';
+    estado: EstadoDaNotificacaoInterna;
     destinoReferencia: string;
   } | null;
   enviadoEm: string | null;
@@ -245,8 +253,17 @@ function detalheDoEstado(item: ItemDaFila): string | undefined {
   } else if (item.correcao?.estado === 'nova_versao_gerada') {
     partes.push(`Ordem de correção atendida pela versão ${item.correcao.novaVersao ?? 'nova'}.`);
   }
-  if (item.notificacaoInterna?.estado === 'pendente') {
+  const estadoDoAviso = item.notificacaoInterna?.estado;
+  if (estadoDoAviso === 'pendente') {
     partes.push('Aviso interno pendente na fila de saída; o painel não enviou WhatsApp.');
+  } else if (estadoDoAviso === 'reservado' || estadoDoAviso === 'enviando') {
+    partes.push('Aviso interno em processamento; a tentativa não é repetida automaticamente.');
+  } else if (estadoDoAviso === 'enviado') {
+    partes.push('Aviso interno enviado ao grupo canônico e confirmado pelo recibo do gateway.');
+  } else if (estadoDoAviso === 'incerto') {
+    partes.push('Aviso interno com confirmação incerta; exige conferência manual e não será repetido automaticamente.');
+  } else if (estadoDoAviso === 'falhou') {
+    partes.push('Aviso interno falhou antes do transporte; exige revisão manual.');
   }
   return partes.join(' ');
 }
