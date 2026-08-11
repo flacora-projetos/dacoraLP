@@ -48,7 +48,9 @@ relatório real foi decidido e nenhuma mensagem foi enviada. Detalhe na seção 
 a entrada Dácora-only, a lista vazia e o deep-link interno existem na branch
 `codex/a1-internos-allgrotech`. A seção reutiliza o portão P0 e a allowlist
 atuais; troca de ID não abre relatório externo dentro dela. **Nada foi integrado
-ou publicado, nenhum snapshot interno foi criado e nenhum dado real foi usado.**
+na `main` nem publicado em produção. O Flávio aprovou o gate visual e autorizou
+o Preview da branch, que foi publicado e validado; nenhum snapshot interno foi
+criado e nenhum dado real foi usado.**
 Detalhe na seção 15.
 **Última atualização:** 2026-08-11
 
@@ -102,7 +104,7 @@ Syntonics continuam sem resultado por produto em Performance Max, mas o PO
 adiou essa ampliação em 2026-08-09 e ela não bloqueia esta publicação. O registro
 está em `docs/PENDENCIA_ADIADA_CONECTOR_GOOGLE_PRODUTOS_PMAX_2026-08-09.md` no
 `OpenClaw-Dacora`. Nenhum relatório mensal interno Allgrotech existe hoje. A
-entrada A1 permanece vazia e explícita em branch; snapshots desse produto só
+entrada A1 permanece vazia e explícita no Preview da branch; snapshots desse produto só
 pertencem ao próximo contrato factual, ainda não iniciado.
 
 ### Checkpoint integrado da P2
@@ -1298,9 +1300,10 @@ efeito automático desta publicação.
 
 ## 15. Entrada Dácora-only dos relatórios internos Allgrotech (A1)
 
-**Estado: implementada e validada somente na branch
-`codex/a1-internos-allgrotech`, sem merge, deploy, Supabase, dado real ou
-publicação.**
+**Estado: implementada na branch `codex/a1-internos-allgrotech`, aprovada no
+gate visual pelo Flávio e publicada somente como Preview de branch. Não houve
+merge na `main`, publicação em produção, uso de Supabase remoto, dado real ou
+snapshot interno.**
 
 O painel autenticado ganhou a entrada **Internos Allgrotech**. O deep-link
 `/painel-de-relatorios?secao=internos-allgrotech` continua atrás do mesmo login
@@ -1340,10 +1343,19 @@ auditoria WCAG 2 A/AA não encontrou violação. A troca para um ID fictício
 mostrou o estado fechado e fez zero chamadas a `/api/painel-relatorio`. As
 capturas ficaram fora do repositório.
 
+Depois do GO explícito do Flávio, o HEAD `b708c32` foi enviado ao GitHub e a
+Vercel concluiu com sucesso o deployment Preview `5854554509`. Endereço:
+<https://dacora-qjr52lj32-flavio-coras-projects.vercel.app/painel-de-relatorios?secao=internos-allgrotech>.
+A rota respondeu `200` e `X-Robots-Tag: noindex, nofollow, noarchive`. Em sessão
+anônima isolada, o portão mostrou somente **Entrar com o Google** e não expôs a
+seção interna. A captura de rede observou 16 recursos da página, sem chamada a
+`/api/painel-*`, Supabase, Auth, REST ou dado real. Não foi usada autenticação
+real para forçar o smoke no Preview.
+
 O próximo gate é **A2 — contrato factual sintético**, em autorização e branch
 próprias. A2 não foi antecipada aqui. O smoke visual autenticado em desktop e
-celular é gate separado quando houver sessão Google segura no worktree isolado;
-ausência desse smoke não autoriza integrar ou publicar esta branch.
+celular já foi realizado localmente com sessão fictícia e aprovado pelo Flávio.
+Integrar na `main` e publicar em produção continuam sendo gates separados.
 
 ---
 
