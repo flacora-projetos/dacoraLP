@@ -13,9 +13,11 @@
  */
 import { usarPainelAuth } from './AuthContext';
 import Fila from './Fila';
+import InternosAllgrotech from './InternosAllgrotech';
 import Revisao from './Revisao';
 import { useSearchParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { NavegacaoDoPainel, resolverVistaDoPainel } from './navegacao-painel';
 
 /**
  * O que ainda NÃO existe aqui.
@@ -40,6 +42,7 @@ export default function PainelInicio() {
   const { autorizacao, usuario, sair } = usarPainelAuth();
   const [busca] = useSearchParams();
   const relatorioId = busca.get('relatorio');
+  const vista = resolverVistaDoPainel(busca.get('secao'), relatorioId);
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
 
   return (
@@ -61,13 +64,17 @@ export default function PainelInicio() {
       </header>
 
       <main className="dcp-corpo">
-        {relatorioId ? (
+        <NavegacaoDoPainel vista={vista} />
+
+        {vista === 'internos-allgrotech' ? (
+          <InternosAllgrotech relatorioId={relatorioId} />
+        ) : vista === 'revisao' && relatorioId ? (
           <Revisao relatorioId={relatorioId} />
         ) : (
           <Fila />
         )}
 
-        {!relatorioId && <section className="dcp-secao dcp-secao--recuada">
+        {vista === 'fila' && <section className="dcp-secao dcp-secao--recuada">
           <h2 className="dcp-secao__titulo">O que ainda não dá para fazer aqui</h2>
           <p className="dcp-secao__apoio">
             Cada etapa abaixo entrega algo que funciona sozinho, na ordem.

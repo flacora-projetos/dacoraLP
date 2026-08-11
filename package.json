@@ -19,6 +19,7 @@
     "verifica:decisao": "tsx scripts/verifica-painel-decisao.mts",
     "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
+    "verifica:internos-allgrotech": "tsx scripts/verifica-painel-internos-allgrotech.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",
     "start": "node dist/server.cjs"
   },

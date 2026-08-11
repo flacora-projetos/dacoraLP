@@ -44,6 +44,12 @@ na `main` pelo merge `9c987b2` e mostra os estados reais `pendente`, `reservado`
 `enviando`, `enviado`, `incerto` e `falhou`. O worker da fábrica continua fora
 do runtime e sem agenda; preview é o padrão e executar exige gate duplo. Nenhum
 relatório real foi decidido e nenhuma mensagem foi enviada. Detalhe na seção 14.
+**A1 dos relatórios internos Allgrotech implementada em branch em 2026-08-11:**
+a entrada Dácora-only, a lista vazia e o deep-link interno existem na branch
+`codex/a1-internos-allgrotech`. A seção reutiliza o portão P0 e a allowlist
+atuais; troca de ID não abre relatório externo dentro dela. **Nada foi integrado
+ou publicado, nenhum snapshot interno foi criado e nenhum dado real foi usado.**
+Detalhe na seção 15.
 **Última atualização:** 2026-08-11
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
@@ -95,8 +101,9 @@ a cobertura que dimensiona a diferença para o total da conta. Hannover e
 Syntonics continuam sem resultado por produto em Performance Max, mas o PO
 adiou essa ampliação em 2026-08-09 e ela não bloqueia esta publicação. O registro
 está em `docs/PENDENCIA_ADIADA_CONECTOR_GOOGLE_PRODUTOS_PMAX_2026-08-09.md` no
-`OpenClaw-Dacora`. Nenhum relatório mensal interno Allgrotech existe hoje; a
-seção correspondente só aparecerá quando snapshots desse produto existirem.
+`OpenClaw-Dacora`. Nenhum relatório mensal interno Allgrotech existe hoje. A
+entrada A1 permanece vazia e explícita em branch; snapshots desse produto só
+pertencem ao próximo contrato factual, ainda não iniciado.
 
 ### Checkpoint integrado da P2
 
@@ -1288,6 +1295,55 @@ deployment de produção `dpl_A2BFqpqWbEJZAfHLt99EziTXLpoR` ficou `READY`. A rot
 respondeu `200` com `noindex` e as duas APIs sem sessão responderam `401`.
 Qualquer mensagem real permanece uma operação governada posterior, não um
 efeito automático desta publicação.
+
+## 15. Entrada Dácora-only dos relatórios internos Allgrotech (A1)
+
+**Estado: implementada e validada somente na branch
+`codex/a1-internos-allgrotech`, sem merge, deploy, Supabase, dado real ou
+publicação.**
+
+O painel autenticado ganhou a entrada **Internos Allgrotech**. O deep-link
+`/painel-de-relatorios?secao=internos-allgrotech` continua atrás do mesmo login
+Google, do mesmo endpoint de autorização e da mesma allowlist server-side de
+P0. Não existe conta, papel, RBAC ou allowlist para Will, Ana Paula ou qualquer
+outra pessoa Allgrotech.
+
+A lista mostra zero e declara que nenhum snapshot interno foi gerado ou
+carregado. Não há cliente, competência, métrica ou fixture apresentada como
+dado real. Se alguém acrescentar `relatorio=` ou trocar o ID enquanto está na
+seção interna, o painel mostra o estado fechado **Relatório interno não
+encontrado** e não monta a revisão do produto externo.
+
+A A1 não criou endpoint, consulta, banco, migração, conteúdo de relatório,
+exportação PDF, nota, comentário, aprovação, recusa, envio ou destinatário. A
+separação existente por `identidade.carteira` e `identidade.produto` na fila
+atual permaneceu intocada.
+
+### 15.1 Evidência e próximo gate
+
+A regressão `npm run verifica:internos-allgrotech` cobre o endereço canônico,
+entrada, estado vazio, deep-link, troca de ID, reutilização da allowlist Dácora,
+portão P0 e as camadas de `noindex`. Ela usa apenas IDs e e-mail de teste
+explicitamente fictícios. As regressões existentes de autorização, fila,
+refoco e revisão continuam sendo o contrato das áreas já publicadas.
+
+Passaram `verifica:internos-allgrotech`, `verifica:painel`, `verifica:fila`,
+`verifica:refoco`, `verifica:revisao`, `verifica:visao-geral`,
+`verifica:decisao`, `verifica:publico` e o build completo. O `lint` reproduziu
+somente os seis erros TypeScript preexistentes no tronco, nenhum em arquivo da
+A1.
+
+O smoke local atravessou o portão com sessão e autorização inteiramente
+fictícias, sem Google ou Supabase remoto. Em 1440×900 e 390×844, a entrada, o
+estado vazio e a hierarquia ficaram legíveis, sem rolagem horizontal; a
+auditoria WCAG 2 A/AA não encontrou violação. A troca para um ID fictício
+mostrou o estado fechado e fez zero chamadas a `/api/painel-relatorio`. As
+capturas ficaram fora do repositório.
+
+O próximo gate é **A2 — contrato factual sintético**, em autorização e branch
+próprias. A2 não foi antecipada aqui. O smoke visual autenticado em desktop e
+celular é gate separado quando houver sessão Google segura no worktree isolado;
+ausência desse smoke não autoriza integrar ou publicar esta branch.
 
 ---
 

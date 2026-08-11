@@ -17,6 +17,7 @@ import PainelInicio from '../painel/PainelInicio';
 import Portao from '../painel/Portao';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import '../painel/painel.css';
+import '../painel/internos-allgrotech.css';
 
 export default function PainelRelatorios() {
   usaPaginaPrivada('Painel de relatórios | Dácora');
