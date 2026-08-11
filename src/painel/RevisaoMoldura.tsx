@@ -7,6 +7,7 @@ import DecisaoDaRevisao, {
   type PedidoDeDecisao,
   type ResultadoDaDecisao,
 } from './DecisaoDaRevisao';
+import EnvioDaRevisao, { type ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -103,13 +104,23 @@ function FaixaDeRevisao({
   relatorio,
   quem,
   aoDecidir,
+  aoCarregarEnvio,
+  aoSolicitarEnvio,
 }: {
   relatorio: RelatorioDaRevisao;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
+  aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
 }) {
   const competencia = formatarCompetencia(relatorio.competencia);
   const podeOferecerDecisao = Boolean(aoDecidir && relatorio.checksum);
+  const podeMontarEnvio = Boolean(
+    relatorio.checksum &&
+    (relatorio.estado === 'liberado' || relatorio.estado === 'enviado') &&
+    aoCarregarEnvio &&
+    aoSolicitarEnvio,
+  );
 
   return (
     <aside className="dcp-revisao__faixa" aria-label="Faixa de revisão do relatório">
@@ -155,6 +166,12 @@ function FaixaDeRevisao({
       ) : (
         <DecisaoDesabilitada />
       )}
+      {podeMontarEnvio && (
+        <EnvioDaRevisao
+          aoCarregar={aoCarregarEnvio as () => Promise<ResultadoDoEnvioP5>}
+          aoSolicitar={aoSolicitarEnvio as () => Promise<ResultadoDoEnvioP5>}
+        />
+      )}
     </aside>
   );
 }
@@ -164,11 +181,15 @@ export function RevisaoMoldura({
   children,
   quem,
   aoDecidir,
+  aoCarregarEnvio,
+  aoSolicitarEnvio,
 }: {
   relatorio: RelatorioDaRevisao | null;
   children?: ReactNode;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
+  aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
 }) {
   if (!relatorio?.conteudoCarregado || !relatorio.snapshot || !children) {
     return (
@@ -186,7 +207,13 @@ export function RevisaoMoldura({
         <Link to="/painel-de-relatorios">← Voltar para a fila</Link>
       </nav>
       <div className="dcp-revisao__grade">
-        <FaixaDeRevisao relatorio={relatorio} quem={quem} aoDecidir={aoDecidir} />
+        <FaixaDeRevisao
+          relatorio={relatorio}
+          quem={quem}
+          aoDecidir={aoDecidir}
+          aoCarregarEnvio={aoCarregarEnvio}
+          aoSolicitarEnvio={aoSolicitarEnvio}
+        />
         <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>
           {children}
         </article>

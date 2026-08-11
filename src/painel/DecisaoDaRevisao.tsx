@@ -430,7 +430,7 @@ export default function DecisaoDaRevisao({
 
       <p id={idBloqueio} className="dcp-revisao__bloqueio">
         A decisão carimba a impressão digital deste documento: se ele for gerado de novo, a
-        aprovação deixa de valer. O envio ao cliente é etapa separada e ainda não existe aqui.
+        aprovação deixa de valer. O envio ao cliente só aparece depois do read-back confirmar o GO.
       </p>
 
       {confirmando === 'recusar' && (

@@ -52,7 +52,7 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
     !inicio.includes("chave: 'P4'"),
     'uma fase publicada não pode continuar listada como algo que ainda não existe',
   );
-  assert.ok(inicio.includes("chave: 'P5'"), 'o próximo gate real precisa continuar explícito');
+  assert.ok(!inicio.includes("chave: 'P5'"), 'a P5 implementada não pode continuar como falsa pendência');
 }
 
 /* ------------------------------------------------------------------ */

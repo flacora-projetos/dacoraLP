@@ -13,7 +13,7 @@
  * por conta própria e resolve **quem decidiu pela sessão**, ignorando qualquer
  * identidade que o navegador mandasse. Esta tela só mostra e pergunta.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import RelatorioMontado from '../reports/RelatorioMontado';
@@ -21,17 +21,28 @@ import { formatarCompetencia } from '../reports/format';
 import { usarPainelAuth } from './AuthContext';
 import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
 import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
+import type { EstadoSeguroDoEnvioP5, ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 
 export function RevisaoApresentada({
   relatorio,
   quem,
   aoDecidir,
+  aoCarregarEnvio,
+  aoSolicitarEnvio,
 }: {
   relatorio: RelatorioDaRevisao | null;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
+  aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
 }) {
-  return <RevisaoMoldura relatorio={relatorio} quem={quem} aoDecidir={aoDecidir}>{relatorio ? (
+  return <RevisaoMoldura
+    relatorio={relatorio}
+    quem={quem}
+    aoDecidir={aoDecidir}
+    aoCarregarEnvio={aoCarregarEnvio}
+    aoSolicitarEnvio={aoSolicitarEnvio}
+  >{relatorio ? (
     <RelatorioMontado
       snapshot={relatorio.snapshot}
       proposta="B"
@@ -160,6 +171,78 @@ export function RevisaoComSessao({
     }
   }
 
+  const carregarEnvio = useCallback(async (): Promise<ResultadoDoEnvioP5> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id) {
+      return {
+        ok: false,
+        mensagem: 'A sessão expirou nesta aba. Entre novamente e reabra a revisão.',
+      };
+    }
+    try {
+      const resposta = await fetch(
+        `/api/painel-envio?id=${encodeURIComponent(relatorioAtual.id)}`,
+        { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } },
+      );
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || !corpo?.envio) {
+        return {
+          ok: false,
+          mensagem: String(corpo?.mensagem ?? 'Não foi possível carregar o destino canônico.'),
+        };
+      }
+      return { ok: true, estado: corpo.envio as EstadoSeguroDoEnvioP5 };
+    } catch {
+      return {
+        ok: false,
+        mensagem: 'Não foi possível consultar a fábrica agora. Reabra a revisão e tente novamente.',
+      };
+    }
+  }, [relatorio, usuarioId]);
+
+  const solicitarEnvio = useCallback(async (): Promise<ResultadoDoEnvioP5> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id || !relatorioAtual.checksum) {
+      return {
+        ok: false,
+        mensagem: 'A sessão ou a impressão digital expirou. Reabra a revisão — nada foi solicitado.',
+      };
+    }
+    try {
+      const resposta = await fetch('/api/painel-envio', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessaoAtual.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: relatorioAtual.id,
+          checksum: relatorioAtual.checksum,
+        }),
+      });
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || corpo?.solicitado !== true || !corpo?.envio) {
+        return {
+          ok: false,
+          mensagem: String(corpo?.mensagem ?? 'Não foi possível solicitar o envio. Nada foi confirmado.'),
+        };
+      }
+      return {
+        ok: true,
+        estado: corpo.envio as EstadoSeguroDoEnvioP5,
+        mensagem: String(corpo?.mensagem ?? 'Envio solicitado.'),
+      };
+    } catch {
+      return {
+        ok: false,
+        mensagem:
+          'Não foi possível falar com o servidor. Reabra a revisão para ler o estado durável antes de tentar novamente.',
+      };
+    }
+  }, [relatorio, usuarioId]);
+
   if (carregando) {
     return (
       <section className="dcp-revisao__carregando" aria-busy="true" aria-live="polite">
@@ -193,6 +276,8 @@ export function RevisaoComSessao({
       relatorio={relatorio}
       quem={sessao?.user?.email ?? undefined}
       aoDecidir={decidir}
+      aoCarregarEnvio={carregarEnvio}
+      aoSolicitarEnvio={solicitarEnvio}
     />
   );
 }
