@@ -246,6 +246,12 @@ export interface LinhaDecidida {
   recusado_por: string | null;
   recusado_em: string | null;
   recusa_motivo: string | null;
+  correcao_ordem_id?: string | null;
+  correcao_estado?: 'aguardando_nova_versao' | 'nova_versao_gerada' | null;
+  correcao_solicitado_em?: string | null;
+  notificacao_interna_id?: string | null;
+  notificacao_interna_estado?: 'pendente' | null;
+  notificacao_destino_referencia?: string | null;
 }
 
 /**
@@ -287,6 +293,18 @@ export function conferirLeituraDeVolta(
   if (linha.aprovado_em || linha.aprovado_checksum) {
     return { ok: false, motivo: 'a linha recusada carrega carimbo de aprovação' };
   }
+  if (!linha.correcao_ordem_id || !linha.correcao_solicitado_em) {
+    return { ok: false, motivo: 'a ordem de correção não foi registrada' };
+  }
+  if (linha.correcao_estado !== 'aguardando_nova_versao') {
+    return { ok: false, motivo: 'a ordem de correção não ficou aguardando nova versão' };
+  }
+  if (!linha.notificacao_interna_id || linha.notificacao_interna_estado !== 'pendente') {
+    return { ok: false, motivo: 'o aviso interno não ficou pendente na fila de saída' };
+  }
+  if (linha.notificacao_destino_referencia !== 'dacora_semanais.recipients') {
+    return { ok: false, motivo: 'o aviso interno não aponta para o destinatário canônico' };
+  }
   return { ok: true };
 }
 
@@ -321,6 +339,7 @@ export function ecoDaDecisao(entrada: {
   }
   return (
     `Recusar: ${cabeca}. Fica registrado como recusado por ${entrada.quem}, ` +
-    `com o motivo: "${(entrada.motivo ?? '').trim()}".`
+    `com o motivo: "${(entrada.motivo ?? '').trim()}". ` +
+    'Uma ordem de correção aguarda nova versão; o aviso interno fica pendente na fila de saída.'
   );
 }

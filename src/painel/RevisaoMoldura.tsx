@@ -39,6 +39,18 @@ export interface RelatorioDaRevisao {
   recusadoPor?: string | null;
   recusadoEm?: string | null;
   recusaMotivo?: string | null;
+  correcao?: {
+    id: string;
+    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    solicitadoEm: string;
+    novaVersaoRelatorioId: string | null;
+    novaVersao: number | null;
+  } | null;
+  notificacaoInterna?: {
+    id: string;
+    estado: 'pendente';
+    destinoReferencia: string;
+  } | null;
 }
 
 function ListaDeSinais({ sinais }: { sinais: SinalDaRevisao[] }) {
@@ -133,6 +145,8 @@ function FaixaDeRevisao({
             recusadoPor: relatorio.recusadoPor ?? null,
             recusadoEm: relatorio.recusadoEm ?? null,
             recusaMotivo: relatorio.recusaMotivo ?? null,
+            correcao: relatorio.correcao ?? null,
+            notificacaoInterna: relatorio.notificacaoInterna ?? null,
           }}
           quem={quem ?? 'você'}
           aoDecidir={aoDecidir as (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>}

@@ -53,6 +53,14 @@ export interface LinhaDoBanco {
   recusado_por?: string | null;
   recusado_em?: string | null;
   recusa_motivo?: string | null;
+  correcao_ordem_id?: string | null;
+  correcao_estado?: 'aguardando_nova_versao' | 'nova_versao_gerada' | null;
+  correcao_solicitado_em?: string | null;
+  correcao_nova_versao_relatorio_id?: string | null;
+  correcao_nova_versao?: number | null;
+  notificacao_interna_id?: string | null;
+  notificacao_interna_estado?: 'pendente' | null;
+  notificacao_destino_referencia?: string | null;
   enviado_em: string | null;
   enviado_para: string | null;
   substituido_por: string | null;
@@ -143,6 +151,18 @@ export interface ItemDaFila {
    * explicação para quem vai regerar o relatório.
    */
   recusaMotivo: string | null;
+  correcao: {
+    id: string;
+    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    solicitadoEm: string;
+    novaVersaoRelatorioId: string | null;
+    novaVersao: number | null;
+  } | null;
+  notificacaoInterna: {
+    id: string;
+    estado: 'pendente';
+    destinoReferencia: string;
+  } | null;
   enviadoEm: string | null;
   enviadoPara: string | null;
   /** Soma dos investimentos das plataformas. `null` quando nenhum veio. */
@@ -456,6 +476,26 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
     recusadoPor: linha.recusado_por ?? null,
     recusadoEm: linha.recusado_em ?? null,
     recusaMotivo: linha.recusa_motivo ?? null,
+    correcao:
+      linha.correcao_ordem_id && linha.correcao_estado && linha.correcao_solicitado_em
+        ? {
+            id: linha.correcao_ordem_id,
+            estado: linha.correcao_estado,
+            solicitadoEm: linha.correcao_solicitado_em,
+            novaVersaoRelatorioId: linha.correcao_nova_versao_relatorio_id ?? null,
+            novaVersao: linha.correcao_nova_versao ?? null,
+          }
+        : null,
+    notificacaoInterna:
+      linha.notificacao_interna_id &&
+      linha.notificacao_interna_estado === 'pendente' &&
+      linha.notificacao_destino_referencia
+        ? {
+            id: linha.notificacao_interna_id,
+            estado: linha.notificacao_interna_estado,
+            destinoReferencia: linha.notificacao_destino_referencia,
+          }
+        : null,
     enviadoEm: linha.enviado_em,
     enviadoPara: linha.enviado_para,
     // Ausência não vira zero: sem nenhum investimento apurado o campo é `null`,

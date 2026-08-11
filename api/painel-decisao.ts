@@ -52,6 +52,12 @@ const COLUNAS_DA_LEITURA = [
   'recusado_por',
   'recusado_em',
   'recusa_motivo',
+  'correcao_ordem_id',
+  'correcao_estado',
+  'correcao_solicitado_em',
+  'notificacao_interna_id',
+  'notificacao_interna_estado',
+  'notificacao_destino_referencia',
   'enviado_em',
   'substituido_por',
   'revogado_em',
@@ -151,7 +157,7 @@ export default async function handler(req: Request, res: Response) {
 
     /* 2. Read-back — a decisão vale quando o banco a confirma. -------------- */
     const respostaLeitura = await fetch(
-      `${urlSupabase}/rest/v1/relatorios?id=eq.${pedido.id}&select=${COLUNAS_DA_LEITURA}&limit=1`,
+      `${urlSupabase}/rest/v1/painel_relatorios_com_correcao?id=eq.${pedido.id}&select=${COLUNAS_DA_LEITURA}&limit=1`,
       { headers: cabecalhos },
     );
     if (!respostaLeitura.ok) {
@@ -204,6 +210,20 @@ export default async function handler(req: Request, res: Response) {
         recusadoPor: linha.recusado_por,
         recusadoEm: linha.recusado_em,
         recusaMotivo: linha.recusa_motivo,
+        correcao: linha.correcao_ordem_id
+          ? {
+              id: linha.correcao_ordem_id,
+              estado: linha.correcao_estado,
+              solicitadoEm: linha.correcao_solicitado_em,
+            }
+          : null,
+        notificacaoInterna: linha.notificacao_interna_id
+          ? {
+              id: linha.notificacao_interna_id,
+              estado: linha.notificacao_interna_estado,
+              destinoReferencia: linha.notificacao_destino_referencia,
+            }
+          : null,
       },
     });
   } catch (erro) {

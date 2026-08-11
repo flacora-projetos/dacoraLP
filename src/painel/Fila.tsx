@@ -69,6 +69,18 @@ interface ItemDaFila {
   recusadoPor?: string | null;
   recusadoEm?: string | null;
   recusaMotivo?: string | null;
+  correcao?: {
+    id: string;
+    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    solicitadoEm: string;
+    novaVersaoRelatorioId: string | null;
+    novaVersao: number | null;
+  } | null;
+  notificacaoInterna?: {
+    id: string;
+    estado: 'pendente';
+    destinoReferencia: string;
+  } | null;
   enviadoEm: string | null;
   enviadoPara: string | null;
   investimento: number | null;
@@ -190,9 +202,18 @@ function textoDoEstado(item: ItemDaFila): string {
     case 'recusado': {
       const quem = primeiroNome(item.recusadoPor ?? null);
       const quando = diaEMes(item.recusadoEm ?? null);
-      if (quem && quando) return `recusado por ${quem} · ${quando}`;
-      if (quem) return `recusado por ${quem}`;
-      return 'recusado';
+      const decisao = quem && quando
+        ? `recusado por ${quem} · ${quando}`
+        : quem
+          ? `recusado por ${quem}`
+          : 'recusado';
+      if (item.correcao?.estado === 'aguardando_nova_versao') {
+        return `aguardando nova versão · ${decisao}`;
+      }
+      if (item.correcao?.estado === 'nova_versao_gerada') {
+        return `nova versão gerada · ${decisao}`;
+      }
+      return decisao;
     }
     case 'enviado': {
       const quando = diaEMes(item.enviadoEm);
@@ -216,7 +237,18 @@ function textoDoEstado(item: ItemDaFila): string {
 function detalheDoEstado(item: ItemDaFila): string | undefined {
   if (item.estado !== 'recusado') return undefined;
   const motivo = (item.recusaMotivo ?? '').trim();
-  return motivo ? `Motivo registrado: ${motivo}` : 'Recusado sem motivo legível no registro.';
+  const partes = [
+    motivo ? `Motivo registrado: ${motivo}` : 'Recusado sem motivo legível no registro.',
+  ];
+  if (item.correcao?.estado === 'aguardando_nova_versao') {
+    partes.push('Ordem de correção pendente: a fábrica precisa gerar uma versão nova.');
+  } else if (item.correcao?.estado === 'nova_versao_gerada') {
+    partes.push(`Ordem de correção atendida pela versão ${item.correcao.novaVersao ?? 'nova'}.`);
+  }
+  if (item.notificacaoInterna?.estado === 'pendente') {
+    partes.push('Aviso interno pendente na fila de saída; o painel não enviou WhatsApp.');
+  }
+  return partes.join(' ');
 }
 
 /**
