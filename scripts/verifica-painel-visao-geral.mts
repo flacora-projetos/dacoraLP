@@ -496,6 +496,11 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { FilaApresentada, aplicarFiltros } from '../src/painel/Fila.tsx';
+// O tipo do campo de filtro mora em `VisaoGeral.tsx`, que é quem define as
+// dimensões. Ele é usado na varredura da seção 11; sem este import o `tsx`
+// roda igual (tipo é apagado em tempo de execução) e só o `lint` acusa — foi
+// exatamente assim que o erro passou despercebido na primeira entrega.
+import type { CampoDeFiltro } from '../src/painel/VisaoGeral.tsx';
 
 function desenhar(dados: any): string {
   return renderToStaticMarkup(
