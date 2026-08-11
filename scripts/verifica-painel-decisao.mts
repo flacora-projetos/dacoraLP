@@ -18,6 +18,7 @@
  * um estado que existe numa tela e some na outra é pior que estado nenhum.
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -43,6 +44,15 @@ import DecisaoDaRevisao, {
 const ID = '22222222-2222-4222-8222-222222222222';
 const CHECKSUM = 'abc123def456abc123def456abc123de';
 const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir antes de mandar.';
+
+{
+  const inicio = readFileSync(new URL('../src/painel/PainelInicio.tsx', import.meta.url), 'utf8');
+  assert.ok(
+    !inicio.includes("chave: 'P4'"),
+    'uma fase publicada não pode continuar listada como algo que ainda não existe',
+  );
+  assert.ok(inicio.includes("chave: 'P5'"), 'o próximo gate real precisa continuar explícito');
+}
 
 /* ------------------------------------------------------------------ */
 /* 1. A leitura do pedido — tudo que morre antes do banco               */

@@ -27,14 +27,6 @@ import type { ReactNode } from 'react';
  */
 const PROXIMAS_FASES: Array<{ chave: string; texto: ReactNode }> = [
   {
-    chave: 'P4',
-    texto: (
-      <>
-        <strong>Aviso de recusa</strong> — a recusa chega ao grupo interno, com o motivo.
-      </>
-    ),
-  },
-  {
     chave: 'P5',
     texto: (
       <>

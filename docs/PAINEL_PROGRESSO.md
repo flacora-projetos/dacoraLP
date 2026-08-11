@@ -38,11 +38,13 @@ endpoint que grava com read-back e auditoria, tela de revisão com eco literal
 antes de gravar, e o estado `recusado` presente na fila e na visão geral. A
 branch foi integrada e publicada; **nenhum relatório real foi aprovado ou
 recusado.** Detalhe na seção 13.
-**P4 com banco aplicado e provado, portal ainda em branch dedicada:** a
+**P4 integrada e publicada em 2026-08-11:** a
 recusa passa a criar uma ordem de correção ligada à versão/checksum e uma
 entrada idempotente de notificação interna. A fila e a revisão mostram
 `aguardando nova versão` e `aviso interno pendente`; nenhum worker envia
-WhatsApp e o painel não regenera nem edita snapshot. Detalhe na seção 14.
+WhatsApp e o painel não regenera nem edita snapshot. As migrações `0006` e
+`0007` foram aplicadas e o portal entrou na `main` pelo merge `fed25f2`, com
+smoke autenticado somente leitura. Detalhe na seção 14.
 **Última atualização:** 2026-08-11
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
@@ -75,7 +77,8 @@ da Fernanda continua aberto para Karyne e Aviarte. **A P3 foi concluída em
 2026-08-11**, por autorização do Flávio, com migração aplicada, integração e
 publicação — sem nenhuma decisão sobre relatório real (seções 7 e 13).
 As migrações `0006` e `0007` da P4 foram aplicadas e provadas no Supabase. O
-portal continua sem merge/publicação até completar a integração desta branch.
+portal foi integrado, publicado e conferido com sessão real sem decidir nenhum
+relatório.
 
 ### Auditoria da fila corrente em 2026-08-09
 
@@ -638,9 +641,9 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 2. **P3 concluída:** a migração `0005` foi aplicada, a implementação integrada
    na `main` e publicada. Usar os botões em relatório real continua dependendo
    da validação do documento; construir o guardrail não carimba nenhum GO.
-3. **P4 com banco pronto:** integrar/publicar esta branch e fazer smoke
-   autenticado sem decidir relatório real. A saída continua pendente: criar um
-   worker de envio e enviar mensagem real são outra fase.
+3. **P4 concluída:** banco e portal estão publicados; a ordem de correção e a
+   outbox pendente existem, mas não há worker nem envio real. Construir a saída
+   idempotente e executar qualquer mensagem continuam em gate separado.
 4. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
 5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
@@ -1220,9 +1223,11 @@ só a tela.
 
 ## 14. Ordem de correção e saída interna controlada (P4)
 
-**Estado: implementada em branches dedicadas; migrações aplicadas e provadas no
-Supabase; código do portal ainda NÃO integrado/publicado. Nenhum relatório real
-foi aprovado ou recusado e nenhuma mensagem foi enviada.**
+**Estado: integrada e publicada em 2026-08-11. Migrações aplicadas e provadas no
+Supabase; portal na `main` pelo merge `fed25f2`, deployment de produção
+`dpl_4UhnKg1aAGJfzDcYeooAajJLEhfs` em estado `READY` e smoke autenticado
+somente leitura concluído. Nenhum relatório real foi aprovado ou recusado e
+nenhuma mensagem foi enviada.**
 
 A menor P4 coerente mantém a P3 como única porta de decisão. O gatilho da recusa
 cria na mesma transação:
@@ -1254,8 +1259,10 @@ uma ordem, uma notificação, transição de `aguardando_nova_versao` para
 `nova_versao_gerada`, view com os dois registros e destino
 `dacora_semanais.recipients`. O sub-bloco foi revertido e as três contagens
 residuais ficaram zero. `anon` e `authenticated` mediram zero privilégio; o
-`service_role` ficou somente com o necessário. O gate restante é publicar o
-portal e fazer smoke autenticado sem decidir relatório real.
+`service_role` ficou somente com o necessário. No domínio real, a rota do painel
+respondeu `200`, as APIs sem sessão permaneceram em `401` e a sessão autorizada
+carregou a revisão e a visão geral. O próximo gate é o worker idempotente da
+outbox; enviar mensagem real continua exigindo autorização própria.
 
 ---
 
