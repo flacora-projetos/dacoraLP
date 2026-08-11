@@ -17,12 +17,20 @@ import Revisao from './Revisao';
 import { useSearchParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
+/**
+ * O que ainda NÃO existe aqui.
+ *
+ * A P3 saiu desta lista quando aprovar e recusar passaram a funcionar de
+ * verdade, na tela de revisão. Item que já existe e continua listado como
+ * pendência manda a próxima pessoa procurar um botão que está bem à frente
+ * dela — é a mesma falsa pendência que os documentos deste projeto proíbem.
+ */
 const PROXIMAS_FASES: Array<{ chave: string; texto: ReactNode }> = [
   {
-    chave: 'P3',
+    chave: 'P4',
     texto: (
       <>
-        <strong>Aprovar e recusar</strong> — o "sim" carimbado e o "não" com motivo.
+        <strong>Aviso de recusa</strong> — a recusa chega ao grupo interno, com o motivo.
       </>
     ),
   },

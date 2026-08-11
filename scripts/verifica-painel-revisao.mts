@@ -376,7 +376,12 @@ assert.ok(html.includes('<article'), 'o documento precisa estar dentro da bancad
 assert.ok(html.includes('<aside'), 'faltou a faixa de revisão');
 assert.ok(html.includes('Cliente Exemplo'));
 assert.ok(html.includes('Aprovar relatório') && html.includes('Recusar com motivo'));
-assert.equal((html.match(/ disabled=""/g) ?? []).length, 2, 'as decisões da P2 precisam estar desabilitadas');
+// A moldura é desenhada aqui SEM canal de decisão, e nesse modo os dois botões
+// continuam desabilitados. Depois da P3 isso deixou de ser "a decisão ainda não
+// existe" e passou a ser um contrato: botão habilitado sem para onde gravar é
+// pior que botão desabilitado, porque quem clica acredita ter decidido.
+// O caminho habilitado é provado em `npm run verifica:decisao`.
+assert.equal((html.match(/ disabled=""/g) ?? []).length, 2, 'sem canal de decisão, os botões ficam desabilitados');
 assert.ok(html.includes('href="#'), 'sinal de atenção precisa navegar para a seção relevante');
 assert.ok(html.includes('id="qualidade"') || html.includes('id="resumo"'), 'o alvo precisa existir no relatório');
 assert.ok(html.includes('href="/painel-de-relatorios"'), 'faltou voltar para a fila por navegação semântica');

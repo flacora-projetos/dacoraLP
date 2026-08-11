@@ -44,6 +44,12 @@ const COLUNAS = [
   'gerado_em',
   'aprovado_por',
   'aprovado_em',
+  // As três colunas do "não", criadas pela migração da P3. Sem elas a fila
+  // mostraria um relatório recusado como "estado desconhecido", que é pior que
+  // não ter o estado: parece defeito.
+  'recusado_por',
+  'recusado_em',
+  'recusa_motivo',
   'enviado_em',
   'enviado_para',
   'substituido_por',

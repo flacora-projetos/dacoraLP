@@ -4,7 +4,9 @@
 **Fases concluídas e publicadas:** P0 (fundação e login) · **P1 inteira —
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
 **P2 concluída e validada — relatório dentro da bancada, faixa responsiva e
-smoke autenticado aprovados pelo Flávio em desktop e celular**
+smoke autenticado aprovados pelo Flávio em desktop e celular** ·
+**D1/D2 — visão geral da operação, integrada e publicada em 2026-08-10** ·
+**P3 — aprovar e recusar, integrada e publicada em 2026-08-11** (seção 13).
 **Produção:** P0/P1 já estavam publicadas; a P2 foi integrada na `main` pelo
 merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 <https://www.dacora.com.br/painel-de-relatorios>.
@@ -18,7 +20,7 @@ enviado ao GitHub na sequência autorizada, resolve caminhos privados
 da autorização do painel. Karyne v3 tem 8/8 cards e Aviarte v3 tem 30/30 com
 assinatura real, HTTP 200 e status traduzido/datado. A fila mostra somente a
 versão 3 corrente e preserva as anteriores no banco para auditoria. O Flávio
-confirmou que as imagens carregaram. Os arquivos da P3 continuam intocados.
+confirmou que as imagens carregaram. Naquela entrega, os arquivos da P3 ficaram intocados.
 **Áudio privado publicado e provado em 2026-08-09:** o merge `7591452`
 acrescentou o bloco genérico `AUDIO` e o resolvedor privado sem retomar a P3. A
 Vercel marcou o deployment de produção como concluído; domínio e deployment
@@ -27,14 +29,18 @@ e relatórios exclusivamente sintéticos foram criados para o smoke autenticado.
 Depois disso, Karyne virou o primeiro opt-in real: a versão 6 de julho foi
 gravada como nova linha com áudio privado, preservando integralmente as versões
 1–5. Isso não habilitou envio nem retomou a P3.
-**Visão geral da operação (D1/D2), 2026-08-10:** o painel ganhou a aba
-**Visão geral** ao lado da Fila, com cobertura, estado da fila, qualidade,
-retrabalho e prazo de liberação, e todo número abrindo a fila já filtrada.
-Está em branch, com regressões e build passando; **não integrada e não
-publicada**. Detalhe na seção 12.
-**Última atualização:** 2026-08-10
+**Visão geral da operação (D1/D2), 2026-08-10 — integrada e publicada:** o
+painel ganhou a aba **Visão geral** ao lado da Fila, com cobertura, estado da
+fila, qualidade, retrabalho e prazo de liberação, e todo número abrindo a fila
+já filtrada. Entrou na `main` pelo merge `6bc5b37`. Detalhe na seção 12.
+**P3 concluída em 2026-08-11:** aprovar e recusar existem de ponta a ponta — migração aplicada,
+endpoint que grava com read-back e auditoria, tela de revisão com eco literal
+antes de gravar, e o estado `recusado` presente na fila e na visão geral. A
+branch foi integrada e publicada; **nenhum relatório real foi aprovado ou
+recusado.** Detalhe na seção 13.
+**Última atualização:** 2026-08-11
 
-**Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. P3 permanece intocada.
+**Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
 
 O plano completo (as oito fases, o que o painel faz e por quê) vive no
 `OpenClaw-Dacora`, em `docs/HANDOFF_PAINEL_APROVACAO_2026-08-06.md`. **Este
@@ -59,8 +65,10 @@ carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
 relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
 checksum ou estado. A organização por carteira/produto está em produção desde
-2026-08-09. O Gate 3 da Fernanda continua aberto para Karyne e
-Aviarte; P3 está pausada e não foi aprovada para integração (seção 7).
+2026-08-09. A visão geral da operação entrou na `main` em 2026-08-10. O Gate 3
+da Fernanda continua aberto para Karyne e Aviarte. **A P3 foi concluída em
+2026-08-11**, por autorização do Flávio, com migração aplicada, integração e
+publicação — sem nenhuma decisão sobre relatório real (seções 7 e 13).
 
 ### Auditoria da fila corrente em 2026-08-09
 
@@ -269,6 +277,11 @@ e celular. A configuração da seção 3.1 já foi feita.
 | **Agregação da visão geral (D1)** | `api/_painel-visao-geral-dados.ts`, servida por `api/painel-fila.ts` |
 | **Aba Visão geral, cartões e filtros (D2)** | `src/painel/VisaoGeral.tsx` + abas/filtros em `src/painel/Fila.tsx` |
 | **Regressão da visão geral** | `scripts/verifica-painel-visao-geral.mts` (`npm run verifica:visao-geral`) |
+| **Regras da decisão (P3), sem rede** | `api/_painel-decisao-regras.ts` |
+| **Aprovar e recusar, no servidor** | `api/painel-decisao.ts` |
+| **A decisão na tela, com eco e diálogo** | `src/painel/DecisaoDaRevisao.tsx`, montada por `src/painel/RevisaoMoldura.tsx` |
+| **Regressão da decisão** | `scripts/verifica-painel-decisao.mts` (`npm run verifica:decisao`) |
+| **Migração dos estados da P3** | `OpenClaw-Dacora/db/migrations/0005_painel_p3_aprovacao_recusa.sql` — aplicada em 2026-08-11 |
 
 ### O que veio da SmartBio, e o que não veio
 
@@ -615,24 +628,24 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
    publicados de Karyne (serviços/leads) e Aviarte (e-commerce): leitura,
    conteúdo, estados indisponíveis, tabelas e acabamento. Registrar o resultado;
    o GO visual do Flávio não substitui esse gate de uso.
-2. **P3, em sessão própria e só depois de autorização específica:** habilitar aprovar e recusar, com checksum
-   carimbado e motivo obrigatório. Está **pausada e não aprovada para merge** no
-   checkout `repo`, branch `codex/p3-aprovacao-recusa`, com a migração
-   `supabase/migrations/20260807001052_painel_p3_aprovacao_recusa.sql` vazia e
-   ainda não rastreada. É placeholder, não implementação. Não mover, commitar,
-   aplicar no Supabase ou integrar por inferência.
-3. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
+2. **P3 concluída:** a migração `0005` foi aplicada, a implementação integrada
+   na `main` e publicada. Usar os botões em relatório real continua dependendo
+   da validação do documento; construir o guardrail não carimba nenhum GO.
+3. **P4:** recusa avisa o grupo `Dácora - Agentes`, com cliente, competência,
+   quem recusou e o motivo. É a fase que faz o "não" sair do painel.
+4. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
-4. **P4:** recusa avisa o grupo `Dácora - Agentes`.
 5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
 
-**Dashboard operacional — D0 fechado pelo Flávio e D1/D2 implementadas em
-2026-08-10, em branch, aguardando validação humana.** O que existe está na
-seção 12. As fases D3 (tempos de ciclo, aprovação e recusa) e D4 (evolução
-entre competências) continuam dependendo de eventos que ainda não existem —
-D3 depende de P3/P5, D4 de uma segunda competência real. Nada disso entra por
-inferência, e o dashboard continua sem transformar relatório fechado em BI ao
-vivo. Especificação: `OpenClaw-Dacora/docs/HANDOFF_DASHBOARD_OPERACIONAL_RELATORIOS_2026-08-10.md`.
+**Dashboard operacional — D0 fechado pelo Flávio e D1/D2 integradas na `main`
+em 2026-08-10** (merge `6bc5b37`). O que existe está na seção 12. As fases D3
+(tempos de ciclo, aprovação e recusa) e D4 (evolução entre competências)
+continuam dependendo de eventos que ainda não existem: **D3 passa a ter matéria
+prima quando a P3 estiver aplicada e alguém decidir de verdade** — hoje ainda
+não há uma aprovação ou recusa feita pelo painel para medir —, e D4 depende de
+uma segunda competência real. Nada disso entra por inferência, e o dashboard
+continua sem transformar relatório fechado em BI ao vivo. Especificação:
+`OpenClaw-Dacora/docs/HANDOFF_DASHBOARD_OPERACIONAL_RELATORIOS_2026-08-10.md`.
 
 > **A W2 deixou de ser bloqueio da P1.** Este documento dizia que a fila
 > dependia da fase W2 no `OpenClaw-Dacora` — a etapa que faz o relatório
@@ -754,12 +767,18 @@ O read-back hoje compara o conteúdo numa forma canônica (chaves ordenadas nos
 dois lados), que prova a mesma coisa sem depender de uma ordem que o Postgres
 nunca prometeu preservar.
 
-> **A regra que sai daí vale muito além do carregador, e a P3 tropeça nela se
-> ninguém avisar:** o checksum é a impressão digital **do arquivo que a fábrica
-> gerou**, e só pode ser recalculado a partir dele. Para responder *"o
+> **A regra que sai daí vale muito além do carregador, e a P3 tropeçaria nela
+> se ninguém avisasse:** o checksum é a impressão digital **do arquivo que a
+> fábrica gerou**, e só pode ser recalculado a partir dele. Para responder *"o
 > relatório mudou desde o GO?"*, compare a **coluna** `aprovado_checksum` com o
 > checksum da nova geração — **nunca** recalcule a partir do `conteudo` lido do
 > banco.
+>
+> **A P3 obedeceu, e em três lugares** (seção 13): a função do banco carimba
+> `aprovado_checksum = r.checksum`, a própria coluna da linha travada; o
+> endpoint compara coluna com coluna no read-back; e a tela recebe o checksum
+> persistido em vez de calcular qualquer coisa. **Não existe, em nenhum dos
+> três, um `sha256(conteudo)`** — e a regressão trava isso.
 
 **O efeito colateral:** aquela primeira carga deixou uma linha órfã no banco,
 de uma execução que terminou em erro. Ela foi removida e a carga refeita do
@@ -925,9 +944,11 @@ montagem para mais relatórios com mudança de objetivo ao longo do tempo.
 
 ## 12. A visão geral da operação (D1 e D2)
 
-**Estado: implementada na branch `codex/d1-d2-dashboard-operacional`, com as
-seis regressões e o build passando. Não integrada, não publicada e ainda sem
-smoke autenticado humano.**
+**Estado: integrada na `main` pelo merge `6bc5b37`, publicada e validada pelo
+Flávio em 2026-08-11.** A rota, o `noindex`, o fechamento das APIs sem sessão e
+o site institucional foram conferidos em produção. O smoke humano registrado
+não detalhou aparelho nem navegador, portanto não amplia a evidência para uma
+cobertura específica de desktop e celular.
 
 ### 12.1 As decisões do Flávio que a definiram (D0, 2026-08-10)
 
@@ -980,27 +1001,214 @@ grande e sem significado. A regressão trava a frase: apagá-la quebra o teste.
 
 Medido no banco em 2026-08-10, competência 2026-07: **0 liberados no prazo, 1
 liberado com atraso, 33 ainda não liberados** — as três parcelas fecham com os
-34 relatórios. O número é verdadeiro e vai continuar assim: **o botão de
-liberar é a P3, que está adiada por decisão do PO** enquanto layout e dados
-estão em validação. A única liberação registrada é a Karyne v6, do piloto W3.
+34 relatórios. A única liberação registrada é a Karyne v6, do piloto W3.
 
 Isto está escrito aqui porque um cartão vermelho sem explicação leva a próxima
 sessão a procurar defeito onde não há: **não é falha do dashboard nem da
-fábrica; é a etapa de liberação ainda não existir no painel.**
+fábrica; é a etapa de liberação ainda não ter acontecido pelo painel.**
+
+**O que mudou em 2026-08-11:** o botão de liberar passou a existir (P3, seção
+13), e a migração já foi aplicada. **Os números acima continuam iguais** até
+alguém decidir de verdade. Nenhum relatório real foi aprovado ou
+recusado nesta rodada, de propósito — o Flávio adiou a P3 duas vezes dizendo
+que *"aprovar pressupõe formato estável"*, e construir o botão não é o mesmo
+que usá-lo. Quando as primeiras liberações acontecerem, **estes números se
+mexem sozinhos**: o cartão mede `aprovado_em`, e a P3 grava exatamente essa
+coluna. Não existe segunda regra de prazo a manter em dia.
 
 ### 12.5 O que passou
 
-As seis regressões (`painel`, `fila`, `revisao`, `refoco`, `publico`,
-`visao-geral`) e o build completo — 3 rotas institucionais pré-renderizadas,
-sitemap com 3 URLs e nenhuma rota de relatório dentro dele. O `lint` continua
-**nos mesmos seis erros TypeScript preexistentes**, sem nenhum novo. O pacote
-publicado não contém o e-mail pessoal do Flávio; `SUPABASE_SERVICE_ROLE_KEY`
-aparece só como **nome**, dentro do texto que a tela mostra quando ela falta —
-o mesmo caso já registrado na seção 11.5.
+As regressões do painel e o build completo — 3 rotas institucionais
+pré-renderizadas, sitemap com 3 URLs e nenhuma rota de relatório dentro dele. O
+pacote publicado não contém o e-mail pessoal do Flávio;
+`SUPABASE_SERVICE_ROLE_KEY` aparece só como **nome**, dentro do texto que a tela
+mostra quando ela falta — o mesmo caso já registrado na seção 11.5.
 
-**O que NÃO foi feito:** smoke autenticado humano em desktop e celular,
-integração na `main` e publicação. Os três continuam abertos e são gates
-próprios.
+**Smoke humano:** o Flávio abriu e validou a visão geral em 2026-08-11. Como o
+registro não identifica aparelho e navegador, não se afirma cobertura específica
+de desktop e celular.
+
+> **Correção de tipagem, feita em 2026-08-11.** A regressão da visão geral usava
+> `CampoDeFiltro` sem importar o tipo; a importação foi corrigida antes da P3.
+> O `lint` voltou aos **seis erros TypeScript preexistentes** em
+> `src/painel/telas.tsx`, `src/reports/{ConfrontoMidiaLoja,Esqueleto,RelatorioMensal}.tsx`
+> e `src/reports/blocos/{B1FaixaIndicadores,B3EvolucaoMensal}.tsx`. A P3 não
+> acrescentou erro de tipagem.
+
+---
+
+## 13. Aprovar e recusar (P3)
+
+**Estado: concluída em 2026-08-11, com sete regressões e o build passando. A
+migração foi aplicada no Supabase, a implementação integrada na `main` e
+publicada; nenhum relatório real foi aprovado ou recusado.**
+
+O Flávio autorizou construir a fase. Ele **não** autorizou usá-la, e a
+diferença é o argumento com que ele mesmo adiou a P3 duas vezes: *"não é
+problema, estamos validando layout e dados, não dá pra aprovar nada nessa
+fase"*. Carimbar um "sim" em documento que ainda vai mudar é pior que não ter
+carimbo. Por isso esta rodada não tocou em nenhuma linha do banco.
+
+### 13.1 O placeholder foi substituído por migração de verdade
+
+O arquivo vazio `supabase/migrations/20260807001052_painel_p3_aprovacao_recusa.sql`,
+que vivia não rastreado neste checkout, **foi removido**. As migrações deste
+produto moram todas no `OpenClaw-Dacora`, em `db/migrations/`, ao lado das
+quatro que já existiam — manter uma quinta em outro repositório criaria dois
+lugares para procurar o histórico do banco.
+
+A migração real é `0005_painel_p3_aprovacao_recusa.sql` e faz três coisas:
+
+1. **as três colunas do "não"** — `recusado_por`, `recusado_em`,
+   `recusa_motivo`;
+2. **o estado `recusado`**, acrescentado ao `check` de `estado`, mais três
+   restrições: recusa completa ou recusa nenhuma (com motivo de no mínimo 10
+   caracteres depois de aparado), recusado exige registro, e recusado nunca
+   carrega carimbo de aprovação nem de envio;
+3. **`public.decidir_relatorio(...)`**, que trava a linha, confere e grava
+   numa transação só, com `security invoker` e execução concedida apenas ao
+   `service_role`. A `service_role` já tem `BYPASSRLS` e privilégios da tabela;
+   elevar para o dono da função seria poder desnecessário.
+
+Ela é **idempotente de propósito** (`drop constraint if exists` antes de cada
+`add`, `add column if not exists`): uma segunda execução não pode falhar no meio
+deixando metade das restrições no lugar. A aplicação remota ficou registrada no
+histórico do Supabase como `20260811101858_painel_p3_aprovacao_recusa`.
+
+### 13.2 Por que a decisão inteira acontece no banco
+
+Poderia ser uma sequência de `UPDATE` no servidor. Não é, e a razão é a lição
+central deste projeto: **só a correção que torna o erro impossível não
+regride**. Com a decisão dentro de uma função, não existe janela em que o
+estado já mudou e o carimbo ainda não — e é exatamente nessa janela que nasce
+um relatório `liberado` sem GO amarrado ao documento.
+
+O servidor faz **uma escrita e uma leitura**, e a regressão conta as chamadas
+para garantir que continua assim.
+
+### 13.3 O checksum, e a armadilha que a seção 9.6 anunciava
+
+A seção 9.6 avisava que a P3 tropeçaria no `jsonb` se ninguém contasse. Ela não
+tropeçou, e a proteção está em três lugares:
+
+- na função do banco, `aprovado_checksum` recebe **`r.checksum`** — a própria
+  coluna da linha travada, nunca o parâmetro que veio de fora;
+- o `p_checksum_visto`, que é o checksum que estava **na tela** de quem
+  decidiu, é comparado com a **coluna**. Divergiu, a decisão é recusada com a
+  frase *"este relatório mudou desde que você o abriu"* e nada é gravado;
+- o read-back do servidor compara **coluna com coluna**.
+
+**Em nenhum dos três existe um `sha256(conteudo)`.** Se existisse, toda
+aprovação seria reprovada para sempre, porque o `jsonb` devolve as chaves em
+outra ordem.
+
+### 13.4 O eco, e por que ele não é enfeite
+
+Nenhum clique grava direto. O painel escreve, em português e **em código**, o
+que vai ser registrado — cliente, competência, versão, impressão digital, quem
+assina e, na recusa, o motivo inteiro — e só grava depois que a pessoa confirma
+aquele texto. É a mesma disciplina da edição governada de cadastro no
+`OpenClaw-Dacora`: o mal-entendido aparece antes da escrita, em vez de virar
+silêncio.
+
+A recusa abre **diálogo próprio**, com foco preso dentro, `Esc` fechando e o
+foco voltando ao botão que o abriu. O motivo é obrigatório em três camadas
+independentes — o botão de confirmar fica desabilitado, o servidor recusa antes
+de tocar o banco, e o banco recusa por restrição. Nenhuma delas confia nas
+outras.
+
+### 13.5 Quem decidiu vem da sessão, sempre
+
+O corpo do pedido **não tem campo de identidade**, e se tivesse seria ignorado:
+`lerPedido` só extrai id, decisão, checksum e motivo. O `p_quem` que chega ao
+banco é o e-mail resolvido por `conferirAcesso`, no servidor. A regressão manda
+de propósito um `quem: 'invasor@exemplo.com'` no corpo e prova que ele não
+aparece em lugar nenhum da chamada.
+
+### 13.6 O estado `recusado` aparece nas DUAS telas
+
+Um estado que existe numa tela e some na outra é pior que estado nenhum. Ele
+entrou em quatro lugares, e a regressão trava os quatro:
+
+- **na fila**, com forma própria (quadrado vazado na cor de sinal, girado) e
+  texto por extenso — "recusado por Fernanda · 11/08" —, com o motivo no
+  detalhe da célula;
+- **na ordem da fila**, logo depois de "esperando revisão" e **antes** de
+  liberado e enviado: recusado é trabalho aberto, só que fora do painel.
+  Empurrá-lo para o fim faria o "não" sumir de vista;
+- **no resumo do mês**, contado separadamente;
+- **na visão geral**, na fatia "onde a fila parou", com rótulo próprio e na
+  mesma ordem da fila. A regressão confere que as fatias **fecham com o
+  total** — um estado novo fora da conta seria um relatório desaparecendo do
+  resumo.
+
+A regra de "qual é a versão corrente" continua num módulo só
+(`_painel-versao-corrente.ts`). **Nenhuma terceira cópia foi criada.**
+
+### 13.7 O que passou
+
+`npm run verifica:decisao` (novo) mais as seis anteriores — `painel`, `fila`,
+`revisao`, `refoco`, `publico`, `visao-geral` — e o `npm run build` completo,
+com 3 rotas institucionais pré-renderizadas e sitemap de 3 URLs. O `lint`
+continua **nos seis erros preexistentes** medidos no tronco limpo (ver a
+correção de tipagem na seção 12.5); esta entrega não acrescentou nenhum.
+
+A regressão nova prova, sem banco e sem conta Google:
+
+| O quê | Como |
+|---|---|
+| Sem sessão, fora da lista, por outro provedor ou por método errado | **zero chamadas ao banco** nos quatro casos |
+| Pedido torto (uuid inválido, decisão desconhecida, sem checksum, motivo curto) | recusado **antes** de tocar a tabela |
+| Quem decidiu vem da sessão | identidade forjada no corpo é ignorada; duas sessões gravam aprovadores diferentes |
+| O checksum da tela viaja como guarda | `p_checksum_visto` é o da coluna; a divergência vira 409 em português, com `gravado: false` |
+| Uma escrita, uma leitura | as chamadas são contadas; a única com corpo é a função do banco |
+| Read-back que não bate **não** vira sucesso | cinco formas de quebrar, todas viram 502 dizendo o que não bateu |
+| Repetir a mesma decisão | responde 200 dizendo "já estava registrada assim", sem duplicar |
+| Sem chave de serviço | falha alto — nunca cai para a chave pública |
+| A fila continua sem botão de decisão | HTML renderizado, sem "Aprovar" nem "Recusar" |
+| Rótulo que diz o objeto | `aria-label="Aprovar o relatório de Cliente Exemplo, julho de 2026"` |
+| Sem canal de decisão, botão desabilitado | a moldura desenhada fora do painel mantém os dois botões inertes |
+
+E, num DOM de verdade (`jsdom`), o fluxo do clique — porque HTML estático prova
+o que está desenhado, não o que acontece quando alguém clica:
+
+| O quê | Como |
+|---|---|
+| O primeiro clique **não grava**, mostra o eco | nada sai; `Cancelar` fecha sem gravar |
+| Confirmar grava | e a aprovação sai **sem motivo** |
+| A recusa abre diálogo com `aria-modal` | e `Registrar recusa` nasce desabilitado |
+| Motivo curto continua barrado | o contador diz quantos caracteres faltam |
+| `Esc` fecha sem gravar | o diálogo some e nada é enviado |
+| O motivo chega aparado | espaços em volta não viram parte do texto registrado |
+
+### 13.8 O que NÃO foi conferido, e por quê
+
+| Não conferido | Motivo |
+|---|---|
+| O fluxo autenticado ponta a ponta, com conta Google real | exige as contas do Flávio ou da Fernanda, que quem escreve o código não tem e não deve ter |
+| Aprovar ou recusar um relatório real | **proibido nesta rodada, de propósito** — ver a abertura desta seção |
+| O diálogo da recusa no celular | o CSS acompanha a faixa fixa já validada, mas nada foi medido em aparelho |
+
+**Prova remota da função:** duas linhas sintéticas foram criadas dentro de uma
+transação como `service_role`; uma percorreu a aprovação e outra a recusa. Os
+carimbos, checksum, motivo e estados foram conferidos antes do `ROLLBACK`, que
+deixou zero resíduo. Os grants medidos ficaram `anon=false`,
+`authenticated=false`, `service_role=true`, com `security_definer=false`.
+
+### 13.9 Uma decisão que fica registrada como escolha, não como esquecimento
+
+**Aprovar e recusar são terminais dentro do painel: não existe "desfazer".** Um
+relatório recusado não pode ser aprovado depois, e vice-versa. O caminho de
+correção é o que o handoff já previa — **gerar uma versão nova na fábrica**,
+que entra como `versao + 1` e vira a corrente na fila.
+
+Isso é deliberado: um botão de desfazer transformaria a auditoria em rascunho,
+e a pergunta *"o que exatamente foi aprovado, e por quem?"* deixaria de ter
+resposta única. O custo é que uma recusa por engano exige regerar. O eco antes
+de gravar existe justamente para tornar esse engano caro de cometer.
+
+**Se o Flávio preferir outro desenho, é decisão dele** — e muda a migração, não
+só a tela.
 
 ---
 

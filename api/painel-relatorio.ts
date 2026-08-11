@@ -24,15 +24,20 @@ const COLUNAS = [
   'aprovado_por',
   'aprovado_em',
   'aprovado_checksum',
+  'recusado_por',
+  'recusado_em',
+  'recusa_motivo',
   'enviado_em',
   'enviado_para',
   'substituido_por',
+  'revogado_em',
   'conteudo',
 ].join(',');
 
 interface LinhaDoRelatorio extends LinhaDoBanco {
   checksum: string;
   aprovado_checksum: string | null;
+  revogado_em?: string | null;
 }
 
 export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
@@ -51,6 +56,27 @@ export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
     versao: linha.versao,
     estado: item.estado,
     sinais: item.sinais,
+    /**
+     * O checksum vem da COLUNA persistida e viaja até a tela, porque é ele que
+     * a decisão devolve como "o documento que eu li".
+     *
+     * ⚠️ Nunca recalculado a partir do `conteudo`: o `jsonb` reordena as chaves
+     * do objeto, o digest muda, e a comparação reprovaria toda aprovação, para
+     * sempre. §9.6 do registro do painel guarda o caso real.
+     */
+    checksum: linha.checksum,
+    /**
+     * Se esta versão ainda comporta decisão. Quem manda continua sendo o banco
+     * — isto é o que permite à tela explicar o motivo em vez de oferecer um
+     * botão que vai falhar.
+     */
+    podeDecidir:
+      linha.estado === 'gerado' && !linha.substituido_por && !linha.revogado_em,
+    aprovadoPor: linha.aprovado_por,
+    aprovadoEm: linha.aprovado_em,
+    recusadoPor: item.recusadoPor,
+    recusadoEm: item.recusadoEm,
+    recusaMotivo: item.recusaMotivo,
     conteudoCarregado: true as const,
     snapshot: {
       ...linha.conteudo,
