@@ -121,6 +121,7 @@ const SEM_FORMATO = 'NAO_DECLARADO';
 
 const ROTULO_ESTADO: Record<string, string> = {
   gerado: 'Esperando revisão',
+  recusado: 'Recusado, esperando nova versão',
   liberado: 'Liberado',
   enviado: 'Enviado',
   substituido: 'Substituído',
@@ -146,7 +147,7 @@ const ROTULO_SINAL: Record<string, string> = {
 const ORDEM_CARTEIRA = ['DACORA', 'ALLGROTECH', 'NAO_IDENTIFICADA'];
 const ORDEM_PRODUTO = ['mensal_externo_cliente', 'mensal_interno_allgrotech', 'NAO_IDENTIFICADO'];
 const ORDEM_FORMATO = ['small_cap', 'ecommerce', 'servicos_leads'];
-const ORDEM_ESTADO = ['gerado', 'liberado', 'enviado', 'substituido', 'desconhecido'];
+const ORDEM_ESTADO = ['gerado', 'recusado', 'liberado', 'enviado', 'substituido', 'desconhecido'];
 const ORDEM_SINAL = [
   'falha_de_fonte',
   'classificacao_ausente',

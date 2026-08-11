@@ -29,7 +29,13 @@ import VisaoGeral, {
 /* O que o servidor devolve                                            */
 /* ------------------------------------------------------------------ */
 
-type EstadoNaTela = 'gerado' | 'liberado' | 'enviado' | 'substituido' | 'desconhecido';
+type EstadoNaTela =
+  | 'gerado'
+  | 'recusado'
+  | 'liberado'
+  | 'enviado'
+  | 'substituido'
+  | 'desconhecido';
 
 interface Sinal {
   tipo: string;
@@ -60,6 +66,9 @@ interface ItemDaFila {
   geradoEm: string | null;
   aprovadoPor: string | null;
   aprovadoEm: string | null;
+  recusadoPor?: string | null;
+  recusadoEm?: string | null;
+  recusaMotivo?: string | null;
   enviadoEm: string | null;
   enviadoPara: string | null;
   investimento: number | null;
@@ -178,6 +187,13 @@ function textoDoEstado(item: ItemDaFila): string {
       if (quem) return `aprovado por ${quem}`;
       return 'aprovado';
     }
+    case 'recusado': {
+      const quem = primeiroNome(item.recusadoPor ?? null);
+      const quando = diaEMes(item.recusadoEm ?? null);
+      if (quem && quando) return `recusado por ${quem} · ${quando}`;
+      if (quem) return `recusado por ${quem}`;
+      return 'recusado';
+    }
     case 'enviado': {
       const quando = diaEMes(item.enviadoEm);
       return quando ? `enviado · ${quando}` : 'enviado';
@@ -187,6 +203,20 @@ function textoDoEstado(item: ItemDaFila): string {
     default:
       return 'estado desconhecido';
   }
+}
+
+/**
+ * O motivo da recusa não pode ficar só no banco.
+ *
+ * Ele é a única coisa que o "não" produz, e é o que diz a quem for regerar o
+ * relatório o que precisa mudar. Na fila ele viaja no `title` da célula de
+ * estado — a linha continua curta, e a explicação está a um passo de distância
+ * em vez de exigir abrir o relatório.
+ */
+function detalheDoEstado(item: ItemDaFila): string | undefined {
+  if (item.estado !== 'recusado') return undefined;
+  const motivo = (item.recusaMotivo ?? '').trim();
+  return motivo ? `Motivo registrado: ${motivo}` : 'Recusado sem motivo legível no registro.';
 }
 
 /**
@@ -334,7 +364,7 @@ function TabelaDeRelatorios({
                   </Link>
                   {item.versao > 1 && <span className="dcp-tabela__versao">versão {item.versao}</span>}
                   <span className="dcp-tabela__movel">
-                    <span className={`dcp-estado dcp-estado--${item.estado}`}>
+                    <span className={`dcp-estado dcp-estado--${item.estado}`} title={detalheDoEstado(item)}>
                       <span className="dcp-estado__forma" aria-hidden="true" />
                       {textoDoEstado(item)}
                     </span>
@@ -344,7 +374,7 @@ function TabelaDeRelatorios({
                   </span>
                 </th>
                 <td className="dcp-tabela__secundaria">
-                  <span className={`dcp-estado dcp-estado--${item.estado}`}>
+                  <span className={`dcp-estado dcp-estado--${item.estado}`} title={detalheDoEstado(item)}>
                     <span className="dcp-estado__forma" aria-hidden="true" />
                     {textoDoEstado(item)}
                   </span>
@@ -596,6 +626,7 @@ function CorpoDaFila({
   const filtrando = Object.keys(filtros).length > 0;
 
   const esperando = visiveis.filter((i) => i.estado === 'gerado').length;
+  const recusados = visiveis.filter((i) => i.estado === 'recusado').length;
   const comSinal = visiveis.filter((i) => i.sinais.length > 0).length;
   const grupos = [
     {
@@ -709,7 +740,9 @@ function CorpoDaFila({
             {filtrando
               ? `${visiveis.length} de ${itens.length} ${itens.length === 1 ? 'relatório' : 'relatórios'}`
               : `${visiveis.length} ${visiveis.length === 1 ? 'relatório' : 'relatórios'}`}{' '}
-            · {esperando} esperando revisão · {comSinal} com sinal de atenção
+            · {esperando} esperando revisão
+            {recusados > 0 && ` · ${recusados} ${recusados === 1 ? 'recusado' : 'recusados'}`} ·{' '}
+            {comSinal} com sinal de atenção
             <span className="dcp-fila__ordem"> — em ordem de atenção, não alfabética</span>
           </p>
 
