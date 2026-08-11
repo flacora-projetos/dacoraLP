@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
 import { formatarCompetencia } from '../reports/format';
 import DecisaoDaRevisao, {
+  type EstadoDaNotificacaoInterna,
   type PedidoDeDecisao,
   type ResultadoDaDecisao,
 } from './DecisaoDaRevisao';
@@ -48,7 +49,7 @@ export interface RelatorioDaRevisao {
   } | null;
   notificacaoInterna?: {
     id: string;
-    estado: 'pendente';
+    estado: EstadoDaNotificacaoInterna;
     destinoReferencia: string;
   } | null;
 }

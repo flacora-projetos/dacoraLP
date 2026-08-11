@@ -31,6 +31,14 @@
 // comentário em `painel-fila.ts`.
 import { separarPorVersaoCorrente } from './_painel-versao-corrente.js';
 
+export type EstadoDaNotificacaoInterna =
+  | 'pendente'
+  | 'reservado'
+  | 'enviando'
+  | 'enviado'
+  | 'incerto'
+  | 'falhou';
+
 /* ------------------------------------------------------------------ */
 /* O que chega do banco                                                */
 /* ------------------------------------------------------------------ */
@@ -59,7 +67,7 @@ export interface LinhaDoBanco {
   correcao_nova_versao_relatorio_id?: string | null;
   correcao_nova_versao?: number | null;
   notificacao_interna_id?: string | null;
-  notificacao_interna_estado?: 'pendente' | null;
+  notificacao_interna_estado?: EstadoDaNotificacaoInterna | null;
   notificacao_destino_referencia?: string | null;
   enviado_em: string | null;
   enviado_para: string | null;
@@ -160,7 +168,7 @@ export interface ItemDaFila {
   } | null;
   notificacaoInterna: {
     id: string;
-    estado: 'pendente';
+    estado: EstadoDaNotificacaoInterna;
     destinoReferencia: string;
   } | null;
   enviadoEm: string | null;
@@ -488,7 +496,7 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
         : null,
     notificacaoInterna:
       linha.notificacao_interna_id &&
-      linha.notificacao_interna_estado === 'pendente' &&
+      linha.notificacao_interna_estado &&
       linha.notificacao_destino_referencia
         ? {
             id: linha.notificacao_interna_id,

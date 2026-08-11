@@ -25,6 +25,23 @@
 
 export type Decisao = 'aprovar' | 'recusar';
 
+export type EstadoDaNotificacaoInterna =
+  | 'pendente'
+  | 'reservado'
+  | 'enviando'
+  | 'enviado'
+  | 'incerto'
+  | 'falhou';
+
+const ESTADOS_DA_NOTIFICACAO_INTERNA: ReadonlySet<EstadoDaNotificacaoInterna> = new Set([
+  'pendente',
+  'reservado',
+  'enviando',
+  'enviado',
+  'incerto',
+  'falhou',
+]);
+
 /**
  * O piso do motivo da recusa.
  *
@@ -250,7 +267,7 @@ export interface LinhaDecidida {
   correcao_estado?: 'aguardando_nova_versao' | 'nova_versao_gerada' | null;
   correcao_solicitado_em?: string | null;
   notificacao_interna_id?: string | null;
-  notificacao_interna_estado?: 'pendente' | null;
+  notificacao_interna_estado?: EstadoDaNotificacaoInterna | null;
   notificacao_destino_referencia?: string | null;
 }
 
@@ -299,8 +316,12 @@ export function conferirLeituraDeVolta(
   if (linha.correcao_estado !== 'aguardando_nova_versao') {
     return { ok: false, motivo: 'a ordem de correção não ficou aguardando nova versão' };
   }
-  if (!linha.notificacao_interna_id || linha.notificacao_interna_estado !== 'pendente') {
-    return { ok: false, motivo: 'o aviso interno não ficou pendente na fila de saída' };
+  if (
+    !linha.notificacao_interna_id ||
+    !linha.notificacao_interna_estado ||
+    !ESTADOS_DA_NOTIFICACAO_INTERNA.has(linha.notificacao_interna_estado)
+  ) {
+    return { ok: false, motivo: 'o aviso interno não foi registrado na fila de saída' };
   }
   if (linha.notificacao_destino_referencia !== 'dacora_semanais.recipients') {
     return { ok: false, motivo: 'o aviso interno não aponta para o destinatário canônico' };

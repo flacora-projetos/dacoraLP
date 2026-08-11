@@ -38,6 +38,7 @@ import { FilaApresentada } from '../src/painel/Fila.tsx';
 import { RevisaoMoldura } from '../src/painel/RevisaoMoldura.tsx';
 import DecisaoDaRevisao, {
   ecoDaDecisao as ecoDaTela,
+  textoDaNotificacaoInterna,
   textoDoJaDecidido,
 } from '../src/painel/DecisaoDaRevisao.tsx';
 
@@ -642,6 +643,22 @@ globalThis.fetch = fetchOriginal;
   });
   assert.match(String(jaRecusadoComOrdem), /Ordem de correção: aguardando uma versão nova/);
   assert.match(String(jaRecusadoComOrdem), /painel não enviou WhatsApp/);
+
+  const textosPorEstado = {
+    pendente: /pendente na fila/,
+    reservado: /em processamento/,
+    enviando: /em processamento/,
+    enviado: /confirmado pelo recibo/,
+    incerto: /confirmação incerta/,
+    falhou: /falhou antes do transporte/,
+  } as const;
+  for (const [estado, trecho] of Object.entries(textosPorEstado)) {
+    assert.match(
+      textoDaNotificacaoInterna(estado as keyof typeof textosPorEstado),
+      trecho,
+      `o estado ${estado} precisa ter uma explicação operacional real`,
+    );
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -851,6 +868,14 @@ const linhas = [
   assert.equal(item.estado, 'recusado');
   assert.equal(item.recusadoPor, 'fernanda@exemplo.com');
   assert.equal(item.recusaMotivo, MOTIVO);
+
+  for (const estado of ['pendente', 'reservado', 'enviando', 'enviado', 'incerto', 'falhou'] as const) {
+    const itemComEstado = montarItem({
+      ...linhas[1],
+      notificacao_interna_estado: estado,
+    } as any);
+    assert.equal(itemComEstado.notificacaoInterna?.estado, estado);
+  }
 
   // Um relatório recusado é trabalho aberto: fica logo depois do que espera
   // revisão, e nunca no fim, junto do que já foi resolvido.
