@@ -41,7 +41,7 @@ export interface LinhaDoPortalP5 {
   destino_referencia: string | null;
   destinatario_nome: string | null;
   destinatario_habilitado: boolean | null;
-  destinatario_sincronizado: boolean | null;
+  destinatario_sincronizado_em: string | null;
   envio_id: string | null;
   envio_estado: string | null;
   solicitado_por: string | null;
@@ -153,7 +153,7 @@ export function montarEstadoSeguroDoEnvio(linha: LinhaDoPortalP5): ResultadoDaMo
     destinatarioNome &&
     texto(linha.destino_referencia) &&
     linha.destinatario_habilitado === true &&
-    linha.destinatario_sincronizado === true
+    texto(linha.destinatario_sincronizado_em)
   );
   const temIntencao = Boolean(linha.envio_id || linha.envio_estado);
 

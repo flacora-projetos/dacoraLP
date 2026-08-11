@@ -38,7 +38,7 @@ function linha(parcial: Partial<LinhaDoPortalP5> = {}): LinhaDoPortalP5 {
     destino_referencia: REFERENCIA,
     destinatario_nome: NOME,
     destinatario_habilitado: true,
-    destinatario_sincronizado: true,
+    destinatario_sincronizado_em: '2026-08-11T16:31:52.000Z',
     envio_id: null,
     envio_estado: null,
     solicitado_por: null,
@@ -108,7 +108,7 @@ function linhaComIntencao(
   assert.equal(ausente.ok && ausente.estado.indisponibilidade, 'destinatario_ausente');
 
   const naoSincronizado = montarEstadoSeguroDoEnvio(linha({
-    destinatario_sincronizado: false,
+    destinatario_sincronizado_em: null,
     pode_solicitar_envio: false,
   }));
   assert.equal(
