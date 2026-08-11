@@ -52,6 +52,18 @@ export interface RelatorioDecidivel {
   recusadoPor: string | null;
   recusadoEm: string | null;
   recusaMotivo: string | null;
+  correcao?: {
+    id: string;
+    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    solicitadoEm: string;
+    novaVersaoRelatorioId: string | null;
+    novaVersao: number | null;
+  } | null;
+  notificacaoInterna?: {
+    id: string;
+    estado: 'pendente';
+    destinoReferencia: string;
+  } | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -108,10 +120,20 @@ export function textoDoJaDecidido(relatorio: RelatorioDecidivel): string | null 
   if (relatorio.estado === 'recusado') {
     const quando = diaEMes(relatorio.recusadoEm);
     const quem = relatorio.recusadoPor ?? 'alguém autorizado';
-    return (
+    const base = (
       `Recusado por ${quem}${quando ? ` em ${quando}` : ''}. Motivo registrado: ` +
-      `“${relatorio.recusaMotivo ?? 'sem motivo legível'}”. A correção é gerar uma versão nova na fábrica.`
+      `“${relatorio.recusaMotivo ?? 'sem motivo legível'}”.`
     );
+    if (relatorio.correcao?.estado === 'aguardando_nova_versao') {
+      const aviso = relatorio.notificacaoInterna?.estado === 'pendente'
+        ? ' O aviso interno está pendente na fila de saída; o painel não enviou WhatsApp.'
+        : '';
+      return `${base} Ordem de correção: aguardando uma versão nova da fábrica.${aviso}`;
+    }
+    if (relatorio.correcao?.estado === 'nova_versao_gerada') {
+      return `${base} A ordem de correção foi atendida pela versão ${relatorio.correcao.novaVersao ?? 'nova'}.`;
+    }
+    return `${base} A correção é gerar uma versão nova na fábrica.`;
   }
   if (relatorio.estado === 'substituido') {
     return 'Esta versão foi substituída por uma mais nova. A decisão acontece na versão corrente, que está na fila.';

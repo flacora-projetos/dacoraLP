@@ -172,12 +172,26 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
     recusado_por: quem,
     recusado_em: '2026-08-11T12:00:00Z',
     recusa_motivo: MOTIVO,
+    correcao_ordem_id: 'ordem-1',
+    correcao_estado: 'aguardando_nova_versao' as const,
+    correcao_solicitado_em: '2026-08-11T12:00:00Z',
+    notificacao_interna_id: 'notificacao-1',
+    notificacao_interna_estado: 'pendente' as const,
+    notificacao_destino_referencia: 'dacora_semanais.recipients',
   };
   assert.equal(conferirLeituraDeVolta(recusada, pedidoRecusar, quem).ok, true);
   assert.equal(
     conferirLeituraDeVolta({ ...recusada, recusa_motivo: 'outro texto' }, pedidoRecusar, quem).ok,
     false,
   );
+  for (const quebrada of [
+    { ...recusada, correcao_ordem_id: null },
+    { ...recusada, correcao_estado: 'nova_versao_gerada' as const },
+    { ...recusada, notificacao_interna_id: null },
+    { ...recusada, notificacao_destino_referencia: 'id-inventado' },
+  ]) {
+    assert.equal(conferirLeituraDeVolta(quebrada, pedidoRecusar, quem).ok, false);
+  }
   assert.equal(
     conferirLeituraDeVolta(
       { ...recusada, aprovado_checksum: CHECKSUM, aprovado_em: '2026-08-11T12:00:00Z' },
@@ -395,7 +409,8 @@ for (const corpoTorto of [
   const leituras = chamadasAoBanco.filter((c) => !c.corpo);
   assert.equal(leituras.length, 1, 'uma leitura de volta, e só');
   assert.ok(
-    leituras[0].url.includes('/rest/v1/relatorios?id=eq.') && !leituras[0].url.includes('token'),
+    leituras[0].url.includes('/rest/v1/painel_relatorios_com_correcao?id=eq.') &&
+      !leituras[0].url.includes('token'),
     'o read-back lê a linha por id, sem pedir a credencial pública',
   );
 
@@ -506,6 +521,12 @@ for (const corpoTorto of [
         recusado_por: 'pessoa.autorizada@exemplo.com',
         recusado_em: '2026-08-11T13:00:00Z',
         recusa_motivo: MOTIVO,
+        correcao_ordem_id: 'ordem-1',
+        correcao_estado: 'aguardando_nova_versao',
+        correcao_solicitado_em: '2026-08-11T13:00:00Z',
+        notificacao_interna_id: 'notificacao-1',
+        notificacao_interna_estado: 'pendente',
+        notificacao_destino_referencia: 'dacora_semanais.recipients',
       }),
     },
   });
@@ -588,6 +609,29 @@ globalThis.fetch = fetchOriginal;
   });
   assert.ok(String(jaRecusado).includes(MOTIVO), 'o motivo precisa sobreviver para quem regerar');
   assert.match(String(jaRecusado), /versão nova na fábrica/);
+
+  const jaRecusadoComOrdem = textoDoJaDecidido({
+    ...relatorio,
+    estado: 'recusado',
+    podeDecidir: false,
+    recusadoPor: 'fernanda@exemplo.com',
+    recusadoEm: '2026-08-11T13:00:00Z',
+    recusaMotivo: MOTIVO,
+    correcao: {
+      id: 'ordem-1',
+      estado: 'aguardando_nova_versao',
+      solicitadoEm: '2026-08-11T13:00:00Z',
+      novaVersaoRelatorioId: null,
+      novaVersao: null,
+    },
+    notificacaoInterna: {
+      id: 'notificacao-1',
+      estado: 'pendente',
+      destinoReferencia: 'dacora_semanais.recipients',
+    },
+  });
+  assert.match(String(jaRecusadoComOrdem), /Ordem de correção: aguardando uma versão nova/);
+  assert.match(String(jaRecusadoComOrdem), /painel não enviou WhatsApp/);
 }
 
 /* ------------------------------------------------------------------ */
@@ -772,6 +816,12 @@ const linhas = [
     recusado_por: 'fernanda@exemplo.com',
     recusado_em: '2026-08-11T13:00:00Z',
     recusa_motivo: MOTIVO,
+    correcao_ordem_id: 'ordem-fila',
+    correcao_estado: 'aguardando_nova_versao',
+    correcao_solicitado_em: '2026-08-11T13:00:00Z',
+    notificacao_interna_id: 'notificacao-fila',
+    notificacao_interna_estado: 'pendente',
+    notificacao_destino_referencia: 'dacora_semanais.recipients',
   }),
   linhaDaFila('liberado', {
     estado: 'liberado',
@@ -840,6 +890,8 @@ const linhas = [
   assert.ok(html.includes('dcp-estado--recusado'), 'a forma própria do recusado precisa aparecer');
   assert.match(html, /recusado por fernanda · 11\/08/);
   assert.ok(html.includes(MOTIVO), 'o motivo viaja no detalhe da célula, para quem for regerar');
+  assert.match(html, /aguardando nova versão · recusado por fernanda/);
+  assert.match(html, /Aviso interno pendente na fila de saída; o painel não enviou WhatsApp/);
   assert.match(html, /1 recusado/, 'o resumo do mês conta os recusados separadamente');
   assert.ok(
     !html.includes('Aprovar relatório') && !html.includes('Recusar com motivo'),

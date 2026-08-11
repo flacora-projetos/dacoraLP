@@ -27,6 +27,14 @@ const COLUNAS = [
   'recusado_por',
   'recusado_em',
   'recusa_motivo',
+  'correcao_ordem_id',
+  'correcao_estado',
+  'correcao_solicitado_em',
+  'correcao_nova_versao_relatorio_id',
+  'correcao_nova_versao',
+  'notificacao_interna_id',
+  'notificacao_interna_estado',
+  'notificacao_destino_referencia',
   'enviado_em',
   'enviado_para',
   'substituido_por',
@@ -77,6 +85,8 @@ export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
     recusadoPor: item.recusadoPor,
     recusadoEm: item.recusadoEm,
     recusaMotivo: item.recusaMotivo,
+    correcao: item.correcao,
+    notificacaoInterna: item.notificacaoInterna,
     conteudoCarregado: true as const,
     snapshot: {
       ...linha.conteudo,
@@ -124,7 +134,7 @@ export default async function handler(req: Request, res: Response) {
 
   try {
     const resposta = await fetch(
-      `${urlSupabase}/rest/v1/relatorios?id=eq.${id}&select=${COLUNAS}&limit=1`,
+      `${urlSupabase}/rest/v1/painel_relatorios_com_correcao?id=eq.${id}&select=${COLUNAS}&limit=1`,
       {
         headers: {
           apikey: chaveDeServico,
