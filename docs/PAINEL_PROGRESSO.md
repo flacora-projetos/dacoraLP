@@ -38,13 +38,12 @@ endpoint que grava com read-back e auditoria, tela de revisão com eco literal
 antes de gravar, e o estado `recusado` presente na fila e na visão geral. A
 branch foi integrada e publicada; **nenhum relatório real foi aprovado ou
 recusado.** Detalhe na seção 13.
-**P4 integrada e publicada em 2026-08-11:** a
-recusa passa a criar uma ordem de correção ligada à versão/checksum e uma
-entrada idempotente de notificação interna. A fila e a revisão mostram
-`aguardando nova versão` e `aviso interno pendente`; nenhum worker envia
-WhatsApp e o painel não regenera nem edita snapshot. As migrações `0006` e
-`0007` foram aplicadas e o portal entrou na `main` pelo merge `fed25f2`, com
-smoke autenticado somente leitura. Detalhe na seção 14.
+**P4 e worker controlado integrados e publicados em 2026-08-11:** a recusa
+cria a ordem ligada à versão/checksum e uma saída idempotente. O portal entrou
+na `main` pelo merge `9c987b2` e mostra os estados reais `pendente`, `reservado`,
+`enviando`, `enviado`, `incerto` e `falhou`. O worker da fábrica continua fora
+do runtime e sem agenda; preview é o padrão e executar exige gate duplo. Nenhum
+relatório real foi decidido e nenhuma mensagem foi enviada. Detalhe na seção 14.
 **Última atualização:** 2026-08-11
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
@@ -641,9 +640,9 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 2. **P3 concluída:** a migração `0005` foi aplicada, a implementação integrada
    na `main` e publicada. Usar os botões em relatório real continua dependendo
    da validação do documento; construir o guardrail não carimba nenhum GO.
-3. **P4 concluída:** banco e portal estão publicados; a ordem de correção e a
-   outbox pendente existem, mas não há worker nem envio real. Construir a saída
-   idempotente e executar qualquer mensagem continuam em gate separado.
+3. **P4 concluída:** banco, worker e portal estão publicados. O worker não foi
+   agendado nem acoplado ao runtime; executar uma mensagem continua dependendo
+   de recusa real, gate explícito e executor habilitado naquele processo.
 4. **P5:** depois do GO, abrir o diálogo de envio com o grupo pelo nome e
    `Agora não` como saída legítima.
 5. **P6:** histórico e auditoria; **P7:** comentário humano editável antes do GO.
@@ -1234,8 +1233,8 @@ cria na mesma transação:
 
 1. uma ordem durável, única por `relatorio_id`, amarrada ao id, versão, checksum,
    cliente, competência, motivo, pessoa e horário da recusa;
-2. uma entrada idempotente na outbox interna, em estado somente `pendente`, que
-   aponta para `dacora_semanais.recipients` em vez de copiar um id de grupo.
+2. uma entrada idempotente na outbox interna, que nasce `pendente` e aponta para
+   `dacora_semanais.recipients` em vez de copiar um id de grupo.
 
 Os únicos estados da ordem são fatos observáveis: `aguardando_nova_versao` e
 `nova_versao_gerada`. Inserir uma versão posterior do mesmo cliente/competência
@@ -1261,8 +1260,34 @@ uma ordem, uma notificação, transição de `aguardando_nova_versao` para
 residuais ficaram zero. `anon` e `authenticated` mediram zero privilégio; o
 `service_role` ficou somente com o necessário. No domínio real, a rota do painel
 respondeu `200`, as APIs sem sessão permaneceram em `401` e a sessão autorizada
-carregou a revisão e a visão geral. O próximo gate é o worker idempotente da
-outbox; enviar mensagem real continua exigindo autorização própria.
+carregou a revisão e a visão geral.
+
+### 14.1 Worker idempotente da saída interna
+
+O worker entrou na `master` do `OpenClaw-Dacora` pelo merge `7b2fc2f`; a
+migração remota é
+`20260811114936_painel_p4_notification_worker`. A reivindicação é atômica com
+`FOR UPDATE SKIP LOCKED` e a máquina de estados é:
+
+`pendente → reservado → enviando → enviado`, com `falhou` somente antes do
+transporte e `incerto` quando o efeito pode ter acontecido sem recibo inequívoco.
+`enviando` e `incerto` nunca voltam automaticamente à fila. O destino é
+resolvido no `config/reports.json` existente e persistido antes do efeito; o
+banco não ganhou id hard-coded. `enviado` exige `messageId` e read-back idêntico.
+
+O comando `npm run reports:corrections:notify` é preview somente leitura. A
+execução exige ao mesmo tempo `--execute` e
+`REPORT_CORRECTION_NOTIFICATION_EXECUTOR_ENABLED=true`; fallback por CLI fica
+proibido. Nenhuma agenda foi criada, o runtime não foi reiniciado e nenhum
+envio foi executado. A prova sintética foi revertida: destino inválido e recibo
+ausente foram bloqueados, a segunda reserva e o retry depois de `incerto`
+retornaram zero, e as contagens reais finais permaneceram em zero.
+
+O portal passou a aceitar e explicar os seis estados pelo merge `9c987b2`; o
+deployment de produção `dpl_A2BFqpqWbEJZAfHLt99EziTXLpoR` ficou `READY`. A rota
+respondeu `200` com `noindex` e as duas APIs sem sessão responderam `401`.
+Qualquer mensagem real permanece uma operação governada posterior, não um
+efeito automático desta publicação.
 
 ---
 
