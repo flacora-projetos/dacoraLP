@@ -1,9 +1,17 @@
 /**
- * P2 — o relatório dentro da bancada, com a faixa fixa de revisão.
+ * A bancada de revisão — o relatório dentro do painel, com a faixa fixa.
  *
- * Não existe mutação aqui. Os botões mostram o fluxo da próxima fase, mas
- * permanecem desabilitados. Mais importante: carregamento e erro não montam a
- * faixa, então não há nem aparência de decisão antes do conteúdo chegar.
+ * A P2 trouxe o documento; a P3 acrescenta o verbo. Duas coisas continuam
+ * valendo exatamente como estavam, e as duas são desenho:
+ *
+ *  • **carregamento e erro não montam a faixa**, então não existe nem aparência
+ *    de decisão antes de o conteúdo chegar;
+ *  • **não há caminho para decidir a partir da fila** — o botão vive aqui, com
+ *    o documento aberto.
+ *
+ * Quem grava é o servidor (`/api/painel-decisao`), que confere sessão e e-mail
+ * por conta própria e resolve **quem decidiu pela sessão**, ignorando qualquer
+ * identidade que o navegador mandasse. Esta tela só mostra e pergunta.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -12,9 +20,18 @@ import RelatorioMontado from '../reports/RelatorioMontado';
 import { formatarCompetencia } from '../reports/format';
 import { usarPainelAuth } from './AuthContext';
 import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
+import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
 
-export function RevisaoApresentada({ relatorio }: { relatorio: RelatorioDaRevisao | null }) {
-  return <RevisaoMoldura relatorio={relatorio}>{relatorio ? (
+export function RevisaoApresentada({
+  relatorio,
+  quem,
+  aoDecidir,
+}: {
+  relatorio: RelatorioDaRevisao | null;
+  quem?: string;
+  aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
+}) {
+  return <RevisaoMoldura relatorio={relatorio} quem={quem} aoDecidir={aoDecidir}>{relatorio ? (
     <RelatorioMontado
       snapshot={relatorio.snapshot}
       proposta="B"
@@ -84,6 +101,65 @@ export function RevisaoComSessao({
     return () => controle.abort();
   }, [relatorioId, tentativa, usuarioId]);
 
+  /**
+   * Registra a decisão e **recarrega o relatório do servidor**.
+   *
+   * Recarregar em vez de remendar o objeto local não é preciosismo: o que vale
+   * é o que ficou no banco, e a segunda leitura é o que faz a tela mostrar o
+   * estado real em vez do estado que ela esperava. É a mesma disciplina do
+   * read-back que o servidor já faz do outro lado.
+   */
+  async function decidir(pedido: PedidoDeDecisao): Promise<ResultadoDaDecisao> {
+    const sessaoAtual = sessaoAtualRef.current;
+    if (!sessaoAtual || !relatorio?.checksum) {
+      return {
+        ok: false,
+        mensagem: 'A sessão expirou nesta aba. Entre de novo e reabra a revisão — nada foi gravado.',
+      };
+    }
+    try {
+      const resposta = await fetch('/api/painel-decisao', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessaoAtual.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: relatorio.id,
+          decisao: pedido.decisao,
+          // O checksum que ESTA tela mostrou. Se o documento mudou no banco, o
+          // servidor recusa em vez de carimbar algo que ninguém leu.
+          checksum: relatorio.checksum,
+          ...(pedido.decisao === 'recusar' ? { motivo: pedido.motivo ?? '' } : {}),
+        }),
+      });
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || corpo?.gravado !== true) {
+        return {
+          ok: false,
+          mensagem: String(
+            corpo?.mensagem ?? 'Não foi possível registrar a decisão. Nada foi gravado.',
+          ),
+        };
+      }
+      // Relê do servidor: o estado da tela passa a ser o do banco.
+      setTentativa((valor) => valor + 1);
+      return {
+        ok: true,
+        mensagem: corpo?.jaEstavaAssim
+          ? 'Esta decisão já estava registrada exatamente assim. Nada foi duplicado.'
+          : String(corpo?.eco ?? 'Decisão registrada.'),
+      };
+    } catch {
+      return {
+        ok: false,
+        mensagem:
+          'Não foi possível falar com o servidor. Recarregue a revisão para ver se a decisão foi ' +
+          'registrada antes de tentar de novo.',
+      };
+    }
+  }
+
   if (carregando) {
     return (
       <section className="dcp-revisao__carregando" aria-busy="true" aria-live="polite">
@@ -112,5 +188,11 @@ export function RevisaoComSessao({
     );
   }
 
-  return <RevisaoApresentada relatorio={relatorio} />;
+  return (
+    <RevisaoApresentada
+      relatorio={relatorio}
+      quem={sessao?.user?.email ?? undefined}
+      aoDecidir={decidir}
+    />
+  );
 }

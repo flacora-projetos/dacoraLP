@@ -2,6 +2,10 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
 import { formatarCompetencia } from '../reports/format';
+import DecisaoDaRevisao, {
+  type PedidoDeDecisao,
+  type ResultadoDaDecisao,
+} from './DecisaoDaRevisao';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -20,6 +24,21 @@ export interface RelatorioDaRevisao {
   sinais: SinalDaRevisao[];
   conteudoCarregado: true;
   snapshot: SnapshotMontado;
+  /**
+   * A impressão digital do documento, vinda da COLUNA persistida — nunca
+   * recalculada do `conteudo`, porque o `jsonb` reordena as chaves e o digest
+   * muda (§9.6 do registro do painel). É ela que a decisão carimba.
+   *
+   * Opcional no tipo porque respostas montadas por regressão de fases
+   * anteriores não a têm; sem ela, a decisão simplesmente não é oferecida.
+   */
+  checksum?: string;
+  podeDecidir?: boolean;
+  aprovadoPor?: string | null;
+  aprovadoEm?: string | null;
+  recusadoPor?: string | null;
+  recusadoEm?: string | null;
+  recusaMotivo?: string | null;
 }
 
 function ListaDeSinais({ sinais }: { sinais: SinalDaRevisao[] }) {
@@ -40,8 +59,45 @@ function ListaDeSinais({ sinais }: { sinais: SinalDaRevisao[] }) {
   );
 }
 
-function FaixaDeRevisao({ relatorio }: { relatorio: RelatorioDaRevisao }) {
+/**
+ * Sem canal de decisão, os botões existem desabilitados.
+ *
+ * Isto não é sobra da P2: é o que a moldura mostra quando ela é montada só
+ * para apresentar o documento — numa regressão que desenha a tela, por
+ * exemplo. **Botão habilitado sem para onde gravar é pior que botão
+ * desabilitado**, porque quem clica acredita ter decidido.
+ */
+function DecisaoDesabilitada() {
+  return (
+    <>
+      <div className="dcp-revisao__decisoes" aria-describedby="dcp-revisao-bloqueio">
+        <button type="button" className="dcp-botao dcp-botao--primario" disabled>
+          Aprovar relatório
+        </button>
+        <button type="button" className="dcp-botao dcp-botao--sinal" disabled>
+          Recusar com motivo
+        </button>
+      </div>
+      <p id="dcp-revisao-bloqueio" className="dcp-revisao__bloqueio">
+        Decisão indisponível nesta tela. Abra a revisão pelo painel para aprovar ou recusar com
+        motivo.
+      </p>
+    </>
+  );
+}
+
+function FaixaDeRevisao({
+  relatorio,
+  quem,
+  aoDecidir,
+}: {
+  relatorio: RelatorioDaRevisao;
+  quem?: string;
+  aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
+}) {
   const competencia = formatarCompetencia(relatorio.competencia);
+  const podeOferecerDecisao = Boolean(aoDecidir && relatorio.checksum);
+
   return (
     <aside className="dcp-revisao__faixa" aria-label="Faixa de revisão do relatório">
       <div className="dcp-revisao__faixa-cabecalho">
@@ -63,17 +119,27 @@ function FaixaDeRevisao({ relatorio }: { relatorio: RelatorioDaRevisao }) {
         </summary>
         <ListaDeSinais sinais={relatorio.sinais} />
       </details>
-      <div className="dcp-revisao__decisoes" aria-describedby="dcp-revisao-bloqueio">
-        <button type="button" className="dcp-botao dcp-botao--primario" disabled>
-          Aprovar relatório
-        </button>
-        <button type="button" className="dcp-botao dcp-botao--sinal" disabled>
-          Recusar com motivo
-        </button>
-      </div>
-      <p id="dcp-revisao-bloqueio" className="dcp-revisao__bloqueio">
-        Decisão ainda desabilitada. A próxima etapa registra o GO ou a recusa com auditoria.
-      </p>
+      {podeOferecerDecisao ? (
+        <DecisaoDaRevisao
+          relatorio={{
+            clienteNome: relatorio.clienteNome,
+            competencia: relatorio.competencia,
+            versao: relatorio.versao,
+            checksum: relatorio.checksum as string,
+            estado: relatorio.estado,
+            podeDecidir: relatorio.podeDecidir === true,
+            aprovadoPor: relatorio.aprovadoPor ?? null,
+            aprovadoEm: relatorio.aprovadoEm ?? null,
+            recusadoPor: relatorio.recusadoPor ?? null,
+            recusadoEm: relatorio.recusadoEm ?? null,
+            recusaMotivo: relatorio.recusaMotivo ?? null,
+          }}
+          quem={quem ?? 'você'}
+          aoDecidir={aoDecidir as (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>}
+        />
+      ) : (
+        <DecisaoDesabilitada />
+      )}
     </aside>
   );
 }
@@ -81,9 +147,13 @@ function FaixaDeRevisao({ relatorio }: { relatorio: RelatorioDaRevisao }) {
 export function RevisaoMoldura({
   relatorio,
   children,
+  quem,
+  aoDecidir,
 }: {
   relatorio: RelatorioDaRevisao | null;
   children?: ReactNode;
+  quem?: string;
+  aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
 }) {
   if (!relatorio?.conteudoCarregado || !relatorio.snapshot || !children) {
     return (
@@ -101,7 +171,7 @@ export function RevisaoMoldura({
         <Link to="/painel-de-relatorios">← Voltar para a fila</Link>
       </nav>
       <div className="dcp-revisao__grade">
-        <FaixaDeRevisao relatorio={relatorio} />
+        <FaixaDeRevisao relatorio={relatorio} quem={quem} aoDecidir={aoDecidir} />
         <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>
           {children}
         </article>

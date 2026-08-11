@@ -44,6 +44,15 @@ export interface LinhaDoBanco {
   gerado_em: string | null;
   aprovado_por: string | null;
   aprovado_em: string | null;
+  /**
+   * As três colunas do "não", criadas pela migração da P3. Opcionais no tipo
+   * porque as regressões montam linhas antigas e um snapshot lido de uma
+   * versão anterior do endpoint não as tem — ausência aqui significa "não foi
+   * recusado", que é a leitura correta, e não um campo faltando.
+   */
+  recusado_por?: string | null;
+  recusado_em?: string | null;
+  recusa_motivo?: string | null;
   enviado_em: string | null;
   enviado_para: string | null;
   substituido_por: string | null;
@@ -61,11 +70,20 @@ export interface LinhaDoBanco {
  * `enviado` **não é** um valor da coluna `estado`: ele é derivado de
  * `enviado_em` não ser nulo, exatamente como o handoff previu (§5.5). Derivar
  * em vez de criar um estado novo na tela mantém tela e banco de acordo — o
- * banco continua tendo três estados, e é ele quem manda.
+ * banco manda.
  *
- * `recusado` ainda não existe: depende da migração da P3.
+ * `recusado`, ao contrário, **é** valor da coluna desde a migração da P3
+ * (`0005_painel_p3_aprovacao_recusa.sql`, no `OpenClaw-Dacora`). Ele não é
+ * derivado de nada: um relatório só está recusado porque alguém escreveu um
+ * motivo e o banco carimbou quem e quando.
  */
-export type EstadoNaTela = 'gerado' | 'liberado' | 'enviado' | 'substituido' | 'desconhecido';
+export type EstadoNaTela =
+  | 'gerado'
+  | 'recusado'
+  | 'liberado'
+  | 'enviado'
+  | 'substituido'
+  | 'desconhecido';
 
 export type TipoSinal =
   | 'classificacao_ausente'
@@ -117,6 +135,14 @@ export interface ItemDaFila {
   geradoEm: string | null;
   aprovadoPor: string | null;
   aprovadoEm: string | null;
+  recusadoPor: string | null;
+  recusadoEm: string | null;
+  /**
+   * O motivo viaja até a fila de propósito. Ele é a única coisa que o "não"
+   * produz, e deixá-lo só no banco faria a recusa parecer um estado sem
+   * explicação para quem vai regerar o relatório.
+   */
+  recusaMotivo: string | null;
   enviadoEm: string | null;
   enviadoPara: string | null;
   /** Soma dos investimentos das plataformas. `null` quando nenhum veio. */
@@ -335,6 +361,7 @@ function estadoNaTela(linha: LinhaDoBanco): EstadoNaTela {
   if (linha.estado === 'substituido') return 'substituido';
   if (linha.enviado_em) return 'enviado';
   if (linha.estado === 'liberado') return 'liberado';
+  if (linha.estado === 'recusado') return 'recusado';
   if (linha.estado === 'gerado') return 'gerado';
   return 'desconhecido';
 }
@@ -353,13 +380,20 @@ function estadoNaTela(linha: LinhaDoBanco): EstadoNaTela {
  *
  * Alfabético não aparece em lugar nenhum como critério principal: ele é só o
  * desempate, para a lista não dançar entre dois carregamentos.
+ *
+ * `recusado` fica logo depois de `gerado`, e não junto do que já foi resolvido:
+ * um relatório recusado é trabalho aberto — alguém precisa regerá-lo na
+ * fábrica —, só que fora do painel. Empurrá-lo para o fim da lista, ao lado do
+ * enviado, faria o "não" sumir de vista, que é exatamente o problema que o
+ * painel existe para resolver.
  */
 const FAIXA_POR_ESTADO: Record<EstadoNaTela, number> = {
   gerado: 0,
-  desconhecido: 1,
-  liberado: 2,
-  enviado: 3,
-  substituido: 4,
+  recusado: 1,
+  desconhecido: 2,
+  liberado: 3,
+  enviado: 4,
+  substituido: 5,
 };
 
 export function montarItem(linha: LinhaDoBanco): ItemDaFila {
@@ -419,6 +453,9 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
     geradoEm: linha.gerado_em,
     aprovadoPor: linha.aprovado_por,
     aprovadoEm: linha.aprovado_em,
+    recusadoPor: linha.recusado_por ?? null,
+    recusadoEm: linha.recusado_em ?? null,
+    recusaMotivo: linha.recusa_motivo ?? null,
     enviadoEm: linha.enviado_em,
     enviadoPara: linha.enviado_para,
     // Ausência não vira zero: sem nenhum investimento apurado o campo é `null`,
