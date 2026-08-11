@@ -54,6 +54,10 @@ fábrica está aplicada, mas a leitura remota confirmou zero recipients
 sincronizados e zero itens acionáveis; por isso a interface falha fechada e não
 oferece envio enganoso. O worker continua sem execução ou agenda e não houve
 decisão nem envio real. Detalhe na seção 15.
+**P6 implementada e validada somente na branch `codex/p6-historico-cliente`:**
+o histórico read-only está pronto para revisão de release, mas **ainda não foi
+integrado à `main`, publicado ou validado com sessão real**. Nenhuma decisão,
+intenção ou entrega real foi criada nesta implementação. Detalhe na seção 16.
 **Última atualização:** 2026-08-11
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
@@ -665,8 +669,9 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
    permanece fechado e não oferece a ação. Resta apenas repetir o smoke visual
    autenticado quando houver uma sessão existente, sempre sem clicar em
    **Enviar**; o diálogo acionável continua provado somente por dublê.
-5. **P6 permanece fora desta entrega. P7 foi retirada da frente pela
-   coordenação** e não deve ser reintroduzida como pendência.
+5. **P6 está pronta somente na branch `codex/p6-historico-cliente`:** falta o
+   gate de integração/publicação. P7 foi retirada da frente pela coordenação e
+   não deve ser reintroduzida como pendência.
 6. **Karyne v8/v9:** não há pendência técnica do painel registrada para essas
    versões; qualquer decisão ou envio real continua sujeito aos gates de negócio.
 
@@ -1369,6 +1374,62 @@ disponível não tinha sessão autenticada: desktop e celular ficaram no login, 
 erro de console nem rolagem lateral. Assim, o smoke autenticado real não foi
 alegado e o diálogo acionável permanece provado somente por dublê. Clicar em
 **Enviar**, sincronizar recipients ou executar/agendar o worker exige outro gate.
+
+---
+
+## 16. Histórico do cliente (P6)
+
+**Estado: implementação e validação local concluídas na branch
+`codex/p6-historico-cliente`, ainda sem merge, deploy ou smoke autenticado.** A
+`main` publicada continua em P5B. Esta fase não criou migration, dashboard,
+edição de snapshot, undo, decisão, intenção de envio ou efeito na fábrica.
+
+A revisão ganhou a seção recolhível **Histórico do cliente**. Fechada, ela não
+consulta nada. Ao abrir, chama `GET /api/painel-historico?id=<uuid>`. A API
+repete sessão e allow-list antes do banco, aceita somente UUID de relatório e
+resolve `cliente_slug` no servidor pela linha correspondente de
+`relatorio_p5_portal`; um slug arbitrário enviado pelo navegador é ignorado.
+Só depois lê, com `service_role`, as projeções necessárias das views protegidas
+`painel_relatorios_com_correcao` e `relatorio_p5_portal`.
+
+A resposta agrupa competências em ordem decrescente e, dentro delas, versões
+em ordem decrescente. Cada versão mostra apenas geração, checksum abreviado,
+decisão P3 coerente, ordem P4, aviso interno P4 explicitamente separado de
+envio ao cliente, vínculo de substituição resolvido e estados duráveis P5/W3.
+Uma versão anterior sem vínculo não é chamada de substituída. Um UUID de
+substituição ou de nova versão que não resolve para a mesma competência falha
+como registro incompleto. **Enviado** exige simultaneamente estado
+`confirmado`, recibo `confirmado_em` e envelope persistido; `incerto` é escrito
+como não enviado e sem repetição automática.
+
+Conteúdo integral, token, chave de serviço, `envio_id`, referência interna de
+destino, ids da ordem/aviso e id bruto de grupo não atravessam a resposta. Os
+links de versões usam o UUID exato em `?relatorio=`. O endpoint da revisão relê
+a versão mais alta da mesma competência: quando o UUID aberto não é o corrente,
+a faixa não monta controles de decisão nem de envio.
+
+Validação local desta branch:
+
+- `npm run verifica:historico`: auth fail-closed, método, UUID, resolução do
+  cliente no backend, ordenação, versões, anterior x substituída, P3/P4/P5,
+  recibo/envelope, ausência de segredos, links exatos, lazy-load e ausência de
+  controles históricos; o mesmo teste é o smoke DOM com fixtures/dublê;
+- `npm run verifica:painel`, `verifica:fila`, `verifica:visao-geral`,
+  `verifica:revisao`, `verifica:decisao`, `verifica:envio`, `verifica:publico`
+  e `verifica:refoco`: todos passaram;
+- `npm run build`: cliente, SSR, prerender, sitemap e bundle do servidor
+  passaram;
+- `npm run lint`: comparação idêntica à `origin/main`, com as seis falhas
+  preexistentes em `telas.tsx` e cinco blocos de relatório e nenhuma falha em
+  arquivo P6.
+
+Contrato exato para release, ainda não executado: integrar a branch por merge
+normal; publicar sem migration; então, com sessão já conectada e **sem clicar em
+aprovar, recusar ou enviar**, abrir uma revisão corrente, confirmar que o
+histórico só carrega ao expandir, abrir uma versão anterior pelo link exato e
+confirmar que não há controles de decisão/envio. Também conferir que aviso P4
+não aparece como envio ao cliente e que `incerto` nunca aparece como enviado.
+O smoke autenticado pendente da P5 continua pendente; esta branch não o substitui.
 
 ---
 

@@ -89,6 +89,10 @@ assert.ok(relatorio, 'a linha válida precisa montar a revisão');
 assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum precisa vir da coluna persistida');
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
+const relatorioHistorico = montarRelatorioParaRevisao(linha, false);
+assert.ok(relatorioHistorico);
+assert.equal(relatorioHistorico.ehVersaoCorrente, false);
+assert.equal(relatorioHistorico.podeDecidir, false, 'uma versão histórica nunca oferece decisão');
 
 const dadosVazios: DadosDeBloco = {
   faixas: {},
@@ -395,7 +399,7 @@ const fetchOriginal = globalThis.fetch;
 let chamadasAoBanco: string[] = [];
 let chamadasAoStorage: Array<{ url: string; corpo: any }> = [];
 
-function dublar(usuario: unknown | null, linhas: unknown[] = [linha]) {
+function dublar(usuario: unknown | null, linhas: unknown[] = [linha], idCorrente = (linhas[0] as any)?.id ?? ID) {
   chamadasAoBanco = [];
   chamadasAoStorage = [];
   globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
@@ -417,6 +421,12 @@ function dublar(usuario: unknown | null, linhas: unknown[] = [linha]) {
       ), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     chamadasAoBanco.push(url);
+    if (url.includes('select=id&order=versao.desc&limit=1')) {
+      return new Response(JSON.stringify([{ id: idCorrente }]), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
     return new Response(JSON.stringify(linhas), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -429,13 +439,15 @@ async function chamar({
   id = ID,
   metodo = 'GET',
   linhas = [linha],
+  idCorrente,
 }: {
   usuario: unknown | null;
   id?: string;
   metodo?: string;
   linhas?: unknown[];
+  idCorrente?: string;
 }) {
-  dublar(usuario, linhas);
+  dublar(usuario, linhas, idCorrente);
   const capturado: any = { status: 0, corpo: null, cabecalhos: {} };
   const req: any = {
     method: metodo,
@@ -488,9 +500,18 @@ const autorizada = {
   assert.equal(resposta.status, 200);
   assert.equal(resposta.corpo.relatorio.conteudoCarregado, true);
   assert.equal(resposta.corpo.relatorio.clienteNome, 'Cliente Exemplo');
-  assert.equal(chamadasAoBanco.length, 1);
-  assert.ok(!chamadasAoBanco[0].includes('token'), 'a credencial pública não pode ser consultada na P2');
+  assert.equal(chamadasAoBanco.length, 2);
+  assert.ok(chamadasAoBanco.every(url => !url.includes('token')), 'a credencial pública não pode ser consultada na P2');
   assert.match(resposta.cabecalhos['cache-control'], /no-store/);
+}
+{
+  const resposta = await chamar({
+    usuario: autorizada,
+    idCorrente: '22222222-2222-4222-8222-222222222222',
+  });
+  assert.equal(resposta.status, 200);
+  assert.equal(resposta.corpo.relatorio.ehVersaoCorrente, false);
+  assert.equal(resposta.corpo.relatorio.podeDecidir, false);
 }
 {
   const comAudio: any = structuredClone(linha);

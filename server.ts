@@ -6,6 +6,7 @@ import metaCapiHandler from "./api/meta-capi";
 import painelDecisaoHandler from "./api/painel-decisao";
 import painelEnvioHandler from "./api/painel-envio";
 import painelFilaHandler from "./api/painel-fila";
+import painelHistoricoHandler from "./api/painel-historico";
 import painelRelatorioHandler from "./api/painel-relatorio";
 import painelSessaoHandler from "./api/painel-sessao";
 import relatorioPublicoHandler from "./api/relatorio-publico";
@@ -39,6 +40,7 @@ async function startServer() {
   // cairia na Vercel, em vez de virar 404 e mandar o painel investigar rota.
   app.all("/api/painel-sessao", painelSessaoHandler);
   app.all("/api/painel-fila", painelFilaHandler);
+  app.all("/api/painel-historico", painelHistoricoHandler);
   app.all("/api/painel-relatorio", painelRelatorioHandler);
   app.all("/api/painel-decisao", painelDecisaoHandler);
   app.all("/api/painel-envio", painelEnvioHandler);

@@ -8,6 +8,7 @@ import DecisaoDaRevisao, {
   type ResultadoDaDecisao,
 } from './DecisaoDaRevisao';
 import EnvioDaRevisao, { type ResultadoDoEnvioP5 } from './EnvioDaRevisao';
+import HistoricoDoCliente, { type ResultadoDoHistorico } from './HistoricoDoCliente';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -35,6 +36,7 @@ export interface RelatorioDaRevisao {
    * anteriores não a têm; sem ela, a decisão simplesmente não é oferecida.
    */
   checksum?: string;
+  ehVersaoCorrente?: boolean;
   podeDecidir?: boolean;
   aprovadoPor?: string | null;
   aprovadoEm?: string | null;
@@ -114,9 +116,11 @@ function FaixaDeRevisao({
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
 }) {
   const competencia = formatarCompetencia(relatorio.competencia);
-  const podeOferecerDecisao = Boolean(aoDecidir && relatorio.checksum);
+  const ehVersaoHistorica = relatorio.ehVersaoCorrente === false;
+  const podeOferecerDecisao = Boolean(!ehVersaoHistorica && aoDecidir && relatorio.checksum);
   const podeMontarEnvio = Boolean(
     relatorio.checksum &&
+    relatorio.ehVersaoCorrente !== false &&
     (relatorio.estado === 'liberado' || relatorio.estado === 'enviado') &&
     aoCarregarEnvio &&
     aoSolicitarEnvio,
@@ -143,7 +147,11 @@ function FaixaDeRevisao({
         </summary>
         <ListaDeSinais sinais={relatorio.sinais} />
       </details>
-      {podeOferecerDecisao ? (
+      {ehVersaoHistorica ? (
+        <p className="dcp-revisao__bloqueio">
+          Esta é uma versão histórica. Decisão e envio ficam disponíveis somente na versão corrente.
+        </p>
+      ) : podeOferecerDecisao ? (
         <DecisaoDaRevisao
           relatorio={{
             clienteNome: relatorio.clienteNome,
@@ -183,6 +191,7 @@ export function RevisaoMoldura({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  aoCarregarHistorico,
 }: {
   relatorio: RelatorioDaRevisao | null;
   children?: ReactNode;
@@ -190,6 +199,7 @@ export function RevisaoMoldura({
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoCarregarHistorico?: () => Promise<ResultadoDoHistorico>;
 }) {
   if (!relatorio?.conteudoCarregado || !relatorio.snapshot || !children) {
     return (
@@ -214,9 +224,19 @@ export function RevisaoMoldura({
           aoCarregarEnvio={aoCarregarEnvio}
           aoSolicitarEnvio={aoSolicitarEnvio}
         />
-        <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>
-          {children}
-        </article>
+        <div className="dcp-revisao__conteudo">
+          {aoCarregarHistorico && (
+            <div key={relatorio.id}>
+              <HistoricoDoCliente
+                relatorioIdAtual={relatorio.id}
+                aoCarregar={aoCarregarHistorico}
+              />
+            </div>
+          )}
+          <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>
+            {children}
+          </article>
+        </div>
       </div>
     </section>
   );

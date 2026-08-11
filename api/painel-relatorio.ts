@@ -48,7 +48,7 @@ interface LinhaDoRelatorio extends LinhaDoBanco {
   revogado_em?: string | null;
 }
 
-export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
+export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio, ehVersaoCorrente = true) {
   if (!linha.conteudo || typeof linha.conteudo !== 'object') return null;
   if (!linha.gerado_em || !linha.checksum) return null;
   if (!Number.isSafeInteger(linha.versao) || linha.versao < 1) return null;
@@ -73,13 +73,14 @@ export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
      * sempre. §9.6 do registro do painel guarda o caso real.
      */
     checksum: linha.checksum,
+    ehVersaoCorrente,
     /**
      * Se esta versão ainda comporta decisão. Quem manda continua sendo o banco
      * — isto é o que permite à tela explicar o motivo em vez de oferecer um
      * botão que vai falhar.
      */
     podeDecidir:
-      linha.estado === 'gerado' && !linha.substituido_por && !linha.revogado_em,
+      ehVersaoCorrente && linha.estado === 'gerado' && !linha.substituido_por && !linha.revogado_em,
     aprovadoPor: linha.aprovado_por,
     aprovadoEm: linha.aprovado_em,
     recusadoPor: item.recusadoPor,
@@ -152,7 +153,25 @@ export default async function handler(req: Request, res: Response) {
       });
     }
 
-    const relatorio = montarRelatorioParaRevisao(linha);
+    const respostaCorrente = await fetch(
+      `${urlSupabase}/rest/v1/painel_relatorios_com_correcao` +
+        `?cliente_slug=eq.${encodeURIComponent(linha.cliente_slug)}` +
+        `&competencia=eq.${encodeURIComponent(linha.competencia)}` +
+        '&select=id&order=versao.desc&limit=1',
+      {
+        headers: {
+          apikey: chaveDeServico,
+          Authorization: `Bearer ${chaveDeServico}`,
+        },
+      },
+    );
+    if (!respostaCorrente.ok) {
+      throw new Error(`versão corrente: HTTP ${respostaCorrente.status} — ${await respostaCorrente.text()}`);
+    }
+    const [corrente] = (await respostaCorrente.json()) as Array<{ id: string }>;
+    if (!corrente?.id) throw new Error('versão corrente não encontrada para a competência');
+
+    const relatorio = montarRelatorioParaRevisao(linha, corrente.id === linha.id);
     if (!relatorio) {
       return res.status(422).json({
         erro: 'conteudo_incompleto',

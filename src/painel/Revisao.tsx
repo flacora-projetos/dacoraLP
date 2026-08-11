@@ -22,6 +22,8 @@ import { usarPainelAuth } from './AuthContext';
 import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
 import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
 import type { EstadoSeguroDoEnvioP5, ResultadoDoEnvioP5 } from './EnvioDaRevisao';
+import type { HistoricoSeguroDoCliente } from '../../api/_painel-historico-dados';
+import type { ResultadoDoHistorico } from './HistoricoDoCliente';
 
 export function RevisaoApresentada({
   relatorio,
@@ -29,12 +31,14 @@ export function RevisaoApresentada({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  aoCarregarHistorico,
 }: {
   relatorio: RelatorioDaRevisao | null;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoCarregarHistorico?: () => Promise<ResultadoDoHistorico>;
 }) {
   return <RevisaoMoldura
     relatorio={relatorio}
@@ -42,6 +46,7 @@ export function RevisaoApresentada({
     aoDecidir={aoDecidir}
     aoCarregarEnvio={aoCarregarEnvio}
     aoSolicitarEnvio={aoSolicitarEnvio}
+    aoCarregarHistorico={aoCarregarHistorico}
   >{relatorio ? (
     <RelatorioMontado
       snapshot={relatorio.snapshot}
@@ -243,6 +248,36 @@ export function RevisaoComSessao({
     }
   }, [relatorio, usuarioId]);
 
+  const carregarHistorico = useCallback(async (): Promise<ResultadoDoHistorico> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id) {
+      return {
+        ok: false,
+        mensagem: 'A sessão expirou nesta aba. Entre novamente e reabra a revisão.',
+      };
+    }
+    try {
+      const resposta = await fetch(
+        `/api/painel-historico?id=${encodeURIComponent(relatorioAtual.id)}`,
+        { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } },
+      );
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || !corpo?.historico) {
+        return {
+          ok: false,
+          mensagem: String(corpo?.mensagem ?? 'Não foi possível carregar o histórico do cliente.'),
+        };
+      }
+      return { ok: true, historico: corpo.historico as HistoricoSeguroDoCliente };
+    } catch {
+      return {
+        ok: false,
+        mensagem: 'Não foi possível falar com o servidor. Tente abrir o histórico novamente.',
+      };
+    }
+  }, [relatorio, usuarioId]);
+
   if (carregando) {
     return (
       <section className="dcp-revisao__carregando" aria-busy="true" aria-live="polite">
@@ -278,6 +313,7 @@ export function RevisaoComSessao({
       aoDecidir={decidir}
       aoCarregarEnvio={carregarEnvio}
       aoSolicitarEnvio={solicitarEnvio}
+      aoCarregarHistorico={carregarHistorico}
     />
   );
 }
