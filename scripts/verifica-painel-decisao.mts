@@ -984,10 +984,13 @@ const linhas = [
   const require = createRequire(import.meta.url);
   const { JSDOM } = require('jsdom') as typeof import('jsdom');
 
-  const dom = new JSDOM('<!doctype html><html><body><div id="raiz"></div></body></html>', {
-    url: 'https://exemplo.invalido/painel-de-relatorios',
-    pretendToBeVisual: true,
-  });
+  const dom = new JSDOM(
+    '<!doctype html><html><body><div id="raiz"><div class="dc-painel"><div class="dcp-portal"></div><div id="montagem"></div></div></div></body></html>',
+    {
+      url: 'https://exemplo.invalido/painel-de-relatorios',
+      pretendToBeVisual: true,
+    },
+  );
 
   for (const nome of [
     'window',
@@ -1017,7 +1020,8 @@ const linhas = [
 
   const enviados: any[] = [];
   const elemento = dom.window.document.getElementById('raiz')!;
-  const raiz = createRoot(elemento);
+  const montagem = dom.window.document.getElementById('montagem')!;
+  const raiz = createRoot(montagem);
 
   flushSync(() => {
     raiz.render(
@@ -1069,6 +1073,10 @@ const linhas = [
   const dialogo = elemento.querySelector('[role="dialog"]');
   assert.ok(dialogo, 'a recusa precisa abrir diálogo próprio');
   assert.equal(dialogo.getAttribute('aria-modal'), 'true');
+  assert.ok(
+    elemento.querySelector('.dcp-portal > .dcp-modal [role="dialog"]'),
+    'o diálogo precisa sair da faixa lateral e permanecer dentro de .dc-painel',
+  );
 
   const registrar = botaoPor('Registrar recusa');
   assert.equal(registrar.disabled, true, 'sem motivo, registrar precisa estar impossível');

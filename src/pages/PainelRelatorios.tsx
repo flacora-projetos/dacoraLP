@@ -23,6 +23,7 @@ export default function PainelRelatorios() {
 
   return (
     <div className="dc-painel">
+      <div className="dcp-portal" />
       <PainelAuthProvider>
         <Portao>
           <PainelInicio />
