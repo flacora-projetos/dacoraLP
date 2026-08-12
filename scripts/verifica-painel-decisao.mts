@@ -1033,7 +1033,9 @@ const linhas = [
   });
 
   function botaoPor(texto: string): HTMLButtonElement {
-    const achado = [...elemento.querySelectorAll('button')].find(
+    // document.body, não `elemento`: os botões do diálogo de recusa vivem no
+    // portal, fora da árvore de `#raiz`.
+    const achado = [...dom.window.document.body.querySelectorAll('button')].find(
       (b) => (b.textContent ?? '').trim() === texto,
     );
     assert.ok(achado, `não encontrei o botão "${texto}"`);
@@ -1066,7 +1068,12 @@ const linhas = [
   /* --- Recusar: diálogo, motivo obrigatório, Esc. ---------------------- */
   enviados.length = 0;
   clicar(botaoPor('Recusar com motivo'));
-  const dialogo = elemento.querySelector('[role="dialog"]');
+  // O diálogo vai por portal para document.body (foge de `.dcp-revisao__faixa`,
+  // que no desktop é `position: sticky` com `overflow-y: auto` e confinaria um
+  // `.dcp-modal` fixo em vez de deixá-lo cobrir o viewport) — por isso as
+  // buscas do diálogo usam o body, não `elemento`.
+  const corpo = dom.window.document.body;
+  const dialogo = corpo.querySelector('[role="dialog"]');
   assert.ok(dialogo, 'a recusa precisa abrir diálogo próprio');
   assert.equal(dialogo.getAttribute('aria-modal'), 'true');
 
@@ -1075,7 +1082,7 @@ const linhas = [
   clicar(registrar);
   assert.equal(enviados.length, 0, 'clicar no botão desabilitado não pode gravar');
 
-  const campo = elemento.querySelector('textarea') as HTMLTextAreaElement;
+  const campo = corpo.querySelector('textarea') as HTMLTextAreaElement;
   assert.ok(campo, 'faltou o campo do motivo');
 
   // Texto curto continua barrado — e o contador diz quanto falta.
@@ -1085,7 +1092,7 @@ const linhas = [
     campo.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
   });
   assert.equal(botaoPor('Registrar recusa').disabled, true, 'motivo curto não vale');
-  assert.match(elemento.textContent ?? '', /Faltam \d+ caracteres/);
+  assert.match(corpo.textContent ?? '', /Faltam \d+ caracteres/);
 
   flushSync(() => {
     (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any)
@@ -1096,7 +1103,7 @@ const linhas = [
   assert.equal(registrarValido.disabled, false, 'com motivo, registrar precisa liberar');
   // O eco do diálogo repete o motivo inteiro, que é sobre o que se confirma.
   assert.ok(
-    (elemento.querySelector('.dcp-decisao__eco')?.textContent ?? '').includes(MOTIVO),
+    (corpo.querySelector('.dcp-decisao__eco')?.textContent ?? '').includes(MOTIVO),
     'o eco da recusa precisa mostrar o motivo escrito',
   );
 
@@ -1106,12 +1113,12 @@ const linhas = [
       new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
     );
   });
-  assert.equal(elemento.querySelector('[role="dialog"]'), null, 'Esc precisa fechar o diálogo');
+  assert.equal(corpo.querySelector('[role="dialog"]'), null, 'Esc precisa fechar o diálogo');
   assert.equal(enviados.length, 0, 'fechar com Esc não grava');
 
   // Reabrir e registrar de verdade: o motivo chega aparado.
   clicar(botaoPor('Recusar com motivo'));
-  const campoDois = elemento.querySelector('textarea') as HTMLTextAreaElement;
+  const campoDois = corpo.querySelector('textarea') as HTMLTextAreaElement;
   flushSync(() => {
     (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any)
       .set.call(campoDois, `  ${MOTIVO}  `);

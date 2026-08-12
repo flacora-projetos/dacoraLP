@@ -1,5 +1,6 @@
 /** P5 — coordena a intenção de envio depois do GO; o transporte continua na fábrica. */
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { formatarCompetencia } from '../reports/format';
 
 export type EstadoDoEnvioP5 =
@@ -119,7 +120,12 @@ function DialogoDeEnvio({
     return () => document.removeEventListener('keydown', aoTeclar);
   }, [aoAdiar, solicitando]);
 
-  return (
+  // Portal para o body: `.dcp-modal` é `position: fixed`, mas o pai aqui é
+  // `.dcp-revisao__faixa`, que no desktop (≥1200px) é `position: sticky` com
+  // `overflow-y: auto`. Sem o portal, o diálogo ficava confinado a esse
+  // ancestral em vez do viewport — visível, mas espremido e sobreposto ao
+  // conteúdo do relatório atrás dele, em vez de escurecer a tela inteira.
+  return createPortal(
     <div className="dcp-modal" role="presentation">
       <div
         className="dcp-modal__caixa"
@@ -163,7 +169,8 @@ function DialogoDeEnvio({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
