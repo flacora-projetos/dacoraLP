@@ -21,7 +21,6 @@
  * ---------------------------------------------------------------------------
  */
 import { useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { formatarCompetencia } from '../reports/format';
 
 /** A mesma régua do servidor e do banco. Ver `api/_painel-decisao-regras.ts`. */
@@ -231,11 +230,7 @@ function DialogoDeRecusa({
     return () => document.removeEventListener('keydown', aoTeclar);
   }, [aoCancelar]);
 
-  // Portal para o body: mesma razão do diálogo de envio (EnvioDaRevisao) —
-  // `.dcp-revisao__faixa` é `position: sticky` com `overflow-y: auto` no
-  // desktop, e sem o portal o `.dcp-modal` fixo ficava confinado a esse
-  // ancestral em vez de cobrir o viewport inteiro.
-  return createPortal(
+  return (
     <div className="dcp-modal" role="presentation">
       <div
         className="dcp-modal__caixa"
@@ -295,8 +290,7 @@ function DialogoDeRecusa({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }
 

@@ -370,20 +370,14 @@ try {
     return { ok: true as const, estado: (montado as any).estado };
   };
 
-  // O diálogo vai por portal para document.body (foge de `.dcp-revisao__faixa`,
-  // que no desktop é `position: sticky` com `overflow-y: auto` e confinaria um
-  // `.dcp-modal` fixo em vez de deixá-lo cobrir o viewport) — por isso as
-  // buscas abaixo usam `corpo`, não `elemento`.
-  const corpo = dom.window.document.body;
-
   flushSync(() => raiz.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar })));
   await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.ok(corpo.querySelector('[role="dialog"]'));
-  assert.ok((corpo.textContent ?? '').includes(NOME), 'o nome canônico aparece antes das ações');
-  assert.equal((corpo.textContent ?? '').includes(ID_BRUTO), false);
+  assert.ok(elemento.querySelector('[role="dialog"]'));
+  assert.ok((elemento.textContent ?? '').includes(NOME), 'o nome canônico aparece antes das ações');
+  assert.equal((elemento.textContent ?? '').includes(ID_BRUTO), false);
 
   function botao(texto: string) {
-    const achado = [...corpo.querySelectorAll('button')].find((b) => b.textContent?.trim() === texto);
+    const achado = [...elemento.querySelectorAll('button')].find((b) => b.textContent?.trim() === texto);
     assert.ok(achado, `faltou o botão ${texto}`);
     return achado as HTMLButtonElement;
   }
@@ -392,15 +386,15 @@ try {
   }
   async function aguardarTexto(padrao: RegExp) {
     const limite = Date.now() + 1_000;
-    while (!padrao.test(corpo.textContent ?? '') && Date.now() < limite) {
+    while (!padrao.test(elemento.textContent ?? '') && Date.now() < limite) {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
   }
 
   clicar(botao('Agora não'));
   assert.equal(solicitacoes, 0, 'Agora não não chama RPC');
-  assert.equal(corpo.querySelector('[role="dialog"]'), null);
-  assert.match(corpo.textContent ?? '', /Reabra a revisão/);
+  assert.equal(elemento.querySelector('[role="dialog"]'), null);
+  assert.match(elemento.textContent ?? '', /Reabra a revisão/);
 
   flushSync(() => raiz.unmount());
   const raizDois = createRoot(elemento);
@@ -411,7 +405,7 @@ try {
   clicar(enviar);
   await aguardarTexto(/Envio solicitado/);
   assert.equal(solicitacoes, 1, 'clique duplo local gera no máximo uma chamada; o banco segue sendo a garantia final');
-  assert.match(corpo.textContent ?? '', /Envio solicitado/);
+  assert.match(elemento.textContent ?? '', /Envio solicitado/);
 
   assert.match(
     textoDoEstadoDoEnvio((montarEstadoSeguroDoEnvio(linhaComIntencao('confirmado')) as any).estado),
