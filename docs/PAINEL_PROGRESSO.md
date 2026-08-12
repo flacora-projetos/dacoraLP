@@ -92,6 +92,26 @@ decidir ou enviar relatório real. A sessão autenticada anterior não estava
 disponível nesta rodada; por isso o caminho autenticado ficou limitado às provas
 por dublê, enquanto o gate de login e as negações `401` foram exercitados no site.
 
+**Detalhe do mensal interno Allgrotech (A3), em branch em 2026-08-12:** até
+aqui a fila já sabia classificar `identidade.produto === 'mensal_interno_allgrotech'`
+(seção da correção de 2026-08-09, abaixo), mas abrir a linha caía em branco —
+`RelatorioMontado.tsx` percorre `snapshot.montagem`, e o núcleo factual interno
+não tem essa chave. Rota nova `/painel-de-relatorios/interno/:id`
+(`src/pages/PainelRelatorioInterno.tsx` + `src/painel/DetalheInterno.tsx`),
+endpoint novo `api/painel-relatorio-interno.ts` e resolvedor de miniatura
+próprio `api/_miniaturas-interno.ts` — nenhum arquivo do fluxo de
+decisão/envio (`api/painel-decisao.ts`, `api/_painel-decisao-regras.ts`,
+`RevisaoMoldura.tsx`, `DecisaoDaRevisao.tsx`, `api/painel-envio.ts`) foi
+tocado, e as regressões `verifica:decisao`, `verifica:revisao`,
+`verifica:fila`, `verifica:visao-geral`, `verifica:painel` e `verifica:refoco`
+continuam passando sem alteração. Provado com os 4 pilotos reais de julho/2026
+(VetSell, Líder Rolamentos, Make Plant, Cria Fértil): `montarDetalheInterno` e
+`resolverMiniaturasPrivadasInterno` lidos e assinados com sucesso contra o
+Supabase real (26/26 miniaturas assinadas, 0 indisponível), e os 4 renderizam
+sem erro pelo `react-dom/server`. Tela somente leitura — sem A4 (notas
+humanas), A5 (PDF/link) ou A6 (envio); a escolha do produto sai só de
+`identidade.produto`, nunca do slug/nome do cliente.
+
 ### Auditoria da fila corrente em 2026-08-09
 
 A leitura inicial do banco encontrou 44 linhas, das quais 34 eram as versões
@@ -108,8 +128,10 @@ a cobertura que dimensiona a diferença para o total da conta. Hannover e
 Syntonics continuam sem resultado por produto em Performance Max, mas o PO
 adiou essa ampliação em 2026-08-09 e ela não bloqueia esta publicação. O registro
 está em `docs/PENDENCIA_ADIADA_CONECTOR_GOOGLE_PRODUTOS_PMAX_2026-08-09.md` no
-`OpenClaw-Dacora`. Nenhum relatório mensal interno Allgrotech existe hoje; a
-seção correspondente só aparecerá quando snapshots desse produto existirem.
+`OpenClaw-Dacora`. **Isto descrevia 2026-08-09.** Em 2026-08-12 quatro
+pilotos do mensal interno Allgrotech (VetSell, Líder Rolamentos, Make Plant,
+Cria Fértil) foram gerados e persistidos, e a seção correspondente da fila já
+os mostra; o que faltava era a tela de detalhe, entregue na A3 (nota acima).
 
 ### Checkpoint integrado da P2
 
@@ -308,6 +330,8 @@ e celular. A configuração da seção 3.1 já foi feita.
 | **Leitura e solicitação P5 server-side** | `api/painel-envio.ts`, depois da sessão e allow-list atuais |
 | **Diálogo de envio depois do GO confirmado** | `src/painel/EnvioDaRevisao.tsx`, montado por `src/painel/RevisaoMoldura.tsx` |
 | **Regressão e smoke com dublês da P5B** | `scripts/verifica-painel-envio.mts` (`npm run verifica:envio`) |
+| **Detalhe do mensal interno Allgrotech (A3), em branch** | `src/pages/PainelRelatorioInterno.tsx`, `src/painel/DetalheInterno.tsx`, rota `/painel-de-relatorios/interno/:id` |
+| **Leitura server-side do núcleo factual interno** | `api/painel-relatorio-interno.ts` + `api/_miniaturas-interno.ts` — somente leitura, sem verbo de decisão |
 
 ### O que veio da SmartBio, e o que não veio
 

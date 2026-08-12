@@ -405,9 +405,13 @@ function TabelaDeRelatorios({
               <tr key={item.id}>
                 <th scope="row" className="dcp-tabela__cliente">
                   <Link
-                    to={`?relatorio=${encodeURIComponent(item.id)}`}
+                    to={
+                      item.produto === 'mensal_interno_allgrotech'
+                        ? `/painel-de-relatorios/interno/${encodeURIComponent(item.id)}`
+                        : `?relatorio=${encodeURIComponent(item.id)}`
+                    }
                     className="dcp-tabela__abrir"
-                    aria-label={`Revisar o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
+                    aria-label={`Abrir o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
                   >
                     {item.clienteNome}
                   </Link>

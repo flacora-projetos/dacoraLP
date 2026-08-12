@@ -1621,3 +1621,225 @@
     padding-inline: 0.5rem;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Mensal interno Allgrotech (A3) — detalhe factual, insumo Allgrotech  */
+/*                                                                      */
+/* Prefixo próprio (`dcp-interno__`) de propósito: esta tela não faz    */
+/* parte do fluxo de decisão/envio, e nenhuma classe daqui deve colidir */
+/* com o que aquele fluxo usa.                                          */
+/* ------------------------------------------------------------------ */
+
+.dcp-interno__titulo {
+  margin: 0.4rem 0 0;
+  color: var(--dc-tinta);
+  font-size: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.dcp-interno__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem 1.25rem;
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--dc-filete);
+}
+
+.dcp-interno__meta dt {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dcp-interno__meta dd {
+  margin: 0.2rem 0 0;
+  color: var(--dc-tinta);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.dcp-interno__notas-humanas {
+  margin: 1rem 0 0;
+  color: var(--dc-cinza);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.dcp-interno__plataforma + .dcp-interno__plataforma,
+.dcp-interno__capa + .dcp-interno__plataforma {
+  margin-top: 1rem;
+}
+
+.dcp-interno__cabecalho-plataforma {
+  margin-bottom: 1rem;
+}
+
+.dcp-interno__resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.6rem 1.25rem;
+  margin: 0.75rem 0 0;
+}
+
+.dcp-interno__resumo dt {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dcp-interno__resumo dd {
+  margin: 0.2rem 0 0;
+}
+
+.dcp-interno__bloco {
+  margin-top: 1.5rem;
+}
+
+.dcp-interno__subtitulo {
+  margin: 0 0 0.6rem;
+  color: var(--dc-tinta);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.dcp-interno__criterio {
+  color: var(--dc-cinza);
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+
+.dcp-interno__indisponivel {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  background: var(--dc-canvas);
+  border: 1px dashed var(--dc-filete-forte);
+  border-radius: 10px;
+  color: var(--dc-cinza);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.dcp-interno__valor {
+  font-variant-numeric: tabular-nums;
+}
+
+.dcp-interno__valor--ausente,
+.dcp-interno__valor--falha,
+.dcp-interno__valor--nao_aplicavel {
+  color: var(--dc-cinza);
+  font-style: italic;
+  font-size: 0.82em;
+}
+
+.dcp-interno__fatos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dcp-interno__fato {
+  padding: 0.15rem 0.5rem;
+  background: var(--dc-canvas);
+  border: 1px solid var(--dc-filete);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  color: var(--dc-tinta);
+  white-space: nowrap;
+}
+
+.dcp-interno__definicoes {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--dc-cinza);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.dcp-interno__ranking + .dcp-interno__ranking {
+  margin-top: 1.25rem;
+}
+
+.dcp-interno__cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.dcp-interno__cartao {
+  border: 1px solid var(--dc-filete);
+  border-radius: 12px;
+  padding: 0.6rem;
+  background: var(--dc-canvas);
+}
+
+.dcp-interno__miniatura {
+  aspect-ratio: 4 / 5;
+  display: grid;
+  place-items: center;
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.dcp-interno__miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dcp-interno__sem-miniatura {
+  color: var(--dc-cinza);
+  font-size: 0.7rem;
+  text-align: center;
+  padding: 0 0.5rem;
+}
+
+.dcp-interno__cartao-posicao {
+  margin: 0;
+  color: var(--dc-cinza);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.dcp-interno__cartao-nome {
+  margin: 0.15rem 0 0.4rem;
+  color: var(--dc-tinta);
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dcp-interno__cartao-numeros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.dcp-interno__cartao-numeros li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  color: var(--dc-cinza);
+}
+
+.dcp-interno__cartao-numeros li span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

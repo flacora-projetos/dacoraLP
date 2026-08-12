@@ -31,6 +31,14 @@ const RelatorioDemoZenun = lazy(() => import('./pages/RelatorioDemoZenun'));
 const PainelRelatorios = lazy(() => import('./pages/PainelRelatorios'));
 const RelatorioPublico = lazy(() => import('./pages/RelatorioPublico'));
 
+/**
+ * Detalhe do MENSAL INTERNO ALLGROTECH (A3) — insumo para a parceira, nunca
+ * documento de cliente. Rota própria, fora de `?relatorio=`, porque aquele
+ * parâmetro monta a bancada de decisão do mensal externo (P2/P3), que este
+ * produto não usa: aqui não há aprovar, recusar ou enviar.
+ */
+const PainelRelatorioInterno = lazy(() => import('./pages/PainelRelatorioInterno'));
+
 export default function App() {
   return (
     <Routes>
@@ -106,6 +114,14 @@ export default function App() {
         element={
           <Suspense fallback={<CarregandoPainel />}>
             <PainelRelatorios />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/painel-de-relatorios/interno/:id"
+        element={
+          <Suspense fallback={<CarregandoPainel />}>
+            <PainelRelatorioInterno />
           </Suspense>
         }
       />
