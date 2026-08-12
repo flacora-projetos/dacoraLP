@@ -1,6 +1,7 @@
 /** P5 — coordena a intenção de envio depois do GO; o transporte continua na fábrica. */
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatarCompetencia } from '../reports/format';
+import PortalDoDialogo from './PortalDoDialogo';
 
 export type EstadoDoEnvioP5 =
   | 'pendente'
@@ -120,50 +121,52 @@ function DialogoDeEnvio({
   }, [aoAdiar, solicitando]);
 
   return (
-    <div className="dcp-modal" role="presentation">
-      <div
-        className="dcp-modal__caixa"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${id}-titulo`}
-        aria-describedby={`${id}-destino`}
-        ref={caixa}
-      >
-        <p className="dcp-eyebrow">Envio ao cliente</p>
-        <h2 id={`${id}-titulo`} className="dcp-modal__titulo">
-          Enviar o relatório de {estado.clienteNome}, {formatarCompetencia(estado.competencia)}?
-        </h2>
-        <p id={`${id}-destino`} className="dcp-envio__destino">
-          Destino canônico confirmado pela fábrica:
-          <strong>{estado.destinatarioNome}</strong>
-        </p>
-        <p className="dcp-modal__apoio">
-          O painel solicitará uma única intenção. A mensagem só será tratada como enviada quando o
-          recibo durável voltar da fábrica.
-        </p>
-        {erro && <p className="dcp-decisao__resultado dcp-decisao__resultado--falha" role="alert">{erro}</p>}
-        <div className="dcp-modal__acoes">
-          <button
-            ref={botaoEnviar}
-            type="button"
-            className="dcp-botao dcp-botao--primario"
-            onClick={aoEnviar}
-            disabled={solicitando}
-            aria-label={`Enviar o relatório de ${estado.clienteNome} para ${estado.destinatarioNome}`}
-          >
-            {solicitando ? 'Solicitando…' : 'Enviar'}
-          </button>
-          <button
-            type="button"
-            className="dcp-botao dcp-botao--discreto"
-            onClick={aoAdiar}
-            disabled={solicitando}
-          >
-            Agora não
-          </button>
+    <PortalDoDialogo>
+      <div className="dcp-modal" role="presentation">
+        <div
+          className="dcp-modal__caixa"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`${id}-titulo`}
+          aria-describedby={`${id}-destino`}
+          ref={caixa}
+        >
+          <p className="dcp-eyebrow">Envio ao cliente</p>
+          <h2 id={`${id}-titulo`} className="dcp-modal__titulo">
+            Enviar o relatório de {estado.clienteNome}, {formatarCompetencia(estado.competencia)}?
+          </h2>
+          <p id={`${id}-destino`} className="dcp-envio__destino">
+            Destino canônico confirmado pela fábrica:
+            <strong>{estado.destinatarioNome}</strong>
+          </p>
+          <p className="dcp-modal__apoio">
+            O painel solicitará uma única intenção. A mensagem só será tratada como enviada quando o
+            recibo durável voltar da fábrica.
+          </p>
+          {erro && <p className="dcp-decisao__resultado dcp-decisao__resultado--falha" role="alert">{erro}</p>}
+          <div className="dcp-modal__acoes">
+            <button
+              ref={botaoEnviar}
+              type="button"
+              className="dcp-botao dcp-botao--primario"
+              onClick={aoEnviar}
+              disabled={solicitando}
+              aria-label={`Enviar o relatório de ${estado.clienteNome} para ${estado.destinatarioNome}`}
+            >
+              {solicitando ? 'Solicitando…' : 'Enviar'}
+            </button>
+            <button
+              type="button"
+              className="dcp-botao dcp-botao--discreto"
+              onClick={aoAdiar}
+              disabled={solicitando}
+            >
+              Agora não
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </PortalDoDialogo>
   );
 }
 

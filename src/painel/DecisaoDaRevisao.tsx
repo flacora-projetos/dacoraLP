@@ -22,6 +22,7 @@
  */
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatarCompetencia } from '../reports/format';
+import PortalDoDialogo from './PortalDoDialogo';
 
 /** A mesma régua do servidor e do banco. Ver `api/_painel-decisao-regras.ts`. */
 export const MINIMO_DO_MOTIVO = 10;
@@ -231,66 +232,68 @@ function DialogoDeRecusa({
   }, [aoCancelar]);
 
   return (
-    <div className="dcp-modal" role="presentation">
-      <div
-        className="dcp-modal__caixa"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${idBase}-titulo`}
-        ref={caixa}
-      >
-        <h2 id={`${idBase}-titulo`} className="dcp-modal__titulo">
-          Recusar o relatório de {relatorio.clienteNome}, {formatarCompetencia(relatorio.competencia)}
-        </h2>
-        <p className="dcp-modal__apoio">
-          O motivo é obrigatório: ele é o que chega a quem vai regerar o relatório. Escreva o que
-          precisa mudar, não uma nota interna.
-        </p>
-        <label className="dcp-modal__rotulo" htmlFor={`${idBase}-motivo`}>
-          Motivo da recusa
-        </label>
-        <textarea
-          id={`${idBase}-motivo`}
-          ref={campo}
-          className="dcp-modal__campo"
-          rows={4}
-          value={motivo}
-          maxLength={MAXIMO_DO_MOTIVO + 1}
-          onChange={(evento) => aoEscrever(evento.target.value)}
-          aria-describedby={`${idBase}-contagem ${idBase}-eco`}
-          disabled={registrando}
-        />
-        <p id={`${idBase}-contagem`} className="dcp-modal__contagem" aria-live="polite">
-          {excedeu
-            ? `Passou de ${MAXIMO_DO_MOTIVO} caracteres. Resuma o que precisa mudar.`
-            : suficiente
-              ? `${motivo.trim().length} caracteres.`
-              : `Faltam ${MINIMO_DO_MOTIVO - motivo.trim().length} caracteres para o motivo valer.`}
-        </p>
-        <p id={`${idBase}-eco`} className="dcp-decisao__eco">
-          {ecoDaDecisao(relatorio, 'recusar', quem, motivo)}
-        </p>
-        <div className="dcp-modal__acoes">
-          <button
-            type="button"
-            className="dcp-botao dcp-botao--sinal"
-            onClick={aoConfirmar}
-            disabled={!suficiente || excedeu || registrando}
-            aria-label={`Registrar a recusa do relatório de ${relatorio.clienteNome}, ${formatarCompetencia(relatorio.competencia)}`}
-          >
-            {registrando ? 'Registrando…' : 'Registrar recusa'}
-          </button>
-          <button
-            type="button"
-            className="dcp-botao dcp-botao--discreto"
-            onClick={aoCancelar}
+    <PortalDoDialogo>
+      <div className="dcp-modal" role="presentation">
+        <div
+          className="dcp-modal__caixa"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`${idBase}-titulo`}
+          ref={caixa}
+        >
+          <h2 id={`${idBase}-titulo`} className="dcp-modal__titulo">
+            Recusar o relatório de {relatorio.clienteNome}, {formatarCompetencia(relatorio.competencia)}
+          </h2>
+          <p className="dcp-modal__apoio">
+            O motivo é obrigatório: ele é o que chega a quem vai regerar o relatório. Escreva o que
+            precisa mudar, não uma nota interna.
+          </p>
+          <label className="dcp-modal__rotulo" htmlFor={`${idBase}-motivo`}>
+            Motivo da recusa
+          </label>
+          <textarea
+            id={`${idBase}-motivo`}
+            ref={campo}
+            className="dcp-modal__campo"
+            rows={4}
+            value={motivo}
+            maxLength={MAXIMO_DO_MOTIVO + 1}
+            onChange={(evento) => aoEscrever(evento.target.value)}
+            aria-describedby={`${idBase}-contagem ${idBase}-eco`}
             disabled={registrando}
-          >
-            Cancelar
-          </button>
+          />
+          <p id={`${idBase}-contagem`} className="dcp-modal__contagem" aria-live="polite">
+            {excedeu
+              ? `Passou de ${MAXIMO_DO_MOTIVO} caracteres. Resuma o que precisa mudar.`
+              : suficiente
+                ? `${motivo.trim().length} caracteres.`
+                : `Faltam ${MINIMO_DO_MOTIVO - motivo.trim().length} caracteres para o motivo valer.`}
+          </p>
+          <p id={`${idBase}-eco`} className="dcp-decisao__eco">
+            {ecoDaDecisao(relatorio, 'recusar', quem, motivo)}
+          </p>
+          <div className="dcp-modal__acoes">
+            <button
+              type="button"
+              className="dcp-botao dcp-botao--sinal"
+              onClick={aoConfirmar}
+              disabled={!suficiente || excedeu || registrando}
+              aria-label={`Registrar a recusa do relatório de ${relatorio.clienteNome}, ${formatarCompetencia(relatorio.competencia)}`}
+            >
+              {registrando ? 'Registrando…' : 'Registrar recusa'}
+            </button>
+            <button
+              type="button"
+              className="dcp-botao dcp-botao--discreto"
+              onClick={aoCancelar}
+              disabled={registrando}
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </PortalDoDialogo>
   );
 }
 

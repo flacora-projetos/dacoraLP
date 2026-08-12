@@ -340,10 +340,13 @@ try {
   const { createRequire } = await import('node:module');
   const require = createRequire(import.meta.url);
   const { JSDOM } = require('jsdom') as typeof import('jsdom');
-  const dom = new JSDOM('<!doctype html><html><body><div id="raiz"></div></body></html>', {
-    url: 'https://exemplo.invalido/painel-de-relatorios?relatorio=teste',
-    pretendToBeVisual: true,
-  });
+  const dom = new JSDOM(
+    '<!doctype html><html><body><div id="raiz"><div class="dc-painel"><div class="dcp-portal"></div><div id="montagem"></div></div></div></body></html>',
+    {
+      url: 'https://exemplo.invalido/painel-de-relatorios?relatorio=teste',
+      pretendToBeVisual: true,
+    },
+  );
   for (const nome of [
     'window', 'document', 'navigator', 'HTMLElement', 'Element', 'Node', 'Event',
     'KeyboardEvent', 'MouseEvent', 'MutationObserver', 'getComputedStyle',
@@ -356,7 +359,8 @@ try {
   const { flushSync } = await import('react-dom');
   const { createRoot } = await import('react-dom/client');
   const elemento = dom.window.document.getElementById('raiz')!;
-  const raiz = createRoot(elemento);
+  const montagem = dom.window.document.getElementById('montagem')!;
+  const raiz = createRoot(montagem);
   const seguro = montarEstadoSeguroDoEnvio(linha());
   assert.equal(seguro.ok, true);
   const estadoDisponivel = (seguro as { ok: true; estado: EstadoSeguroDoEnvioP5 }).estado;
@@ -373,6 +377,10 @@ try {
   flushSync(() => raiz.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar })));
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.ok(elemento.querySelector('[role="dialog"]'));
+  assert.ok(
+    elemento.querySelector('.dcp-portal > .dcp-modal [role="dialog"]'),
+    'o diálogo precisa sair da faixa lateral e permanecer dentro de .dc-painel',
+  );
   assert.ok((elemento.textContent ?? '').includes(NOME), 'o nome canônico aparece antes das ações');
   assert.equal((elemento.textContent ?? '').includes(ID_BRUTO), false);
 
