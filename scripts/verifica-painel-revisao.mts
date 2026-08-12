@@ -386,6 +386,47 @@ assert.ok(html.includes('href="#'), 'sinal de atenção precisa navegar para a s
 assert.ok(html.includes('id="qualidade"') || html.includes('id="resumo"'), 'o alvo precisa existir no relatório');
 assert.ok(html.includes('href="/painel-de-relatorios"'), 'faltou voltar para a fila por navegação semântica');
 
+// FLUTUANTE, sempre — nunca preso no topo do documento, senão relatório
+// longo obriga a rolar até lá para voltar (pedido do Flávio, 2026-08-12).
+assert.ok(
+  html.includes('dcp-revisao__navegacao dcp-revisao__navegacao--flutuante'),
+  'o "voltar para a fila" da revisão precisa ficar flutuante antes da aprovação',
+);
+
+/* "VOLTAR PARA A FILA" DEVOLVE A MESMA FILA, NÃO O MÊS CORRENTE (2026-08-12).
+   A fila guarda competência/aba/filtros na própria URL (`Fila.tsx`); a volta
+   só funciona se pegar exatamente essa URL de volta, tirando só `relatorio`.
+   Sem isso, mudar de mês, abrir um relatório e voltar cai de novo em agosto —
+   exatamente a reclamação do Flávio. */
+{
+  const desenharComUrl = (caminho: string) =>
+    renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [caminho] },
+        createElement(
+          RevisaoMoldura,
+          { relatorio },
+          createElement('div', null, createElement('section', { id: 'qualidade' }, 'Documento carregado')),
+        ),
+      ),
+    );
+
+  const htmlComEstado = desenharComUrl(
+    `/painel-de-relatorios?relatorio=${ID}&competencia=2026-06&aba=fila&carteira=DACORA`,
+  );
+  assert.ok(
+    htmlComEstado.includes(
+      'href="/painel-de-relatorios?competencia=2026-06&amp;aba=fila&amp;carteira=DACORA"',
+    ),
+    'o "voltar para a fila" perdeu a competência, a aba ou o filtro que estavam na URL',
+  );
+  assert.ok(
+    !htmlComEstado.includes(`relatorio=${ID}`),
+    'o "voltar" não pode carregar o relatório que acabou de ser fechado',
+  );
+}
+
 const semConteudo = desenhar(null);
 assert.ok(semConteudo.includes('conteúdo do relatório não foi carregado'));
 assert.ok(!semConteudo.includes('Aprovar relatório'));

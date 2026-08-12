@@ -1843,3 +1843,51 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* =====================================================================
+   VOLTAR PARA A FILA — FLUTUANTE (ajuste pedido pelo Flávio, 2026-08-12)
+
+   Bloco próprio, ao final do arquivo, para não reordenar nem reescrever
+   nenhuma regra existente — este arquivo é compartilhado com outra frente
+   de trabalho no painel.
+
+   Só acrescenta um MODIFICADOR (`--flutuante`) à classe que já existia
+   (`.dcp-revisao__navegacao`), então as regras de cor/tipografia do link
+   continuam vindo de lá; aqui só se resolve POSIÇÃO. Fixo, não `sticky`,
+   porque a faixa de decisão vira uma barra fixa no rodapé em telas até
+   1199px (ver `.dcp-revisao__faixa` acima) — um "voltar" fixo no TOPO
+   esquerdo nunca disputa espaço com ela, no desktop ou no celular.
+   `env(safe-area-inset-*)` respeita o recorte de telas com notch.
+   ===================================================================== */
+
+.dcp-revisao__navegacao--flutuante {
+  position: fixed;
+  top: calc(4.5rem + env(safe-area-inset-top, 0px));
+  left: max(0.85rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 30;
+  margin: 0;
+  max-width: calc(100vw - 1.7rem);
+}
+
+.dcp-revisao__navegacao--flutuante a {
+  background: var(--dc-superficie);
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 999px;
+  padding: 0 1rem;
+  box-shadow: 0 10px 28px rgba(13, 31, 24, 0.2);
+}
+
+.dcp-revisao__navegacao--flutuante a:hover {
+  box-shadow: 0 12px 32px rgba(13, 31, 24, 0.26);
+}
+
+@media (max-width: 560px) {
+  .dcp-revisao__navegacao--flutuante {
+    top: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+
+  .dcp-revisao__navegacao--flutuante a {
+    padding: 0 0.85rem;
+    font-size: 0.8rem;
+  }
+}

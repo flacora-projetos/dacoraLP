@@ -814,6 +814,66 @@ function desenhar(dados: any): string {
   assert.ok(normalizarEspacos(html).includes('R$ 150,00'));
 }
 
+/* ================================================================== */
+/* 6. "VOLTAR PARA A FILA" DEVOLVE A MESMA FILA (2026-08-12)            */
+/*                                                                      */
+/* Pedido do Flávio: mudar a competência, abrir um relatório e voltar   */
+/* não pode cair de novo no mês corrente — tem que continuar no mês, na */
+/* aba e nos filtros que a pessoa tinha escolhido. Como a fila guarda   */
+/* esse estado na URL (não em `useState`), a prova é sobre a URL: o     */
+/* link que abre um relatório precisa LEVAR os parâmetros da fila       */
+/* consigo — é o que sobra para a volta simplesmente reaproveitar.      */
+/* ================================================================== */
+{
+  const itens = montarFila([
+    linha({
+      slug: 'externo',
+      nome: 'Cliente Externo',
+      faixas: [faixa({ plataforma: 'meta', investimento: 10, resultado: 1 })],
+    }),
+    linha({
+      slug: 'interno',
+      nome: 'Cliente Interno Allgrotech',
+      produto: 'mensal_interno_allgrotech',
+      faixas: [faixa({ plataforma: 'meta', investimento: 10, resultado: 1 })],
+    }),
+  ]);
+
+  function desenharComUrl(caminho: string): string {
+    return renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [caminho] },
+        createElement(FilaApresentada, {
+          dados: { competencia: '2026-06', competencias: ['2026-07', '2026-06'], itens },
+        }),
+      ),
+    );
+  }
+
+  const html = desenharComUrl('/painel-de-relatorios?competencia=2026-06&aba=fila&carteira=DACORA');
+
+  // O link do relatório EXTERNO leva a competência e o filtro junto do
+  // `relatorio=`, não troca a barra de endereço inteira por um parâmetro só.
+  const linkExterno = /<a class="dcp-tabela__abrir"[^>]*href="([^"]+)"[^>]*>Cliente Externo</.exec(html)?.[1];
+  assert.ok(linkExterno, 'não encontrei o link do relatório externo');
+  assert.ok(linkExterno!.includes('competencia=2026-06'), 'o link do relatório externo perdeu a competência da URL');
+  assert.ok(linkExterno!.includes('carteira=DACORA'), 'o link do relatório externo perdeu o filtro de carteira');
+  assert.ok(linkExterno!.includes('relatorio='), 'o link do relatório externo deixou de abrir a revisão');
+
+  // O relatório INTERNO é outra rota (`/painel-de-relatorios/interno/:id`) —
+  // sem levar a competência na própria URL dele, a volta não teria como saber
+  // qual mês recuperar, já que a página nova não herda estado nenhum sozinha.
+  const linkInterno =
+    /<a class="dcp-tabela__abrir"[^>]*href="([^"]+)"[^>]*>Cliente Interno Allgrotech</.exec(html)?.[1];
+  assert.ok(linkInterno, 'não encontrei o link do relatório interno');
+  assert.ok(
+    linkInterno!.startsWith('/painel-de-relatorios/interno/') && linkInterno!.includes('competencia=2026-06'),
+    'o link do mensal interno perdeu a competência da fila',
+  );
+}
+
 console.log(
-  'OK — fila do painel: números, sinais, ordem, o endpoint nos caminhos de recusa, e a tabela desenhada',
+  'OK — fila do painel: números, sinais, ordem, o endpoint nos caminhos de recusa, a tabela desenhada, ' +
+    'e o link de abrir relatório preservando competência/aba/filtros (2026-08-12)',
 );

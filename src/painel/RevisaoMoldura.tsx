@@ -8,6 +8,7 @@ import DecisaoDaRevisao, {
   type ResultadoDaDecisao,
 } from './DecisaoDaRevisao';
 import EnvioDaRevisao, { type ResultadoDoEnvioP5 } from './EnvioDaRevisao';
+import { useLinkDeVoltaParaFila } from './linkDeVolta';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -191,6 +192,8 @@ export function RevisaoMoldura({
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
 }) {
+  const linkDeVolta = useLinkDeVoltaParaFila();
+
   if (!relatorio?.conteudoCarregado || !relatorio.snapshot || !children) {
     return (
       <section className="dcp-secao" role="alert">
@@ -203,8 +206,11 @@ export function RevisaoMoldura({
   }
   return (
     <section className="dcp-revisao">
-      <nav className="dcp-revisao__navegacao" aria-label="Navegação da revisão">
-        <Link to="/painel-de-relatorios">← Voltar para a fila</Link>
+      <nav
+        className="dcp-revisao__navegacao dcp-revisao__navegacao--flutuante"
+        aria-label="Navegação da revisão"
+      >
+        <Link to={linkDeVolta}>← Voltar para a fila</Link>
       </nav>
       <div className="dcp-revisao__grade">
         <FaixaDeRevisao

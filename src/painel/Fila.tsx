@@ -14,9 +14,9 @@
  * Quem calcula tudo isso é o servidor (`api/_painel-fila-dados.ts`). Esta tela
  * não soma, não compara e não decide o que é sinal: ela apresenta.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { usarPainelAuth } from './AuthContext';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
 import VisaoGeral, {
@@ -366,6 +366,29 @@ function detalheDoResultado(item: ItemDaFila): string {
   return partes.join(' · ');
 }
 
+/**
+ * Monta o endere\u00e7o de abertura de um relat\u00f3rio PRESERVANDO a compet\u00eancia, a
+ * aba e os filtros que estavam na URL.
+ *
+ * \u00c9 o que faz "Voltar para a fila" devolver a mesma fila, e n\u00e3o o m\u00eas
+ * corrente: como a volta simplesmente remove `relatorio` (ou troca de rota,
+ * no caso do mensal interno) da MESMA barra de endere\u00e7o, ela s\u00f3 funciona se
+ * a ida j\u00e1 tiver levado tudo junto. Guardar o estado em `useState` local n\u00e3o
+ * bastaria \u2014 o componente que guarda esse estado \u00e9 desmontado quando a
+ * revis\u00e3o assume a tela.
+ */
+function linkParaAbrirRelatorio(item: ItemDaFila, buscaAtual: URLSearchParams): string {
+  const preservados = new URLSearchParams(buscaAtual);
+  preservados.delete('relatorio');
+  if (item.produto === 'mensal_interno_allgrotech') {
+    const query = preservados.toString();
+    const base = `/painel-de-relatorios/interno/${encodeURIComponent(item.id)}`;
+    return query ? `${base}?${query}` : base;
+  }
+  preservados.set('relatorio', item.id);
+  return `?${preservados.toString()}`;
+}
+
 function TabelaDeRelatorios({
   titulo,
   itens,
@@ -376,6 +399,7 @@ function TabelaDeRelatorios({
   itens: ItemDaFila[];
   competencia: string;
 }) {
+  const [buscaAtual] = useSearchParams();
   const idTitulo = `grupo-${titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\W+/g, '-').toLowerCase()}`;
 
   return (
@@ -405,11 +429,7 @@ function TabelaDeRelatorios({
               <tr key={item.id}>
                 <th scope="row" className="dcp-tabela__cliente">
                   <Link
-                    to={
-                      item.produto === 'mensal_interno_allgrotech'
-                        ? `/painel-de-relatorios/interno/${encodeURIComponent(item.id)}`
-                        : `?relatorio=${encodeURIComponent(item.id)}`
-                    }
+                    to={linkParaAbrirRelatorio(item, buscaAtual)}
                     className="dcp-tabela__abrir"
                     aria-label={`Abrir o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
                   >
@@ -505,14 +525,8 @@ function EsqueletoDaFila() {
  * escreve o código não tem e não deve ter. Com a apresentação exportada, a
  * regressão renderiza a tabela com relatórios de mentira e confere o que saiu.
  */
-export function FilaApresentada({
-  dados,
-  aoTrocarCompetencia,
-}: {
-  dados: RespostaFila;
-  aoTrocarCompetencia?: (competencia: string) => void;
-}) {
-  return <CorpoDaFila dados={dados} aoTrocarCompetencia={aoTrocarCompetencia} />;
+export function FilaApresentada({ dados }: { dados: RespostaFila }) {
+  return <CorpoDaFila dados={dados} />;
 }
 
 export default function Fila() {
@@ -520,11 +534,22 @@ export default function Fila() {
   return <FilaComSessao sessao={sessao} />;
 }
 
+/**
+ * A competência pedida mora na URL (`?competencia=`), não em `useState`.
+ *
+ * É a mesma razão do link de abertura do relatório: quando a pessoa muda o
+ * mês, abre um relatório e volta, a fila precisa reaparecer no mês que ela
+ * escolheu — nunca no mês corrente do servidor. Estado em memória não
+ * sobrevive a isso porque este componente inteiro é desmontado enquanto a
+ * revisão está na tela; a URL é o único lugar que atravessa a ida e a volta,
+ * inclusive pelo botão "voltar" do navegador.
+ */
 export function FilaComSessao({ sessao }: { sessao: Session | null }) {
   const [dados, setDados] = useState<RespostaFila | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<{ codigo: string; mensagem: string } | null>(null);
-  const [competenciaPedida, setCompetenciaPedida] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const competenciaPedida = searchParams.get('competencia');
   const sessaoAtualRef = useRef(sessao);
   sessaoAtualRef.current = sessao;
   const usuarioId = sessao?.user?.id ?? null;
@@ -619,30 +644,56 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
     );
   }
 
-  return (
-    <CorpoDaFila
-      dados={dados ?? { competencia: null, competencias: [], itens: [] }}
-      aoTrocarCompetencia={setCompetenciaPedida}
-    />
-  );
+  return <CorpoDaFila dados={dados ?? { competencia: null, competencias: [], itens: [] }} />;
 }
 
-function CorpoDaFila({
-  dados,
-  aoTrocarCompetencia,
-}: {
-  dados: RespostaFila;
-  aoTrocarCompetencia?: (competencia: string) => void;
-}) {
+/** As dimensões de filtro, na mesma ordem em que aparecem como parâmetro de URL. */
+const CAMPOS_DE_FILTRO: CampoDeFiltro[] = ['carteira', 'produto', 'formato', 'estado', 'sinal'];
+
+function CorpoDaFila({ dados }: { dados: RespostaFila }) {
   const competencias = dados?.competencias ?? [];
   const competencia = dados?.competencia ?? null;
   const itens = dados?.itens ?? [];
   const visaoGeral = dados?.visaoGeral;
 
-  /* Os dois estados de navegação ficam ANTES do primeiro `return`, porque
-     hook não pode ser chamado depois de uma saída antecipada. */
-  const [aba, setAba] = useState<Aba>(visaoGeral ? 'visao-geral' : 'fila');
-  const [filtros, setFiltros] = useState<Filtros>({});
+  /* Os hooks de navegação ficam ANTES do primeiro `return`, porque hook não
+     pode ser chamado depois de uma saída antecipada.
+
+     Aba, filtros e competência moram na URL (`useSearchParams`), não em
+     `useState`. É o que faz "voltar para a fila" devolver a mesma fila: o
+     estado sobrevive à troca de tela porque ele nunca esteve só na memória
+     deste componente, que é desmontado quando a revisão assume — e o mesmo
+     mecanismo do navegador já sabe restaurar URL no botão "voltar". */
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const abaParam = searchParams.get('aba');
+  const aba: Aba =
+    abaParam === 'visao-geral' || abaParam === 'fila' ? abaParam : visaoGeral ? 'visao-geral' : 'fila';
+
+  const filtros: Filtros = useMemo(() => {
+    const resultado: Filtros = {};
+    for (const campo of CAMPOS_DE_FILTRO) {
+      const valor = searchParams.get(campo);
+      if (valor) resultado[campo] = valor;
+    }
+    return resultado;
+  }, [searchParams]);
+
+  /** Aplica mudanças pontuais aos parâmetros, sem mexer nos demais. `null` remove a chave. */
+  const atualizarParametros = (mudancas: Record<string, string | null>) => {
+    const proximo = new URLSearchParams(searchParams);
+    for (const [chave, valor] of Object.entries(mudancas)) {
+      if (valor === null) proximo.delete(chave);
+      else proximo.set(chave, valor);
+    }
+    setSearchParams(proximo);
+  };
+
+  const setAba = (novaAba: Aba) => atualizarParametros({ aba: novaAba });
+  const trocarCompetencia = (novaCompetencia: string) => atualizarParametros({ competencia: novaCompetencia });
+  const removerFiltro = (campo: CampoDeFiltro) => atualizarParametros({ [campo]: null });
+  const limparFiltros = () =>
+    atualizarParametros(Object.fromEntries(CAMPOS_DE_FILTRO.map((campo) => [campo, null])));
 
   /**
    * Clicar num número da visão geral SUBSTITUI os filtros, não acumula.
@@ -653,8 +704,9 @@ function CorpoDaFila({
    * estaria mentindo sem errar uma conta sequer.
    */
   const filtrarEIrParaFila = (novos: Filtros) => {
-    setFiltros(novos);
-    setAba('fila');
+    const mudancas: Record<string, string | null> = { aba: 'fila' };
+    for (const campo of CAMPOS_DE_FILTRO) mudancas[campo] = novos[campo] ?? null;
+    atualizarParametros(mudancas);
   };
 
   /* Nenhum relatório em lugar nenhum. Não é erro, e não pode virar tabela
@@ -719,7 +771,7 @@ function CorpoDaFila({
             <span className="dcp-sr">Competência</span>
             <select
               value={competencia}
-              onChange={(evento) => aoTrocarCompetencia?.(evento.target.value)}
+              onChange={(evento) => trocarCompetencia(evento.target.value)}
             >
               {competencias.map((mes) => (
                 <option key={mes} value={mes}>
@@ -767,11 +819,7 @@ function CorpoDaFila({
                   key={campo}
                   type="button"
                   className="dcp-filtros__chip"
-                  onClick={() => {
-                    const resto = { ...filtros };
-                    delete resto[campo];
-                    setFiltros(resto);
-                  }}
+                  onClick={() => removerFiltro(campo)}
                   title="Remover este filtro"
                 >
                   {ROTULO_DO_FILTRO[campo]}: {rotuloDoValor(campo, filtros[campo] as string, visaoGeral)}
@@ -782,7 +830,7 @@ function CorpoDaFila({
               <button
                 type="button"
                 className="dcp-botao dcp-botao--discreto"
-                onClick={() => setFiltros({})}
+                onClick={() => limparFiltros()}
               >
                 Limpar
               </button>

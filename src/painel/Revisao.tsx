@@ -22,6 +22,7 @@ import { usarPainelAuth } from './AuthContext';
 import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
 import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
 import type { EstadoSeguroDoEnvioP5, ResultadoDoEnvioP5 } from './EnvioDaRevisao';
+import { useLinkDeVoltaParaFila } from './linkDeVolta';
 
 export function RevisaoApresentada({
   relatorio,
@@ -71,6 +72,7 @@ export function RevisaoComSessao({
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
+  const linkDeVolta = useLinkDeVoltaParaFila();
   const sessaoAtualRef = useRef(sessao);
   sessaoAtualRef.current = sessao;
   const usuarioId = sessao?.user?.id ?? null;
@@ -263,7 +265,7 @@ export function RevisaoComSessao({
           <button type="button" className="dcp-botao dcp-botao--primario" onClick={() => setTentativa((valor) => valor + 1)}>
             Tentar novamente
           </button>
-          <Link className="dcp-botao dcp-botao--discreto" to="/painel-de-relatorios">
+          <Link className="dcp-botao dcp-botao--discreto" to={linkDeVolta}>
             Voltar para a fila
           </Link>
         </div>

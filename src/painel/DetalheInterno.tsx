@@ -28,6 +28,7 @@
  */
 import { Link } from 'react-router-dom';
 import { formatarCompetencia } from '../reports/format';
+import { useLinkDeVoltaParaFila } from './linkDeVolta';
 
 /* ------------------------------------------------------------------ */
 /* Formas do núcleo factual (schema 2026-08-interno-allgrotech-factual-v1) */
@@ -428,11 +429,15 @@ function SecaoPlataforma({ plataforma }: { plataforma: PlataformaFactual }) {
 export default function DetalheInterno({ detalhe }: { detalhe: DetalheInternoResposta }) {
   const { nucleoFactual } = detalhe;
   const { identidade, configuracao, origem } = nucleoFactual;
+  const linkDeVolta = useLinkDeVoltaParaFila();
 
   return (
     <section className="dcp-revisao">
-      <nav className="dcp-revisao__navegacao" aria-label="Navegação">
-        <Link to="/painel-de-relatorios">← Voltar para a fila</Link>
+      <nav
+        className="dcp-revisao__navegacao dcp-revisao__navegacao--flutuante"
+        aria-label="Navegação"
+      >
+        <Link to={linkDeVolta}>← Voltar para a fila</Link>
       </nav>
 
       <article className="dcp-secao dcp-interno__capa" aria-label={`Mensal interno Allgrotech de ${identidade.clienteNome}`}>

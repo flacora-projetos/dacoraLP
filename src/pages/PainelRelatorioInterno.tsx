@@ -13,10 +13,12 @@ import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
 import DetalheInterno, { type DetalheInternoResposta } from '../painel/DetalheInterno';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
+import { useLinkDeVoltaParaFila } from '../painel/linkDeVolta';
 import '../painel/painel.css';
 
 function ConteudoInterno({ id }: { id: string }) {
   const { sessao } = usarPainelAuth();
+  const linkDeVolta = useLinkDeVoltaParaFila();
   const [detalhe, setDetalhe] = useState<DetalheInternoResposta | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -79,7 +81,7 @@ function ConteudoInterno({ id }: { id: string }) {
           <button type="button" className="dcp-botao dcp-botao--primario" onClick={() => setTentativa((v) => v + 1)}>
             Tentar novamente
           </button>
-          <Link className="dcp-botao dcp-botao--discreto" to="/painel-de-relatorios">
+          <Link className="dcp-botao dcp-botao--discreto" to={linkDeVolta}>
             Voltar para a fila
           </Link>
         </div>
