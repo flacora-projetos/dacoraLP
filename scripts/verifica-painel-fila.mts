@@ -94,6 +94,8 @@ function linha(parcial: {
   faixas?: any[];
   montagem?: any[];
   fontes?: any[];
+  carteira?: 'DACORA' | 'ALLGROTECH' | null;
+  produto?: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | null;
 }): LinhaDoBanco {
   contador += 1;
   return {
@@ -109,7 +111,12 @@ function linha(parcial: {
     enviado_para: null,
     substituido_por: null,
     conteudo: {
-      identidade: { clienteNome: parcial.nome ?? parcial.slug, clienteSlug: parcial.slug },
+      identidade: {
+        clienteNome: parcial.nome ?? parcial.slug,
+        clienteSlug: parcial.slug,
+        carteira: parcial.carteira === undefined ? 'DACORA' : parcial.carteira,
+        produto: parcial.produto === undefined ? 'mensal_externo_cliente' : parcial.produto,
+      },
       fontes: parcial.fontes ?? [],
       montagem: parcial.montagem ?? [],
       dados: {
@@ -231,13 +238,51 @@ function linha(parcial: {
   assert.equal(item.sinais.find((s) => s.tipo === 'secoes_indisponiveis')!.texto, '1 seção indisponível');
 }
 
-/* Plataforma sem evento de resultado definido no cadastro. ------------- */
+/* Plataforma sem resultado publicável: o painel não inventa a causa. ---- */
 {
   const item = montarItem(
     linha({ slug: 'g', faixas: [faixa({ plataforma: 'google', investimento: 300 })] }),
   );
   assert.ok(item.sinais.some((s) => s.tipo === 'sem_resultado'));
+  assert.equal(item.sinais.some((s) => /cadastro do cliente/i.test(s.detalhe)), false);
   assert.equal(item.resultados.length, 0);
+}
+
+/* Resultado por conversão: dois pares na mesma plataforma não somem. ----- */
+{
+  const l = linha({ slug: 'misto', carteira: 'ALLGROTECH', faixas: [] });
+  (l.conteudo as any).dados.faixas = {
+    faixa_meta: {
+      id: 'faixa_meta',
+      escopo: { tipo: 'plataforma' },
+      metricas: [
+        {
+          id: 'meta_investimento', rotulo: 'Investimento', unidade: 'brl', glossarioId: 'investimento',
+          origem: { fontes: ['meta'] }, valor: { estado: 'ok', numero: 500 },
+        },
+        {
+          id: 'meta_resultado_grupo_1', rotulo: 'Conversas iniciadas', unidade: 'inteiro',
+          origem: { fontes: ['meta'] }, valor: { estado: 'ok', numero: 20 },
+        },
+        {
+          id: 'meta_resultado_grupo_2', rotulo: 'Visitas ao perfil', unidade: 'inteiro',
+          origem: { fontes: ['meta'] }, valor: { estado: 'ok', numero: 80 },
+        },
+      ],
+    },
+  };
+  const item = montarItem(l);
+  assert.deepEqual(item.resultados.map((resultado) => resultado.valor), [20, 80]);
+  assert.equal(item.sinais.some((sinal) => sinal.tipo === 'sem_resultado'), false);
+  assert.equal(item.carteira, 'ALLGROTECH');
+}
+
+/* Snapshot antigo fica isolado, nunca classificado por nome. ------------- */
+{
+  const item = montarItem(linha({ slug: 'legado', carteira: null, produto: null, faixas: [] }));
+  assert.equal(item.carteira, 'NAO_IDENTIFICADA');
+  assert.equal(item.produto, 'NAO_IDENTIFICADO');
+  assert.ok(item.sinais.some((sinal) => sinal.tipo === 'classificacao_ausente'));
 }
 
 /* Variação forte: acima do corte sinaliza, abaixo não. ----------------- */
@@ -615,6 +660,7 @@ function desenhar(dados: any): string {
     linha({
       slug: 'tranquilo',
       nome: 'Cliente Tranquilo',
+      carteira: 'ALLGROTECH',
       faixas: [faixa({ plataforma: 'meta', investimento: 2500.5, resultado: 30 })],
       fontes: [{ plataforma: 'meta', rotulo: 'Meta Ads', situacao: 'ok' }],
     }),
@@ -625,6 +671,8 @@ function desenhar(dados: any): string {
   assert.ok(html.includes('<table'), 'a fila precisa ser uma tabela de verdade');
   assert.ok(html.includes('scope="col"') && html.includes('scope="row"'), 'faltou associar cabeçalho');
   assert.ok(html.includes('<caption'), 'a tabela precisa de legenda para leitor de tela');
+  assert.ok(html.includes('Mensais externos · Carteira Dácora'));
+  assert.ok(html.includes('Mensais externos · Carteira Allgrotech'));
 
   // O mês por extenso, em português.
   assert.ok(html.includes('julho de 2026'), 'a competência precisa aparecer por extenso');

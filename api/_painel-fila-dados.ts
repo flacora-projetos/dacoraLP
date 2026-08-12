@@ -64,6 +64,7 @@ export interface LinhaDoBanco {
 export type EstadoNaTela = 'gerado' | 'liberado' | 'enviado' | 'substituido' | 'desconhecido';
 
 export type TipoSinal =
+  | 'classificacao_ausente'
   | 'secoes_indisponiveis'
   | 'variacao_forte'
   | 'sem_resultado'
@@ -93,6 +94,8 @@ export interface ItemDaFila {
   id: string;
   clienteSlug: string;
   clienteNome: string;
+  carteira: 'DACORA' | 'ALLGROTECH' | 'NAO_IDENTIFICADA';
+  produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'NAO_IDENTIFICADO';
   competencia: string;
   versao: number;
   estado: EstadoNaTela;
@@ -160,14 +163,11 @@ function plataformaDaFaixa(faixa: any): string | undefined {
   return undefined;
 }
 
-function metricaPorSufixo(faixa: any, sufixos: string[]): any | null {
-  for (const sufixo of sufixos) {
-    const achada = (faixa?.metricas ?? []).find(
-      (m: any) => typeof m?.id === 'string' && m.id.endsWith(sufixo),
-    );
-    if (achada) return achada;
-  }
-  return null;
+function metricasDeResultado(faixa: any): any[] {
+  return (faixa?.metricas ?? []).filter((metrica: any) => {
+    const id = typeof metrica?.id === 'string' ? metrica.id : '';
+    return /(?:_resultado(?:_grupo_\d+)?|_conversoes)$/.test(id);
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -183,6 +183,7 @@ const CORTE_DE_VARIACAO = 0.3;
 
 const PESO: Record<TipoSinal, number> = {
   falha_de_fonte: 50,
+  classificacao_ausente: 45,
   valor_ausente: 40,
   sem_resultado: 30,
   secoes_indisponiveis: 20,
@@ -196,6 +197,22 @@ function porcentagem(variacao: number): string {
 
 function sinaisDoRelatorio(conteudo: any): Sinal[] {
   const sinais: Sinal[] = [];
+  const identidade = conteudo?.identidade ?? {};
+
+  if (
+    !['DACORA', 'ALLGROTECH'].includes(identidade.carteira) ||
+    !['mensal_externo_cliente', 'mensal_interno_allgrotech'].includes(identidade.produto)
+  ) {
+    sinais.push({
+      tipo: 'classificacao_ausente',
+      texto: 'sem carteira/finalidade',
+      detalhe:
+        'Este snapshot é anterior ao contrato que declara carteira e finalidade. Gere uma nova versão na fábrica; ' +
+        'o painel não classifica cliente pelo nome.',
+      alvo: 'qualidade',
+      peso: PESO.classificacao_ausente,
+    });
+  }
 
   const secaoDaFaixa = (faixa: any): string =>
     (conteudo?.montagem ?? []).find(
@@ -259,22 +276,21 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
     }
 
     /* Plataforma que não publica número de resultado. ---------------------- */
-    const resultado = metricaPorSufixo(faixa, ['_resultado', '_conversoes']);
-    if (!resultado) {
+    const resultados = metricasDeResultado(faixa);
+    if (resultados.length === 0) {
       sinais.push({
         tipo: 'sem_resultado',
         texto: `${plataforma} sem resultado`,
         detalhe:
-          `Este relatório não publica número de resultado para o ${plataforma}. ` +
-          `Acontece quando o cadastro do cliente não define qual evento conta como resultado naquela ` +
-          `plataforma — sem essa definição, a plataforma não publica número em vez de escolher um sozinha.`,
+          `Os dados atuais deste relatório não permitiram publicar resultado para o ${plataforma}. ` +
+          'Confira a observação da fonte no relatório; o painel não presume que falta cadastro nem escolhe outro evento.',
         alvo: secaoDaFaixa(faixa),
         peso: PESO.sem_resultado,
       });
     }
 
     /* Variação forte contra o mês anterior. -------------------------------- */
-    for (const metrica of [investimento, resultado]) {
+    for (const metrica of [investimento, ...resultados]) {
       const comparativo = metrica?.comparativo;
       // `permitido: false` é respeitado: quando o relatório diz que aquela
       // comparação não pode ser feita (mês incompleto, valor travado em faixa),
@@ -352,15 +368,16 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
       });
     }
 
-    const resultado = metricaPorSufixo(faixa, ['_resultado', '_conversoes']);
-    const valorResultado = numeroSeOk(resultado?.valor);
-    if (valorResultado !== null) {
-      resultados.push({
-        rotulo: resultado.rotulo ?? 'Resultado',
-        fonte,
-        valor: valorResultado,
-        unidade: resultado.unidade ?? 'inteiro',
-      });
+    for (const resultado of metricasDeResultado(faixa)) {
+      const valorResultado = numeroSeOk(resultado?.valor);
+      if (valorResultado !== null) {
+        resultados.push({
+          rotulo: resultado.rotulo ?? 'Resultado',
+          fonte,
+          valor: valorResultado,
+          unidade: resultado.unidade ?? 'inteiro',
+        });
+      }
     }
   }
 
@@ -371,6 +388,12 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
     id: linha.id,
     clienteSlug: linha.cliente_slug,
     clienteNome: identidade.clienteNome || linha.cliente_slug,
+    carteira: ['DACORA', 'ALLGROTECH'].includes(identidade.carteira)
+      ? identidade.carteira
+      : 'NAO_IDENTIFICADA',
+    produto: ['mensal_externo_cliente', 'mensal_interno_allgrotech'].includes(identidade.produto)
+      ? identidade.produto
+      : 'NAO_IDENTIFICADO',
     competencia: linha.competencia,
     versao: linha.versao,
     estado,

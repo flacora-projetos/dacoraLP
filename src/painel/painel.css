@@ -556,6 +556,43 @@
   max-width: 70ch;
 }
 
+.dcp-fila__grupos {
+  display: grid;
+  gap: 28px;
+}
+
+.dcp-fila__grupo {
+  min-width: 0;
+}
+
+.dcp-fila__grupo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dcp-fila__grupo-titulo {
+  margin: 0;
+  color: var(--dc-ink);
+  font-size: 0.86rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dcp-fila__grupo-contagem {
+  display: inline-grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--dc-linha);
+  border-radius: 999px;
+  color: var(--dc-ink-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Rolagem lateral fica PRESA à tabela, nunca no corpo da página. */
 .dcp-fila__rolagem {
   overflow-x: auto;
