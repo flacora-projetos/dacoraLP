@@ -1,12 +1,13 @@
 # Handoff — RA2: texto livre do provider
 
-**Estado:** a correção de texto livre foi integrada em `dacoraLP/main/a406422` e
-o deployment `dpl_4CN3cdNuJss8Anc7pGt482UQtsWg` ficou `READY`. No teste
-autenticado real do relatório `9918bac9-6686-49e4-b1e6-3d6a5225a722`, o POST
-passou a responder 200 e a comparação renderizou, mas a sugestão de 2.033
-caracteres terminou no meio da frase, literalmente em `e 46 delas (cerca de
-31%) chegaram a`. Nenhuma aprovação, recusa, solicitação de envio ou envio foi
-executado.
+**Estado:** a correção completa da persistência está publicada em
+`dacoraLP/main/31f393f`; o deployment Production
+`dpl_DrAsn5YhYmc4DtptFpTsVES3MkHS` ficou `READY`. A migration
+`20260813213535_ra2_corrigir_persistencia_edicao` foi aplicada e conferida no
+Supabase. Raiz/painel responderam HTTP 200 e a API sem sessão, 401. Falta apenas
+o smoke autenticado `gerar → editar → salvar`: o navegador chegou ao login
+Google e aguarda o Flávio autenticar. Nenhuma sugestão foi aplicada; nenhuma
+aprovação, recusa, solicitação de envio ou envio foi executado.
 
 **Commit da implementação:** `a0c2698` (`fix(ra2): aceitar texto livre do
 provider`). O registro deste commit entra no movimento documental seguinte;
@@ -143,8 +144,9 @@ distinção de concorrência continua protegida por checksum e estado.
 
 ## Próximo gate
 
-A migration `0011_ra2_corrigir_persistencia_edicao.sql` e o handler estão
-somente nas branches de correção. Requerem GO explícito para aplicar a migration
-no Supabase remoto, integrar e publicar. Só então repetir o smoke autenticado de
-gerar → editar → salvar, sem aplicar, aprovar, recusar ou enviar relatório real.
-RA3 permanece bloqueada.
+Migration, fábrica e painel já estão publicados. O read-back confirmou função
+`security invoker`, `search_path` vazio, sem execução por `anon/authenticated`,
+com execução apenas pela `service_role`, e teste transacional do ramo editar
+revertido sem alterar a sugestão real. Falta autenticar no navegador e provar
+`gerar → editar → salvar`, sem aplicar, aprovar, recusar ou enviar relatório
+real. RA3 permanece bloqueada até esse resultado.
