@@ -6,6 +6,10 @@
 aprovação, recusa, solicitação de envio, envio, merge, push ou deploy nesta
 correção.
 
+**Commit da implementação:** `a0c2698` (`fix(ra2): aceitar texto livre do
+provider`). O registro deste commit entra no movimento documental seguinte;
+esta linha ainda não afirma push, merge ou publicação.
+
 ## Problema confirmado
 
 O endpoint publicado ainda instruía Sonnet a responder JSON estrito, extraía
