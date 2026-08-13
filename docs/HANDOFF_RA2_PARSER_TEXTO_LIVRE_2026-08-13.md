@@ -1,13 +1,13 @@
 # Handoff — RA2: texto livre do provider
 
-**Estado:** a correção completa da persistência está publicada em
+**Estado:** RA2 concluída e validada em produção. A correção funcional está em
 `dacoraLP/main/31f393f`; o deployment Production
 `dpl_DrAsn5YhYmc4DtptFpTsVES3MkHS` ficou `READY`. A migration
 `20260813213535_ra2_corrigir_persistencia_edicao` foi aplicada e conferida no
-Supabase. Raiz/painel responderam HTTP 200 e a API sem sessão, 401. Falta apenas
-o smoke autenticado `gerar → editar → salvar`: o navegador chegou ao login
-Google e aguarda o Flávio autenticar. Nenhuma sugestão foi aplicada; nenhuma
-aprovação, recusa, solicitação de envio ou envio foi executado.
+Supabase. No smoke autenticado da Karyne, a sugestão existente foi editada e o
+POST respondeu 200; a UI fechou o editor, renderizou o novo texto e o preservou
+após recarregar. O banco confirmou estado `editada`, evento `editar` por
+`flacora@gmail.com`, `aplicada_em=null`, relatório ainda `gerado` e zero envios.
 
 **Commit da implementação:** `a0c2698` (`fix(ra2): aceitar texto livre do
 provider`). O registro deste commit entra no movimento documental seguinte;
@@ -142,11 +142,12 @@ agora expõe apenas uma mensagem genérica para falha técnica e registra no log
 somente status/código da RPC, sem texto editorial, segredo ou detalhe SQL. A
 distinção de concorrência continua protegida por checksum e estado.
 
-## Próximo gate
+## Gate final
 
-Migration, fábrica e painel já estão publicados. O read-back confirmou função
-`security invoker`, `search_path` vazio, sem execução por `anon/authenticated`,
-com execução apenas pela `service_role`, e teste transacional do ramo editar
-revertido sem alterar a sugestão real. Falta autenticar no navegador e provar
-`gerar → editar → salvar`, sem aplicar, aprovar, recusar ou enviar relatório
-real. RA3 permanece bloqueada até esse resultado.
+Migration, fábrica, painel e smoke autenticado estão fechados. O read-back
+confirmou função `security invoker`, `search_path` vazio, sem execução por
+`anon/authenticated`, com execução apenas pela `service_role`. Em 390×844, o
+texto persistido ficou visível sem overflow horizontal. A geração usada no gate
+já tinha POST 200 e a edição final também teve POST 200; recarregar confirmou
+persistência server-side. Nenhum clique em Aplicar, Aprovar, Recusar ou Enviar
+foi feito. RA3 está liberada para nova sessão, não iniciada por este fechamento.
