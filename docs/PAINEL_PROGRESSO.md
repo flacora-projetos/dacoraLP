@@ -22,15 +22,15 @@ A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
 C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
 sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
 publicada isoladamente para retomar o Gate 3.
-**RA1 concluída e release de produção RA2 em andamento, em 2026-08-13:** o fallback
+**RA1 concluída e RA2 publicada em produção, em 2026-08-13:** o fallback
 abre com fatos atuais e a seleção do principal é independente da ordem. A rota
 local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
 O estado
-é **release autorizada com banco e fábrica prontos; painel ainda não publicado**:
-a correção percentual aceita somente `2,5%`, `2,0%` e `33,3%` governados e recusa `7,7%`. As migrations `20260813162000`/`20260813162050` estão aplicadas no `Dácora Reports` com RLS/ACL/index read-back; a fábrica está em `origin/master` desde `c843d56`. O merge local do painel `01205ac` passou `verifica:analise`, `verifica:revisao` e build completo. A documentação atual da Anthropic confirmou `claude-sonnet-5`; o ID antigo do exemplo já foi retirado. As duas variáveis RA2 foram cadastradas como sensíveis e somente em Production no Vercel e conferidas pela presença dos nomes, sem revelar valores. Falta publicar `main`, confirmar o deployment e fazer o smoke humano. Sem Preview remoto, decisão ou envio.
+é **RA2 publicada; validação humana autenticada ainda aberta**:
+a correção percentual aceita somente `2,5%`, `2,0%` e `33,3%` governados e recusa `7,7%`. As migrations `20260813162000`/`20260813162050` estão aplicadas no `Dácora Reports` com RLS/ACL/index read-back; a fábrica está em `origin/master` desde `c843d56`. O painel publicado em `main/f43a635` passou `verifica:analise`, `verifica:revisao` e build completo. O deployment de produção `F7xzgXmzGtJdpMq6Tx7995cWZcqQ` (`dacora-qhk3quoci-flavio-coras-projects.vercel.app`) ficou `Ready`; o smoke no domínio oficial confirmou raiz e `/painel-de-relatorios` HTTP 200, além de POST sem sessão em `/api/painel-analise-introducao` HTTP 401 `sem_sessao`. A documentação atual da Anthropic confirmou `claude-sonnet-5`; o ID antigo do exemplo foi retirado. As duas variáveis RA2 estão sensíveis e somente em Production no Vercel, conferidas pela presença dos nomes sem revelar valores. Falta apenas o smoke autenticado desktop/celular e a avaliação qualitativa do Flávio. Sem Preview remoto, decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -705,7 +705,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Release RA2 em andamento:** Supabase e fábrica estão integrados. O painel está preparado em `codex/ra2-release-panel`, merge local `01205ac`, sem Preview; as variáveis sensíveis já estão em Production. Publicar `main`, confirmar o deployment e então executar o smoke autenticado desktop/celular. Não há decisão, envio ou RA3.
+1. **Validar RA2 em produção:** Supabase, fábrica e painel estão integrados; `main/f43a635`, deployment `Ready` e smoke público concluídos. O Flávio deve executar o smoke autenticado desktop/celular e avaliar a utilidade factual da análise gerada. Não há decisão, envio ou RA3.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.
