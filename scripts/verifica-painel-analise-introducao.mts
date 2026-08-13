@@ -71,7 +71,7 @@ process.env.SUPABASE_ANON_KEY = 'anon-de-teste';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-teste';
 process.env.PAINEL_EMAILS_AUTORIZADOS = 'revisor@exemplo.com';
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
-process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-4-20250514';
+process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-5';
 
 let chamadas: Array<{ url: string; corpo: unknown }> = [];
 let linhaDoBanco: any = linha();

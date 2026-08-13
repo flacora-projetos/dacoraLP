@@ -22,16 +22,15 @@ A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
 C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
 sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
 publicada isoladamente para retomar o Gate 3.
-**RA1 concluída e RA2 em implementação local, em 2026-08-13:** o fallback
+**RA1 concluída e release de produção RA2 em andamento, em 2026-08-13:** o fallback
 abre com fatos atuais e a seleção do principal é independente da ordem. A rota
 local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
 O estado
-é **correção percentual RA2 pronta, aguardando nova revisão e smoke autenticado/humano**:
-a revisão adversarial revelou bloqueio de `2,5%`, `2,0%` e `33,3%` derivados do contexto percentual; a validação agora aceita só essas formas visuais e recusa `7,7%`. Handler Vercel, snapshot/contexto server-side e Sonnet dedicado sem tools permanecem iguais. O `tsc` mantém seis erros preexistentes, sem RA2 novo; sem push, Preview remoto, merge, publicação, decisão ou envio.
-`verifica:analise`, `verifica:revisao`, o recorte RA1/RA2/funil da fábrica (74/74) e build completo passaram após a correção.
+é **release autorizada com banco e fábrica prontos; painel ainda não publicado**:
+a correção percentual aceita somente `2,5%`, `2,0%` e `33,3%` governados e recusa `7,7%`. As migrations `20260813162000`/`20260813162050` estão aplicadas no `Dácora Reports` com RLS/ACL/index read-back; a fábrica está em `origin/master` desde `c843d56`. O merge local do painel `01205ac` passou `verifica:analise`, `verifica:revisao` e build completo. A documentação atual da Anthropic confirmou `claude-sonnet-5`; o ID antigo do exemplo já foi retirado. Falta autenticar o Vercel, configurar as variáveis server-side, publicar `main` e fazer o smoke humano. Sem Preview remoto, decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -706,9 +705,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **RA2 implementada localmente:** as branches da fábrica e do painel são
-   `codex/ra2-caneta-introducao`. A caneta fica somente na introdução da revisão autenticada; o handler Vercel relê snapshot/contexto com service role e chama Sonnet dedicado, sem tools. Migration é local. Restam smoke autenticado desktop/celular, revisão adversarial e validação humana; não há push, publicação, decisão, envio ou RA3.
-   decisão, envio, push ou publicação nesta fase.
+1. **Release RA2 em andamento:** Supabase e fábrica estão integrados. O painel está preparado em `codex/ra2-release-panel`, merge local `01205ac`, sem push/Preview. Configurar `ANTHROPIC_API_KEY` e `ANTHROPIC_MODEL_RA2=claude-sonnet-5` no Vercel Production, publicar `main` e então executar o smoke autenticado desktop/celular. Não há decisão, envio ou RA3.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.

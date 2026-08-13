@@ -6,7 +6,7 @@ também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
 A prioridade atual é a frente **RA — Revisão Analítica Assistida**, organizada
 em `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-A correção percentual RA2 está pronta, aguardando nova revisão e smoke autenticado/humano em `codex/ra2-caneta-introducao`, limitada à caneta da introdução antes da aprovação. `2,5%`, `2,0%` e `33,3%` agora são aceitos apenas quando derivam do contexto percentual governado; `7,7%` continua recusado. O backend permanece handler Vercel autenticado: relê snapshot com service role, monta `analysis_context_v1` server-side e chama Sonnet direto sem tools; caneta não reutiliza Ozzy, não cria Edge Function e não confia em contexto do navegador. Migration, push, Preview remoto, decisão, envio e publicação seguem fora. A introdução é o alvo principal da caneta mágica; C1/C2/C3 não deve ser
+A release de produção RA2 está autorizada e em andamento em `codex/ra2-release-panel`. Supabase e fábrica já foram integrados; o merge local do painel `01205ac` passou regressões e build. O backend permanece handler Vercel autenticado: relê snapshot com service role, monta `analysis_context_v1` server-side e chama `claude-sonnet-5` direto sem tools; caneta não reutiliza Ozzy, não cria Edge Function e não confia em contexto do navegador. Falta autenticar o Vercel, configurar segredo/modelo, publicar `main` e executar o smoke humano. Decisão e envio seguem fora. A introdução é o alvo principal da caneta mágica; C1/C2/C3 não deve ser
 publicada separadamente. Cada fase roda em sessão própria e registra, em tempo
 real, implementação, teste, commit, push, merge, publicação e validação em
 produção como estados diferentes.
