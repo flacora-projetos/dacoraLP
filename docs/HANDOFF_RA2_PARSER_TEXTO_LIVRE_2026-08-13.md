@@ -9,9 +9,10 @@ aprovação, recusa, solicitação de envio, envio, merge ou deploy nesta corre�
 provider`). O registro deste commit entra no movimento documental seguinte;
 esta linha ainda não afirma merge ou publicação.
 
-**Push:** `origin/codex/ra2-texto-livre-provider` confirmou
-`6ccbeead7785349adecfd75987b4425646cbb67d`. A branch não dispara deploy; não
-houve merge em `main` nem publicação.
+**Push conferido pela coordenação:** `origin/codex/ra2-texto-livre-provider`
+estava em `8c325be9b735114b3aaf1e63cd40e50a35bf90eb` antes deste ajuste documental,
+com árvore limpa e o mesmo diff funcional de `a0c2698`. Não houve merge em
+`main` nem publicação.
 
 ## Problema confirmado
 
@@ -38,6 +39,8 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
   vazio real, autenticação, checksum e persistência editorial.
 - `npm.cmd run verifica:revisao` passou.
 - `npm.cmd run build` passou, incluindo prebuild, SSR, prerender e sitemap.
+- A sessão coordenadora repetiu os três comandos acima sobre `8c325be` e
+  confirmou os mesmos resultados.
 - `npm.cmd run lint` mantém seis erros TypeScript preexistentes fora de RA2;
   nenhum erro novo surgiu no endpoint, parser ou componente alterado.
 
