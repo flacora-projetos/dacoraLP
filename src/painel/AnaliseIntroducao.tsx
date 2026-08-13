@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type AcaoDaIntroducao = 'carregar' | 'gerar' | 'aplicar' | 'editar' | 'desfazer';
 export interface SugestaoDaIntroducao { id: string; estado: string; texto: string; checksum: string; }
@@ -19,6 +19,7 @@ export function AnaliseIntroducao({
   const [mensagem, setMensagem] = useState('');
   const [editando, setEditando] = useState(false);
   const [textoEditado, setTextoEditado] = useState('');
+  const campoDeEdicao = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (!podeRevisar) { setEstado('ociosa'); return; }
@@ -29,7 +30,20 @@ export function AnaliseIntroducao({
     }).catch(() => { setMensagem('A sugestão anterior não pôde ser carregada.'); setEstado('erro'); });
   }, [aoAcionar, aoMudarTexto, podeRevisar]);
 
+  useEffect(() => {
+    if (!editando) return;
+    const campo = campoDeEdicao.current;
+    if (!campo) return;
+    campo.focus({ preventScroll: true });
+    campo.scrollIntoView?.({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+  }, [editando]);
+
   async function agir(acao: Exclude<AcaoDaIntroducao, 'carregar'>, texto?: string) {
+    if (acao === 'editar' && !texto?.trim()) {
+      setMensagem('Escreva uma sugestão antes de salvar a edição.');
+      setEstado('erro');
+      return;
+    }
     setEstado('carregando'); setMensagem('');
     try {
       const atual = await aoAcionar(acao, sugestao ?? undefined, texto);
@@ -42,6 +56,20 @@ export function AnaliseIntroducao({
       setMensagem(erro instanceof Error ? erro.message : 'Não foi possível concluir esta ação.');
       setEstado('erro');
     }
+  }
+
+  function iniciarEdicao() {
+    if (!sugestao) return;
+    setMensagem('');
+    setTextoEditado(sugestao.texto);
+    setEditando(true);
+  }
+
+  function cancelarEdicao() {
+    setMensagem('');
+    setTextoEditado('');
+    setEditando(false);
+    setEstado('ociosa');
   }
 
   if (!podeRevisar) return null;
@@ -64,15 +92,15 @@ export function AnaliseIntroducao({
         <div className="dcp-analise-introducao__comparacao">
           <div><strong>Original</strong><p>{original}</p></div>
           <div><strong>Sugestão</strong>{editando ? (
-            <textarea aria-label="Editar sugestão da introdução" value={textoEditado} onChange={(evento) => setTextoEditado(evento.target.value)} />
+            <textarea ref={campoDeEdicao} aria-label="Editar sugestão da introdução" rows={12} value={textoEditado} onChange={(evento) => setTextoEditado(evento.target.value)} />
           ) : <p>{sugestao.texto}</p>}</div>
           <div className="dcp-analise-introducao__acoes">
             {editando ? <>
               <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('editar', textoEditado)}>Salvar edição</button>
-              <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => setEditando(false)}>Cancelar</button>
+              <button type="button" className="dcp-botao dcp-botao--discreto" disabled={estado === 'carregando'} onClick={cancelarEdicao}>Cancelar</button>
             </> : <>
               <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('aplicar')}>Aplicar na revisão</button>
-              <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => { setTextoEditado(sugestao.texto); setEditando(true); }}>Editar</button>
+              <button type="button" className="dcp-botao dcp-botao--discreto" onClick={iniciarEdicao}>Editar</button>
               <button type="button" className="dcp-botao dcp-botao--discreto" disabled={estado === 'carregando'} onClick={() => void agir('desfazer')}>Desfazer</button>
             </>}
           </div>

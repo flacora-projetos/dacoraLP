@@ -1965,7 +1965,14 @@
 
 .dcp-analise-introducao__comparacao strong { color: var(--dc-tinta); }
 .dcp-analise-introducao__comparacao p { margin: 0.4rem 0 0; white-space: pre-wrap; }
-.dcp-analise-introducao__comparacao textarea { width: 100%; min-height: 7rem; margin-top: 0.5rem; font: inherit; }
+.dcp-analise-introducao__comparacao textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: clamp(14rem, 48vh, 28rem);
+  margin-top: 0.5rem;
+  font: inherit;
+  resize: vertical;
+}
 
 @media (min-width: 760px) {
   .dcp-analise-introducao__comparacao { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import handler from '../api/painel-analise-introducao.ts';
@@ -8,7 +9,7 @@ import {
   extrairTextoAplicavel,
   lerPedidoEditorial,
 } from '../api/_painel-analise-introducao.ts';
-import { AnaliseIntroducao } from '../src/painel/AnaliseIntroducao.tsx';
+import { AnaliseIntroducao, type AcaoDaIntroducao } from '../src/painel/AnaliseIntroducao.tsx';
 
 const ID = '33333333-3333-4333-8333-333333333333';
 const OUTRO_ID = '44444444-4444-4444-8444-444444444444';
@@ -160,7 +161,10 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /863\.91|863,91/);
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /Campanha principal|pausada/, 'o Sonnet precisa receber as tabelas que o relatório apresenta');
   assert.match(String((modelo.corpo as any).system), /Responda em texto puro/);
+  assert.match(String((modelo.corpo as any).system), /dois ou três achados mais importantes/);
+  assert.match(String((modelo.corpo as any).system), /Não detalhe cada métrica ou tabela/);
   assert.doesNotMatch(String((modelo.corpo as any).system), /objeto JSON/);
+  assert.doesNotMatch(String((modelo.corpo as any).system), /3\.500|3500/);
   assert.equal((modelo.corpo as any).max_tokens, 1600, 'a introdução precisa ter orçamento suficiente para encerrar sem corte');
   linhaDoBanco = linha();
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
@@ -248,6 +252,100 @@ for (const acao of ['aplicar', 'editar', 'desfazer'] as const) {
   const htmlNaoDecidivel = renderToStaticMarkup(createElement(AnaliseIntroducao, { original: 'Original', podeRevisar: false, aoAcionar: async () => null, aoMudarTexto: () => undefined }));
   assert.match(htmlAutenticado, /Melhorar análise/);
   assert.doesNotMatch(htmlNaoDecidivel, /Melhorar análise/, 'a caneta não aparece fora da revisão decidível');
+}
+
+{
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const { JSDOM } = require('jsdom') as typeof import('jsdom');
+  const dom = new JSDOM('<!doctype html><html><body><div id="montagem"></div></body></html>', {
+    url: 'https://exemplo.invalido/painel-de-relatorios', pretendToBeVisual: true,
+  });
+  for (const nome of ['window', 'document', 'navigator', 'HTMLElement', 'Element', 'Node', 'Event', 'MouseEvent', 'CustomEvent', 'MutationObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame']) {
+    Object.defineProperty(globalThis, nome, { value: (dom.window as any)[nome], configurable: true, writable: true });
+  }
+  let rolouParaEdicao = 0;
+  (dom.window.HTMLElement.prototype as any).scrollIntoView = () => { rolouParaEdicao += 1; };
+  const { flushSync } = await import('react-dom');
+  const { createRoot } = await import('react-dom/client');
+  const recebidas: Array<{ acao: AcaoDaIntroducao; texto?: string }> = [];
+  const textosAplicados: Array<string | null> = [];
+  const sugestaoInicial = { id: SUGESTAO_ID, estado: 'pronta', texto: 'Resumo inicial completo.', checksum: CHECKSUM };
+  let deveFalharAoSalvar = false;
+  const montagem = dom.window.document.getElementById('montagem')!;
+  const raiz = createRoot(montagem);
+  flushSync(() => {
+    raiz.render(createElement(AnaliseIntroducao, {
+      original: 'Introdução original preservada.', podeRevisar: true,
+      aoMudarTexto: (texto) => textosAplicados.push(texto),
+      aoAcionar: async (acao, _sugestao, texto) => {
+        recebidas.push({ acao, texto });
+        if (acao === 'carregar') return sugestaoInicial;
+        if (acao === 'editar' && deveFalharAoSalvar) throw new Error('A edição não pôde ser salva.');
+        return { ...sugestaoInicial, estado: acao === 'editar' ? 'editada' : 'pronta', texto: texto ?? sugestaoInicial.texto };
+      },
+    }));
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  function botaoPor(texto: string): HTMLButtonElement {
+    const achado = [...montagem.querySelectorAll('button')].find((botao) => (botao.textContent ?? '').trim() === texto);
+    assert.ok(achado, `não encontrei o botão "${texto}"`);
+    return achado as HTMLButtonElement;
+  }
+  function clicar(botao: HTMLButtonElement) {
+    flushSync(() => botao.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  }
+  function escrever(campo: HTMLTextAreaElement, texto: string) {
+    flushSync(() => {
+      (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any).set.call(campo, texto);
+      campo.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    });
+  }
+
+  clicar(botaoPor('Editar'));
+  let campo = montagem.querySelector('textarea') as HTMLTextAreaElement;
+  assert.ok(campo, 'editar precisa abrir o campo');
+  assert.equal(dom.window.document.activeElement, campo, 'o campo recebe foco ao entrar em edição');
+  assert.ok(rolouParaEdicao > 0, 'o campo é rolado para uma área visível de edição');
+  assert.equal(campo.rows, 12, 'o campo começa com altura útil para revisar um resumo');
+  assert.match(readFileSync(new URL('../src/painel/painel.css', import.meta.url), 'utf8'), /min-height:\s*clamp\(14rem, 48vh, 28rem\)/, 'a altura da edição precisa responder ao viewport');
+
+  const textoNovo = '  Texto novo enviado exatamente como foi digitado.  ';
+  escrever(campo, textoNovo);
+  clicar(botaoPor('Salvar edição'));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(recebidas.at(-1), { acao: 'editar', texto: textoNovo }, 'salvar envia exatamente o texto novo ao handler');
+  assert.equal(textosAplicados.at(-1), textoNovo, 'a edição persistida atualiza a revisão');
+
+  clicar(botaoPor('Editar'));
+  campo = montagem.querySelector('textarea') as HTMLTextAreaElement;
+  escrever(campo, '   ');
+  const antesDoVazio = recebidas.length;
+  clicar(botaoPor('Salvar edição'));
+  assert.equal(recebidas.length, antesDoVazio, 'texto vazio não chama o handler nem persiste');
+  assert.match(montagem.querySelector('[role="alert"]')?.textContent ?? '', /Escreva uma sugestão antes de salvar/);
+  assert.equal(campo.value, '   ', 'a validação não perde o rascunho');
+
+  escrever(campo, 'Rascunho a cancelar.');
+  const antesDoCancelar = recebidas.length;
+  clicar(botaoPor('Cancelar'));
+  assert.equal(recebidas.length, antesDoCancelar, 'cancelar não persiste nada');
+  assert.match(montagem.textContent ?? '', /Texto novo enviado exatamente como foi digitado/, 'cancelar restaura a sugestão já salva');
+
+  clicar(botaoPor('Editar'));
+  campo = montagem.querySelector('textarea') as HTMLTextAreaElement;
+  const textoComErro = 'Rascunho que deve permanecer após falha de salvamento.';
+  escrever(campo, textoComErro);
+  deveFalharAoSalvar = true;
+  clicar(botaoPor('Salvar edição'));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.match(montagem.querySelector('[role="alert"]')?.textContent ?? '', /A edição não pôde ser salva/);
+  assert.equal((montagem.querySelector('textarea') as HTMLTextAreaElement).value, textoComErro, 'erro de salvar não perde o texto digitado');
+  assert.deepEqual(recebidas.at(-1), { acao: 'editar', texto: textoComErro });
+
+  flushSync(() => raiz.unmount());
+  dom.window.close();
 }
 
 delete process.env.ANTHROPIC_API_KEY;

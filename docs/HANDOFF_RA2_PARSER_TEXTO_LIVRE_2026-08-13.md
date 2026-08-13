@@ -51,7 +51,9 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
 
 - Branch: `codex/ra2-resposta-completa`, criada de `origin/main/a406422`.
 - Commit local: `297c502` (`fix(ra2): rejeitar sugestao truncada`). Ainda sem
-  push, merge ou publicação neste ponto do registro.
+  merge ou publicação neste ponto do registro.
+- Push confirmado em `origin/codex/ra2-resposta-completa` no HEAD
+  `b5a6c818a89a10a8cbc33ed76426c3a280d89fee`; a branch não dispara deploy.
 - O request passa de `max_tokens: 900` para `1600` e pede poucos parágrafos
   completos, mantendo a proposta concisa sem tratar o antigo teto de caracteres
   como contrato editorial.
@@ -61,6 +63,29 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
 - Regressões novas provam `end_turn` completo, `max_tokens` sem RPC, orçamento
   novo e o contrato de texto livre anterior. Esta correção ainda não tem merge,
   deploy ou novo teste autenticado.
+
+## Adendo: concisão editorial e edição utilizável
+
+- O teste real que revelou o corte também mostrou que a proposta ficou longa
+  demais para o objetivo editorial. O contexto factual continua inteiro no
+  request; o prompt agora pede um resumo básico, sucinto e direto, seleciona os
+  dois ou três achados relevantes, limita relações/hipóteses às que ajudam a
+  entendê-los, evita percorrer cada métrica ou tabela e exige conclusão em
+  poucos parágrafos completos. Não foi introduzido teto nem validação de
+  caracteres.
+- A edição local passou a focar o `textarea` e trazê-lo ao centro visível da
+  tela ao abrir. O campo começa com `rows=12` e `min-height:
+  clamp(14rem, 48vh, 28rem)`, mantendo área útil no viewport estreito e
+  permitindo redimensionamento vertical.
+- A regressão de DOM dublado em `verifica:analise` confirma: foco e rolagem,
+  altura responsiva, envio do texto exatamente digitado ao handler, vazio sem
+  chamada/persistência com mensagem clara, cancelamento sem persistir e retorno
+  à sugestão anterior, e falha de salvar visível sem perder o rascunho. Não há
+  teste mutante nem escrita no relatório real.
+- Após o adendo, `npm.cmd run verifica:analise`, `npm.cmd run
+  verifica:revisao` e `npm.cmd run build` passaram. `npm.cmd run lint` segue
+  falhando apenas nos seis erros TypeScript preexistentes de `src/painel/telas.tsx`
+  e componentes de relatório, sem erro em RA2.
 
 ## Revisão de segurança manual
 
@@ -77,8 +102,15 @@ envelope não entra no browser, não altera auth, allowlist, corpo do pedido,
 service role, checksum ou RPC. O log técnico contém somente `stop_reason` e
 `stop_sequence`, nunca o texto gerado ou segredo.
 
+No adendo de edição, a revisão manual confirmou que foco, rolagem e estado do
+rascunho ficam somente no componente cliente já autorizado; o texto segue para
+o mesmo handler/RPC apenas no clique de salvar, e vazio é barrado antes da
+chamada. Não houve alteração em autenticação, autorização, checksum, auditoria
+ou renderização de conteúdo fora do fluxo de revisão.
+
 ## Próximo gate
 
 Revisar e integrar `codex/ra2-resposta-completa` somente com novo GO de merge e
-deploy. Depois, repetir o teste autenticado em desktop e celular sem aplicar,
-editar, aprovar, recusar ou enviar relatório real. RA3 permanece bloqueada.
+deploy. Depois, repetir o teste autenticado em desktop e celular, incluindo
+gerar e abrir/cancelar a edição sem salvar; não aplicar, editar, aprovar,
+recusar ou enviar relatório real. RA3 permanece bloqueada.
