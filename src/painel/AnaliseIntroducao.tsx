@@ -51,7 +51,7 @@ export function AnaliseIntroducao({
         <div>
           <p className="dcp-eyebrow">Revisão assistida</p>
           <h3>Melhore a introdução com análise factual</h3>
-          <p className="dcp-analise-introducao__apoio">Gera uma proposta usando apenas os dados e comparações deste relatório.</p>
+          <p className="dcp-analise-introducao__apoio">Gera uma proposta a partir do material factual e editorial disponível neste relatório. Você compara, edita e decide.</p>
         </div>
         <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('gerar')}>
           Melhorar análise

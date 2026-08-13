@@ -22,23 +22,13 @@ A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
 C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
 sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
 publicada isoladamente para retomar o Gate 3.
-**RA1 concluída e RA2 publicada em produção, em 2026-08-13:** o fallback
+**RA1 concluída; RA2 publicada em produção, com correção do parser em branch, em 2026-08-13:** o fallback
 abre com fatos atuais e a seleção do principal é independente da ordem. A rota
 local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
-O estado é **correção definitiva da RA2 publicada em produção**. Contraste,
-contexto legado e envelope já haviam sido corrigidos; a geração seguinte morreu
-porque a regex numérica exigiu correspondência literal de cada número. Por decisão
-do Flávio, esse veto saiu: o Sonnet recebe o que já está escrito no relatório e
-propõe livremente; comparação lado a lado e revisão humana são o gate. O pacote
-inclui introdução, fatos, relações, destaques, atenção, próximos passos, seções,
-tabelas, evolução mensal, quebras e séries, sem assets ou paths. Auth, checksum e
-auditoria permanecem. `main/4b58f06` foi publicada pelo deployment Production
-`DtnTufoUrHwaweCZ5aXk1f4Z1oee`, concluído com sucesso. Raiz/painel deram HTTP 200,
-API sem sessão 401 e navegador público desktop/celular renderizou sem overlay ou
-erro. Falta o teste editorial autenticado do Flávio. Sem decisão ou envio.
+O estado é **produção reprovada pelo contrato do provider; correção em `codex/ra2-texto-livre-provider`**. O POST autenticado do relatório real `9918bac9-6686-49e4-b1e6-3d6a5225a722` chega ao endpoint e recebe `422 saida_invalida`: a implementação publicada ainda pede JSON, lê apenas o primeiro bloco textual e mantém o teto editorial de 3.500 caracteres. A correção pede texto puro, extrai JSON somente quando válido, preserva o texto bruto de todos os blocos não vazios e remove o teto da geração e edição. Regressão específica, revisão e build passaram; `lint` conserva seis erros preexistentes fora da RA2. Não há push, merge, deploy, teste autenticado, decisão ou envio nesta correção.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -713,7 +703,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Publicar e revalidar a correção RA2:** integrar `codex/correcao-ra2-contexto-legado`, confirmar deployment e repetir o teste autenticado na Karyne em desktop/celular. O aceite exige caneta visível, geração real e análise factual útil. Não há decisão, envio ou RA3.
+1. **Integrar e revalidar a correção do parser RA2:** revisar `codex/ra2-texto-livre-provider`, publicar somente com GO próprio e repetir o teste autenticado na Karyne em desktop/celular. O aceite exige caneta visível, geração real em texto útil e análise factual útil. Não há decisão, envio ou RA3.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.

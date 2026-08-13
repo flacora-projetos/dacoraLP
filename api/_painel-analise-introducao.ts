@@ -19,7 +19,7 @@ export function lerPedidoEditorial(bruto: unknown): { ok: true; pedido: PedidoEd
   const texto = typeof valor.texto === 'string' ? valor.texto.trim() : undefined;
   if (!UUID_VALIDO.test(id) || !checksum || checksum.length > 200 || !ACOES.has(acao)) return { ok: false, erro: 'pedido_invalido', mensagem: 'A solicitação da análise não é válida.' };
   if (acao !== 'gerar' && !UUID_VALIDO.test(sugestaoId ?? '')) return { ok: false, erro: 'sugestao_invalida', mensagem: 'A sugestão não está vinculada a esta revisão.' };
-  if (acao === 'editar' && (!texto || texto.length > 3500)) return { ok: false, erro: 'texto_invalido', mensagem: 'A edição da sugestão precisa ter até 3.500 caracteres.' };
+  if (acao === 'editar' && !texto) return { ok: false, erro: 'texto_invalido', mensagem: 'A edição da sugestão não pode ficar vazia.' };
   return { ok: true, pedido: { id, checksum, acao: acao as AcaoEditorial, sugestaoId, texto } };
 }
 
@@ -174,33 +174,22 @@ export function extrairTextoAplicavel(blocos: Array<{ type?: string; text?: stri
   const candidatos = (blocos ?? [])
     .filter((bloco) => bloco?.type === 'text' && typeof bloco.text === 'string')
     .map((bloco) => bloco.text!.trim())
-    .filter(Boolean)
-    .map((candidato) => candidato
+    .filter(Boolean);
+
+  return candidatos.map((candidato) => {
+    const semCerca = candidato
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```$/i, '')
-      .trim());
-
-  for (const candidato of candidatos) {
-    const inicio = candidato.indexOf('{');
-    const fim = candidato.lastIndexOf('}');
-    const tentativas = [candidato, inicio >= 0 && fim > inicio ? candidato.slice(inicio, fim + 1) : ''];
-    for (const tentativa of [...new Set(tentativas)].filter(Boolean)) {
-      try {
-        const parsed = JSON.parse(tentativa);
-        if (typeof parsed === 'string' && parsed.trim()) return parsed.trim();
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
-        const texto = parsed.texto;
-        if (typeof texto === 'string' && texto.trim()) return texto.trim();
-        const camposTextuais = Object.values(parsed).filter((valor): valor is string => typeof valor === 'string' && Boolean(valor.trim()));
-        if (camposTextuais.length === 1) return camposTextuais[0].trim();
-      } catch {
-        // Tenta a próxima representação textual antes de falhar fechado.
-      }
+      .trim();
+    try {
+      const parsed = JSON.parse(semCerca);
+      if (typeof parsed === 'string' && parsed.trim()) return parsed.trim();
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && typeof parsed.texto === 'string' && parsed.texto.trim()) return parsed.texto.trim();
+    } catch {
+      // A resposta pode ser texto útil sem JSON válido; preserve-a para revisão humana.
     }
-  }
-  const textoPuro = candidatos.join('\n\n').trim();
-  if (textoPuro && !/[{}\[\]]/.test(textoPuro)) return textoPuro;
-  return '';
+    return candidato;
+  }).join('\n\n').trim();
 }
 
 export function validarLinhaParaAnalise(linha: LinhaAnalise | undefined, checksum: string) {
@@ -216,11 +205,11 @@ export async function chamarSonnetIntroducao(contexto: NonNullable<ReturnType<ty
   if (!apiKey || !modelo || !/^claude-sonnet-/i.test(modelo)) return { ok: false as const, status: 503, erro: 'sonnet_indisponivel', mensagem: 'A análise assistida ainda não está configurada com o Sonnet da revisão.' };
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30_000);
   try {
-    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 900, system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza uma introdução realmente útil ao cliente: conecte investimento, entrega, resultados e custos; investigue explicações e hipóteses sugeridas pelo material; quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não se limite a repetir que um indicador subiu ou caiu. Responda somente com um objeto JSON no formato {"texto":"..."}, sem cerca Markdown e sem explicação antes ou depois.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
+    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 900, system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza uma introdução realmente útil ao cliente: conecte investimento, entrega, resultados e custos; investigue explicações e hipóteses sugeridas pelo material; quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não se limite a repetir que um indicador subiu ou caiu. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
     if (!resposta.ok) return { ok: false as const, status: 502, erro: 'sonnet_falhou', mensagem: 'Não foi possível gerar a sugestão agora.' };
     const corpo = await resposta.json() as { content?: Array<{ type?: string; text?: string }> };
     const texto = extrairTextoAplicavel(corpo.content);
-    if (!texto || texto.length > 3500) return { ok: false as const, status: 422, erro: 'saida_invalida', mensagem: 'O modelo respondeu em formato não aplicável.' };
+    if (!texto) return { ok: false as const, status: 422, erro: 'saida_invalida', mensagem: 'O modelo não retornou texto para revisão.' };
     return { ok: true as const, modelo, texto };
   } catch (erro) {
     return { ok: false as const, status: 502, erro: 'sonnet_indisponivel', mensagem: erro instanceof Error && erro.name === 'AbortError' ? 'A análise demorou demais. Tente novamente.' : 'Não foi possível gerar a sugestão agora.' };

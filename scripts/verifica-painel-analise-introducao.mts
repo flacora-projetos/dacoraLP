@@ -53,12 +53,13 @@ const contexto = contextoDoSnapshot(linha() as any);
 assert.ok(contexto);
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"texto":"Saída estrita."}' }]), 'Saída estrita.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '```json\n{"texto":"Saída cercada."}\n```' }]), 'Saída cercada.');
-assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Aqui está a resposta:\n{"texto":"Saída com preâmbulo."}' }]), 'Saída com preâmbulo.');
-assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"analise":"Saída em chave alternativa."}' }]), 'Saída em chave alternativa.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Saída textual direta.' }]), 'Saída textual direta.');
-assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"texto":"JSON truncado"' }]), '', 'estrutura JSON malformada continua recusada');
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Primeiro parágrafo.' }, { type: 'tool_use', text: 'Ignorado.' }, { type: 'text', text: 'Segundo parágrafo.' }]), 'Primeiro parágrafo.\n\nSegundo parágrafo.', 'todos os blocos textuais úteis precisam chegar à revisão');
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: '**Leitura** com {chaves} e `markdown`.' }]), '**Leitura** com {chaves} e `markdown`.', 'markdown e chaves não tornam texto útil inválido');
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: '```json\n{"texto":"JSON truncado"\n```' }]), '```json\n{"texto":"JSON truncado"\n```', 'JSON imperfeito continua disponível para revisão humana');
 assert.match(JSON.stringify(contexto.leituraDoRelatorio), /critério de lead mais restrito/);
 assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro', analysis_context: { inventado: true } }).ok, true);
+assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'Texto editorial '.repeat(300) }).ok, true, 'edição acima de 3.500 caracteres não pode ser descartada');
 
 const linhaLegada = linha({
   conteudo: {
@@ -91,7 +92,7 @@ process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-5';
 
 let chamadas: Array<{ url: string; corpo: unknown }> = [];
 let linhaDoBanco: any = linha();
-let saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+let saidaSonnet: string | string[] = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 
 function dublar(usuario: unknown | null) {
   chamadas = [];
@@ -102,7 +103,7 @@ function dublar(usuario: unknown | null) {
       ? new Response(JSON.stringify(usuario), { status: 200, headers: { 'content-type': 'application/json' } })
       : new Response('{}', { status: 401 });
     chamadas.push({ url, corpo });
-    if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: [{ type: 'text', text: saidaSonnet }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })) }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorios')) return new Response(JSON.stringify([linhaDoBanco]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('relatorio_analise_sugestoes')) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/registrar_sugestao_analise_introducao')) return new Response(JSON.stringify([{
@@ -156,7 +157,37 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /863\.91|863,91/);
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /Campanha principal|pausada/, 'o Sonnet precisa receber as tabelas que o relatório apresenta');
+  assert.match(String((modelo.corpo as any).system), /Responda em texto puro/);
+  assert.doesNotMatch(String((modelo.corpo as any).system), /objeto JSON/);
   linhaDoBanco = linha();
+  saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+}
+
+{
+  saidaSonnet = ['Primeiro bloco da análise.', 'Segundo bloco que completa a proposta.'];
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(resposta.status, 200, 'múltiplos blocos de texto do provider precisam ser aceitos');
+  assert.equal(resposta.corpo.sugestao.texto, 'Primeiro bloco da análise.\n\nSegundo bloco que completa a proposta.');
+  saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+}
+
+{
+  saidaSonnet = '**Leitura** com {chaves} e cerca Markdown.\n\n```json\n{"texto":"incompleto"\n```';
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(resposta.status, 200, 'texto útil com markdown, chaves ou JSON imperfeito precisa chegar à revisão');
+  assert.match(resposta.corpo.sugestao.texto, /\*\*Leitura\*\* com \{chaves\}/);
+  saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+}
+
+{
+  saidaSonnet = 'Texto editorial acima do antigo teto. '.repeat(120);
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(resposta.status, 200, 'resposta normal acima de 3.500 caracteres não pode ser descartada');
+  assert.ok(resposta.corpo.sugestao.texto.length > 3500);
+  saidaSonnet = '   ';
+  const vazia = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(vazia.status, 422, 'resposta realmente vazia continua inválida');
+  assert.equal(vazia.corpo.erro, 'saida_invalida');
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 }
 
