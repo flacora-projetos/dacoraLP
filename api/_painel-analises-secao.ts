@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { contextoDoSnapshot, type LinhaAnalise } from './_painel-analise-introducao.js';
+import { gerarAnaliseAssistida } from './_painel-analise-provider.js';
 import { espacosAnaliticosDoSnapshot, type EspacoAnalitico } from '../src/reports/blocos/analise.js';
 
 export const ANALISES_SECAO_PROMPT_VERSAO = 'ra3_secoes_v1_contexto_mes';
@@ -108,42 +109,16 @@ export function extrairAnalisesDoSonnet(
   return vistas.size === esperadas.size ? analises : null;
 }
 
-export async function chamarSonnetAnalises(
+export async function chamarAnalisesSecao(
   contexto: NonNullable<ReturnType<typeof contextoParaAnalises>>,
 ) {
-  const apiKey = String(process.env.ANTHROPIC_API_KEY ?? '').trim();
-  const modelo = String(process.env.ANTHROPIC_MODEL_RA3 ?? process.env.ANTHROPIC_MODEL_RA2 ?? '').trim();
-  if (!apiKey || !modelo || !/^claude-sonnet-/i.test(modelo)) {
-    return { ok: false as const, status: 503, erro: 'sonnet_indisponivel', mensagem: 'As análises assistidas ainda não estão configuradas com o Sonnet da revisão.' };
-  }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45_000);
-  try {
-    const resposta = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: modelo,
-        max_tokens: 4000,
-        system: 'Você é um analista de performance revisando as seções de um relatório mensal em português do Brasil. Leia o relatório inteiro, o contexto interno do mês e todos os espaços analíticos antes de escrever. Para cada seção-alvo, produza uma análise editorial breve e útil: investigue evidências e contexto para explicar o que importa, sem apenas narrar subida ou queda e sem repetir a tabela. Não invente causalidade; quando houver somente uma hipótese plausível, identifique-a como hipótese. Mantenha as análises coerentes entre si e com a introdução. Responda somente com JSON válido no formato {"analises":[{"secao":"bloco:id","texto":"análise"}]}, com exatamente uma entrada para cada seção-alvo. O texto não tem limite artificial de caracteres e não deve ser rejeitado por mencionar números.',
-        messages: [{ role: 'user', content: JSON.stringify(contexto) }],
-      }),
-      signal: controller.signal,
-    });
-    if (!resposta.ok) return { ok: false as const, status: 502, erro: 'sonnet_falhou', mensagem: 'Não foi possível gerar as análises agora.' };
-    const corpo = await resposta.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: unknown; stop_sequence?: unknown };
-    const stopReason = typeof corpo.stop_reason === 'string' ? corpo.stop_reason : 'desconhecido';
-    if (stopReason !== 'end_turn') {
-      console.warn(`[painel-analises-secao] provider_stop_reason=${stopReason}`);
-      return { ok: false as const, status: 502, erro: stopReason === 'max_tokens' ? 'saida_truncada' : 'saida_incompleta', mensagem: 'O modelo não encerrou todas as análises. Nenhum texto foi salvo; tente novamente.' };
-    }
-    const alvos = contexto.secoesAlvo.map((alvo) => contexto.espacosDoRelatorio.find((item) => item.secao === alvo.secao)!).filter(Boolean);
-    const analises = extrairAnalisesDoSonnet(corpo.content, alvos);
-    if (!analises) return { ok: false as const, status: 422, erro: 'saida_invalida', mensagem: 'O modelo não retornou todas as análises esperadas. Nenhum texto foi salvo.' };
-    return { ok: true as const, modelo, analises };
-  } catch (erro) {
-    return { ok: false as const, status: 502, erro: 'sonnet_indisponivel', mensagem: erro instanceof Error && erro.name === 'AbortError' ? 'A geração demorou demais. Nenhum texto foi salvo; tente novamente.' : 'Não foi possível gerar as análises agora.' };
-  } finally {
-    clearTimeout(timeout);
-  }
+  const alvos = contexto.secoesAlvo.map((alvo) => contexto.espacosDoRelatorio.find((item) => item.secao === alvo.secao)!).filter(Boolean);
+  const resposta = await gerarAnaliseAssistida({
+    operacao: 'secoes',
+    system: 'Você é um analista de performance revisando as seções de um relatório mensal em português do Brasil. Leia o relatório inteiro, o contexto interno do mês e todos os espaços analíticos antes de escrever. Para cada seção-alvo, produza uma análise editorial breve e útil: investigue evidências e contexto para explicar o que importa, sem apenas narrar subida ou queda e sem repetir a tabela. Não invente causalidade; quando houver somente uma hipótese plausível, identifique-a como hipótese. Mantenha as análises coerentes entre si e com a introdução. Responda somente com JSON válido no formato {"analises":[{"secao":"bloco:id","texto":"análise"}]}, com exatamente uma entrada para cada seção-alvo. O texto não tem limite artificial de caracteres e não deve ser rejeitado por mencionar números.',
+    conteudo: JSON.stringify(contexto),
+    interpretar: (texto) => extrairAnalisesDoSonnet([{ type: 'text', text: texto }], alvos),
+  });
+  if (resposta.ok === false) return resposta;
+  return { ok: true as const, modelo: resposta.modeloAuditavel, analises: resposta.resultado, provider: resposta.provider, finishReason: resposta.finishReason, uso: resposta.uso };
 }

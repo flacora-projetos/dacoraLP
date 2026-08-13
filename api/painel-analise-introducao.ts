@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { conferirAcesso } from './_painel-autorizacao.js';
 import {
   ANALISE_PROMPT_VERSAO,
-  chamarSonnetIntroducao,
+  chamarAnaliseIntroducao,
   contextoDoSnapshot,
   hashDoContexto,
   lerPedidoEditorial,
@@ -12,6 +12,8 @@ import {
 
 const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,substituido_por,revogado_em,conteudo';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const config = { maxDuration: 180 };
 
 function corpoDoPedido(req: Request): unknown {
   const bruto = (req as any).body;
@@ -90,10 +92,10 @@ export default async function handler(req: Request, res: Response) {
     let modelo: string | null = null;
     let textoSugerido: string | null = null;
     if (pedido.acao === 'gerar') {
-      const sonnet = await chamarSonnetIntroducao(contexto);
-      if (!sonnet.ok) return res.status(sonnet.status).json({ erro: sonnet.erro, mensagem: sonnet.mensagem });
-      modelo = sonnet.modelo;
-      textoSugerido = sonnet.texto;
+      const analise = await chamarAnaliseIntroducao(contexto);
+      if (analise.ok === false) return res.status(analise.status).json({ erro: analise.erro, mensagem: analise.mensagem });
+      modelo = analise.modelo;
+      textoSugerido = analise.texto;
     }
 
     const rpc = await fetch(`${config.urlSupabase}/rest/v1/rpc/registrar_sugestao_analise_introducao`, {

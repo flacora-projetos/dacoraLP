@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import handler from '../api/painel-analise-introducao.ts';
 import {
-  chamarSonnetIntroducao,
+  chamarAnaliseIntroducao,
   contextoDoSnapshot,
   extrairTextoAplicavel,
   lerPedidoEditorial,
@@ -88,13 +88,17 @@ process.env.SUPABASE_URL = 'https://exemplo.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-de-teste';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-teste';
 process.env.PAINEL_EMAILS_AUTORIZADOS = 'revisor@exemplo.com';
+process.env.MONTHLY_REPORT_ANALYSIS_PRIMARY_PROVIDER = 'deepseek';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY = 'chave-deepseek-de-teste';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL = 'deepseek-v4-pro';
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
 process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-5';
 
 let chamadas: Array<{ url: string; corpo: unknown }> = [];
 let linhaDoBanco: any = linha();
 let saidaSonnet: string | string[] = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
-let stopReason = 'end_turn';
+let stopReason = 'stop';
+let stopReasonSonnet = 'end_turn';
 let stopSequence: string | null = null;
 let respostaRpcDublada: { status: number; corpo: unknown } | null = null;
 let sugestaoAtualDaRpc: { id: string; estado: string; texto: string; checksum: string } | null = null;
@@ -108,7 +112,8 @@ function dublar(usuario: unknown | null) {
       ? new Response(JSON.stringify(usuario), { status: 200, headers: { 'content-type': 'application/json' } })
       : new Response('{}', { status: 401 });
     chamadas.push({ url, corpo });
-    if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })), stop_reason: stopReason, stop_sequence: stopSequence }), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('api.deepseek.com')) return new Response(JSON.stringify({ choices: [{ message: { content: saidaSonnet }, finish_reason: stopReason }], usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })), stop_reason: stopReasonSonnet, stop_sequence: stopSequence }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorios')) return new Response(JSON.stringify([linhaDoBanco]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('relatorio_analise_sugestoes')) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/registrar_sugestao_analise_introducao') && respostaRpcDublada) return new Response(JSON.stringify(respostaRpcDublada.corpo), { status: respostaRpcDublada.status, headers: { 'content-type': 'application/json' } });
@@ -156,54 +161,58 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
 {
   const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro-cliente', analysis_context: { fatos: [{ atual: 999999 }] } });
   assert.equal(resposta.status, 200);
-  const modelo = chamadas.find((item) => item.url.includes('/v1/messages'));
-  assert.ok(modelo, 'geração precisa chegar apenas ao Sonnet server-side');
-  const contextoEnviado = JSON.stringify((modelo!.corpo as any).messages[0].content);
+  const modelo = chamadas.find((item) => item.url.includes('api.deepseek.com'));
+  assert.ok(modelo, 'geração precisa tentar DeepSeek primeiro, somente no servidor');
+  const contextoEnviado = JSON.stringify((modelo!.corpo as any).messages[1].content);
   assert.match(contextoEnviado, /Cliente Governado/);
   assert.match(contextoEnviado, /16/);
-  assert.match(contextoEnviado, /critério de lead mais restrito/, 'o Sonnet precisa receber o que já está escrito nas demais leituras do relatório');
+  assert.match(contextoEnviado, /critério de lead mais restrito/, 'o provider precisa receber o que já está escrito nas demais leituras do relatório');
   assert.doesNotMatch(contextoEnviado, /outro-cliente|999999|caminhoLocal|segredo/i, 'browser e paths locais não entram no prompt');
   const rpc = chamadas.find((item) => item.url.includes('/rpc/'))!;
   assert.equal((rpc.corpo as any).p_por, 'revisor@exemplo.com');
   assert.equal((rpc.corpo as any).p_relatorio_id, ID);
   assert.ok((rpc.corpo as any).p_contexto_hash, 'a sugestão precisa ficar vinculada ao contexto relido');
+  assert.equal((rpc.corpo as any).p_modelo, 'deepseek/deepseek-v4-pro', 'a auditoria registra provider e modelo reais');
 }
 
 {
   linhaDoBanco = linhaLegada;
   saidaSonnet = '```json\n{"texto":"Meta Ads registrou investimento de R$ 863,91 e 22 leads."}\n```';
   const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
-  assert.equal(resposta.status, 200, 'relatório real anterior à RA1 com JSON cercado precisa chegar ao Sonnet');
-  const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
-  assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /863\.91|863,91/);
-  assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /Campanha principal|pausada/, 'o Sonnet precisa receber as tabelas que o relatório apresenta');
-  assert.match(String((modelo.corpo as any).system), /Responda em texto puro/);
-  assert.match(String((modelo.corpo as any).system), /dois ou três achados mais importantes/);
-  assert.match(String((modelo.corpo as any).system), /Não detalhe cada métrica ou tabela/);
-  assert.doesNotMatch(String((modelo.corpo as any).system), /objeto JSON/);
-  assert.doesNotMatch(String((modelo.corpo as any).system), /3\.500|3500/);
-  assert.equal((modelo.corpo as any).max_tokens, 1600, 'a introdução precisa ter orçamento suficiente para encerrar sem corte');
+  assert.equal(resposta.status, 200, 'relatório real anterior à RA1 com JSON cercado precisa chegar ao provider');
+  const modelo = chamadas.find((item) => item.url.includes('api.deepseek.com'))!;
+  assert.match(JSON.stringify((modelo.corpo as any).messages[1].content), /863\.91|863,91/);
+  assert.match(JSON.stringify((modelo.corpo as any).messages[1].content), /Campanha principal|pausada/, 'o provider precisa receber as tabelas que o relatório apresenta');
+  assert.match(String((modelo.corpo as any).messages[0].content), /Responda em texto puro/);
+  assert.match(String((modelo.corpo as any).messages[0].content), /dois ou três achados mais importantes/);
+  assert.match(String((modelo.corpo as any).messages[0].content), /Não detalhe cada métrica ou tabela/);
+  assert.doesNotMatch(String((modelo.corpo as any).messages[0].content), /objeto JSON/);
+  assert.doesNotMatch(String((modelo.corpo as any).messages[0].content), /3\.500|3500/);
+  assert.equal((modelo.corpo as any).max_tokens, 16_384, 'DeepSeek recebe folga real para encerrar sem corte');
   linhaDoBanco = linha();
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 }
 
 {
   saidaSonnet = 'Esta introdução cabe no novo orçamento e termina de forma completa.';
-  stopReason = 'end_turn';
+  stopReason = 'stop';
   const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
-  assert.equal(resposta.status, 200, 'end_turn aceita a resposta completa');
+  assert.equal(resposta.status, 200, 'finish_reason stop aceita a resposta completa');
   assert.match(resposta.corpo.sugestao.texto, /completa\.$/);
 }
 
 {
   saidaSonnet = 'Texto interrompido no meio da frase';
-  stopReason = 'max_tokens';
+  stopReason = 'length';
+  stopReasonSonnet = 'max_tokens';
   stopSequence = null;
   const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
-  assert.equal(resposta.status, 502, 'max_tokens não pode exibir sugestão pronta');
-  assert.equal(resposta.corpo.erro, 'saida_truncada');
+  assert.equal(resposta.status, 502, 'truncamento duplo não pode exibir sugestão pronta');
+  assert.equal(resposta.corpo.erro, 'analise_indisponivel');
   assert.equal(chamadas.some((item) => item.url.includes('/rpc/')), false, 'texto truncado não pode persistir na auditoria');
-  stopReason = 'end_turn';
+  assert.equal(chamadas.filter((item) => item.url.includes('api.deepseek.com')).length, 2, 'há somente uma condensação DeepSeek');
+  stopReason = 'stop';
+  stopReasonSonnet = 'end_turn';
 }
 
 {
@@ -229,8 +238,8 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.ok(resposta.corpo.sugestao.texto.length > 3500);
   saidaSonnet = '   ';
   const vazia = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
-  assert.equal(vazia.status, 422, 'resposta realmente vazia continua inválida');
-  assert.equal(vazia.corpo.erro, 'saida_invalida');
+  assert.equal(vazia.status, 502, 'resposta realmente vazia em ambos os providers continua inválida');
+  assert.equal(vazia.corpo.erro, 'analise_indisponivel');
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 }
 
@@ -395,10 +404,12 @@ for (const acao of ['aplicar', 'editar', 'desfazer'] as const) {
   dom.window.close();
 }
 
+delete process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
-const indisponivel = await chamarSonnetIntroducao(contexto!);
+const indisponivel = await chamarAnaliseIntroducao(contexto!);
 assert.equal(indisponivel.ok, false);
-assert.equal(indisponivel.ok === false && indisponivel.erro, 'sonnet_indisponivel', 'sem segredo/modelo a rota falha fechada');
+assert.equal(indisponivel.ok === false && indisponivel.erro, 'analise_indisponivel', 'sem segredo de nenhum provider a rota falha fechada');
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY = 'chave-deepseek-de-teste';
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
 globalThis.fetch = fetchOriginal;
-console.log('OK — RA2: auth, contexto editorial completo, saída livre do Sonnet, ações, auditoria e caneta restrita à revisão.');
+console.log('OK — introdução: auth, contexto completo, DeepSeek primário, auditoria do provider, ações e caneta restrita à revisão.');

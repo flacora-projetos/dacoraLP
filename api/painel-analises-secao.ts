@@ -3,7 +3,7 @@ import { conferirAcesso } from './_painel-autorizacao.js';
 import { validarLinhaParaAnalise, type LinhaAnalise } from './_painel-analise-introducao.js';
 import {
   ANALISES_SECAO_PROMPT_VERSAO,
-  chamarSonnetAnalises,
+  chamarAnalisesSecao,
   contextoParaAnalises,
   hashDoContextoAnalitico,
   lerPedidoAnaliseSecao,
@@ -12,6 +12,8 @@ import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.js';
 
 const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,substituido_por,revogado_em,conteudo';
 const FALHAS_DE_CONCORRENCIA = new Set(['checksum_divergente', 'versao_fora_de_revisao', 'sugestao_nao_encontrada']);
+
+export const config = { maxDuration: 180 };
 
 function configuracao() {
   const urlSupabase = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -136,10 +138,10 @@ export default async function handler(req: Request, res: Response) {
       const contextoMes = await lerContextoMes(pedido.id, pedido.checksum, config);
       contextoAnalitico = contextoParaAnalises(relatorio, contextoMes?.contexto ?? '', pedido.acao === 'gerar_secao' ? pedido.secao : undefined);
       if (!contextoAnalitico) return res.status(422).json({ erro: 'contexto_indisponivel', mensagem: 'Esta versão não tem espaços analíticos com dados disponíveis.' });
-      const sonnet = await chamarSonnetAnalises(contextoAnalitico);
-      if (!sonnet.ok) return res.status(sonnet.status).json({ erro: sonnet.erro, mensagem: sonnet.mensagem });
-      modelo = sonnet.modelo;
-      analises = sonnet.analises;
+      const respostaModelo = await chamarAnalisesSecao(contextoAnalitico);
+      if (respostaModelo.ok === false) return res.status(respostaModelo.status).json({ erro: respostaModelo.erro, mensagem: respostaModelo.mensagem });
+      modelo = respostaModelo.modelo;
+      analises = respostaModelo.analises;
     }
 
     const rpc = await fetch(`${config.urlSupabase}/rest/v1/rpc/registrar_sugestoes_analise_secoes`, {

@@ -99,6 +99,9 @@ process.env.SUPABASE_URL = 'https://exemplo.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-de-teste';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-teste';
 process.env.PAINEL_EMAILS_AUTORIZADOS = 'revisor@exemplo.com';
+process.env.MONTHLY_REPORT_ANALYSIS_PRIMARY_PROVIDER = 'deepseek';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY = 'chave-deepseek-de-teste';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL = 'deepseek-v4-pro';
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
 process.env.ANTHROPIC_MODEL_RA3 = 'claude-sonnet-5';
 
@@ -120,6 +123,7 @@ function dublar(usuarioAtual: unknown | null) {
     if (url.includes('/rest/v1/relatorios')) return new Response(JSON.stringify([linha()]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorio_contextos_mes')) return new Response(JSON.stringify([{ contexto: 'Houve promoção e mudança da página de destino.', atualizado_por: 'revisor@exemplo.com', atualizado_em: '2026-08-13T12:00:00Z' }]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorio_analise_sugestoes')) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('api.deepseek.com')) return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(saidaModelo) }, finish_reason: 'stop' }], usage: { prompt_tokens: 500, completion_tokens: 250, total_tokens: 750 } }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify(saidaModelo) }], stop_reason: 'end_turn' }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/salvar_contexto_mes_relatorio')) return new Response(JSON.stringify([{ contexto: corpo.p_contexto, atualizado_por: corpo.p_por, atualizado_em: '2026-08-13T12:01:00Z' }]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/registrar_sugestoes_analise_secoes')) {
@@ -146,14 +150,15 @@ assert.equal(chamadas.length, 0, 'sem sessão não lê contexto, chama modelo ou
   const resposta = await chamar(usuario, { id: ID, checksum: CHECKSUM, acao: 'gerar_todas', contexto: 'forjado no browser' });
   assert.equal(resposta.status, 200);
   assert.equal(resposta.corpo.sugestoes.length, 2);
-  const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
-  const prompt = JSON.stringify(modelo.corpo.messages[0].content);
+  const modelo = chamadas.find((item) => item.url.includes('api.deepseek.com'))!;
+  const prompt = JSON.stringify(modelo.corpo.messages[1].content);
   assert.match(prompt, /Houve promoção e mudança da página/);
   assert.doesNotMatch(prompt, /forjado no browser|segredo\.exemplo/);
-  assert.match(modelo.corpo.system, /coerentes entre si e com a introdução/);
-  assert.match(modelo.corpo.system, /não tem limite artificial de caracteres/);
+  assert.match(modelo.corpo.messages[0].content, /coerentes entre si e com a introdução/);
+  assert.match(modelo.corpo.messages[0].content, /não tem limite artificial de caracteres/);
   const rpc = chamadas.find((item) => item.url.includes('/rpc/registrar_sugestoes'))!;
   assert.equal(rpc.corpo.p_prompt_versao, ANALISES_SECAO_PROMPT_VERSAO);
+  assert.equal(rpc.corpo.p_modelo, 'deepseek/deepseek-v4-pro');
   assert.equal(rpc.corpo.p_analises.length, 2, 'o lote inteiro persiste por uma única RPC transacional');
   assert.equal(rpc.corpo.p_por, 'revisor@exemplo.com');
 }
@@ -162,15 +167,15 @@ assert.equal(chamadas.length, 0, 'sem sessão não lê contexto, chama modelo ou
   saidaModelo = { analises: [{ secao: 'bloco:campanhas', texto: textoLongo }] };
   const resposta = await chamar(usuario, { id: ID, checksum: CHECKSUM, acao: 'gerar_secao', secao: 'bloco:campanhas' });
   assert.equal(resposta.status, 200);
-  const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
-  assert.match(JSON.stringify(modelo.corpo.messages[0].content), /bloco:indicadores/, 'a caneta local usa o mesmo contexto global');
+  const modelo = chamadas.find((item) => item.url.includes('api.deepseek.com'))!;
+  assert.match(JSON.stringify(modelo.corpo.messages[1].content), /bloco:indicadores/, 'a caneta local usa o mesmo contexto global');
   assert.equal(chamadas.find((item) => item.url.includes('/rpc/registrar_sugestoes'))!.corpo.p_analises[0].textoSugerido, textoLongo.trim());
 }
 
 {
   const resposta = await chamar(usuario, { id: ID, checksum: CHECKSUM, acao: 'gerar_secao', secao: 'bloco:glossario' });
   assert.equal(resposta.status, 422);
-  assert.equal(chamadas.some((item) => item.url.includes('/v1/messages') || item.url.includes('/rpc/')), false);
+  assert.equal(chamadas.some((item) => item.url.includes('api.deepseek.com') || item.url.includes('/v1/messages') || item.url.includes('/rpc/')), false);
 }
 
 {
@@ -179,13 +184,13 @@ assert.equal(chamadas.length, 0, 'sem sessão não lê contexto, chama modelo ou
   const rpc = chamadas.find((item) => item.url.includes('/rpc/salvar_contexto'))!;
   assert.equal(rpc.corpo.p_por, 'revisor@exemplo.com');
   assert.equal(rpc.corpo.p_contexto, 'Mudança de página confirmada internamente.');
-  assert.equal(chamadas.some((item) => item.url.includes('/v1/messages')), false);
+  assert.equal(chamadas.some((item) => item.url.includes('api.deepseek.com') || item.url.includes('/v1/messages')), false);
 }
 
 {
   saidaModelo = { analises: [{ secao: 'bloco:indicadores', texto: 'Lote incompleto.' }] };
   const resposta = await chamar(usuario, { id: ID, checksum: CHECKSUM, acao: 'gerar_todas' });
-  assert.equal(resposta.status, 422);
+  assert.equal(resposta.status, 502, 'lote incompleto nos dois providers falha sem persistência parcial');
   assert.equal(chamadas.some((item) => item.url.includes('/rpc/registrar_sugestoes')), false, 'saída contraditória/incompleta não persiste parcialmente');
 }
 

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { gerarAnaliseAssistida } from './_painel-analise-provider.js';
 
 export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v2_revisao_livre';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -199,32 +200,13 @@ export function validarLinhaParaAnalise(linha: LinhaAnalise | undefined, checksu
   return { ok: true as const };
 }
 
-export async function chamarSonnetIntroducao(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>>) {
-  const apiKey = String(process.env.ANTHROPIC_API_KEY ?? '').trim();
-  const modelo = String(process.env.ANTHROPIC_MODEL_RA2 ?? '').trim();
-  if (!apiKey || !modelo || !/^claude-sonnet-/i.test(modelo)) return { ok: false as const, status: 503, erro: 'sonnet_indisponivel', mensagem: 'A análise assistida ainda não está configurada com o Sonnet da revisão.' };
-  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30_000);
-  try {
-    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 1600, system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione os dois ou três achados mais importantes; investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela e não se limite a repetir que um indicador subiu ou caiu. Conclua a resposta em poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
-    if (!resposta.ok) return { ok: false as const, status: 502, erro: 'sonnet_falhou', mensagem: 'Não foi possível gerar a sugestão agora.' };
-    const corpo = await resposta.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: unknown; stop_sequence?: unknown };
-    const stopReason = typeof corpo.stop_reason === 'string' ? corpo.stop_reason : 'desconhecido';
-    const stopSequence = typeof corpo.stop_sequence === 'string' ? corpo.stop_sequence : null;
-    if (stopReason !== 'end_turn') {
-      console.warn(`[painel-analise-introducao] provider_stop_reason=${stopReason} stop_sequence=${stopSequence ?? 'null'}`);
-      return {
-        ok: false as const,
-        status: 502,
-        erro: stopReason === 'max_tokens' ? 'saida_truncada' : 'saida_incompleta',
-        mensagem: stopReason === 'max_tokens'
-          ? 'A sugestão ficou incompleta antes de terminar. Nenhum texto foi salvo; tente novamente.'
-          : 'O modelo não encerrou a sugestão de forma aplicável. Nenhum texto foi salvo; tente novamente.',
-      };
-    }
-    const texto = extrairTextoAplicavel(corpo.content);
-    if (!texto) return { ok: false as const, status: 422, erro: 'saida_invalida', mensagem: 'O modelo não retornou texto para revisão.' };
-    return { ok: true as const, modelo, texto };
-  } catch (erro) {
-    return { ok: false as const, status: 502, erro: 'sonnet_indisponivel', mensagem: erro instanceof Error && erro.name === 'AbortError' ? 'A análise demorou demais. Tente novamente.' : 'Não foi possível gerar a sugestão agora.' };
-  } finally { clearTimeout(timeout); }
+export async function chamarAnaliseIntroducao(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>>) {
+  const resposta = await gerarAnaliseAssistida({
+    operacao: 'introducao',
+    system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione os dois ou três achados mais importantes; investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela e não se limite a repetir que um indicador subiu ou caiu. Conclua a resposta em poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.',
+    conteudo: JSON.stringify(contexto),
+    interpretar: (texto) => extrairTextoAplicavel([{ type: 'text', text: texto }]) || null,
+  });
+  if (resposta.ok === false) return resposta;
+  return { ok: true as const, modelo: resposta.modeloAuditavel, texto: resposta.resultado, provider: resposta.provider, finishReason: resposta.finishReason, uso: resposta.uso };
 }
