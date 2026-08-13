@@ -185,8 +185,24 @@ const POR_ID = new Map(TERMOS.map((t) => [t.id, t]));
  * nunca preenchido com o próprio id nem com texto genérico: um glossário que
  * inventa explicação é pior que um glossário incompleto.
  */
+/**
+ * Repetição some aqui, na primeira ocorrência, e não na montagem de cada
+ * cliente. A Karyne provou o caso em 12/08: trocar `mensagens` por `conversoes`
+ * na lista colidiu com um `conversoes` que já estava lá, e o cliente passou a
+ * ler a mesma explicação duas vezes, com aviso de chave repetida no React.
+ * Pedir cuidado a quem monta a lista resolveria uma vez; deduplicar resolve
+ * para todo cliente, inclusive os que ainda não existem.
+ */
 export function termosDoGlossario(ids: string[]): TermoGlossario[] {
-  return ids.map((id) => POR_ID.get(id)).filter((t): t is TermoGlossario => Boolean(t));
+  const vistos = new Set<string>();
+  const termos: TermoGlossario[] = [];
+  for (const id of ids) {
+    if (vistos.has(id)) continue;
+    vistos.add(id);
+    const termo = POR_ID.get(id);
+    if (termo) termos.push(termo);
+  }
+  return termos;
 }
 
 export function termoDoGlossario(id: string): TermoGlossario | undefined {

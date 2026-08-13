@@ -1009,6 +1009,78 @@ qualificados. A partir de agosto, a comparação tende a voltar a ser homogênea
 naturalmente. A fábrica continua sendo a fonte de verdade; o portal não deve
 manter uma segunda definição de conversão.
 
+### 11.10 O hotfix parou no meio da página — corrigido em 12/08
+
+**A correção de 11.9 trocou o número na faixa de indicadores e deixou o número
+antigo em dois blocos que afirmam, por escrito, que fecham com essa faixa.** A
+página publicada dizia 16 leads no Google e, mais abaixo:
+
+- a **tabela de grupos de anúncios** somava 21 conversões e R$ 47,67 de custo
+  por conversão, com a definição *"a soma fecha com o total da conta"*;
+- a **série diária** somava 21 e a observação afirmava *"A soma dos dias é 21, o
+  mesmo total de conversões da seção do Google acima"*.
+
+Junto vinha um segundo desvio: as **bases de comparação de junho** ficaram nos
+valores antigos. A faixa comparava contra R$ 792,40 no Meta e R$ 948,15 no
+Google, enquanto a evolução do ano — corrigida no mesmo hotfix — mostrava
+R$ 1.200,58 e R$ 722,77 para o mesmo mês. O custo por lead de junho no Meta
+(R$ 10,73) não saía de nenhum dos dois: não era derivável de nada impresso na
+página.
+
+Hoje a faixa, a tabela de grupos e a série diária fecham nos mesmos 16 leads e
+no mesmo R$ 62,56; as bases de junho são as da evolução do ano, com as variações
+recalculadas a partir do próprio par valor/base. A tabela de palavras-chave, que
+declara cobertura parcial e não fecha por natureza, foi trazida de 15 para 11
+resultados: 15 de 16 faria a lista parcial responder por 94% dos resultados com
+60% do investimento.
+
+**A lição, e é a razão de a regressão ter mudado de forma:** a trava de 11.9
+conferia um bloco de cada vez e passou verde com a página se contradizendo. O
+que o cliente lê é a página inteira, então o cruzamento é que precisa ser
+provado. `verifica:karyne-conversao` passou a exigir, além do que já exigia:
+
+1. a soma das linhas da tabela de grupos fecha com o total dela **e** com a
+   faixa, em investimento, cliques e resultado;
+2. o custo por resultado de cada linha é mesmo investimento ÷ resultado;
+3. a soma da série diária é o resultado da faixa **e** a frase impressa na tela
+   diz essa soma — a observação é conferida contra o dado, não escrita à mão;
+4. tabela parcial declara cobertura e nunca passa o total da conta;
+5. as bases de junho da faixa são as mesmas da evolução do ano, e o custo por
+   resultado de junho sai do investimento e do resultado daquele mês;
+6. toda variação impressa sai do próprio par valor/base, na casa decimal que
+   cada métrica publica.
+
+Cada uma dessas seis travas foi provada quebrando o dado de propósito e
+conferindo que a regressão reprova.
+
+Dois defeitos menores da mesma rodada foram fechados junto:
+
+**O comentário do código afirmava um caso que não existe mais.** O bloco acima
+de `evolucaoMeta` dizia que março não teve veiculação e que a série exercitava
+ali a diferença entre ausência e zero — o dado governado veiculou nos sete
+meses, e o comentário virou falso sem ninguém mexer nele. Foi reescrito para
+descrever a série que existe (a observação de vigência mês a mês) e para apontar
+onde a distinção **de fato** aparece na página: os dias 19 e 20 da série diária,
+que interrompem a linha, e o grupo de anúncios pausado, com zero medido em
+investimento e resultado mas CTR e CPC não aplicáveis. Não inventar um mês vazio
+só para exercitar a regra.
+
+**O glossário explicava a mesma coisa duas vezes.** Ao trocar `mensagens` por
+`conversoes` na montagem, a lista colidiu com um `conversoes` que já estava lá —
+e `termosDoGlossario` não deduplicava, então o cliente lia "Conversões" e "Custo
+por conversão" repetidos, com aviso de chave repetida no React. **A correção foi
+no catálogo, não na montagem da Karyne:** repetição some na primeira ocorrência
+dentro de `termosDoGlossario`, o que vale para todo cliente, inclusive os que
+ainda não existem. A lista da Karyne foi limpa junto, para a configuração dizer
+o que quer dizer. As duas pontas têm regressão — a montagem não pode repetir, e
+o catálogo tem que deduplicar mesmo se ela repetir —, e as duas foram provadas
+quebrando o código de propósito. O glossário na tela passou de 9 termos com 2
+repetidos para 7 sem repetição.
+
+**Estado: publicado em produção em 12/08/2026**, com autorização do Flávio, pela
+branch `fix/karyne-fechamento-blocos`. Build limpo, 3 rotas institucionais
+pré-renderizadas e relatórios fora do sitemap.
+
 ---
 
 ## 12. A visão geral da operação (D1 e D2)

@@ -126,7 +126,7 @@ const faixaMeta: FaixaIndicadores = {
       valor: ok(863.91),
       origem: daMeta(),
       direcaoFavoravel: 'neutra',
-      comparativo: contraJunho(792.4, 0.0903),
+      comparativo: contraJunho(1200.58, -0.280423),
     },
     {
       id: 'meta_cpm',
@@ -176,7 +176,7 @@ const faixaMeta: FaixaIndicadores = {
       valor: ok(39.27),
       origem: calculadoMeta('investimento ÷ leads, os dois da conta inteira'),
       direcaoFavoravel: 'baixa',
-      comparativo: contraJunho(10.73, 2.659832),
+      comparativo: contraJunho(14.12, 1.781161),
     },
   ],
 };
@@ -197,7 +197,7 @@ const faixaGoogle: FaixaIndicadores = {
       valor: ok(1000.98),
       origem: doGoogle(),
       direcaoFavoravel: 'neutra',
-      comparativo: contraJunho(948.15, 0.0557),
+      comparativo: contraJunho(722.77, 0.384922),
     },
     {
       id: 'google_cliques',
@@ -250,10 +250,17 @@ const faixaGoogle: FaixaIndicadores = {
  * Duas métricas por plataforma, que é o que o relatório de origem mostra no
  * gráfico de eixo duplo. Aqui elas viram um painel cada.
  *
- * Março tem observação e valores ausentes na Meta: **não houve veiculação**.
- * Isso é diferente de "veiculou e não deu resultado", e a distinção aparece na
- * tela — o painel escreve a observação ao lado do mês em vez de desenhar uma
- * barra de tamanho zero, que seria lida como resultado nulo.
+ * Cada mês leva a observação da definição que estava vigente nele, porque a
+ * série atravessa a troca de 22/06: sem isso, a queda de junho para julho
+ * pareceria perda de desempenho, quando é mudança do que está sendo contado.
+ *
+ * Esta série não tem mês sem veiculação — o dado governado da Karyne veiculou
+ * nos sete meses. A distinção entre **ausência** e **zero medido**, que o
+ * catálogo precisa provar, continua na página em dois lugares onde ela é
+ * verdade: os dias 19 e 20 na série diária, que interrompem a linha em vez de
+ * virar zero, e o grupo de anúncios pausado, que tem investimento e resultado
+ * zero (medição) mas CTR e CPC não aplicáveis (divisão por zero). Não inventar
+ * um mês vazio aqui só para exercitar a regra.
  */
 const evolucaoMeta: EvolucaoMensal = {
   id: 'evolucao_meta_2026',
@@ -363,24 +370,24 @@ const conversoesPorDia: Serie = {
     { data: '2026-07-08', valores: { conversoes: 0 } },
     { data: '2026-07-09', valores: { conversoes: 1 } },
     { data: '2026-07-10', valores: { conversoes: 1 } },
-    { data: '2026-07-11', valores: { conversoes: 2 } },
+    { data: '2026-07-11', valores: { conversoes: 1 } },
     { data: '2026-07-12', valores: { conversoes: 1 } },
-    { data: '2026-07-13', valores: { conversoes: 2 } },
+    { data: '2026-07-13', valores: { conversoes: 1 } },
     { data: '2026-07-14', valores: { conversoes: 1 } },
     { data: '2026-07-15', valores: { conversoes: 1 } },
     { data: '2026-07-16', valores: { conversoes: 0 } },
-    { data: '2026-07-17', valores: { conversoes: 1 } },
+    { data: '2026-07-17', valores: { conversoes: 0 } },
     { data: '2026-07-18', valores: { conversoes: 1 } },
     /* Dois dias sem veiculação: lacuna, não zero. */
     { data: '2026-07-19', valores: { conversoes: null } },
     { data: '2026-07-20', valores: { conversoes: null } },
-    { data: '2026-07-21', valores: { conversoes: 1 } },
+    { data: '2026-07-21', valores: { conversoes: 0 } },
     { data: '2026-07-22', valores: { conversoes: 0 } },
     { data: '2026-07-23', valores: { conversoes: 0 } },
     { data: '2026-07-24', valores: { conversoes: 0 } },
     { data: '2026-07-25', valores: { conversoes: 0 } },
     { data: '2026-07-26', valores: { conversoes: 1 } },
-    { data: '2026-07-27', valores: { conversoes: 2 } },
+    { data: '2026-07-27', valores: { conversoes: 1 } },
     { data: '2026-07-28', valores: { conversoes: 0 } },
     { data: '2026-07-29', valores: { conversoes: 2 } },
     { data: '2026-07-30', valores: { conversoes: 0 } },
@@ -388,7 +395,7 @@ const conversoesPorDia: Serie = {
   ],
   observacoes: [
     'Os dias 19 e 20 aparecem como interrupção da linha, e não como zero: não houve veiculação neles. Um dia que veiculou e não converteu aparece como zero, apoiado na base do gráfico.',
-    'A soma dos dias é 21, o mesmo total de conversões da seção do Google acima.',
+    'A soma dos dias é 16, o mesmo resultado do Google mostrado na seção acima.',
   ],
 };
 
@@ -401,8 +408,8 @@ const conversoesPorDia: Serie = {
  * diferença que mais engana neste relatório: **uma delas fecha com a conta e as
  * outras duas não fecham, por natureza.**
  *
- * A soma dos grupos bate exatamente com os R$ 1.000,98, os 501 cliques e as 21
- * conversões da faixa acima — nas quatro métricas, sem arredondamento. Já as
+ * A soma dos grupos bate exatamente com os R$ 1.000,98, os 501 cliques e os 16
+ * leads da faixa acima — nas quatro métricas, sem arredondamento. Já as
  * palavras-chave somam R$ 604,22 e os termos, R$ 318,45. Nenhum dos dois é o
  * gasto do mês, e é por isso que os dois levam `cobertura` e o de grupos não.
  */
@@ -449,8 +456,8 @@ const tabelaGrupos: TabelaEntidades = {
         cliques: ok(198),
         ctr: ok(0.0941),
         cpc: ok(2.08),
-        conversoes: ok(9),
-        custo_conversao: ok(45.84),
+        conversoes: ok(7),
+        custo_conversao: ok(58.94),
       },
     },
     {
@@ -463,8 +470,8 @@ const tabelaGrupos: TabelaEntidades = {
         cliques: ok(131),
         ctr: ok(0.0869),
         cpc: ok(1.88),
-        conversoes: ok(5),
-        custo_conversao: ok(49.23),
+        conversoes: ok(4),
+        custo_conversao: ok(61.54),
       },
     },
     {
@@ -477,8 +484,8 @@ const tabelaGrupos: TabelaEntidades = {
         cliques: ok(96),
         ctr: ok(0.0786),
         cpc: ok(1.96),
-        conversoes: ok(4),
-        custo_conversao: ok(47.11),
+        conversoes: ok(3),
+        custo_conversao: ok(62.81),
       },
     },
     {
@@ -491,8 +498,8 @@ const tabelaGrupos: TabelaEntidades = {
         cliques: ok(76),
         ctr: ok(0.0936),
         cpc: ok(2.02),
-        conversoes: ok(3),
-        custo_conversao: ok(51.26),
+        conversoes: ok(2),
+        custo_conversao: ok(76.9),
       },
     },
     {
@@ -518,15 +525,15 @@ const tabelaGrupos: TabelaEntidades = {
       cliques: ok(501),
       ctr: ok(0.0888),
       cpc: ok(2.0),
-      conversoes: ok(21),
-      custo_conversao: ok(47.67),
+      conversoes: ok(16),
+      custo_conversao: ok(62.56),
     },
   },
   definicoes: [
     CPC_FORMULA,
     CUSTO_CONVERSAO_FORMULA,
     'CTR: cliques ÷ impressões.',
-    'Este é o único nível abaixo de campanha cuja soma fecha com o total da conta: investimento, cliques e conversões batem exatamente com a seção anterior.',
+    'Este é o único nível abaixo de campanha cuja soma fecha com o total da conta: investimento, cliques e resultado batem exatamente com a seção anterior.',
   ],
 };
 
@@ -563,28 +570,28 @@ const tabelaPalavrasChave: TabelaEntidades = {
       nome: 'tratamento halitose',
       plataforma: 'google',
       etiqueta: 'Correspondência de frase',
-      valores: { custo: ok(182.4), cliques: ok(84), cpc: ok(2.17), conversoes: ok(5) },
+      valores: { custo: ok(182.4), cliques: ok(84), cpc: ok(2.17), conversoes: ok(4) },
     },
     {
       id: 'kw_mau_halito',
       nome: 'mau hálito o que fazer',
       plataforma: 'google',
       etiqueta: 'Correspondência de frase',
-      valores: { custo: ok(141.88), cliques: ok(71), cpc: ok(2.0), conversoes: ok(4) },
+      valores: { custo: ok(141.88), cliques: ok(71), cpc: ok(2.0), conversoes: ok(3) },
     },
     {
       id: 'kw_cura',
       nome: 'halitose tem cura',
       plataforma: 'google',
       etiqueta: 'Correspondência exata',
-      valores: { custo: ok(118.6), cliques: ok(62), cpc: ok(1.91), conversoes: ok(3) },
+      valores: { custo: ok(118.6), cliques: ok(62), cpc: ok(1.91), conversoes: ok(2) },
     },
     {
       id: 'kw_dentista',
       nome: 'dentista halitose',
       plataforma: 'google',
       etiqueta: 'Correspondência de frase',
-      valores: { custo: ok(84.15), cliques: ok(41), cpc: ok(2.05), conversoes: ok(2) },
+      valores: { custo: ok(84.15), cliques: ok(41), cpc: ok(2.05), conversoes: ok(1) },
     },
     {
       id: 'kw_porque',
@@ -607,7 +614,7 @@ const tabelaPalavrasChave: TabelaEntidades = {
       custo: ok(604.22),
       cliques: ok(299),
       cpc: ok(2.02),
-      conversoes: ok(15),
+      conversoes: ok(11),
     },
   },
   definicoes: [
@@ -838,8 +845,6 @@ export const karyneMontada202607: SnapshotMontado = {
         'custo_por_conversao',
         'cliques',
         'ctr',
-        'conversoes',
-        'custo_por_conversao',
       ],
     },
   ],
