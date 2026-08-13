@@ -37,6 +37,24 @@ function respostaSugestao(linha: any) {
   return linha ? { id: linha.sugestao_id ?? linha.id, estado: linha.estado, texto: linha.texto_atual, checksum: linha.relatorio_checksum } : null;
 }
 
+const FALHAS_DE_CONCORRENCIA = new Set(['checksum_divergente', 'versao_fora_de_revisao', 'sugestao_nao_encontrada']);
+
+async function falhaDaRpc(rpc: globalThis.Response) {
+  const bruto = await rpc.text();
+  try {
+    const corpo = JSON.parse(bruto);
+    const codigo = typeof corpo?.code === 'string' ? corpo.code : '';
+    const mensagem = typeof corpo?.message === 'string' ? corpo.message : '';
+    if (FALHAS_DE_CONCORRENCIA.has(mensagem)) {
+      return { status: 409, erro: 'revisao_desatualizada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' };
+    }
+    console.error(`[painel-analise-introducao] rpc_http_${rpc.status} code=${codigo || 'desconhecido'}`);
+  } catch {
+    console.error(`[painel-analise-introducao] rpc_http_${rpc.status} corpo_invalido`);
+  }
+  return { status: 502, erro: 'auditoria_falhou', mensagem: 'Não foi possível registrar a ação editorial. Nenhuma alteração foi salva; tente novamente.' };
+}
+
 export default async function handler(req: Request, res: Response) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ erro: 'metodo_nao_permitido' });
@@ -95,9 +113,17 @@ export default async function handler(req: Request, res: Response) {
         p_texto_editado: pedido.acao === 'editar' ? pedido.texto : null,
       }),
     });
-    if (!rpc.ok) return res.status(409).json({ erro: 'acao_nao_registrada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' });
-    const [resultado] = await rpc.json();
-    if (!resultado) throw new Error('rpc_sem_retorno');
+    if (!rpc.ok) {
+      const falha = await falhaDaRpc(rpc);
+      return res.status(falha.status).json({ erro: falha.erro, mensagem: falha.mensagem });
+    }
+    const resultadoRpc = await rpc.json();
+    if (!Array.isArray(resultadoRpc)) {
+      console.error('[painel-analise-introducao] rpc_contrato_invalido');
+      return res.status(502).json({ erro: 'auditoria_falhou', mensagem: 'Não foi possível registrar a ação editorial. Nenhuma alteração foi salva; tente novamente.' });
+    }
+    const [resultado] = resultadoRpc;
+    if (!resultado) return res.status(409).json({ erro: 'revisao_desatualizada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' });
     console.log(`[painel-analise-introducao] ${pedido.acao} · ${pedido.id} · por ${acesso.email}`);
     return res.status(200).json({ sugestao: respostaSugestao(resultado) });
   } catch (erro) {

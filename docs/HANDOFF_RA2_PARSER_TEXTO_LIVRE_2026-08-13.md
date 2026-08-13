@@ -90,6 +90,27 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
   falhando apenas nos seis erros TypeScript preexistentes de `src/painel/telas.tsx`
   e componentes de relatório, sem erro em RA2.
 
+## Correção reaberta: persistência gerar → editar
+
+- Produção `main/87eb68a` confirmou que a geração e a experiência de edição
+  agora funcionam, mas o POST de editar da sugestão
+  `c355791f-08bc-4e6f-99c2-7e57eb92abf8` devolveu 409 sem persistir. Read-only
+  no Supabase confirmou a sugestão ainda `pronta`, com checksum esperado e sem
+  edição registrada; não houve aplicar, aprovação ou envio.
+- A causa raiz está provada pelo log Postgres do mesmo minuto: `column
+  reference "relatorio_checksum" is ambiguous`. Na RPC, o retorno nomeado
+  `relatorio_checksum` conflita com a coluna não qualificada no `SELECT` usado
+  apenas por editar/aplicar/desfazer; gerar passa porque entra em outro ramo.
+- A branch `codex/ra2-rpc-editar`, criada de `origin/main/87eb68a`, ajusta o
+  handler para não mascarar falha SQL/HTTP/contrato como concorrência. A
+  migration preparada na fábrica qualifica o `SELECT` e reserva retorno vazio
+  para checksum/versão/sugestão que realmente mudou. Ela **não foi aplicada**
+  remotamente.
+- Regressão local: `npm.cmd run verifica:analise`, `verifica:revisao` e `build`
+  passaram. A primeira inclui geração seguida de edição com texto/checksum
+  exatos, retorno vazio de concorrência e erro SQL dublado. `lint` continua com
+  seis erros TypeScript preexistentes em componentes de relatório, sem erro RA2.
+
 ## Revisão de segurança manual
 
 Security Guidance não estava exposto nesta sessão. A revisão manual confirmou
@@ -111,11 +132,16 @@ o mesmo handler/RPC apenas no clique de salvar, e vazio é barrado antes da
 chamada. Não houve alteração em autenticação, autorização, checksum, auditoria
 ou renderização de conteúdo fora do fluxo de revisão.
 
+Na correção da persistência, a mesma revisão confirmou que a migration mantém
+`security invoker`, `search_path` vazio, RLS e grants existentes. O endpoint
+agora expõe apenas uma mensagem genérica para falha técnica e registra no log
+somente status/código da RPC, sem texto editorial, segredo ou detalhe SQL. A
+distinção de concorrência continua protegida por checksum e estado.
+
 ## Próximo gate
 
-O Flávio deu novo GO explícito para integrar/publicar. O pre-flight confirmou
-`origin/main/a406422`, branch `aa1caff`, zero commits atrás, quatro à frente e
-merge-base exatamente `a406422`; a integração pode ser fast-forward. Depois do
-deployment `READY`, repetir o teste autenticado em desktop e celular: gerar uma
-sugestão completa e sucinta e salvar uma alteração no editor. Não aplicar,
-aprovar, recusar ou enviar relatório real. RA3 permanece bloqueada.
+A migration `0011_ra2_corrigir_persistencia_edicao.sql` e o handler estão
+somente nas branches de correção. Requerem GO explícito para aplicar a migration
+no Supabase remoto, integrar e publicar. Só então repetir o smoke autenticado de
+gerar → editar → salvar, sem aplicar, aprovar, recusar ou enviar relatório real.
+RA3 permanece bloqueada.

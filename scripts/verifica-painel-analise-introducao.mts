@@ -96,6 +96,8 @@ let linhaDoBanco: any = linha();
 let saidaSonnet: string | string[] = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 let stopReason = 'end_turn';
 let stopSequence: string | null = null;
+let respostaRpcDublada: { status: number; corpo: unknown } | null = null;
+let sugestaoAtualDaRpc: { id: string; estado: string; texto: string; checksum: string } | null = null;
 
 function dublar(usuario: unknown | null) {
   chamadas = [];
@@ -109,10 +111,25 @@ function dublar(usuario: unknown | null) {
     if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })), stop_reason: stopReason, stop_sequence: stopSequence }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorios')) return new Response(JSON.stringify([linhaDoBanco]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('relatorio_analise_sugestoes')) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
-    if (url.includes('/rpc/registrar_sugestao_analise_introducao')) return new Response(JSON.stringify([{
-      sugestao_id: SUGESTAO_ID, estado: (corpo as any).p_acao === 'desfazer' ? 'desfeita' : (corpo as any).p_acao === 'editar' ? 'editada' : (corpo as any).p_acao === 'aplicar' ? 'aplicada' : 'pronta',
-      texto_atual: (corpo as any).p_texto_editado ?? (corpo as any).p_texto_sugerido ?? 'A conta registrou 16 leads com investimento de R$ 1.200,00.', relatorio_checksum: CHECKSUM,
-    }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/rpc/registrar_sugestao_analise_introducao') && respostaRpcDublada) return new Response(JSON.stringify(respostaRpcDublada.corpo), { status: respostaRpcDublada.status, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/rpc/registrar_sugestao_analise_introducao')) {
+      const pedidoRpc = corpo as any;
+      if (pedidoRpc.p_acao === 'gerar') {
+        sugestaoAtualDaRpc = { id: SUGESTAO_ID, estado: 'pronta', texto: pedidoRpc.p_texto_sugerido, checksum: pedidoRpc.p_checksum_visto };
+      } else if (!sugestaoAtualDaRpc || pedidoRpc.p_sugestao_id !== sugestaoAtualDaRpc.id || pedidoRpc.p_checksum_visto !== sugestaoAtualDaRpc.checksum) {
+        return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
+      } else {
+        sugestaoAtualDaRpc = {
+          ...sugestaoAtualDaRpc,
+          estado: pedidoRpc.p_acao === 'desfazer' ? 'desfeita' : pedidoRpc.p_acao === 'editar' ? 'editada' : 'aplicada',
+          texto: pedidoRpc.p_texto_editado ?? sugestaoAtualDaRpc.texto,
+        };
+      }
+      return new Response(JSON.stringify([{
+        sugestao_id: sugestaoAtualDaRpc.id, estado: sugestaoAtualDaRpc.estado,
+        texto_atual: sugestaoAtualDaRpc.texto, relatorio_checksum: sugestaoAtualDaRpc.checksum,
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
     throw new Error(`URL inesperada: ${url}`);
   }) as typeof fetch;
 }
@@ -227,8 +244,38 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
 }
 
 {
-  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'A conta registrou 17 leads.' });
-  assert.equal(resposta.status, 200, 'edição humana não pode ser bloqueada por regex numérica');
+  const gerada = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(gerada.status, 200, 'a geração precisa registrar a sugestão antes da edição');
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: gerada.corpo.sugestao.id, texto: 'A conta registrou 17 leads.' });
+  assert.equal(resposta.status, 200, 'gerar e editar em seguida precisam usar a mesma sugestão e persistir');
+  const rpc = chamadas.find((item) => item.url.includes('/rpc/'))!;
+  assert.equal((rpc.corpo as any).p_sugestao_id, gerada.corpo.sugestao.id);
+  assert.equal((rpc.corpo as any).p_checksum_visto, CHECKSUM, 'a edição preserva o checksum da geração');
+  assert.equal((rpc.corpo as any).p_texto_editado, 'A conta registrou 17 leads.');
+}
+
+{
+  respostaRpcDublada = { status: 200, corpo: [] };
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'Edição concorrente.' });
+  assert.equal(resposta.status, 409, 'retorno vazio da RPC representa revisão concorrente, não falha do servidor');
+  assert.equal(resposta.corpo.erro, 'revisao_desatualizada');
+  respostaRpcDublada = null;
+}
+
+{
+  respostaRpcDublada = { status: 400, corpo: { code: '42702', message: 'column reference "relatorio_checksum" is ambiguous' } };
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'Edição que encontra defeito SQL.' });
+  assert.equal(resposta.status, 502, 'erro SQL não pode ser falsamente apresentado como concorrência');
+  assert.equal(resposta.corpo.erro, 'auditoria_falhou');
+  respostaRpcDublada = null;
+}
+
+{
+  respostaRpcDublada = { status: 400, corpo: { code: 'P0001', message: 'checksum_divergente' } };
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'Edição após mudança de checksum.' });
+  assert.equal(resposta.status, 409, 'condição explícita de checksum continua uma concorrência legítima');
+  assert.equal(resposta.corpo.erro, 'revisao_desatualizada');
+  respostaRpcDublada = null;
 }
 
 {
