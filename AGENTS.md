@@ -9,7 +9,7 @@ plano/handoff canônico indicado nele no repositório `OpenClaw-Dacora`.
 A frente **RA — Revisão Analítica Assistida dos Relatórios Mensais** é a
 prioridade de desenvolvimento do painel. Sua fonte organizacional é
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-A **RA1 está implementada e validada localmente** em `codex/ra1-contexto-analitico`: contexto factual, fallback e visualização interna passaram; resta Preview desktop/celular se autorizado. Sem modelo, endpoint, migration, decisão, envio, push ou publicação. A introdução do relatório é o primeiro e mais importante alvo da caneta mágica;
+A **RA1 está corrigida e validada localmente após reprovação Sol High** em `codex/ra1-contexto-analitico`: contexto factual, neutralidade/limiar, fallback, múltiplos resultados, visualização interna de fatos e fixture local passaram; aguardam nova revisão Sol High e Preview desktop/celular se autorizado. Sem modelo, endpoint, migration, decisão, envio, push ou publicação. A introdução do relatório é o primeiro e mais importante alvo da caneta mágica;
 C1/C2/C3 são insumo subordinado, não uma publicação independente. Cada fase RA
 deve acontecer em sessão própria, na branch/worktree indicada pelo documento.
 

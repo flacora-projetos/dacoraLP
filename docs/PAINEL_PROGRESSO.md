@@ -22,6 +22,15 @@ A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
 C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
 sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
 publicada isoladamente para retomar o Gate 3.
+**RA1 corrigida após reprovação Sol High, em 2026-08-13:** a moldura interna
+agora mostra os fatos governados com valor atual, base e variação em pt-BR;
+zero/variação inferior ao limiar não vira movimento; a abertura deixa de
+atribuir resultado ao investimento e múltiplos resultados são preservados. A
+rota local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` permite
+revisar a página inteira da Karyne sem Supabase e não entra no build de
+produção. Regressões de revisão, Karyne, linguagem e build passaram. O estado
+é **corrigida e validada localmente; aguardando nova revisão Sol High e Preview**:
+sem push, Preview, merge, publicação, decisão, envio ou RA2.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois

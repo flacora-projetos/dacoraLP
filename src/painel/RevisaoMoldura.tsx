@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { AnalysisContextV1 } from '../reports/snapshot';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
-import { formatarCompetencia } from '../reports/format';
+import { formatarCompetencia, formatarNumero, formatarVariacao } from '../reports/format';
 import DecisaoDaRevisao, {
   type EstadoDaNotificacaoInterna,
   type PedidoDeDecisao,
@@ -81,6 +81,19 @@ function ContextoDaAnalise({ contexto }: { contexto?: AnalysisContextV1 }) {
     <details className="dcp-contexto-analise">
       <summary>O que a análise recebeu</summary>
       <p>Contexto factual {contexto.versao}; não é texto para o cliente nem uma explicação causal.</p>
+      {contexto.fatos.length > 0 ? (
+        <ul>
+          {contexto.fatos.map((fato) => (
+            <li key={fato.id}>
+              <strong>{fato.rotulo}</strong> · {fato.plataforma}: {formatarNumero(fato.atual, fato.unidade)}
+              {typeof fato.base === 'number' && <> · base {formatarNumero(fato.base, fato.unidade)}</>}
+              {typeof fato.variacao === 'number' && <> · variação {formatarVariacao(fato.variacao)}</>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>Não há fatos governados nesta versão.</p>
+      )}
       {contexto.relacoes.length > 0 ? (
         <ul>
           {contexto.relacoes.map((relacao) => <li key={`${relacao.tipo}-${relacao.plataforma}-${relacao.texto}`}>{relacao.texto}</li>)}

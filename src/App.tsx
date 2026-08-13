@@ -38,6 +38,7 @@ const RelatorioPublico = lazy(() => import('./pages/RelatorioPublico'));
  * produto não usa: aqui não há aprovar, recusar ou enviar.
  */
 const PainelRelatorioInterno = lazy(() => import('./pages/PainelRelatorioInterno'));
+const PainelRevisaoLocal = import.meta.env.DEV ? lazy(() => import('./pages/PainelRevisaoLocal')) : null;
 
 export default function App() {
   return (
@@ -125,6 +126,16 @@ export default function App() {
           </Suspense>
         }
       />
+      {PainelRevisaoLocal && (
+        <Route
+          path="/painel-de-relatorios/revisao-local-ra1"
+          element={
+            <Suspense fallback={<CarregandoPainel />}>
+              <PainelRevisaoLocal />
+            </Suspense>
+          }
+        />
+      )}
       <Route
         path="/relatorios/:token"
         element={

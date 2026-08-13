@@ -6,7 +6,7 @@ também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
 A prioridade atual é a frente **RA — Revisão Analítica Assistida**, organizada
 em `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-A RA1 está implementada e validada localmente em `codex/ra1-contexto-analitico`, aguardando Preview desktop/celular se autorizado; caneta, modelo, endpoint, decisão, envio, push e publicação seguem fora. A introdução é o alvo principal da caneta mágica; C1/C2/C3 não deve ser
+A RA1 está corrigida e validada localmente após reprovação Sol High em `codex/ra1-contexto-analitico`, aguardando nova revisão Sol High e Preview desktop/celular se autorizado; caneta, modelo, endpoint, decisão, envio, push e publicação seguem fora. A introdução é o alvo principal da caneta mágica; C1/C2/C3 não deve ser
 publicada separadamente. Cada fase roda em sessão própria e registra, em tempo
 real, implementação, teste, commit, push, merge, publicação e validação em
 produção como estados diferentes.

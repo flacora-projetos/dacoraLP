@@ -155,7 +155,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
           indice={proximo()}
           id="resumo"
           titulo="Resumo do mês"
-          apoio="Escrito a partir dos números apurados. Nenhuma causa é inferida: o que não foi medido não é explicado."
+          apoio="Os principais movimentos e resultados registrados no período."
         >
           <div
             className={proposta === 'B' ? 'dc-destaque' : 'dc-superficie'}
