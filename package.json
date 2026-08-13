@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
+    "prebuild": "npm run verifica:karyne-conversao && npm run verifica:linguagem",
     "build": "vite build && npm run build:ssr && npm run prerender && npm run sitemap && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr --emptyOutDir",
     "prerender": "node scripts/prerender.mjs",
@@ -20,6 +21,7 @@
     "verifica:envio": "tsx scripts/verifica-painel-envio.mts",
     "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
     "verifica:linguagem": "tsx scripts/verifica-linguagem-relatorio.mts",
+    "verifica:karyne-conversao": "tsx scripts/verifica-karyne-conversao-governada.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",
     "start": "node dist/server.cjs"

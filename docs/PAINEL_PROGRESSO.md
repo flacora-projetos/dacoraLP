@@ -986,20 +986,104 @@ horizontal móvel causada pelos rótulos de unidade e pela tabela de campanhas.
 Karyne passou com oito gráficos em desktop e celular; Aviarte passou nos dois
 tamanhos. Nenhum banco remoto foi alterado.
 
-### 11.9 Pendência de dado histórico da Karyne — pertence à fábrica
+### 11.9 Vigência histórica da Karyne — resolvida na fábrica e travada no portal
 
-Até 21/06/2026, as campanhas da Karyne levavam direto ao WhatsApp e o resultado
-otimizado era **mensagens iniciadas**. A partir de 22/06/2026, passaram a usar a
-conversão do site. A evolução anual atual aplica o evento novo retroativamente e
-por isso deixa de contar as mensagens dos meses anteriores: janeiro a junho
-ficam historicamente errados, embora os dados atuais não sejam afetados.
+A fábrica já resolve a definição de resultado por **vigência**: até 21/06/2026 a
+campanha principal da Meta contava conversas iniciadas; desde 22/06/2026 a
+landing page usa `offsite_conversion.fb_pixel_custom`. No Google, a ação antiga
+`Contato WhatsApp` também dá lugar a `22-06 - Whatsapp LP de Leads` pela mesma
+regra temporal. Junho é misto nas duas plataformas.
 
-Não é correção do painel: ele reproduz fielmente o snapshot persistido. A
-fábrica no `OpenClaw-Dacora` deve rastrear qual evento de conversão cada
-campanha/conjunto otimizava em cada período, por ID e vigência, e agregar cada
-mês com a definição que valia naquele momento. Nunca aplicar a conversão atual
-ao histórico inteiro. A pendência precisa ser resolvida antes de escalar a
-montagem para mais relatórios com mudança de objetivo ao longo do tempo.
+Em 12/08/2026 foi encontrado um desvio exclusivamente na demonstração legada
+`karyne-montada-2026-07.ts`: ela ainda carregava a hipótese antiga hardcoded e
+bypassava a resolução já corrigida na fábrica. O hotfix sincronizou o fixture
+com o contrato validado: Meta janeiro–julho = **108, 138, 164, 237, 248, 85,
+22**; Google = **30, 33, 35, 39, 28, 36, 16**; julho mostra 22 leads no Meta e
+16 no Google. Junho preserva explicitamente 80 conversas + 5 leads no Meta e
+30 da ação antiga + 6 da nova no Google.
+
+A regressão `verifica:karyne-conversao` entra no `prebuild`: o deploy falha se
+mensagens voltarem a ser o KPI primário de julho, se a ação nova for retroagida
+ou se junho deixar de respeitar as duas vigências. A comparação mensal continua
+usando o resultado governado total do mês anterior (`85` Meta / `36` Google em
+junho); **não foi criada exceção 6/6**. Como junho mistura duas definições de
+resultado, a leitura da demo explica explicitamente que a queda de volume e a
+alta do custo por lead refletem também a mudança de funil para leads mais
+qualificados. A partir de agosto, a comparação tende a voltar a ser homogênea
+naturalmente. A fábrica continua sendo a fonte de verdade; o portal não deve
+manter uma segunda definição de conversão.
+
+### 11.10 O hotfix parou no meio da página — corrigido em 12/08
+
+**A correção de 11.9 trocou o número na faixa de indicadores e deixou o número
+antigo em dois blocos que afirmam, por escrito, que fecham com essa faixa.** A
+página publicada dizia 16 leads no Google e, mais abaixo:
+
+- a **tabela de grupos de anúncios** somava 21 conversões e R$ 47,67 de custo
+  por conversão, com a definição *"a soma fecha com o total da conta"*;
+- a **série diária** somava 21 e a observação afirmava *"A soma dos dias é 21, o
+  mesmo total de conversões da seção do Google acima"*.
+
+Junto vinha um segundo desvio: as **bases de comparação de junho** ficaram nos
+valores antigos. A faixa comparava contra R$ 792,40 no Meta e R$ 948,15 no
+Google, enquanto a evolução do ano — corrigida no mesmo hotfix — mostrava
+R$ 1.200,58 e R$ 722,77 para o mesmo mês. O custo por lead de junho no Meta
+(R$ 10,73) não saía de nenhum dos dois: não era derivável de nada impresso na
+página.
+
+Hoje a faixa, a tabela de grupos e a série diária fecham nos mesmos 16 leads e
+no mesmo R$ 62,56; as bases de junho são as da evolução do ano, com as variações
+recalculadas a partir do próprio par valor/base. A tabela de palavras-chave, que
+declara cobertura parcial e não fecha por natureza, foi trazida de 15 para 11
+resultados: 15 de 16 faria a lista parcial responder por 94% dos resultados com
+60% do investimento.
+
+**A lição, e é a razão de a regressão ter mudado de forma:** a trava de 11.9
+conferia um bloco de cada vez e passou verde com a página se contradizendo. O
+que o cliente lê é a página inteira, então o cruzamento é que precisa ser
+provado. `verifica:karyne-conversao` passou a exigir, além do que já exigia:
+
+1. a soma das linhas da tabela de grupos fecha com o total dela **e** com a
+   faixa, em investimento, cliques e resultado;
+2. o custo por resultado de cada linha é mesmo investimento ÷ resultado;
+3. a soma da série diária é o resultado da faixa **e** a frase impressa na tela
+   diz essa soma — a observação é conferida contra o dado, não escrita à mão;
+4. tabela parcial declara cobertura e nunca passa o total da conta;
+5. as bases de junho da faixa são as mesmas da evolução do ano, e o custo por
+   resultado de junho sai do investimento e do resultado daquele mês;
+6. toda variação impressa sai do próprio par valor/base, na casa decimal que
+   cada métrica publica.
+
+Cada uma dessas seis travas foi provada quebrando o dado de propósito e
+conferindo que a regressão reprova.
+
+Dois defeitos menores da mesma rodada foram fechados junto:
+
+**O comentário do código afirmava um caso que não existe mais.** O bloco acima
+de `evolucaoMeta` dizia que março não teve veiculação e que a série exercitava
+ali a diferença entre ausência e zero — o dado governado veiculou nos sete
+meses, e o comentário virou falso sem ninguém mexer nele. Foi reescrito para
+descrever a série que existe (a observação de vigência mês a mês) e para apontar
+onde a distinção **de fato** aparece na página: os dias 19 e 20 da série diária,
+que interrompem a linha, e o grupo de anúncios pausado, com zero medido em
+investimento e resultado mas CTR e CPC não aplicáveis. Não inventar um mês vazio
+só para exercitar a regra.
+
+**O glossário explicava a mesma coisa duas vezes.** Ao trocar `mensagens` por
+`conversoes` na montagem, a lista colidiu com um `conversoes` que já estava lá —
+e `termosDoGlossario` não deduplicava, então o cliente lia "Conversões" e "Custo
+por conversão" repetidos, com aviso de chave repetida no React. **A correção foi
+no catálogo, não na montagem da Karyne:** repetição some na primeira ocorrência
+dentro de `termosDoGlossario`, o que vale para todo cliente, inclusive os que
+ainda não existem. A lista da Karyne foi limpa junto, para a configuração dizer
+o que quer dizer. As duas pontas têm regressão — a montagem não pode repetir, e
+o catálogo tem que deduplicar mesmo se ela repetir —, e as duas foram provadas
+quebrando o código de propósito. O glossário na tela passou de 9 termos com 2
+repetidos para 7 sem repetição.
+
+**Estado: publicado em produção em 12/08/2026**, com autorização do Flávio, pela
+branch `fix/karyne-fechamento-blocos`. Build limpo, 3 rotas institucionais
+pré-renderizadas e relatórios fora do sitemap.
 
 ---
 
