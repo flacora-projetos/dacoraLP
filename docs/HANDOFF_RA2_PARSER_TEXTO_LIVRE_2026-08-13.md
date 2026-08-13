@@ -50,6 +50,8 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
 ## Correção do corte por provider
 
 - Branch: `codex/ra2-resposta-completa`, criada de `origin/main/a406422`.
+- Commit local: `297c502` (`fix(ra2): rejeitar sugestao truncada`). Ainda sem
+  push, merge ou publicação neste ponto do registro.
 - O request passa de `max_tokens: 900` para `1600` e pede poucos parágrafos
   completos, mantendo a proposta concisa sem tratar o antigo teto de caracteres
   como contrato editorial.
