@@ -13,13 +13,15 @@ smoke autenticado aprovados pelo Flávio em desktop e celular** ·
 merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 <https://www.dacora.com.br/painel-de-relatorios>.
 O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
-Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`. A
-validação nominal da Fernanda ainda não foi registrada e é o Gate 3 que fecha o
-visual antes de nova implementação. **Exceção autorizada pelo Flávio em 2026-08-12:** antes desse
-gate, executar a limpeza de linguagem C1/C2/C3 para a Fernanda avaliar já a versão limpa. Ela foi
-implementada na branch `codex/limpeza-relatorios-gate3`, ainda sem publicação: diagnóstico técnico
-fica na fila interna, texto de cliente recebe vocabulário humano e palavras-chave/termos/ranking de
-criativos abrem resumidos com `ver mais`, preservando conteúdo completo em HTML e impressão/PDF.
+Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`.
+**Prioridade vigente desde 2026-08-13:** a validação nominal da Fernanda fica
+depois da frente **RA — Revisão Analítica Assistida dos Relatórios Mensais**,
+organizada em
+`OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
+A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
+C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
+sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
+publicada isoladamente para retomar o Gate 3.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -42,8 +44,9 @@ já filtrada. Entrou na `main` pelo merge `6bc5b37`. Detalhe na seção 12.
 **P3 concluída em 2026-08-11:** aprovar e recusar existem de ponta a ponta — migração aplicada,
 endpoint que grava com read-back e auditoria, tela de revisão com eco literal
 antes de gravar, e o estado `recusado` presente na fila e na visão geral. A
-branch foi integrada e publicada; **nenhum relatório real foi aprovado ou
-recusado.** Detalhe na seção 13.
+branch foi integrada e publicada. Esse era o estado no fechamento técnico da
+fase; depois, o relatório Dr. Lucas v3 recebeu a primeira aprovação real, já
+registrada na auditoria. Detalhe na seção 13 e no handoff vigente da fábrica.
 **P4 e worker controlado integrados e publicados em 2026-08-11:** a recusa
 cria a ordem ligada à versão/checksum e uma saída idempotente. O portal entrou
 na `main` pelo merge `9c987b2` e mostra os estados reais `pendente`, `reservado`,
@@ -54,11 +57,13 @@ relatório real foi decidido e nenhuma mensagem foi enviada. Detalhe na seção 
 portal lê o contrato P5A somente no servidor, mostra o destinatário canônico
 antes de oferecer **Enviar** e **Agora não**, cria uma intenção idempotente e só
 usa a palavra “enviado” quando o read-back traz recibo confirmado. A migração da
-fábrica está aplicada, mas a leitura remota confirmou zero recipients
-sincronizados e zero itens acionáveis; por isso a interface falha fechada e não
-oferece envio enganoso. O worker continua sem execução ou agenda e não houve
-decisão nem envio real. Detalhe na seção 15.
-**Última atualização:** 2026-08-12
+fábrica está aplicada. A leitura remota de fechamento da fase ainda tinha zero
+recipients; desde então, quatro destinatários canônicos foram sincronizados
+(Karyne, Dr. Lucas, Zenun e Maria Nazaré), Dr. Lucas v3 tornou-se elegível e o
+worker P5 entrou em execução controlada por heartbeat. Isso não prova envio ao
+cliente: intenção, processamento, recibo e entrega real continuam estados
+distintos. Detalhe na seção 15 e no handoff vigente da fábrica.
+**Última atualização:** 2026-08-13
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
 
@@ -74,21 +79,28 @@ custou caro descobrir.
 > canônicos aplicáveis antes de validação, commit, merge ou push. Atualize a
 > fonte vigente; não reescreva histórico concluído nem crie diário cumulativo.
 
+> Na RA, a regra é ainda mais explícita: implementação, teste, commit, push,
+> merge, publicação e validação em produção são eventos diferentes. Cada evento
+> ocorrido deve ser registrado na mesma sessão; a ausência do registro significa
+> que o estado não está comprovado.
+
 ---
 
 ## 1. Situação em uma frase
 
-**A fila do mês está em produção, lendo do banco, com 34 relatórios correntes da
-competência 2026-07.** A P2 está concluída e publicada: a fila abre o relatório completo
+**A fila do mês está em produção e lê do banco os mensais externos e os quatro
+pilotos internos da competência 2026-07.** A P2 está concluída e publicada: a fila abre o relatório completo
 dentro da bancada, com deep-link e faixa responsiva;
 carregamento ou erro nunca mostram controles de decisão. O Flávio concluiu e
 aprovou o smoke autenticado em desktop e celular. O catálogo visual dos
 relatórios foi redesenhado e publicado depois da P2, sem mudar snapshot,
 checksum ou estado. A organização por carteira/produto está em produção desde
 2026-08-09. A visão geral da operação entrou na `main` em 2026-08-10. O Gate 3
-da Fernanda continua aberto para Karyne e Aviarte. **A P3 foi concluída em
+da Fernanda continua aberto para Karyne e Aviarte, mas só volta depois da etapa
+RA aplicável. **A P3 foi concluída em
 2026-08-11**, por autorização do Flávio, com migração aplicada, integração e
-publicação — sem nenhuma decisão sobre relatório real (seções 7 e 13).
+publicação; a primeira decisão real posterior foi a aprovação de Dr. Lucas v3
+(seções 7 e 13).
 As migrações `0006` e `0007` da P4 foram aplicadas e provadas no Supabase. O
 portal foi integrado, publicado e conferido com sessão real sem decidir nenhum
 relatório. A P5B foi integrada na `main`, publicada e conferida em produção sem
@@ -678,33 +690,34 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Gate 3 da Fernanda:** validar nominalmente os relatórios completos
-   publicados de Karyne (serviços/leads) e Aviarte (e-commerce): leitura,
-   conteúdo, estados indisponíveis, tabelas e acabamento. Registrar o resultado;
-   o GO visual do Flávio não substitui esse gate de uso.
-2. **P3 concluída:** a migração `0005` foi aplicada, a implementação integrada
-   na `main` e publicada. Usar os botões em relatório real continua dependendo
-   da validação do documento; construir o guardrail não carimba nenhum GO.
-3. **P4 concluída:** banco, worker e portal estão publicados. O worker não foi
-   agendado nem acoplado ao runtime; executar uma mensagem continua dependendo
-   de recusa real, gate explícito e executor habilitado naquele processo.
-4. **P5B concluída:** branch revisada, integrada e publicada sem decisão ou envio
-   real. Com zero recipients sincronizados e zero itens acionáveis, o painel
-   permanece fechado e não oferece a ação. Resta apenas repetir o smoke visual
-   autenticado quando houver uma sessão existente, sempre sem clicar em
-   **Enviar**; o diálogo acionável continua provado somente por dublê.
-5. **P6 permanece fora desta entrega. P7 foi retirada da frente pela
+1. **RA0 nesta sessão; RA1 na próxima sessão em BG:** a organização, os gates e
+   o livro de eventos ficam no documento canônico da RA. RA1 deve mapear o
+   contexto factual e definir o contrato da introdução antes de qualquer botão
+   com modelo.
+2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
+   primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
+   de revisão, nunca no relatório já aprovado ou público.
+3. **C1/C2/C3 preservada como insumo:** não integrar/publicar isoladamente a
+   branch `codex/limpeza-relatorios-gate3`; absorver o que for útil na fase RA
+   correspondente e validar a página inteira.
+4. **P3–P5 continuam operacionais:** Dr. Lucas v3 já teve decisão real; quatro
+   recipients foram sincronizados e o worker P5 roda sob controle. Nenhum desses
+   fatos autoriza decisão, recusa, correção ou envio adicional nesta frente.
+5. **Gate 3 da Fernanda depois da RA aplicável:** validar nominalmente Karyne e
+   Aviarte já com a experiência analítica definida, sem confundir GO visual com
+   autorização de publicação ou envio.
+6. **P6 permanece fora desta entrega. P7 foi retirada da frente pela
    coordenação** e não deve ser reintroduzida como pendência.
-6. **Karyne v8/v9:** não há pendência técnica do painel registrada para essas
+7. **Karyne v8/v9:** não há pendência técnica do painel registrada para essas
    versões; qualquer decisão ou envio real continua sujeito aos gates de negócio.
 
 **Dashboard operacional — D0 fechado pelo Flávio e D1/D2 integradas na `main`
 em 2026-08-10** (merge `6bc5b37`). O que existe está na seção 12. As fases D3
 (tempos de ciclo, aprovação e recusa) e D4 (evolução entre competências)
-continuam dependendo de eventos que ainda não existem: **D3 passa a ter matéria
-prima quando a P3 estiver aplicada e alguém decidir de verdade** — hoje ainda
-não há uma aprovação ou recusa feita pelo painel para medir —, e D4 depende de
-uma segunda competência real. Nada disso entra por inferência, e o dashboard
+continuam dependentes de evidência suficiente: **D3 já recebeu sua primeira
+matéria-prima com a aprovação real de Dr. Lucas v3**, mas um evento isolado não
+forma uma métrica operacional útil; D4 depende de uma segunda competência real.
+Nada disso entra por inferência, e o dashboard
 continua sem transformar relatório fechado em BI ao vivo. Especificação:
 `OpenClaw-Dacora/docs/HANDOFF_DASHBOARD_OPERACIONAL_RELATORIOS_2026-08-10.md`.
 
@@ -1425,6 +1438,12 @@ Qualquer mensagem real permanece uma operação governada posterior, não um
 efeito automático desta publicação.
 
 ## 15. Intenção de envio ao cliente (P5B)
+
+> **Atualização vigente de 2026-08-13:** os parágrafos abaixo preservam a prova
+> do fechamento original da fase em 2026-08-11. Depois deles, quatro recipients
+> canônicos foram sincronizados, Dr. Lucas v3 tornou-se elegível e o worker P5
+> passou a executar por heartbeat controlado. Não houve autorização nesta sessão
+> para nova decisão, intenção ou envio; consulte o handoff vigente da fábrica.
 
 **Estado: integrada na `main` pelo merge normal `4ad29ee`, corrigida contra o
 contrato remoto em `4045c6e` e publicada. Nenhum relatório real foi aprovado,
