@@ -28,16 +28,17 @@ local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
-O estado é **RA2 publicada, reprovada pela terceira vez no uso real e em nova
-correção de produto**. Contraste, contexto legado e envelope já foram corrigidos;
-a geração seguinte morreu porque a regex numérica exigiu correspondência literal
-de cada número. Por decisão do Flávio, esse veto sai: o Sonnet recebe o que já está
-escrito no relatório e propõe livremente; comparação lado a lado e revisão humana
-são o gate. O pacote agora inclui introdução, fatos, relações, destaques, atenção,
-próximos passos, seções, tabelas, evolução mensal, quebras e séries, sem assets ou
-paths. Auth, checksum e auditoria permanecem. `verifica:analise`,
-`verifica:revisao` e build completo passaram; ainda não publicado neste marco.
-Sem decisão ou envio.
+O estado é **correção definitiva da RA2 publicada em produção**. Contraste,
+contexto legado e envelope já haviam sido corrigidos; a geração seguinte morreu
+porque a regex numérica exigiu correspondência literal de cada número. Por decisão
+do Flávio, esse veto saiu: o Sonnet recebe o que já está escrito no relatório e
+propõe livremente; comparação lado a lado e revisão humana são o gate. O pacote
+inclui introdução, fatos, relações, destaques, atenção, próximos passos, seções,
+tabelas, evolução mensal, quebras e séries, sem assets ou paths. Auth, checksum e
+auditoria permanecem. `main/4b58f06` foi publicada pelo deployment Production
+`DtnTufoUrHwaweCZ5aXk1f4Z1oee`, concluído com sucesso. Raiz/painel deram HTTP 200,
+API sem sessão 401 e navegador público desktop/celular renderizou sem overlay ou
+erro. Falta o teste editorial autenticado do Flávio. Sem decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
