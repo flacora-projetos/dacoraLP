@@ -982,20 +982,32 @@ horizontal móvel causada pelos rótulos de unidade e pela tabela de campanhas.
 Karyne passou com oito gráficos em desktop e celular; Aviarte passou nos dois
 tamanhos. Nenhum banco remoto foi alterado.
 
-### 11.9 Pendência de dado histórico da Karyne — pertence à fábrica
+### 11.9 Vigência histórica da Karyne — resolvida na fábrica e travada no portal
 
-Até 21/06/2026, as campanhas da Karyne levavam direto ao WhatsApp e o resultado
-otimizado era **mensagens iniciadas**. A partir de 22/06/2026, passaram a usar a
-conversão do site. A evolução anual atual aplica o evento novo retroativamente e
-por isso deixa de contar as mensagens dos meses anteriores: janeiro a junho
-ficam historicamente errados, embora os dados atuais não sejam afetados.
+A fábrica já resolve a definição de resultado por **vigência**: até 21/06/2026 a
+campanha principal da Meta contava conversas iniciadas; desde 22/06/2026 a
+landing page usa `offsite_conversion.fb_pixel_custom`. No Google, a ação antiga
+`Contato WhatsApp` também dá lugar a `22-06 - Whatsapp LP de Leads` pela mesma
+regra temporal. Junho é misto nas duas plataformas.
 
-Não é correção do painel: ele reproduz fielmente o snapshot persistido. A
-fábrica no `OpenClaw-Dacora` deve rastrear qual evento de conversão cada
-campanha/conjunto otimizava em cada período, por ID e vigência, e agregar cada
-mês com a definição que valia naquele momento. Nunca aplicar a conversão atual
-ao histórico inteiro. A pendência precisa ser resolvida antes de escalar a
-montagem para mais relatórios com mudança de objetivo ao longo do tempo.
+Em 12/08/2026 foi encontrado um desvio exclusivamente na demonstração legada
+`karyne-montada-2026-07.ts`: ela ainda carregava a hipótese antiga hardcoded e
+bypassava a resolução já corrigida na fábrica. O hotfix sincronizou o fixture
+com o contrato validado: Meta janeiro–julho = **108, 138, 164, 237, 248, 85,
+22**; Google = **30, 33, 35, 39, 28, 36, 16**; julho mostra 22 leads no Meta e
+16 no Google. Junho preserva explicitamente 80 conversas + 5 leads no Meta e
+30 da ação antiga + 6 da nova no Google.
+
+A regressão `verifica:karyne-conversao` entra no `prebuild`: o deploy falha se
+mensagens voltarem a ser o KPI primário de julho, se a ação nova for retroagida
+ou se junho deixar de respeitar as duas vigências. A comparação mensal continua
+usando o resultado governado total do mês anterior (`85` Meta / `36` Google em
+junho); **não foi criada exceção 6/6**. Como junho mistura duas definições de
+resultado, a leitura da demo explica explicitamente que a queda de volume e a
+alta do custo por lead refletem também a mudança de funil para leads mais
+qualificados. A partir de agosto, a comparação tende a voltar a ser homogênea
+naturalmente. A fábrica continua sendo a fonte de verdade; o portal não deve
+manter uma segunda definição de conversão.
 
 ---
 
