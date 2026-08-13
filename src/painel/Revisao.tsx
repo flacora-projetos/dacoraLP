@@ -13,7 +13,7 @@
  * por conta própria e resolve **quem decidiu pela sessão**, ignorando qualquer
  * identidade que o navegador mandasse. Esta tela só mostra e pergunta.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import RelatorioMontado from '../reports/RelatorioMontado';
@@ -23,6 +23,7 @@ import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
 import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
 import type { EstadoSeguroDoEnvioP5, ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 import { useLinkDeVoltaParaFila } from './linkDeVolta';
+import { AnaliseIntroducao, type AcaoDaIntroducao, type SugestaoDaIntroducao } from './AnaliseIntroducao';
 
 export function RevisaoApresentada({
   relatorio,
@@ -30,13 +31,21 @@ export function RevisaoApresentada({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  aoAnalisarIntroducao,
 }: {
   relatorio: RelatorioDaRevisao | null;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
 }) {
+  const [introducaoRevisada, setIntroducaoRevisada] = useState<string | null>(null);
+  const snapshotDaRevisao = useMemo(() => {
+    if (!relatorio || !introducaoRevisada) return relatorio?.snapshot;
+    return { ...relatorio.snapshot, leitura: { ...relatorio.snapshot.leitura, resumoExecutivo: [{ texto: introducaoRevisada, sustentadaPor: [] }] } };
+  }, [relatorio, introducaoRevisada]);
+  const introducaoOriginal = relatorio?.snapshot.leitura.resumoExecutivo.map((item) => item.texto).join('\n\n') ?? '';
   return <RevisaoMoldura
     relatorio={relatorio}
     quem={quem}
@@ -45,13 +54,19 @@ export function RevisaoApresentada({
     aoSolicitarEnvio={aoSolicitarEnvio}
   >{relatorio ? (
     <RelatorioMontado
-      snapshot={relatorio.snapshot}
+      snapshot={snapshotDaRevisao ?? relatorio.snapshot}
       proposta="B"
       competencias={[{
         competencia: relatorio.competencia,
         rotulo: formatarCompetencia(relatorio.competencia),
         publicada: relatorio.estado === 'liberado' || relatorio.estado === 'enviado',
       }]}
+      introducaoDaRevisao={aoAnalisarIntroducao && relatorio.podeDecidir ? <AnaliseIntroducao
+        original={introducaoOriginal}
+        podeRevisar={relatorio.podeDecidir === true}
+        aoAcionar={aoAnalisarIntroducao}
+        aoMudarTexto={setIntroducaoRevisada}
+      /> : undefined}
     />
   ) : null}</RevisaoMoldura>;
 }
@@ -245,6 +260,23 @@ export function RevisaoComSessao({
     }
   }, [relatorio, usuarioId]);
 
+  const analisarIntroducao = useCallback(async (
+    acao: AcaoDaIntroducao,
+    sugestao?: SugestaoDaIntroducao,
+    texto?: string,
+  ): Promise<SugestaoDaIntroducao | null> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id || !relatorioAtual.checksum) throw new Error('A sessão expirou. Reabra a revisão — nada foi alterado.');
+    const url = `/api/painel-analise-introducao?id=${encodeURIComponent(relatorioAtual.id)}&checksum=${encodeURIComponent(relatorioAtual.checksum)}`;
+    const resposta = acao === 'carregar'
+      ? await fetch(url, { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } })
+      : await fetch('/api/painel-analise-introducao', { method: 'POST', headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: relatorioAtual.id, checksum: relatorioAtual.checksum, acao, sugestaoId: sugestao?.id, ...(acao === 'editar' ? { texto } : {}) }) });
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'A análise está indisponível agora.'));
+    return corpo?.sugestao ?? null;
+  }, [relatorio, usuarioId]);
+
   if (carregando) {
     return (
       <section className="dcp-revisao__carregando" aria-busy="true" aria-live="polite">
@@ -280,6 +312,7 @@ export function RevisaoComSessao({
       aoDecidir={decidir}
       aoCarregarEnvio={carregarEnvio}
       aoSolicitarEnvio={solicitarEnvio}
+      aoAnalisarIntroducao={analisarIntroducao}
     />
   );
 }

@@ -16,6 +16,11 @@ import { nomePlataforma } from '../src/reports/componentes.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 import { checksumDoConteudo } from './checksum-relatorio.mts';
 
+const fonteRevisaoLocal = readFileSync(new URL('../src/pages/PainelRevisaoLocal.tsx', import.meta.url), 'utf8');
+assert.match(fonteRevisaoLocal, /karyneMontada202607/, 'a rota local precisa partir da fixture governada');
+assert.doesNotMatch(fonteRevisaoLocal, /snapshot\.analysisContext\s*=/, 'a rota local não pode injetar contexto analítico manual');
+assert.doesNotMatch(fonteRevisaoLocal, /967\.73|1100\.5/, 'a rota local não pode reintroduzir bases inventadas');
+
 const ID = '11111111-1111-4111-8111-111111111111';
 const { publicacao: _publicacao, ...conteudoDaFixture } = karyneMontada202607;
 const conteudo = {
@@ -89,6 +94,29 @@ assert.ok(relatorio, 'a linha válida precisa montar a revisão');
 assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum precisa vir da coluna persistida');
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
+
+{
+  const comContexto: any = structuredClone(relatorio);
+  comContexto.snapshot.analysisContext = {
+    versao: 'analysis_context_v1',
+    competencia: '2026-07',
+    fatos: [{
+      id: 'meta_investimento', plataforma: 'meta', tipo: 'investimento', rotulo: 'Investimento', unidade: 'brl', atual: 1234.5,
+      competenciaBase: '2026-06', base: 1000, variacao: 0.2345,
+    }],
+    relacoes: [{
+      tipo: 'cpm_entrega', plataforma: 'meta', sustentadaPor: ['meta_cpm', 'meta_impressoes'],
+      texto: 'CPM subiu enquanto as impressões caíram.',
+    }],
+    limitacoes: [{ id: 'meta_cpc', motivo: 'comparacao_indisponivel' }],
+  };
+  const htmlContexto = renderToStaticMarkup(createElement(MemoryRouter, null,
+    createElement(RevisaoMoldura, { relatorio: comContexto }, createElement('div', null, 'Documento')),
+  ));
+  assert.match(htmlContexto, /O que a análise recebeu/);
+  assert.match(htmlContexto, /Investimento.*R\$\s*1\.234,50.*base R\$\s*1\.000,00.*variação \+23,5%/);
+  assert.match(htmlContexto, /CPM subiu enquanto as impressões caíram/);
+}
 
 const dadosVazios: DadosDeBloco = {
   faixas: {},
@@ -385,6 +413,7 @@ assert.equal((html.match(/ disabled=""/g) ?? []).length, 2, 'sem canal de decis�
 assert.ok(html.includes('href="#'), 'sinal de atenção precisa navegar para a seção relevante');
 assert.ok(html.includes('id="qualidade"') || html.includes('id="resumo"'), 'o alvo precisa existir no relatório');
 assert.ok(html.includes('href="/painel-de-relatorios"'), 'faltou voltar para a fila por navegação semântica');
+assert.ok(!html.includes('O que a análise recebeu'), 'o contexto interno não pode aparecer sem a moldura de revisão');
 
 // FLUTUANTE, sempre — nunca preso no topo do documento, senão relatório
 // longo obriga a rolar até lá para voltar (pedido do Flávio, 2026-08-12).
