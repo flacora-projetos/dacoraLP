@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { rotuloDaAuditoria } from './modoAnalise';
 
 export interface EspacoAnaliticoSeguro { secao: string; blocoId: string; titulo: string; objetivo: string; }
-export interface SugestaoSecao { id: string; secao: string; estado: string; texto: string; checksum: string; }
+export interface SugestaoSecao { id: string; secao: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
 export interface ContextoMesSeguro { texto: string; atualizadoPor?: string; atualizadoEm?: string; }
 export type AcaoAnalisesUI = 'carregar' | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer';
 export interface ResultadoAnalisesUI { contexto?: ContextoMesSeguro | null; sugestoes?: SugestaoSecao[]; sugestao?: SugestaoSecao | null; espacos?: EspacoAnaliticoSeguro[]; }
@@ -154,6 +155,7 @@ export function AnaliseDaSecao({ secao }: { secao: string }) {
         </div>
         {sugestao && sugestao.estado !== 'desfeita' && (
           <div className="dcp-analise-secao__sugestao">
+            {sugestao.modelo && <small className="dcp-analise-modelo">{rotuloDaAuditoria(sugestao.modelo)}</small>}
             {editando ? <textarea aria-label={`Editar análise de ${espaco.titulo}`} rows={7} value={texto} onChange={(evento) => setTexto(evento.target.value)} /> : <p>{sugestao.texto}</p>}
             <div className="dcp-analise-secao__acoes">
               {editando ? <>

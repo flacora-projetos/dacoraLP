@@ -1,4 +1,7 @@
 export type ProvedorAnalise = 'deepseek' | 'sonnet';
+export type ModoAnalise = 'automatico' | 'deepseek_flash' | 'deepseek_pro' | 'sonnet';
+type ModeloDeepSeek = 'flash' | 'pro';
+type EtapaRoteamento = ModeloDeepSeek | 'sonnet';
 
 type UsoModelo = {
   entrada?: number;
@@ -6,6 +9,7 @@ type UsoModelo = {
   total?: number;
   cacheEntrada?: number;
   raciocinio?: number;
+  custoUsd?: number;
 };
 
 type FalhaProvider = {
@@ -20,6 +24,7 @@ type RespostaProvider =
 
 export type PedidoAnaliseAssistida<T> = {
   operacao: 'introducao' | 'secoes';
+  modo?: ModoAnalise;
   system: string;
   conteudo: string;
   interpretar: (texto: string) => T | null;
@@ -41,6 +46,7 @@ const SONNET_URL = 'https://api.anthropic.com/v1/messages';
 const DEEPSEEK_MAX_TOKENS_PADRAO = 16_384;
 const SONNET_MAX_TOKENS_PADRAO = 4_000;
 const TIMEOUT_MS_PADRAO = 50_000;
+const ORDEM_PADRAO: EtapaRoteamento[] = ['flash', 'pro', 'sonnet'];
 
 function inteiroDoEnv(nome: string, padrao: number, minimo: number, maximo: number): number {
   const valor = Number(process.env[nome]);
@@ -51,6 +57,31 @@ function provedorPrimario(): ProvedorAnalise {
   return String(process.env.MONTHLY_REPORT_ANALYSIS_PRIMARY_PROVIDER ?? 'deepseek').trim().toLowerCase() === 'sonnet'
     ? 'sonnet'
     : 'deepseek';
+}
+
+function ordemConfigurada(): EtapaRoteamento[] {
+  if (provedorPrimario() === 'sonnet') return ['sonnet'];
+  const configurada = String(process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER ?? '').trim();
+  if (!configurada) return ORDEM_PADRAO;
+  const permitidas = new Set<EtapaRoteamento>(ORDEM_PADRAO);
+  const etapas = configurada.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean) as EtapaRoteamento[];
+  if (etapas.length === 0 || etapas.some((etapa) => !permitidas.has(etapa)) || new Set(etapas).size !== etapas.length) return ORDEM_PADRAO;
+  return etapas;
+}
+
+function ordemDoModo(modo: ModoAnalise): EtapaRoteamento[] {
+  if (modo === 'deepseek_flash') return ['flash'];
+  if (modo === 'deepseek_pro') return ['pro'];
+  if (modo === 'sonnet') return ['sonnet'];
+  return ordemConfigurada();
+}
+
+function configuracaoDeepSeek(etapa: ModeloDeepSeek) {
+  const prefixo = etapa === 'flash' ? 'FLASH' : 'PRO';
+  return {
+    modelo: String(process.env[`MONTHLY_REPORT_ANALYSIS_DEEPSEEK_${prefixo}_MODEL`] ?? '').trim(),
+    maxTokens: inteiroDoEnv(`MONTHLY_REPORT_ANALYSIS_DEEPSEEK_${prefixo}_MAX_TOKENS`, DEEPSEEK_MAX_TOKENS_PADRAO, 4_096, 65_536),
+  };
 }
 
 function modeloSonnet(operacao: PedidoAnaliseAssistida<unknown>['operacao']): string {
@@ -69,6 +100,8 @@ function usoDeepSeek(bruto: any): UsoModelo | undefined {
   if (Number.isFinite(bruto.total_tokens)) uso.total = bruto.total_tokens;
   if (Number.isFinite(bruto.prompt_cache_hit_tokens)) uso.cacheEntrada = bruto.prompt_cache_hit_tokens;
   if (Number.isFinite(bruto.completion_tokens_details?.reasoning_tokens)) uso.raciocinio = bruto.completion_tokens_details.reasoning_tokens;
+  if (Number.isFinite(bruto.cost)) uso.custoUsd = bruto.cost;
+  else if (Number.isFinite(bruto.total_cost)) uso.custoUsd = bruto.total_cost;
   return Object.keys(uso).length > 0 ? uso : undefined;
 }
 
@@ -99,14 +132,13 @@ async function comTimeout(
 
 async function chamarDeepSeek(
   pedido: PedidoAnaliseAssistida<unknown>,
+  etapa: ModeloDeepSeek,
   condensar: boolean,
   deps: Required<Pick<Dependencias, 'fetch' | 'timeoutMs'>>,
 ): Promise<RespostaProvider> {
   const apiKey = String(process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY ?? '').trim();
-  const modelo = String(process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL ?? '').trim();
+  const { modelo, maxTokens } = configuracaoDeepSeek(etapa);
   if (!apiKey || !modelo) return { ok: false, provider: 'deepseek', modelo: modelo || 'nao_configurado', falha: { motivo: 'configuracao_indisponivel' } };
-
-  const maxTokens = inteiroDoEnv('MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MAX_TOKENS', DEEPSEEK_MAX_TOKENS_PADRAO, 4_096, 65_536);
   const system = condensar
     ? `${pedido.system}\n\nA tentativa anterior alcançou o limite de saída. Refaça desde o início de forma mais condensada, preserve todos os itens obrigatórios e encerre a resposta completa.`
     : pedido.system;
@@ -215,21 +247,22 @@ export async function gerarAnaliseAssistida<T>(
   const agora = dependencias.agora ?? Date.now;
   const telemetria = dependencias.telemetria ?? ((evento: Record<string, unknown>) => console.info(JSON.stringify(evento)));
   const deps = { fetch: fetchFn, timeoutMs };
-  const primario = provedorPrimario();
-  const ordem: ProvedorAnalise[] = primario === 'deepseek' ? ['deepseek', 'sonnet'] : ['sonnet'];
+  const modo = pedido.modo ?? 'automatico';
+  const ordem = ordemDoModo(modo);
   let tentativa = 0;
   let motivoFallback: string | undefined;
 
-  for (const provider of ordem) {
+  for (const etapa of ordem) {
+    const provider: ProvedorAnalise = etapa === 'sonnet' ? 'sonnet' : 'deepseek';
     const maxTentativas = provider === 'deepseek' ? 2 : 1;
     for (let indice = 0; indice < maxTentativas; indice += 1) {
       tentativa += 1;
       const inicio = agora();
       const resposta = provider === 'deepseek'
-        ? await chamarDeepSeek(pedido, indice === 1, deps)
+        ? await chamarDeepSeek(pedido, etapa as ModeloDeepSeek, indice === 1, deps)
         : await chamarSonnet(pedido, deps);
       const latenciaMs = Math.max(0, agora() - inicio);
-      telemetria(eventoDaTentativa(resposta, pedido, tentativa, latenciaMs, motivoFallback));
+      telemetria({ ...eventoDaTentativa(resposta, pedido, tentativa, latenciaMs, motivoFallback), modoSelecionado: modo });
 
       if (resposta.ok === true) {
         const resultado = pedido.interpretar(resposta.texto);
@@ -237,6 +270,7 @@ export async function gerarAnaliseAssistida<T>(
           telemetria({
             evento: 'monthly_report_analysis_provider_final',
             operacao: pedido.operacao,
+            modoSelecionado: modo,
             providerFinal: resposta.provider,
             modelo: resposta.modelo,
             finishReason: resposta.finishReason,
@@ -244,21 +278,21 @@ export async function gerarAnaliseAssistida<T>(
             uso: resposta.uso ?? null,
             fallbackMotivo: motivoFallback ?? null,
           });
-          return { ok: true, provider: resposta.provider, modelo: resposta.modelo, modeloAuditavel: `${resposta.provider}/${resposta.modelo}`, resultado, finishReason: resposta.finishReason, uso: resposta.uso };
+          return { ok: true, provider: resposta.provider, modelo: resposta.modelo, modeloAuditavel: `${modo}/${resposta.provider}/${resposta.modelo}`, resultado, finishReason: resposta.finishReason, uso: resposta.uso };
         }
-        motivoFallback = `${provider}:resposta_incompleta`;
-        telemetria({ evento: 'monthly_report_analysis_provider_validation', operacao: pedido.operacao, providerTentado: provider, modelo: resposta.modelo, resultado: 'incompleto', fallbackMotivo: motivoFallback });
+        motivoFallback = `${provider}:${resposta.modelo}:resposta_incompleta`;
+        telemetria({ evento: 'monthly_report_analysis_provider_validation', operacao: pedido.operacao, modoSelecionado: modo, providerTentado: provider, modelo: resposta.modelo, resultado: 'incompleto', fallbackMotivo: motivoFallback });
         break;
       }
 
       const falha = resposta.falha;
-      motivoFallback = `${provider}:${falha.motivo}${falha.finishReason ? `:${falha.finishReason}` : ''}`;
+      motivoFallback = `${provider}:${resposta.modelo}:${falha.motivo}${falha.finishReason ? `:${falha.finishReason}` : ''}`;
       const deveCondensar = provider === 'deepseek' && indice === 0 && falha.motivo === 'finish_reason' && falha.finishReason === 'length';
       if (!deveCondensar) break;
     }
   }
 
-  telemetria({ evento: 'monthly_report_analysis_provider_final', operacao: pedido.operacao, providerFinal: null, resultado: 'falha_dupla', fallbackMotivo: motivoFallback ?? null });
+  telemetria({ evento: 'monthly_report_analysis_provider_final', operacao: pedido.operacao, modoSelecionado: modo, providerFinal: null, resultado: 'falha_cadeia', fallbackMotivo: motivoFallback ?? null });
   return {
     ok: false,
     status: 502,

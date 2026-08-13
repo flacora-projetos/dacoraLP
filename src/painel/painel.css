@@ -1914,6 +1914,18 @@
 
 .dcp-analise-introducao .dcp-eyebrow { color: var(--dc-verde-medio); }
 
+.dcp-modo-analise {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 0.65rem;
+  background: var(--dc-superficie);
+}
+.dcp-modo-analise label { display: block; margin-bottom: 0.35rem; color: var(--dc-tinta); font-weight: 650; }
+.dcp-modo-analise select { max-width: 100%; min-height: 44px; padding: 0.55rem 0.7rem; border: 1px solid var(--dc-filete-forte); border-radius: 0.45rem; background: var(--dc-canvas); color: var(--dc-tinta); font: inherit; }
+.dcp-modo-analise p { margin: 0.45rem 0 0; color: var(--dc-cinza); font-size: 0.8rem; line-height: 1.45; }
+.dcp-analise-modelo { display: block; margin-top: 0.25rem; color: var(--dc-cinza); font-size: 0.74rem; line-height: 1.4; }
+
 .dcp-analise-introducao .dcp-botao--primario {
   background: var(--dc-verde);
   color: #fff;

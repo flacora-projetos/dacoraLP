@@ -90,7 +90,9 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-teste';
 process.env.PAINEL_EMAILS_AUTORIZADOS = 'revisor@exemplo.com';
 process.env.MONTHLY_REPORT_ANALYSIS_PRIMARY_PROVIDER = 'deepseek';
 process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY = 'chave-deepseek-de-teste';
-process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL = 'deepseek-v4-pro';
+process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = 'flash,pro,sonnet';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_FLASH_MODEL = 'deepseek-v4-flash';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_PRO_MODEL = 'deepseek-v4-pro';
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
 process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-5';
 
@@ -172,7 +174,7 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.equal((rpc.corpo as any).p_por, 'revisor@exemplo.com');
   assert.equal((rpc.corpo as any).p_relatorio_id, ID);
   assert.ok((rpc.corpo as any).p_contexto_hash, 'a sugestão precisa ficar vinculada ao contexto relido');
-  assert.equal((rpc.corpo as any).p_modelo, 'deepseek/deepseek-v4-pro', 'a auditoria registra provider e modelo reais');
+  assert.equal((rpc.corpo as any).p_modelo, 'automatico/deepseek/deepseek-v4-flash', 'a auditoria registra modo, provider e modelo reais');
 }
 
 {
@@ -210,7 +212,7 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.equal(resposta.status, 502, 'truncamento duplo não pode exibir sugestão pronta');
   assert.equal(resposta.corpo.erro, 'analise_indisponivel');
   assert.equal(chamadas.some((item) => item.url.includes('/rpc/')), false, 'texto truncado não pode persistir na auditoria');
-  assert.equal(chamadas.filter((item) => item.url.includes('api.deepseek.com')).length, 2, 'há somente uma condensação DeepSeek');
+  assert.equal(chamadas.filter((item) => item.url.includes('api.deepseek.com')).length, 4, 'Flash e Pro fazem no máximo uma condensação cada, sem loop');
   stopReason = 'stop';
   stopReasonSonnet = 'end_turn';
 }

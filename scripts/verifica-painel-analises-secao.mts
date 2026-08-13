@@ -101,7 +101,9 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-teste';
 process.env.PAINEL_EMAILS_AUTORIZADOS = 'revisor@exemplo.com';
 process.env.MONTHLY_REPORT_ANALYSIS_PRIMARY_PROVIDER = 'deepseek';
 process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_API_KEY = 'chave-deepseek-de-teste';
-process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL = 'deepseek-v4-pro';
+process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = 'flash,pro,sonnet';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_FLASH_MODEL = 'deepseek-v4-flash';
+process.env.MONTHLY_REPORT_ANALYSIS_DEEPSEEK_PRO_MODEL = 'deepseek-v4-pro';
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
 process.env.ANTHROPIC_MODEL_RA3 = 'claude-sonnet-5';
 
@@ -158,7 +160,7 @@ assert.equal(chamadas.length, 0, 'sem sessão não lê contexto, chama modelo ou
   assert.match(modelo.corpo.messages[0].content, /não tem limite artificial de caracteres/);
   const rpc = chamadas.find((item) => item.url.includes('/rpc/registrar_sugestoes'))!;
   assert.equal(rpc.corpo.p_prompt_versao, ANALISES_SECAO_PROMPT_VERSAO);
-  assert.equal(rpc.corpo.p_modelo, 'deepseek/deepseek-v4-pro');
+  assert.equal(rpc.corpo.p_modelo, 'automatico/deepseek/deepseek-v4-flash');
   assert.equal(rpc.corpo.p_analises.length, 2, 'o lote inteiro persiste por uma única RPC transacional');
   assert.equal(rpc.corpo.p_por, 'revisor@exemplo.com');
 }

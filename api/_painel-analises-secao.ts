@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { contextoDoSnapshot, type LinhaAnalise } from './_painel-analise-introducao.js';
-import { gerarAnaliseAssistida } from './_painel-analise-provider.js';
+import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provider.js';
 import { espacosAnaliticosDoSnapshot, type EspacoAnalitico } from '../src/reports/blocos/analise.js';
 
 export const ANALISES_SECAO_PROMPT_VERSAO = 'ra3_secoes_v1_contexto_mes';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SECAO_VALIDA = /^bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/;
 const ACOES = new Set(['salvar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer']);
+const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 
 export type AcaoAnaliseSecao = 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer';
 export interface PedidoAnaliseSecao {
@@ -17,6 +18,7 @@ export interface PedidoAnaliseSecao {
   sugestaoId?: string;
   texto?: string;
   contexto?: string;
+  modo?: ModoAnalise;
 }
 
 export function lerPedidoAnaliseSecao(bruto: unknown):
@@ -33,6 +35,7 @@ export function lerPedidoAnaliseSecao(bruto: unknown):
   const sugestaoId = typeof valor.sugestaoId === 'string' ? valor.sugestaoId.trim() : undefined;
   const texto = typeof valor.texto === 'string' ? valor.texto.trim() : undefined;
   const contexto = typeof valor.contexto === 'string' ? valor.contexto.trim() : undefined;
+  const modoBruto = typeof valor.modo === 'string' ? valor.modo.trim() : undefined;
   if (!UUID_VALIDO.test(id) || !checksum || checksum.length > 200 || !ACOES.has(acao)) {
     return { ok: false, erro: 'pedido_invalido', mensagem: 'A solicitação das análises não é válida.' };
   }
@@ -45,9 +48,15 @@ export function lerPedidoAnaliseSecao(bruto: unknown):
   if (acao === 'editar' && !texto) {
     return { ok: false, erro: 'texto_invalido', mensagem: 'A edição da análise não pode ficar vazia.' };
   }
+  if (modoBruto && !MODOS_ANALISE.has(modoBruto as ModoAnalise)) {
+    return { ok: false, erro: 'modo_invalido', mensagem: 'O modo de analise selecionado nao e valido.' };
+  }
+  const modo = acao === 'gerar_todas' || acao === 'gerar_secao'
+    ? (modoBruto as ModoAnalise | undefined) ?? 'automatico'
+    : undefined;
   return {
     ok: true,
-    pedido: { id, checksum, acao: acao as AcaoAnaliseSecao, secao, sugestaoId, texto, contexto },
+    pedido: { id, checksum, acao: acao as AcaoAnaliseSecao, secao, sugestaoId, texto, contexto, modo },
   };
 }
 
@@ -111,10 +120,12 @@ export function extrairAnalisesDoSonnet(
 
 export async function chamarAnalisesSecao(
   contexto: NonNullable<ReturnType<typeof contextoParaAnalises>>,
+  modo: ModoAnalise = 'automatico',
 ) {
   const alvos = contexto.secoesAlvo.map((alvo) => contexto.espacosDoRelatorio.find((item) => item.secao === alvo.secao)!).filter(Boolean);
   const resposta = await gerarAnaliseAssistida({
     operacao: 'secoes',
+    modo,
     system: 'Você é um analista de performance revisando as seções de um relatório mensal em português do Brasil. Leia o relatório inteiro, o contexto interno do mês e todos os espaços analíticos antes de escrever. Para cada seção-alvo, produza uma análise editorial breve e útil: investigue evidências e contexto para explicar o que importa, sem apenas narrar subida ou queda e sem repetir a tabela. Não invente causalidade; quando houver somente uma hipótese plausível, identifique-a como hipótese. Mantenha as análises coerentes entre si e com a introdução. Responda somente com JSON válido no formato {"analises":[{"secao":"bloco:id","texto":"análise"}]}, com exatamente uma entrada para cada seção-alvo. O texto não tem limite artificial de caracteres e não deve ser rejeitado por mencionar números.',
     conteudo: JSON.stringify(contexto),
     interpretar: (texto) => extrairAnalisesDoSonnet([{ type: 'text', text: texto }], alvos),

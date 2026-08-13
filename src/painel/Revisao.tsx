@@ -32,6 +32,7 @@ import {
   type SugestaoSecao,
 } from './AnalisesSecao';
 import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
+import { OPCOES_MODO_ANALISE, type ModoAnaliseUI } from './modoAnalise';
 
 export function RevisaoApresentada({
   relatorio,
@@ -41,6 +42,8 @@ export function RevisaoApresentada({
   aoSolicitarEnvio,
   aoAnalisarIntroducao,
   aoAnalisarSecoes,
+  modoAnalise,
+  aoMudarModoAnalise,
 }: {
   relatorio: RelatorioDaRevisao | null;
   quem?: string;
@@ -49,6 +52,8 @@ export function RevisaoApresentada({
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
   aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
+  modoAnalise?: ModoAnaliseUI;
+  aoMudarModoAnalise?: (modo: ModoAnaliseUI) => void;
 }) {
   const [introducaoRevisada, setIntroducaoRevisada] = useState<string | null>(null);
   const snapshotDaRevisao = useMemo(() => {
@@ -76,17 +81,26 @@ export function RevisaoApresentada({
       analiseDaSecao={aoAnalisarSecoes && relatorio.podeDecidir ? renderizarAnaliseDaSecao : undefined}
     />
   ) : null;
+  const seletorDeModelo = relatorio?.podeDecidir && modoAnalise && aoMudarModoAnalise ? (
+    <section className="dcp-modo-analise" aria-label="Modelo da analise assistida">
+      <label htmlFor="dcp-modo-analise">Modelo para a proxima geracao</label>
+      <select id="dcp-modo-analise" value={modoAnalise} onChange={(evento) => aoMudarModoAnalise(evento.target.value as ModoAnaliseUI)}>
+        {OPCOES_MODO_ANALISE.map((opcao) => <option key={opcao.valor} value={opcao.valor}>{opcao.rotulo}</option>)}
+      </select>
+      <p>Comparacao manual: avalie utilidade analitica, aderencia ao escopo, sobrealcance, concisao e completude. Os modos explicitos nao usam fallback.</p>
+    </section>
+  ) : null;
   return <RevisaoMoldura
     relatorio={relatorio}
     quem={quem}
     aoDecidir={aoDecidir}
     aoCarregarEnvio={aoCarregarEnvio}
     aoSolicitarEnvio={aoSolicitarEnvio}
-  >{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
+  ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
     <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} aoAcionar={aoAnalisarSecoes}>
       {documento}
     </AnalisesSecaoProvider>
-  ) : documento}</RevisaoMoldura>;
+  ) : documento}</></RevisaoMoldura>;
 }
 
 export default function Revisao({ relatorioId }: { relatorioId: string }) {
@@ -105,6 +119,7 @@ export function RevisaoComSessao({
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
+  const [modoAnalise, setModoAnalise] = useState<ModoAnaliseUI>('automatico');
   const linkDeVolta = useLinkDeVoltaParaFila();
   const sessaoAtualRef = useRef(sessao);
   sessaoAtualRef.current = sessao;
@@ -289,11 +304,11 @@ export function RevisaoComSessao({
     const url = `/api/painel-analise-introducao?id=${encodeURIComponent(relatorioAtual.id)}&checksum=${encodeURIComponent(relatorioAtual.checksum)}`;
     const resposta = acao === 'carregar'
       ? await fetch(url, { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } })
-      : await fetch('/api/painel-analise-introducao', { method: 'POST', headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: relatorioAtual.id, checksum: relatorioAtual.checksum, acao, sugestaoId: sugestao?.id, ...(acao === 'editar' ? { texto } : {}) }) });
+      : await fetch('/api/painel-analise-introducao', { method: 'POST', headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: relatorioAtual.id, checksum: relatorioAtual.checksum, acao, sugestaoId: sugestao?.id, ...(acao === 'gerar' ? { modo: modoAnalise } : {}), ...(acao === 'editar' ? { texto } : {}) }) });
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'A análise está indisponível agora.'));
     return corpo?.sugestao ?? null;
-  }, [relatorio, usuarioId]);
+  }, [modoAnalise, relatorio, usuarioId]);
 
   const analisarSecoes = useCallback(async (
     acao: AcaoAnalisesUI,
@@ -316,12 +331,13 @@ export function RevisaoComSessao({
             sugestaoId: dados?.sugestao?.id,
             texto: dados?.texto,
             contexto: dados?.contexto,
+            ...((acao === 'gerar_todas' || acao === 'gerar_secao') ? { modo: modoAnalise } : {}),
           }),
         });
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'As análises estão indisponíveis agora.'));
     return corpo ?? {};
-  }, [relatorio, usuarioId]);
+  }, [modoAnalise, relatorio, usuarioId]);
 
   if (carregando) {
     return (
@@ -360,6 +376,8 @@ export function RevisaoComSessao({
       aoSolicitarEnvio={solicitarEnvio}
       aoAnalisarIntroducao={analisarIntroducao}
       aoAnalisarSecoes={analisarSecoes}
+      modoAnalise={modoAnalise}
+      aoMudarModoAnalise={setModoAnalise}
     />
   );
 }

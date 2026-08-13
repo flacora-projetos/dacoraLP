@@ -44,18 +44,19 @@ async function lerContextoMes(id: string, checksum: string, config: NonNullable<
   return (await resposta.json() as any[])[0] ?? null;
 }
 
-function sugestaoDaLinha(linha: any) {
+function sugestaoDaLinha(linha: any, modeloGerado?: string | null) {
   return linha ? {
     id: linha.sugestao_id ?? linha.id,
     secao: linha.secao,
     estado: linha.estado,
     texto: linha.texto_atual,
     checksum: linha.relatorio_checksum,
+    modelo: linha.modelo ?? modeloGerado ?? null,
   } : null;
 }
 
 async function lerSugestoes(id: string, checksum: string, config: NonNullable<ReturnType<typeof configuracao>>) {
-  const url = `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${id}&relatorio_checksum=eq.${encodeURIComponent(checksum)}&secao=like.bloco:*&order=gerado_em.desc&select=id,secao,estado,texto_atual,relatorio_checksum`;
+  const url = `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${id}&relatorio_checksum=eq.${encodeURIComponent(checksum)}&secao=like.bloco:*&order=gerado_em.desc&select=id,secao,estado,texto_atual,relatorio_checksum,modelo`;
   const resposta = await fetch(url, { headers: headers(config) });
   if (!resposta.ok) throw new Error(`leitura_sugestoes_http_${resposta.status}`);
   const vistas = new Set<string>();
@@ -63,7 +64,7 @@ async function lerSugestoes(id: string, checksum: string, config: NonNullable<Re
     if (vistas.has(linha.secao)) return false;
     vistas.add(linha.secao);
     return true;
-  }).map(sugestaoDaLinha);
+  }).map((linha: any) => sugestaoDaLinha(linha));
 }
 
 async function falhaDaRpc(rpc: globalThis.Response) {
@@ -138,7 +139,7 @@ export default async function handler(req: Request, res: Response) {
       const contextoMes = await lerContextoMes(pedido.id, pedido.checksum, config);
       contextoAnalitico = contextoParaAnalises(relatorio, contextoMes?.contexto ?? '', pedido.acao === 'gerar_secao' ? pedido.secao : undefined);
       if (!contextoAnalitico) return res.status(422).json({ erro: 'contexto_indisponivel', mensagem: 'Esta versão não tem espaços analíticos com dados disponíveis.' });
-      const respostaModelo = await chamarAnalisesSecao(contextoAnalitico);
+      const respostaModelo = await chamarAnalisesSecao(contextoAnalitico, pedido.modo);
       if (respostaModelo.ok === false) return res.status(respostaModelo.status).json({ erro: respostaModelo.erro, mensagem: respostaModelo.mensagem });
       modelo = respostaModelo.modelo;
       analises = respostaModelo.analises;
@@ -171,7 +172,7 @@ export default async function handler(req: Request, res: Response) {
     }
     const resultado = await rpc.json();
     if (!Array.isArray(resultado) || resultado.length === 0) return res.status(409).json({ erro: 'revisao_desatualizada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' });
-    const sugestoes = resultado.map(sugestaoDaLinha);
+    const sugestoes = resultado.map((linha: any) => sugestaoDaLinha(linha, modelo));
     console.log(`[painel-analises-secao] ${pedido.acao} · ${pedido.id} · ${sugestoes.length} seção(ões) · por ${acesso.email}`);
     return res.status(200).json({ sugestoes, sugestao: sugestoes.length === 1 ? sugestoes[0] : undefined });
   } catch (erro) {

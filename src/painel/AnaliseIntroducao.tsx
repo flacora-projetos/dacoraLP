@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { rotuloDaAuditoria } from './modoAnalise';
 
 export type AcaoDaIntroducao = 'carregar' | 'gerar' | 'aplicar' | 'editar' | 'desfazer';
-export interface SugestaoDaIntroducao { id: string; estado: string; texto: string; checksum: string; }
+export interface SugestaoDaIntroducao { id: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
 
 export function AnaliseIntroducao({
   original,
@@ -91,7 +92,7 @@ export function AnaliseIntroducao({
       {sugestao && sugestao.estado !== 'desfeita' && (
         <div className="dcp-analise-introducao__comparacao">
           <div><strong>Original</strong><p>{original}</p></div>
-          <div><strong>Sugestão</strong>{editando ? (
+          <div><strong>Sugestão</strong>{sugestao.modelo && <small className="dcp-analise-modelo">{rotuloDaAuditoria(sugestao.modelo)}</small>}{editando ? (
             <textarea ref={campoDeEdicao} aria-label="Editar sugestão da introdução" rows={12} value={textoEditado} onChange={(evento) => setTextoEditado(evento.target.value)} />
           ) : <p>{sugestao.texto}</p>}</div>
           <div className="dcp-analise-introducao__acoes">

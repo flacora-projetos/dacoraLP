@@ -35,8 +35,8 @@ async function lerRelatorio(id: string, config: NonNullable<ReturnType<typeof co
   return (await resposta.json() as LinhaAnalise[])[0];
 }
 
-function respostaSugestao(linha: any) {
-  return linha ? { id: linha.sugestao_id ?? linha.id, estado: linha.estado, texto: linha.texto_atual, checksum: linha.relatorio_checksum } : null;
+function respostaSugestao(linha: any, modeloGerado?: string | null) {
+  return linha ? { id: linha.sugestao_id ?? linha.id, estado: linha.estado, texto: linha.texto_atual, checksum: linha.relatorio_checksum, modelo: linha.modelo ?? modeloGerado ?? null } : null;
 }
 
 const FALHAS_DE_CONCORRENCIA = new Set(['checksum_divergente', 'versao_fora_de_revisao', 'sugestao_nao_encontrada']);
@@ -82,7 +82,7 @@ export default async function handler(req: Request, res: Response) {
     if (!contexto) return res.status(422).json({ erro: 'contexto_indisponivel', mensagem: 'Esta versão não tem o contexto factual necessário para a análise.' });
 
     if (req.method === 'GET') {
-      const consulta = `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${pedido.id}&relatorio_checksum=eq.${encodeURIComponent(pedido.checksum)}&secao=eq.introducao&order=gerado_em.desc&limit=1&select=id,estado,texto_atual,relatorio_checksum`;
+      const consulta = `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${pedido.id}&relatorio_checksum=eq.${encodeURIComponent(pedido.checksum)}&secao=eq.introducao&order=gerado_em.desc&limit=1&select=id,estado,texto_atual,relatorio_checksum,modelo`;
       const resposta = await fetch(consulta, { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } });
       if (!resposta.ok) return res.status(503).json({ erro: 'auditoria_indisponivel', mensagem: 'A análise assistida ainda não está disponível nesta revisão.' });
       const [sugestao] = await resposta.json();
@@ -92,7 +92,7 @@ export default async function handler(req: Request, res: Response) {
     let modelo: string | null = null;
     let textoSugerido: string | null = null;
     if (pedido.acao === 'gerar') {
-      const analise = await chamarAnaliseIntroducao(contexto);
+      const analise = await chamarAnaliseIntroducao(contexto, pedido.modo);
       if (analise.ok === false) return res.status(analise.status).json({ erro: analise.erro, mensagem: analise.mensagem });
       modelo = analise.modelo;
       textoSugerido = analise.texto;
@@ -127,7 +127,7 @@ export default async function handler(req: Request, res: Response) {
     const [resultado] = resultadoRpc;
     if (!resultado) return res.status(409).json({ erro: 'revisao_desatualizada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' });
     console.log(`[painel-analise-introducao] ${pedido.acao} · ${pedido.id} · por ${acesso.email}`);
-    return res.status(200).json({ sugestao: respostaSugestao(resultado) });
+    return res.status(200).json({ sugestao: respostaSugestao(resultado, modelo) });
   } catch (erro) {
     console.error('[painel-analise-introducao] falha:', erro instanceof Error ? erro.message : erro);
     return res.status(502).json({ erro: 'analise_indisponivel', mensagem: 'Não foi possível concluir a análise agora. O texto original foi preservado.' });

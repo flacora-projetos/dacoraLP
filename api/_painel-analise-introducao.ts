@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
-import { gerarAnaliseAssistida } from './_painel-analise-provider.js';
+import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provider.js';
 
 export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v2_revisao_livre';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACOES = new Set(['gerar', 'aplicar', 'editar', 'desfazer']);
+const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 const LIMIAR_RELEVANTE = 0.05;
 
 export type AcaoEditorial = 'gerar' | 'aplicar' | 'editar' | 'desfazer';
-export interface PedidoEditorial { id: string; checksum: string; acao: AcaoEditorial; sugestaoId?: string; texto?: string; }
+export interface PedidoEditorial { id: string; checksum: string; acao: AcaoEditorial; sugestaoId?: string; texto?: string; modo?: ModoAnalise; }
 export interface LinhaAnalise { id: string; cliente_slug: string; competencia: string; versao: number; estado: string; checksum: string; substituido_por?: string | null; revogado_em?: string | null; conteudo: any; }
 
 export function lerPedidoEditorial(bruto: unknown): { ok: true; pedido: PedidoEditorial } | { ok: false; erro: string; mensagem: string } {
@@ -18,10 +19,13 @@ export function lerPedidoEditorial(bruto: unknown): { ok: true; pedido: PedidoEd
   const acao = typeof valor.acao === 'string' ? valor.acao.trim() : '';
   const sugestaoId = typeof valor.sugestaoId === 'string' ? valor.sugestaoId.trim() : undefined;
   const texto = typeof valor.texto === 'string' ? valor.texto.trim() : undefined;
+  const modoBruto = typeof valor.modo === 'string' ? valor.modo.trim() : undefined;
   if (!UUID_VALIDO.test(id) || !checksum || checksum.length > 200 || !ACOES.has(acao)) return { ok: false, erro: 'pedido_invalido', mensagem: 'A solicitação da análise não é válida.' };
   if (acao !== 'gerar' && !UUID_VALIDO.test(sugestaoId ?? '')) return { ok: false, erro: 'sugestao_invalida', mensagem: 'A sugestão não está vinculada a esta revisão.' };
   if (acao === 'editar' && !texto) return { ok: false, erro: 'texto_invalido', mensagem: 'A edição da sugestão não pode ficar vazia.' };
-  return { ok: true, pedido: { id, checksum, acao: acao as AcaoEditorial, sugestaoId, texto } };
+  if (modoBruto && !MODOS_ANALISE.has(modoBruto as ModoAnalise)) return { ok: false, erro: 'modo_invalido', mensagem: 'O modo de analise selecionado nao e valido.' };
+  const modo = acao === 'gerar' ? (modoBruto as ModoAnalise | undefined) ?? 'automatico' : undefined;
+  return { ok: true, pedido: { id, checksum, acao: acao as AcaoEditorial, sugestaoId, texto, modo } };
 }
 
 export function introducaoDoSnapshot(linha: LinhaAnalise): string | null {
@@ -200,9 +204,10 @@ export function validarLinhaParaAnalise(linha: LinhaAnalise | undefined, checksu
   return { ok: true as const };
 }
 
-export async function chamarAnaliseIntroducao(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>>) {
+export async function chamarAnaliseIntroducao(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>>, modo: ModoAnalise = 'automatico') {
   const resposta = await gerarAnaliseAssistida({
     operacao: 'introducao',
+    modo,
     system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione os dois ou três achados mais importantes; investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela e não se limite a repetir que um indicador subiu ou caiu. Conclua a resposta em poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.',
     conteudo: JSON.stringify(contexto),
     interpretar: (texto) => extrairTextoAplicavel([{ type: 'text', text: texto }]) || null,
