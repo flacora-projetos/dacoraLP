@@ -30,7 +30,7 @@ consulta Supabase e não entra no build de produção. Regressão de revisão e 
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
 O estado
 é **release autorizada com banco e fábrica prontos; painel ainda não publicado**:
-a correção percentual aceita somente `2,5%`, `2,0%` e `33,3%` governados e recusa `7,7%`. As migrations `20260813162000`/`20260813162050` estão aplicadas no `Dácora Reports` com RLS/ACL/index read-back; a fábrica está em `origin/master` desde `c843d56`. O merge local do painel `01205ac` passou `verifica:analise`, `verifica:revisao` e build completo. A documentação atual da Anthropic confirmou `claude-sonnet-5`; o ID antigo do exemplo já foi retirado. Falta autenticar o Vercel, configurar as variáveis server-side, publicar `main` e fazer o smoke humano. Sem Preview remoto, decisão ou envio.
+a correção percentual aceita somente `2,5%`, `2,0%` e `33,3%` governados e recusa `7,7%`. As migrations `20260813162000`/`20260813162050` estão aplicadas no `Dácora Reports` com RLS/ACL/index read-back; a fábrica está em `origin/master` desde `c843d56`. O merge local do painel `01205ac` passou `verifica:analise`, `verifica:revisao` e build completo. A documentação atual da Anthropic confirmou `claude-sonnet-5`; o ID antigo do exemplo já foi retirado. As duas variáveis RA2 foram cadastradas como sensíveis e somente em Production no Vercel e conferidas pela presença dos nomes, sem revelar valores. Falta publicar `main`, confirmar o deployment e fazer o smoke humano. Sem Preview remoto, decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -705,7 +705,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Release RA2 em andamento:** Supabase e fábrica estão integrados. O painel está preparado em `codex/ra2-release-panel`, merge local `01205ac`, sem push/Preview. Configurar `ANTHROPIC_API_KEY` e `ANTHROPIC_MODEL_RA2=claude-sonnet-5` no Vercel Production, publicar `main` e então executar o smoke autenticado desktop/celular. Não há decisão, envio ou RA3.
+1. **Release RA2 em andamento:** Supabase e fábrica estão integrados. O painel está preparado em `codex/ra2-release-panel`, merge local `01205ac`, sem Preview; as variáveis sensíveis já estão em Production. Publicar `main`, confirmar o deployment e então executar o smoke autenticado desktop/celular. Não há decisão, envio ou RA3.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.

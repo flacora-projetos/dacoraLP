@@ -9,7 +9,7 @@ plano/handoff canônico indicado nele no repositório `OpenClaw-Dacora`.
 A frente **RA — Revisão Analítica Assistida dos Relatórios Mensais** é a
 prioridade de desenvolvimento do painel. Sua fonte organizacional é
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-A **release de produção da RA2 está autorizada e em andamento** na branch `codex/ra2-release-panel`, limitada à caneta da introdução antes da aprovação. A correção percentual foi aprovada; o Supabase e a fábrica já foram integrados e conferidos. O merge local do painel `01205ac` passou `verifica:analise`, `verifica:revisao` e build completo. O modelo configurado é o ID atual `claude-sonnet-5`; falta autenticar o Vercel para gravar as duas variáveis server-side e só então publicar `main`. Sem decisão ou envio. A introdução do relatório é o primeiro e mais importante alvo da caneta mágica;
+A **release de produção da RA2 está autorizada e em andamento** na branch `codex/ra2-release-panel`, limitada à caneta da introdução antes da aprovação. A correção percentual foi aprovada; o Supabase e a fábrica já foram integrados e conferidos. O merge local do painel `01205ac` passou `verifica:analise`, `verifica:revisao` e build completo. `ANTHROPIC_API_KEY` e `ANTHROPIC_MODEL_RA2=claude-sonnet-5` foram cadastradas como sensíveis e somente em Production no Vercel; falta publicar `main` e confirmar o deployment antes do smoke. Sem decisão ou envio. A introdução do relatório é o primeiro e mais importante alvo da caneta mágica;
 C1/C2/C3 são insumo subordinado, não uma publicação independente. Cada fase RA
 deve acontecer em sessão própria, na branch/worktree indicada pelo documento.
 
