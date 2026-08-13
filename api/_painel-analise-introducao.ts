@@ -205,9 +205,22 @@ export async function chamarSonnetIntroducao(contexto: NonNullable<ReturnType<ty
   if (!apiKey || !modelo || !/^claude-sonnet-/i.test(modelo)) return { ok: false as const, status: 503, erro: 'sonnet_indisponivel', mensagem: 'A análise assistida ainda não está configurada com o Sonnet da revisão.' };
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30_000);
   try {
-    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 900, system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza uma introdução realmente útil ao cliente: conecte investimento, entrega, resultados e custos; investigue explicações e hipóteses sugeridas pelo material; quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não se limite a repetir que um indicador subiu ou caiu. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
+    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 1600, system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza uma introdução realmente útil ao cliente: conecte investimento, entrega, resultados e custos; investigue explicações e hipóteses sugeridas pelo material; quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não se limite a repetir que um indicador subiu ou caiu. Seja conciso e conclua a resposta em poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
     if (!resposta.ok) return { ok: false as const, status: 502, erro: 'sonnet_falhou', mensagem: 'Não foi possível gerar a sugestão agora.' };
-    const corpo = await resposta.json() as { content?: Array<{ type?: string; text?: string }> };
+    const corpo = await resposta.json() as { content?: Array<{ type?: string; text?: string }>; stop_reason?: unknown; stop_sequence?: unknown };
+    const stopReason = typeof corpo.stop_reason === 'string' ? corpo.stop_reason : 'desconhecido';
+    const stopSequence = typeof corpo.stop_sequence === 'string' ? corpo.stop_sequence : null;
+    if (stopReason !== 'end_turn') {
+      console.warn(`[painel-analise-introducao] provider_stop_reason=${stopReason} stop_sequence=${stopSequence ?? 'null'}`);
+      return {
+        ok: false as const,
+        status: 502,
+        erro: stopReason === 'max_tokens' ? 'saida_truncada' : 'saida_incompleta',
+        mensagem: stopReason === 'max_tokens'
+          ? 'A sugestão ficou incompleta antes de terminar. Nenhum texto foi salvo; tente novamente.'
+          : 'O modelo não encerrou a sugestão de forma aplicável. Nenhum texto foi salvo; tente novamente.',
+      };
+    }
     const texto = extrairTextoAplicavel(corpo.content);
     if (!texto) return { ok: false as const, status: 422, erro: 'saida_invalida', mensagem: 'O modelo não retornou texto para revisão.' };
     return { ok: true as const, modelo, texto };

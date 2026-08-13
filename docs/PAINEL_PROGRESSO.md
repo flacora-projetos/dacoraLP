@@ -28,7 +28,7 @@ local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
-O estado é **produção reprovada pelo contrato do provider; correção autorizada para release em `codex/ra2-texto-livre-provider`**. O POST autenticado do relatório real `9918bac9-6686-49e4-b1e6-3d6a5225a722` chega ao endpoint e recebe `422 saida_invalida`: a implementação publicada ainda pede JSON, lê apenas o primeiro bloco textual e mantém o teto editorial de 3.500 caracteres. A correção pede texto puro, extrai JSON somente quando válido, preserva o texto bruto de todos os blocos não vazios e remove o teto da geração e edição. A sessão executora e, depois, a coordenadora repetiram `verifica:analise`, `verifica:revisao` e o build completo com sucesso; `lint` conserva seis erros preexistentes fora da RA2. O Flávio deu GO de integração/publicação; o pre-flight confirmou avanço direto de `main/c5e6407`, sem divergência. Neste marco ainda não houve merge, deploy, novo teste autenticado, decisão ou envio.
+O estado é **produção reprovada pelo corte do provider; correção em `codex/ra2-resposta-completa`**. O texto livre foi integrado em `main/a406422` e o deployment `dpl_4CN3cdNuJss8Anc7pGt482UQtsWg` ficou `READY`. No teste autenticado real de `9918bac9-6686-49e4-b1e6-3d6a5225a722`, GET da sugestão e POST gerar responderam 200, a comparação renderizou em desktop e 390×844 sem overflow horizontal e o console ficou sem erros/avisos; porém a proposta de 2.033 caracteres terminou no meio da frase, por `max_tokens: 900`. A correção eleva o orçamento para 1.600 tokens, exige poucos parágrafos completos e rejeita `stop_reason=max_tokens` antes da RPC, preservando auth, contexto server-side, checksum e auditoria. Não há merge, deploy, novo teste autenticado, decisão ou envio desta correção.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -703,7 +703,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Integrar e revalidar a correção do parser RA2:** revisar `codex/ra2-texto-livre-provider`, publicar somente com GO próprio e repetir o teste autenticado na Karyne em desktop/celular. O aceite exige caneta visível, geração real em texto útil e análise factual útil. Não há decisão, envio ou RA3.
+1. **Integrar e revalidar a correção de completude RA2:** revisar `codex/ra2-resposta-completa`, publicar somente com GO próprio e repetir o teste autenticado no relatório afetado em desktop/celular. O aceite exige caneta visível, geração completa e análise factual útil. Não há decisão, envio ou RA3.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.

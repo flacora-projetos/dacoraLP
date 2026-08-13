@@ -93,6 +93,8 @@ process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-5';
 let chamadas: Array<{ url: string; corpo: unknown }> = [];
 let linhaDoBanco: any = linha();
 let saidaSonnet: string | string[] = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+let stopReason = 'end_turn';
+let stopSequence: string | null = null;
 
 function dublar(usuario: unknown | null) {
   chamadas = [];
@@ -103,7 +105,7 @@ function dublar(usuario: unknown | null) {
       ? new Response(JSON.stringify(usuario), { status: 200, headers: { 'content-type': 'application/json' } })
       : new Response('{}', { status: 401 });
     chamadas.push({ url, corpo });
-    if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })) }), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })), stop_reason: stopReason, stop_sequence: stopSequence }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorios')) return new Response(JSON.stringify([linhaDoBanco]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('relatorio_analise_sugestoes')) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/registrar_sugestao_analise_introducao')) return new Response(JSON.stringify([{
@@ -159,8 +161,28 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /Campanha principal|pausada/, 'o Sonnet precisa receber as tabelas que o relatório apresenta');
   assert.match(String((modelo.corpo as any).system), /Responda em texto puro/);
   assert.doesNotMatch(String((modelo.corpo as any).system), /objeto JSON/);
+  assert.equal((modelo.corpo as any).max_tokens, 1600, 'a introdução precisa ter orçamento suficiente para encerrar sem corte');
   linhaDoBanco = linha();
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+}
+
+{
+  saidaSonnet = 'Esta introdução cabe no novo orçamento e termina de forma completa.';
+  stopReason = 'end_turn';
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(resposta.status, 200, 'end_turn aceita a resposta completa');
+  assert.match(resposta.corpo.sugestao.texto, /completa\.$/);
+}
+
+{
+  saidaSonnet = 'Texto interrompido no meio da frase';
+  stopReason = 'max_tokens';
+  stopSequence = null;
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(resposta.status, 502, 'max_tokens não pode exibir sugestão pronta');
+  assert.equal(resposta.corpo.erro, 'saida_truncada');
+  assert.equal(chamadas.some((item) => item.url.includes('/rpc/')), false, 'texto truncado não pode persistir na auditoria');
+  stopReason = 'end_turn';
 }
 
 {

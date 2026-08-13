@@ -1,9 +1,12 @@
 # Handoff — RA2: texto livre do provider
 
-**Estado:** correção na branch `codex/ra2-texto-livre-provider`, criada de
-`dacoraLP/main/c5e6407`. A produção recusou a chamada autenticada do relatório
-`9918bac9-6686-49e4-b1e6-3d6a5225a722` com HTTP 422 `saida_invalida`; não houve
-aprovação, recusa, solicitação de envio, envio, merge ou deploy nesta correção.
+**Estado:** a correção de texto livre foi integrada em `dacoraLP/main/a406422` e
+o deployment `dpl_4CN3cdNuJss8Anc7pGt482UQtsWg` ficou `READY`. No teste
+autenticado real do relatório `9918bac9-6686-49e4-b1e6-3d6a5225a722`, o POST
+passou a responder 200 e a comparação renderizou, mas a sugestão de 2.033
+caracteres terminou no meio da frase, literalmente em `e 46 delas (cerca de
+31%) chegaram a`. Nenhuma aprovação, recusa, solicitação de envio ou envio foi
+executado.
 
 **Commit da implementação:** `a0c2698` (`fix(ra2): aceitar texto livre do
 provider`). O registro deste commit entra no movimento documental seguinte;
@@ -44,6 +47,19 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
 - `npm.cmd run lint` mantém seis erros TypeScript preexistentes fora de RA2;
   nenhum erro novo surgiu no endpoint, parser ou componente alterado.
 
+## Correção do corte por provider
+
+- Branch: `codex/ra2-resposta-completa`, criada de `origin/main/a406422`.
+- O request passa de `max_tokens: 900` para `1600` e pede poucos parágrafos
+  completos, mantendo a proposta concisa sem tratar o antigo teto de caracteres
+  como contrato editorial.
+- O envelope Anthropic agora lê `stop_reason` e `stop_sequence`. Só
+  `end_turn` permite extrair e persistir a sugestão; `max_tokens` registra o
+  motivo técnico sem conteúdo e devolve `saida_truncada` antes da RPC.
+- Regressões novas provam `end_turn` completo, `max_tokens` sem RPC, orçamento
+  novo e o contrato de texto livre anterior. Esta correção ainda não tem merge,
+  deploy ou novo teste autenticado.
+
 ## Revisão de segurança manual
 
 Security Guidance não estava exposto nesta sessão. A revisão manual confirmou
@@ -54,11 +70,13 @@ recebe exclusivamente o contexto reconstruído no servidor. A mudança remove
 somente filtros editoriais que descartavam texto útil; checksum/estado e
 auditoria continuam protegendo a revisão.
 
+No corte por provider, a revisão manual confirmou que o novo campo lido do
+envelope não entra no browser, não altera auth, allowlist, corpo do pedido,
+service role, checksum ou RPC. O log técnico contém somente `stop_reason` e
+`stop_sequence`, nunca o texto gerado ou segredo.
+
 ## Próximo gate
 
-O Flávio deu GO explícito para integrar/publicar em 2026-08-13. O pre-flight
-confirmou `origin/main` em `c5e6407`, a branch em `7f50fce`, zero commits atrás,
-quatro à frente e merge-base exatamente `c5e6407`; portanto a integração pode
-ser fast-forward, sem merge de conteúdo concorrente. Depois da publicação,
-repetir o teste autenticado em desktop e celular sem aplicar, aprovar, recusar
-ou enviar relatório real. RA3 permanece bloqueada.
+Revisar e integrar `codex/ra2-resposta-completa` somente com novo GO de merge e
+deploy. Depois, repetir o teste autenticado em desktop e celular sem aplicar,
+editar, aprovar, recusar ou enviar relatório real. RA3 permanece bloqueada.
