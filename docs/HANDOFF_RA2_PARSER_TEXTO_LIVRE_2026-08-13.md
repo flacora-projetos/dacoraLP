@@ -112,7 +112,7 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
   seis erros TypeScript preexistentes em componentes de relatório, sem erro RA2.
 - Implementação do painel: `48b3ed0` em `codex/ra2-rpc-editar`; migration e
   contrato de fábrica: `85991ea` em `codex/ra2-rpc-editar-factory`. Ambos
-  aguardam push normal, sem merge, deploy ou aplicação remota.
+  foram enviados às branches remotas, sem merge, deploy ou aplicação remota.
 
 ## Revisão de segurança manual
 
