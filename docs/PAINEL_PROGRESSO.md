@@ -28,16 +28,17 @@ local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
-O estado é **RA2 publicada, reprovada em dois testes reais e em correção**. O
+O estado é **RA2 publicada e aguardando a segunda geração real do Flávio**. O
 primeiro print da Karyne v9 provou contraste quase ilegível e
 `contexto_indisponivel`; `dfbb384` corrigiu ambos em produção e o GET autenticado
 confirmou cartão claro, contexto derivado e botão habilitado. A primeira geração
 real seguinte chegou ao Sonnet, mas o parser recusou o envelope textual como
-`saida_invalida`. A correção seguinte normaliza JSON estrito, cerca Markdown e
+`saida_invalida`. `b32650e` está em `main` e no deployment de produção
+`J6HtfNDKMVxZd9miEcmYZJtBVZEp`, estado `Ready`: normaliza JSON estrito, cerca Markdown e
 preâmbulo, mantém texto livre recusado e preserva a validação de todos os números
 contra o contexto factual. `verifica:analise`, `verifica:revisao` e build completo
-passaram; esta segunda correção ainda não foi publicada neste marco. Sem decisão
-ou envio.
+passaram. O agente não repetiu a geração para não criar ação editorial em nome do
+revisor. Sem decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
