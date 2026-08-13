@@ -28,7 +28,7 @@ local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
-O estado é **RA2 concluída em produção; RA3 implementada e validada localmente, com gate remoto aberto**. RA3 usa `codex/ra3-analises-secao`, base `7e9bc67`, e mantém a `main` intacta. B1–B6 têm função analítica compartilhada; B7/B8/AUDIO, indisponível e dado ausente não ganham caneta. Geração geral e local compartilham contexto/prompt, o contexto do mês fica privado e os controles só existem na revisão decidível. Regressões, build, segurança e navegador desktop/celular/PDF passaram. Sem migration remota, modelo real, aplicação real, aprovação, envio, merge ou publicação. Novo GO é necessário para migration/Preview e smoke autenticado persistente.
+O estado é **RA2 concluída em produção; RA3 com migration e Preview concluídos, smoke autenticado bloqueado**. RA3 usa `codex/ra3-analises-secao`, base `7e9bc67`, e mantém a `main` intacta. Migration `20260813225317` foi conferida; commit `97505f1` está pushado e Preview `dpl_GwAPnqWzPv8JE6pE5WKkoW5vgqby` `READY`. B1–B6 têm função analítica compartilhada; B7/B8/AUDIO, indisponível e dado ausente não ganham caneta. O Supabase Auth devolve o OAuth ao Site URL de produção em vez do hostname de Preview; transportar sessão foi bloqueado e não contornado. Zero contexto/sugestão/evento RA3, decisão ou envio. RA3 continua aberta.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -703,7 +703,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Executar o gate remoto da RA3 somente com novo GO:** migration Supabase + read-back, Preview e smoke autenticado persistente em relatório apropriado. Aplicação real, aprovação e envio continuam fora sem autorização própria.
+1. **Desbloquear a origem autenticável da RA3 somente com novo GO:** autorizar o hostname do Preview no redirect do Supabase Auth ou outra origem autenticável; depois executar o smoke persistente desktop/celular/PDF. Migration e Preview já estão concluídos; aprovação, recusa e envio continuam fora.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.
