@@ -67,9 +67,10 @@
  * aparece **acima** da tabela de propósito: quem lê números lê as notas depois,
  * se ler. Um aviso embaixo chegaria tarde, com a coluna já somada.
  *
- * O lead da Karyne é `messaging_conversation_started_7d`, definido por gente
- * no cadastro. **Não** é o `instagram_profile_visits` que o conector escolhe
- * sozinho quando ninguém diz qual evento conta.
+ * O resultado da Karyne é resolvido pela definição vigente no cadastro.
+ * Até 21/06/2026 a Meta media conversas iniciadas; desde 22/06/2026 a landing
+ * page usa `offsite_conversion.fb_pixel_custom`. No Google, a ação também muda
+ * por vigência. A definição nova nunca é retroagida para meses anteriores.
  */
 
 import type { CompetenciaDisponivel, Serie, Valor } from '../snapshot';
@@ -158,24 +159,24 @@ const faixaMeta: FaixaIndicadores = {
       comparativo: contraJunho(1.46, -0.0479),
     },
     {
-      id: 'meta_mensagens',
-      rotulo: 'Mensagens iniciadas',
-      glossarioId: 'mensagens',
+      id: 'meta_resultado',
+      rotulo: 'Leads',
+      glossarioId: 'conversoes',
       unidade: 'inteiro',
-      valor: ok(74),
+      valor: ok(22),
       origem: daMeta(),
       direcaoFavoravel: 'alta',
-      comparativo: contraJunho(63, 0.1746),
+      comparativo: contraJunho(85, -0.741176),
     },
     {
-      id: 'meta_custo_mensagem',
-      rotulo: 'Custo por mensagem',
-      glossarioId: 'custo_por_mensagem',
+      id: 'meta_custo_resultado',
+      rotulo: 'Custo por lead',
+      glossarioId: 'custo_por_conversao',
       unidade: 'brl',
-      valor: ok(11.67),
-      origem: calculadoMeta('investimento ÷ mensagens iniciadas, ambos da conta inteira'),
+      valor: ok(39.27),
+      origem: calculadoMeta('investimento ÷ leads, os dois da conta inteira'),
       direcaoFavoravel: 'baixa',
-      comparativo: contraJunho(12.58, -0.0723),
+      comparativo: contraJunho(10.73, 2.659832),
     },
   ],
 };
@@ -220,23 +221,23 @@ const faixaGoogle: FaixaIndicadores = {
     },
     {
       id: 'google_conversoes',
-      rotulo: 'Conversões',
+      rotulo: 'Leads',
       glossarioId: 'conversoes',
       unidade: 'inteiro',
-      valor: ok(21),
+      valor: ok(16),
       origem: doGoogle(),
       direcaoFavoravel: 'alta',
-      comparativo: contraJunho(18, 0.1667),
+      comparativo: contraJunho(36, -0.555556),
     },
     {
       id: 'google_custo_conversao',
-      rotulo: 'Custo por conversão',
+      rotulo: 'Custo por lead',
       glossarioId: 'custo_por_conversao',
       unidade: 'brl',
-      valor: ok(47.67),
-      origem: calculadoGoogle('investimento ÷ conversões'),
+      valor: ok(62.56),
+      origem: calculadoGoogle('investimento ÷ leads da ação vigente no cadastro'),
       direcaoFavoravel: 'baixa',
-      comparativo: contraJunho(52.68, -0.0951),
+      comparativo: contraJunho(20.08, 2.115538),
     },
   ],
 };
@@ -259,31 +260,24 @@ const evolucaoMeta: EvolucaoMensal = {
   plataforma: 'meta',
   colunas: [
     { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
-    { id: 'mensagens', rotulo: 'Mensagens iniciadas', unidade: 'inteiro' },
+    { id: 'resultado', rotulo: 'Resultados', unidade: 'inteiro' },
   ],
   meses: [
-    { competencia: '2026-01', valores: { custo: ok(612.3), mensagens: ok(44) } },
-    { competencia: '2026-02', valores: { custo: ok(658.75), mensagens: ok(49) } },
-    {
-      competencia: '2026-03',
-      valores: {
-        custo: { estado: 'nao_aplicavel', motivo: 'sem veiculação no mês' },
-        mensagens: { estado: 'nao_aplicavel', motivo: 'sem veiculação no mês' },
-      },
-      observacao: 'sem veiculação',
-    },
-    { competencia: '2026-04', valores: { custo: ok(724.1), mensagens: ok(56) } },
-    { competencia: '2026-05', valores: { custo: ok(768.45), mensagens: ok(58) } },
-    { competencia: '2026-06', valores: { custo: ok(792.4), mensagens: ok(63) } },
-    { competencia: '2026-07', valores: { custo: ok(863.91), mensagens: ok(74) } },
+    { competencia: '2026-01', valores: { custo: ok(482.71), resultado: ok(108) }, observacao: 'resultado: conversas iniciadas' },
+    { competencia: '2026-02', valores: { custo: ok(883.27), resultado: ok(138) }, observacao: 'resultado: conversas iniciadas' },
+    { competencia: '2026-03', valores: { custo: ok(1091.74), resultado: ok(164) }, observacao: 'resultado: conversas iniciadas' },
+    { competencia: '2026-04', valores: { custo: ok(1341.01), resultado: ok(237) }, observacao: 'resultado: conversas iniciadas' },
+    { competencia: '2026-05', valores: { custo: ok(1535.6), resultado: ok(248) }, observacao: 'resultado: conversas iniciadas' },
+    { competencia: '2026-06', valores: { custo: ok(1200.58), resultado: ok(85) }, observacao: 'vigência: 80 conversas iniciadas até 21/06 + 5 leads desde 22/06' },
+    { competencia: '2026-07', valores: { custo: ok(863.91), resultado: ok(22) }, observacao: 'resultado: leads da landing page' },
   ],
   total: {
     rotulo: 'Total do ano até aqui',
-    valores: { custo: ok(4419.91), mensagens: ok(344) },
+    valores: { custo: ok(7398.82), resultado: ok(1002) },
   },
   definicoes: [
-    'O total é do período inteiro, e março não entra nele porque não houve veiculação — não é um mês de resultado zero.',
-    'Cada mês foi coletado na própria janela fechada.',
+    'A definição do resultado muda pela vigência registrada no cadastro: conversas iniciadas até 21/06/2026 e leads da landing page desde 22/06/2026.',
+    'Junho soma somente os resultados primários válidos em cada trecho do mês: 80 conversas + 5 leads.',
   ],
 };
 
@@ -292,25 +286,26 @@ const evolucaoGoogle: EvolucaoMensal = {
   plataforma: 'google',
   colunas: [
     { id: 'custo', rotulo: 'Investimento', unidade: 'brl' },
-    { id: 'conversoes', rotulo: 'Conversões', unidade: 'inteiro' },
+    { id: 'conversoes', rotulo: 'Resultados', unidade: 'inteiro' },
   ],
   meses: [
-    { competencia: '2026-01', valores: { custo: ok(742.6), conversoes: ok(12) } },
-    { competencia: '2026-02', valores: { custo: ok(806.35), conversoes: ok(14) } },
-    { competencia: '2026-03', valores: { custo: ok(838.9), conversoes: ok(13) } },
-    { competencia: '2026-04', valores: { custo: ok(901.25), conversoes: ok(16) } },
-    { competencia: '2026-05', valores: { custo: ok(922.7), conversoes: ok(15) } },
-    { competencia: '2026-06', valores: { custo: ok(948.15), conversoes: ok(18) } },
-    { competencia: '2026-07', valores: { custo: ok(1000.98), conversoes: ok(21) } },
+    { competencia: '2026-01', valores: { custo: ok(486.85), conversoes: ok(30) }, observacao: 'resultado: Contato WhatsApp' },
+    { competencia: '2026-02', valores: { custo: ok(710.73), conversoes: ok(33) }, observacao: 'resultado: Contato WhatsApp' },
+    { competencia: '2026-03', valores: { custo: ok(608.23), conversoes: ok(35) }, observacao: 'resultado: Contato WhatsApp' },
+    { competencia: '2026-04', valores: { custo: ok(608.08), conversoes: ok(39) }, observacao: 'resultado: Contato WhatsApp' },
+    { competencia: '2026-05', valores: { custo: ok(607.76), conversoes: ok(28) }, observacao: 'resultado: Contato WhatsApp' },
+    { competencia: '2026-06', valores: { custo: ok(722.77), conversoes: ok(36) }, observacao: 'vigência: 30 Contato WhatsApp + 6 Whatsapp LP de Leads' },
+    { competencia: '2026-07', valores: { custo: ok(1000.98), conversoes: ok(16) }, observacao: 'resultado: Whatsapp LP de Leads' },
   ],
   total: {
     rotulo: 'Total do ano até aqui',
-    valores: { custo: ok(6160.93), conversoes: ok(109) },
+    valores: { custo: ok(4745.4), conversoes: ok(217) },
   },
-  definicoes: ['Cada mês foi coletado na própria janela fechada.'],
+  definicoes: [
+    'A definição do resultado muda pela vigência registrada no cadastro; a ação antiga não é reaplicada depois da troca e a nova não é retroagida.',
+    'Junho soma as duas ações apenas nos trechos em que cada uma estava vigente.',
+  ],
 };
-
-/* ------------------------------------------------------------------ */
 /* B4 — ranking de criativos da Meta                                   */
 /* ------------------------------------------------------------------ */
 
@@ -326,57 +321,13 @@ const evolucaoGoogle: EvolucaoMensal = {
  */
 const rankingMeta: RankingCriativos = {
   id: 'ranking_meta',
-  escopo: { tipo: 'plataforma', rotulo: 'campanhas de mensagem do Meta Ads' },
-  ordenadoPor: 'mensagens iniciadas',
+  escopo: { tipo: 'plataforma', rotulo: 'campanhas de leads do Meta Ads' },
+  ordenadoPor: 'leads',
   criativos: [
-    {
-      id: 'cr_01',
-      nome: 'Carrossel — Antes e depois',
-      miniatura: null,
-      motivoSemMiniatura: 'a imagem deste anúncio não foi guardada nesta demonstração',
-      numeros: [{ rotulo: 'Mensagens', valor: ok(31), unidade: 'inteiro' }],
-      situacao: { situacao: 'ativa', lidaEm: '2026-08-01T07:05:00-03:00' },
-    },
-    {
-      id: 'cr_02',
-      nome: 'Vídeo — Depoimento da paciente',
-      miniatura: null,
-      motivoSemMiniatura: 'a imagem deste anúncio não foi guardada nesta demonstração',
-      numeros: [{ rotulo: 'Mensagens', valor: ok(24), unidade: 'inteiro' }],
-      situacao: { situacao: 'ativa', lidaEm: '2026-08-01T07:05:00-03:00' },
-    },
-    {
-      id: 'cr_03',
-      nome: 'Estático — Agenda de agosto',
-      miniatura: null,
-      motivoSemMiniatura: 'este anúncio foi encerrado antes da geração do relatório',
-      numeros: [{ rotulo: 'Mensagens', valor: ok(19), unidade: 'inteiro' }],
-      /**
-       * Situação datada, e a data importa: este anúncio rodou julho inteiro e
-       * foi pausado em agosto. Sem a data, "Pausado" num relatório sobre julho
-       * faria o cliente concluir que ele não rodou.
-       */
-      situacao: { situacao: 'pausada', lidaEm: '2026-08-01T07:05:00-03:00' },
-    },
-    {
-      id: 'cr_04',
-      nome: 'Estático — Localização do consultório',
-      miniatura: null,
-      motivoSemMiniatura: 'a imagem deste anúncio não foi guardada nesta demonstração',
-      numeros: [
-        {
-          rotulo: 'Mensagens',
-          /**
-           * Criativo que rodou e não trouxe mensagem: zero é medição de
-           * verdade aqui, e é diferente de ausência. Ele aparece com o zero, e
-           * não sumindo da lista.
-           */
-          valor: ok(0),
-          unidade: 'inteiro',
-        },
-      ],
-      situacao: { situacao: 'ativa', lidaEm: '2026-08-01T07:05:00-03:00' },
-    },
+    { id: 'cr_01', nome: 'Carrossel — Antes e depois', miniatura: null, motivoSemMiniatura: 'a imagem deste anúncio não foi guardada nesta demonstração', numeros: [{ rotulo: 'Leads', valor: ok(7), unidade: 'inteiro' }], situacao: { situacao: 'ativa', lidaEm: '2026-08-01T07:05:00-03:00' } },
+    { id: 'cr_02', nome: 'Vídeo — Depoimento da paciente', miniatura: null, motivoSemMiniatura: 'a imagem deste anúncio não foi guardada nesta demonstração', numeros: [{ rotulo: 'Leads', valor: ok(6), unidade: 'inteiro' }], situacao: { situacao: 'ativa', lidaEm: '2026-08-01T07:05:00-03:00' } },
+    { id: 'cr_03', nome: 'Estático — Agenda de agosto', miniatura: null, motivoSemMiniatura: 'este anúncio foi encerrado antes da geração do relatório', numeros: [{ rotulo: 'Leads', valor: ok(5), unidade: 'inteiro' }], situacao: { situacao: 'pausada', lidaEm: '2026-08-01T07:05:00-03:00' } },
+    { id: 'cr_04', nome: 'Estático — Localização do consultório', miniatura: null, motivoSemMiniatura: 'a imagem deste anúncio não foi guardada nesta demonstração', numeros: [{ rotulo: 'Leads', valor: ok(4), unidade: 'inteiro' }], situacao: { situacao: 'ativa', lidaEm: '2026-08-01T07:05:00-03:00' } },
   ],
 };
 
@@ -807,7 +758,7 @@ export const karyneMontada202607: SnapshotMontado = {
       id: 'evolucao-meta',
       titulo: 'Meta Ads — o ano até aqui',
       apoio:
-        'Investimento e mensagens, mês a mês. Cada métrica tem o painel dela, com escala própria: sobrepor as duas num gráfico só faria parecer que uma explica a outra.',
+        'Investimento e resultados, mês a mês. Cada mês usa a definição que estava vigente naquele período.',
       evolucao: 'evolucao_meta_2026',
       apresentacao: 'grafico',
     },
@@ -822,8 +773,8 @@ export const karyneMontada202607: SnapshotMontado = {
     {
       bloco: 'B4',
       id: 'criativos-meta',
-      titulo: 'Os anúncios que mais trouxeram mensagens',
-      apoio: 'Ordenados por mensagens iniciadas no período.',
+      titulo: 'Os anúncios que mais trouxeram leads',
+      apoio: 'Ordenados pelos leads registrados no período.',
       ranking: 'ranking_meta',
     },
     {
@@ -883,8 +834,8 @@ export const karyneMontada202607: SnapshotMontado = {
         'investimento',
         'cpm',
         'cpc',
-        'mensagens',
-        'custo_por_mensagem',
+        'conversoes',
+        'custo_por_conversao',
         'cliques',
         'ctr',
         'conversoes',
@@ -913,13 +864,13 @@ export const karyneMontada202607: SnapshotMontado = {
     resumoExecutivo: [
       {
         texto:
-          'Julho somou R$ 1.864,89 investidos nas duas plataformas: R$ 863,91 no Meta, que trouxe 74 conversas iniciadas, e R$ 1.000,98 no Google, que registrou 21 conversões.',
-        sustentadaPor: ['meta_investimento', 'meta_mensagens', 'google_investimento', 'google_conversoes'],
+          'Julho somou R$ 1.864,89 investidos nas duas plataformas: R$ 863,91 no Meta, que trouxe 22 leads, e R$ 1.000,98 no Google, que registrou 16 leads.',
+        sustentadaPor: ['meta_investimento', 'meta_resultado', 'google_investimento', 'google_conversoes'],
       },
       {
         texto:
-          'O custo por mensagem do Meta caiu de R$ 12,58 para R$ 11,67, e o custo por conversão do Google caiu de R$ 52,68 para R$ 47,67.',
-        sustentadaPor: ['meta_custo_mensagem', 'google_custo_conversao'],
+          'O mês fechou com custo por lead de R$ 39,27 no Meta e R$ 62,56 no Google.',
+        sustentadaPor: ['meta_custo_resultado', 'google_custo_conversao'],
       },
       {
         texto:
@@ -930,13 +881,13 @@ export const karyneMontada202607: SnapshotMontado = {
     destaques: [
       {
         texto:
-          'Julho foi o mês de maior volume do ano nas duas plataformas: 74 mensagens no Meta e 21 conversões no Google.',
+          'Em julho, a conversão vigente foi lead nas duas plataformas: 22 no Meta e 16 no Google.',
         sustentadaPor: ['evolucao_meta_2026', 'evolucao_google_2026'],
       },
       {
         texto:
-          'Os dois custos por resultado caíram em relação a junho, enquanto o investimento subiu nas duas contas.',
-        sustentadaPor: ['meta_custo_mensagem', 'google_custo_conversao'],
+          'A comparação com junho exige contexto: naquele mês a forma de medir o resultado mudou no dia 22. Até então, parte das conversões vinha de conversas iniciadas diretamente no WhatsApp; depois disso, passaram a contar os leads que chegam pela landing page, após uma etapa maior de qualificação. Por isso, a queda no volume e o aumento do custo por lead não representam, sozinhos, piora de desempenho — julho já reflete um critério mais restrito e leads mais quentes.',
+        sustentadaPor: ['meta_resultado', 'meta_custo_resultado', 'google_conversoes', 'google_custo_conversao', 'evolucao_meta_2026', 'evolucao_google_2026'],
       },
     ],
     atencao: [
