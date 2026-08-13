@@ -113,7 +113,9 @@ ou renderização de conteúdo fora do fluxo de revisão.
 
 ## Próximo gate
 
-Revisar e integrar `codex/ra2-resposta-completa` somente com novo GO de merge e
-deploy. Depois, repetir o teste autenticado em desktop e celular, incluindo
-gerar e abrir/cancelar a edição sem salvar; não aplicar, editar, aprovar,
-recusar ou enviar relatório real. RA3 permanece bloqueada.
+O Flávio deu novo GO explícito para integrar/publicar. O pre-flight confirmou
+`origin/main/a406422`, branch `aa1caff`, zero commits atrás, quatro à frente e
+merge-base exatamente `a406422`; a integração pode ser fast-forward. Depois do
+deployment `READY`, repetir o teste autenticado em desktop e celular: gerar uma
+sugestão completa e sucinta e salvar uma alteração no editor. Não aplicar,
+aprovar, recusar ou enviar relatório real. RA3 permanece bloqueada.
