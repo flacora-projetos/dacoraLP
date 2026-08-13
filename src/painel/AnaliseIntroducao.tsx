@@ -48,7 +48,11 @@ export function AnaliseIntroducao({
   return (
     <aside className="dcp-analise-introducao" aria-label="Revisão assistida da introdução">
       <div className="dcp-analise-introducao__cabecalho">
-        <div><p className="dcp-eyebrow">Revisão assistida</p><h3>Introdução</h3></div>
+        <div>
+          <p className="dcp-eyebrow">Revisão assistida</p>
+          <h3>Melhore a introdução com análise factual</h3>
+          <p className="dcp-analise-introducao__apoio">Gera uma proposta usando apenas os dados e comparações deste relatório.</p>
+        </div>
         <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('gerar')}>
           Melhorar análise
         </button>

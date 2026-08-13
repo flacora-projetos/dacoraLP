@@ -1904,8 +1904,20 @@
 /* RA2: a proposta fica dentro da abertura, mas não substitui o snapshot. */
 .dcp-analise-introducao {
   margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--dc-filete);
+  padding: clamp(1rem, 0.8rem + 0.7vw, 1.4rem);
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 0.8rem;
+  background: var(--dc-superficie);
+  color: var(--dc-tinta);
+  box-shadow: 0 10px 28px rgba(13, 31, 24, 0.18);
+}
+
+.dcp-analise-introducao .dcp-eyebrow { color: var(--dc-verde-medio); }
+
+.dcp-analise-introducao .dcp-botao--primario {
+  background: var(--dc-verde);
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(1, 64, 41, 0.2);
 }
 
 .dcp-analise-introducao__cabecalho,
@@ -1920,7 +1932,14 @@
 .dcp-analise-introducao__cabecalho h3 {
   margin: 0.1rem 0 0;
   color: var(--dc-tinta);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+}
+
+.dcp-analise-introducao__apoio {
+  max-width: 42rem;
+  margin: 0.35rem 0 0;
+  color: var(--dc-cinza);
+  font-size: 0.9rem;
 }
 
 .dcp-analise-introducao__estado,

@@ -4,6 +4,7 @@ export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v1';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACOES = new Set(['gerar', 'aplicar', 'editar', 'desfazer']);
 const NUMERO_NO_TEXTO = /(?:R\$\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?%?/g;
+const LIMIAR_RELEVANTE = 0.05;
 
 export type AcaoEditorial = 'gerar' | 'aplicar' | 'editar' | 'desfazer';
 export interface PedidoEditorial { id: string; checksum: string; acao: AcaoEditorial; sugestaoId?: string; texto?: string; }
@@ -30,8 +31,108 @@ export function introducaoDoSnapshot(linha: LinhaAnalise): string | null {
   return textos.length > 0 ? textos.join('\n\n') : null;
 }
 
+function numeroFactual(valor: any): number | null {
+  return valor?.estado === 'ok' && typeof valor.numero === 'number' && Number.isFinite(valor.numero)
+    ? valor.numero
+    : null;
+}
+
+function semanticaDaMetrica(id: string): string | null {
+  if (id.includes('investimento')) return 'investimento';
+  if (id.includes('impressoes')) return 'impressoes';
+  if (id.includes('cliques')) return 'cliques';
+  if (id.includes('cpm')) return 'cpm';
+  if (id.includes('ctr')) return 'ctr';
+  if (id.includes('cpc')) return 'cpc';
+  if (id.includes('custo') && (id.includes('resultado') || id.includes('conversao'))) return 'custo_por_resultado';
+  if (id.includes('taxa') && id.includes('conversao')) return 'taxa_de_conversao';
+  if (id.includes('resultado') || id.includes('conversoes')) return 'resultado';
+  return null;
+}
+
+function variacaoRelevante(variacao: unknown): variacao is number {
+  return typeof variacao === 'number' && Number.isFinite(variacao) && Math.abs(variacao) >= LIMIAR_RELEVANTE;
+}
+
+function direcao(variacao: number): string {
+  return variacao > 0 ? 'subiu' : 'caiu';
+}
+
+function percentual(valor: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(valor);
+}
+
+function agruparPor<T>(itens: T[], chave: (item: T) => string): Map<string, T[]> {
+  return itens.reduce((grupos, item) => {
+    const valor = chave(item);
+    const grupo = grupos.get(valor) ?? [];
+    grupo.push(item);
+    grupos.set(valor, grupo);
+    return grupos;
+  }, new Map<string, T[]>());
+}
+
+/** Compatibilidade para snapshots anteriores à RA1, sem alterar o documento imutável. */
+function projetarContextoLegado(linha: LinhaAnalise) {
+  const faixas = linha.conteudo?.dados?.faixas;
+  if (!faixas || typeof faixas !== 'object' || Array.isArray(faixas)) return null;
+
+  const fatos: any[] = [];
+  const limitacoes: Array<{ id: string; motivo: string }> = [];
+  for (const faixa of Object.values(faixas) as any[]) {
+    const plataforma = typeof faixa?.id === 'string' ? faixa.id.replace(/^faixa_/, '') : 'desconhecida';
+    if (!Array.isArray(faixa?.metricas)) continue;
+    for (const metrica of faixa.metricas) {
+      const id = typeof metrica?.id === 'string' ? metrica.id : '';
+      const rotulo = typeof metrica?.rotulo === 'string' ? metrica.rotulo : '';
+      const unidade = typeof metrica?.unidade === 'string' ? metrica.unidade : '';
+      const atual = numeroFactual(metrica?.valor);
+      const base = numeroFactual(metrica?.comparativo?.valorBase);
+      const permitido = metrica?.comparativo?.permitido === true && base !== null;
+      const tipo = semanticaDaMetrica(id);
+      if (!id || !rotulo || !unidade || atual === null || !tipo) continue;
+      fatos.push({
+        id, plataforma, tipo, rotulo, unidade, atual,
+        ...(permitido ? {
+          competenciaBase: metrica.comparativo.competenciaBase,
+          base,
+          variacao: metrica.comparativo.variacao,
+        } : {}),
+      });
+      if (!permitido) limitacoes.push({ id, motivo: 'comparacao_indisponivel' });
+    }
+  }
+  if (fatos.length === 0) return null;
+
+  const relacoes: any[] = [];
+  for (const plataforma of [...new Set(fatos.map((fato) => fato.plataforma))]) {
+    const daPlataforma = fatos.filter((fato) => fato.plataforma === plataforma);
+    const porTipo = agruparPor(daPlataforma, (fato) => fato.tipo);
+    for (const fato of daPlataforma.filter((item) => variacaoRelevante(item.variacao))) {
+      relacoes.push({ tipo: fato.tipo, plataforma, sustentadaPor: [fato.id], texto: `${fato.rotulo} ${direcao(fato.variacao)} ${percentual(Math.abs(fato.variacao))} na comparação disponível.` });
+    }
+    for (const investimento of porTipo.get('investimento') ?? []) for (const resultado of porTipo.get('resultado') ?? []) {
+      if (!variacaoRelevante(investimento.variacao) || !variacaoRelevante(resultado.variacao)) continue;
+      relacoes.push({ tipo: 'investimento_resultado', plataforma, sustentadaPor: [investimento.id, resultado.id], texto: `Investimento ${direcao(investimento.variacao)} e ${resultado.rotulo.toLowerCase()} ${direcao(resultado.variacao)} na mesma comparação.` });
+    }
+    for (const cpm of porTipo.get('cpm') ?? []) for (const impressoes of porTipo.get('impressoes') ?? []) {
+      if (!variacaoRelevante(cpm.variacao) || !variacaoRelevante(impressoes.variacao)) continue;
+      relacoes.push({ tipo: 'cpm_entrega', plataforma, sustentadaPor: [cpm.id, impressoes.id], texto: `CPM ${direcao(cpm.variacao)} enquanto as impressões ${direcao(impressoes.variacao)}.` });
+    }
+    for (const ctr of porTipo.get('ctr') ?? []) for (const cpc of porTipo.get('cpc') ?? []) {
+      if (!variacaoRelevante(ctr.variacao) || !variacaoRelevante(cpc.variacao)) continue;
+      relacoes.push({ tipo: 'ctr_cpc', plataforma, sustentadaPor: [ctr.id, cpc.id], texto: `CTR ${direcao(ctr.variacao)} enquanto o CPC ${direcao(cpc.variacao)}.` });
+    }
+  }
+
+  return { versao: 'analysis_context_v1', competencia: linha.competencia, fatos, relacoes, limitacoes };
+}
+
 export function contextoDoSnapshot(linha: LinhaAnalise) {
-  const contexto = linha.conteudo?.analysisContext;
+  const embutido = linha.conteudo?.analysisContext;
+  const contexto = embutido?.versao === 'analysis_context_v1' && Array.isArray(embutido.fatos)
+    ? embutido
+    : projetarContextoLegado(linha);
   if (!contexto || contexto.versao !== 'analysis_context_v1' || !Array.isArray(contexto.fatos)) return null;
   const original = introducaoDoSnapshot(linha);
   if (!original) return null;

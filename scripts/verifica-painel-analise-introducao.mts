@@ -66,6 +66,28 @@ assert.equal(validarNumerosDaSugestao('A conta registrou 17 leads.', contexto).o
 }
 assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro', analysis_context: { inventado: true } }).ok, true);
 
+const linhaLegada = linha({
+  conteudo: {
+    ...linha().conteudo,
+    analysisContext: undefined,
+    dados: { faixas: {
+      faixa_meta: { id: 'faixa_meta', metricas: [
+        { id: 'meta_investimento', rotulo: 'Investimento', unidade: 'brl', valor: { estado: 'ok', numero: 863.91 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 1200.58 }, variacao: -0.280423 } },
+        { id: 'meta_resultado', rotulo: 'Leads', unidade: 'inteiro', valor: { estado: 'ok', numero: 22 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 85 }, variacao: -0.741176 } },
+        { id: 'meta_cpm', rotulo: 'CPM', unidade: 'brl', valor: { estado: 'ok', numero: 31.41 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 15.46 }, variacao: 1.031695 } },
+      ] },
+      faixa_google: { id: 'faixa_google', metricas: [
+        { id: 'google_investimento', rotulo: 'Investimento', unidade: 'brl', valor: { estado: 'ok', numero: 1000.98 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 722.77 }, variacao: 0.384922 } },
+        { id: 'google_conversoes', rotulo: 'Leads', unidade: 'decimal', valor: { estado: 'ok', numero: 16 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 36 }, variacao: -0.555556 } },
+      ] },
+    } },
+  },
+});
+const contextoLegado = contextoDoSnapshot(linhaLegada as any);
+assert.ok(contextoLegado, 'snapshot anterior à RA1 precisa projetar contexto sem alterar o documento');
+assert.ok(contextoLegado.fatos.some((fato: any) => fato.id === 'meta_resultado' && fato.atual === 22));
+assert.ok(contextoLegado.relacoes.some((relacao: any) => relacao.tipo === 'investimento_resultado' && relacao.plataforma === 'meta'));
+
 process.env.SUPABASE_URL = 'https://exemplo.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-de-teste';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-teste';
@@ -129,6 +151,17 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.equal((rpc.corpo as any).p_por, 'revisor@exemplo.com');
   assert.equal((rpc.corpo as any).p_relatorio_id, ID);
   assert.ok((rpc.corpo as any).p_contexto_hash, 'a sugestão precisa ficar vinculada ao contexto relido');
+}
+
+{
+  linhaDoBanco = linhaLegada;
+  saidaSonnet = '{"texto":"Meta Ads registrou investimento de R$ 863,91 e 22 leads."}';
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
+  assert.equal(resposta.status, 200, 'relatório real anterior à RA1 precisa chegar ao Sonnet');
+  const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
+  assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /863\.91|863,91/);
+  linhaDoBanco = linha();
+  saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 }
 
 {

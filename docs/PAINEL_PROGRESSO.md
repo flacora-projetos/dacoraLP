@@ -29,8 +29,8 @@ somente a fixture governada da Karyne, sem contexto ou variações injetados, n�
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
 O estado
-é **RA2 publicada; validação humana autenticada ainda aberta**:
-a correção percentual aceita somente `2,5%`, `2,0%` e `33,3%` governados e recusa `7,7%`. As migrations `20260813162000`/`20260813162050` estão aplicadas no `Dácora Reports` com RLS/ACL/index read-back; a fábrica está em `origin/master` desde `c843d56`. O painel publicado em `main/f43a635` passou `verifica:analise`, `verifica:revisao` e build completo. O deployment de produção `F7xzgXmzGtJdpMq6Tx7995cWZcqQ` (`dacora-qhk3quoci-flavio-coras-projects.vercel.app`) ficou `Ready`; o smoke no domínio oficial confirmou raiz e `/painel-de-relatorios` HTTP 200, além de POST sem sessão em `/api/painel-analise-introducao` HTTP 401 `sem_sessao`. A documentação atual da Anthropic confirmou `claude-sonnet-5`; o ID antigo do exemplo foi retirado. As duas variáveis RA2 estão sensíveis e somente em Production no Vercel, conferidas pela presença dos nomes sem revelar valores. Falta apenas o smoke autenticado desktop/celular e a avaliação qualitativa do Flávio. Sem Preview remoto, decisão ou envio.
+é **RA2 publicada, reprovada no primeiro teste autenticado e em correção**:
+o print da Karyne v9 provou contraste quase ilegível e `contexto_indisponivel`. A causa é objetiva: as versões reais de julho antecedem a RA1 e não carregam `analysisContext`; a regressão original cobria apenas snapshots sintéticos já enriquecidos. Em `codex/correcao-ra2-contexto-legado`, o backend agora projeta o mesmo `analysis_context_v1` das faixas persistidas, sem alterar relatório ou checksum, e a UI virou cartão claro com título, apoio e botão contrastante. Read-only no Supabase: 96 relatórios externos/gerados têm fatos deriváveis; os seis sem projeção são dois smokes de voz e quatro mensais internos, fora desta UI. O teste dirigido usa os números reais do print; `verifica:analise`, `verifica:revisao` e build completo passaram. Ainda não publicado neste marco. Sem decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -705,7 +705,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Validar RA2 em produção:** Supabase, fábrica e painel estão integrados; `main/f43a635`, deployment `Ready` e smoke público concluídos. O Flávio deve executar o smoke autenticado desktop/celular e avaliar a utilidade factual da análise gerada. Não há decisão, envio ou RA3.
+1. **Publicar e revalidar a correção RA2:** integrar `codex/correcao-ra2-contexto-legado`, confirmar deployment e repetir o teste autenticado na Karyne em desktop/celular. O aceite exige caneta visível, geração real e análise factual útil. Não há decisão, envio ou RA3.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.
