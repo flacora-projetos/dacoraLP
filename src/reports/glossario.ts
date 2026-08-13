@@ -174,7 +174,7 @@ const TERMOS: TermoGlossario[] = [
     id: 'regiao',
     termo: 'Investimento por região',
     texto:
-      'Onde o dinheiro foi aplicado, segundo a localização que a plataforma atribuiu a cada exibição. Uma parte pode aparecer como não determinada: é a própria plataforma dizendo que não soube identificar a região, e não uma falha da coleta.',
+      'Onde o dinheiro foi aplicado, segundo a localização que a plataforma atribuiu a cada exibição. Uma parte pode aparecer como não determinada: é a própria plataforma dizendo que não soube identificar a região desse valor.',
   },
 ];
 

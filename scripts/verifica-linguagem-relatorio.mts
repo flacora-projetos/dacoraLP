@@ -11,6 +11,7 @@ import { criarChartTheme } from '../src/reports/charts/chartTheme.ts';
 import { renderizarBloco } from '../src/reports/blocos/catalogo.tsx';
 import { aviarte202607 } from '../src/reports/fixtures/aviarte-2026-07.ts';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
+import { ich202607 } from '../src/reports/fixtures/ich-2026-07.ts';
 
 const vocabularioProibido = [
   /compet[êe]ncia/i,
@@ -104,12 +105,13 @@ assert.match(tabela, /palavra 10/); // recolhida na tela, preservada no document
 assert.match(tabela, /dc-linha--recolhida/);
 assert.doesNotMatch(tabela, /<tr[^>]*class="[^"]*dc-linha[^"]*"[^>]*hidden/); // o recolhimento C2 não depende do atributo HTML hidden
 
-// Gate 3 usa Karyne e Aviarte: renderiza todos os blocos dos dois snapshots
-// pelo catálogo real. Assim qualquer motivo/nota dinâmica que vaze por outro
-// bloco também derruba esta regressão, sem depender de carregar CSS no Node.
+// O gate renderiza todos os blocos das fixtures de referência pelo catálogo
+// real. ICH entra aqui também porque usa o verbete de região do glossário;
+// assim um vazamento nesse caminho derruba a regressão antes do build.
 for (const [nome, snapshot] of [
   ['Karyne', karyneMontada202607],
   ['Aviarte', aviarte202607],
+  ['ICH', ich202607],
 ] as const) {
   const rotulosPlataforma = Object.fromEntries(
     snapshot.fontes.map((fonte) => [fonte.plataforma, fonte.rotulo]),

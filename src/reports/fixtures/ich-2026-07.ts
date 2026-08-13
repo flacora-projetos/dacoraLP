@@ -452,7 +452,7 @@ const quebraRegiao: QuebraPorDimensao = {
       id: 'indeterminada',
       rotulo: 'Região não determinada',
       valor: ok(0.07),
-      nota: 'É a própria Meta dizendo que não conseguiu identificar de onde veio esta parte do gasto. Não é falha da nossa coleta, e por isso aparece com o valor que ela devolveu em vez de ser omitida.',
+      nota: 'É a própria Meta dizendo que não conseguiu identificar de onde veio esta parte do gasto. O valor continua no relatório e aparece como não determinado em vez de ser omitido.',
     },
   ],
 };
