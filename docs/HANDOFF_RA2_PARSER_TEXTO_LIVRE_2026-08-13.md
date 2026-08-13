@@ -66,6 +66,9 @@ editorial útil em erro técnico, apesar de a revisão humana já ser o gate.
 
 ## Adendo: concisão editorial e edição utilizável
 
+- Implementação do adendo: `8a59b72`
+  (`fix(ra2): tornar edição utilizável`) na mesma branch
+  `codex/ra2-resposta-completa`; ainda sem merge ou deploy.
 - O teste real que revelou o corte também mostrou que a proposta ficou longa
   demais para o objetivo editorial. O contexto factual continua inteiro no
   request; o prompt agora pede um resumo básico, sucinto e direto, seleciona os
