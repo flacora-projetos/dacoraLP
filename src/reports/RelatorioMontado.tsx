@@ -17,7 +17,7 @@
  * apresentação está nos blocos, e todo o dado está no snapshot.
  */
 
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
 import type { CompetenciaDisponivel } from './snapshot';
 import { criarChartTheme, type PropostaId } from './charts/chartTheme';
@@ -30,9 +30,10 @@ interface Props {
   competencias: CompetenciaDisponivel[];
   proposta: PropostaId;
   demo?: { rotulo: string; href: string; descricao: string };
+  introducaoDaRevisao?: ReactNode;
 }
 
-export default function RelatorioMontado({ snapshot, competencias, proposta, demo }: Props) {
+export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao }: Props) {
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
 
   const secoes: SecaoRelatorio[] = useMemo(() => {
@@ -73,6 +74,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
       proposta={proposta}
       secoes={secoes}
       demo={demo}
+      introducaoDaRevisao={introducaoDaRevisao}
     />
   );
 }

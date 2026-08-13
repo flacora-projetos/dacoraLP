@@ -22,15 +22,15 @@ A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
 C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
 sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
 publicada isoladamente para retomar o Gate 3.
-**RA1 corrigida após a segunda reprovação Sol High, em 2026-08-13:** o fallback
+**RA1 concluída e RA2 em implementação local, em 2026-08-13:** o fallback
 abre com fatos atuais e a seleção do principal é independente da ordem. A rota
 local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
 O estado
-é **corrigida e validada localmente; aguardando nova revisão Sol High e Preview**:
-sem push, Preview, merge, publicação, decisão, envio ou RA2.
+é **RA2 implementada localmente, aguardando revisão adversarial e validação humana**:
+handler Vercel autenticado, snapshot/contexto relidos server-side e Sonnet dedicado sem tools; testes e build passaram. O `tsc` mantém seis erros preexistentes, sem RA2 novo. O smoke autenticado desktop/celular permanece pendente; sem push, Preview remoto, merge, publicação, decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -705,9 +705,8 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **RA1 corrigida e validada localmente:** as branches da fábrica e do
-   painel são `codex/ra1-segunda-correcao`. Aguarda a terceira revisão Sol High;
-   Preview desktop/celular permanece posterior, se autorizado. Não há caneta, modelo, endpoint, migration,
+1. **RA2 implementada localmente:** as branches da fábrica e do painel são
+   `codex/ra2-caneta-introducao`. A caneta fica somente na introdução da revisão autenticada; o handler Vercel relê snapshot/contexto com service role e chama Sonnet dedicado, sem tools. Migration é local. Restam smoke autenticado desktop/celular, revisão adversarial e validação humana; não há push, publicação, decisão, envio ou RA3.
    decisão, envio, push ou publicação nesta fase.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela

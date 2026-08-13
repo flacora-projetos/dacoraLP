@@ -1901,6 +1901,58 @@
   box-shadow: 0 12px 32px rgba(13, 31, 24, 0.26);
 }
 
+/* RA2: a proposta fica dentro da abertura, mas não substitui o snapshot. */
+.dcp-analise-introducao {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dc-filete);
+}
+
+.dcp-analise-introducao__cabecalho,
+.dcp-analise-introducao__acoes {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.dcp-analise-introducao__cabecalho h3 {
+  margin: 0.1rem 0 0;
+  color: var(--dc-tinta);
+  font-size: 1.05rem;
+}
+
+.dcp-analise-introducao__estado,
+.dcp-analise-introducao__erro {
+  margin: 0.75rem 0 0;
+  font-size: 0.88rem;
+}
+
+.dcp-analise-introducao__erro { color: var(--dc-sinal); }
+
+.dcp-analise-introducao__comparacao {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.dcp-analise-introducao__comparacao > div:not(.dcp-analise-introducao__acoes) {
+  padding: 0.8rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 0.5rem;
+  background: var(--dc-canvas);
+}
+
+.dcp-analise-introducao__comparacao strong { color: var(--dc-tinta); }
+.dcp-analise-introducao__comparacao p { margin: 0.4rem 0 0; white-space: pre-wrap; }
+.dcp-analise-introducao__comparacao textarea { width: 100%; min-height: 7rem; margin-top: 0.5rem; font: inherit; }
+
+@media (min-width: 760px) {
+  .dcp-analise-introducao__comparacao { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dcp-analise-introducao__acoes { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
 @media (max-width: 560px) {
   .dcp-revisao__navegacao--flutuante {
     top: calc(4rem + env(safe-area-inset-top, 0px));

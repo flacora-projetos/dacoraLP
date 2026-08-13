@@ -49,6 +49,8 @@ interface Props {
   secoes: SecaoRelatorio[];
   /** Rodapé de demonstração com link para outra rota. Só na W0. */
   demo?: { rotulo: string; href: string; descricao: string };
+  /** Só a revisão autenticada entrega a caneta; relatórios públicos nunca a montam. */
+  introducaoDaRevisao?: ReactNode;
 }
 
 const MARCA_DACORA: Marca = {
@@ -83,7 +85,7 @@ function usaPaginaPrivada(titulo: string) {
 
 const indice = (posicao: number) => String(posicao).padStart(2, '0');
 
-export default function Esqueleto({ snapshot, competencias, proposta, secoes, demo }: Props) {
+export default function Esqueleto({ snapshot, competencias, proposta, secoes, demo, introducaoDaRevisao }: Props) {
   const { identidade, publicacao, leitura } = snapshot;
   const marca = identidade.marca ?? MARCA_DACORA;
 
@@ -168,6 +170,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
                 <p key={afirmacao.texto}>{textoParaCliente(afirmacao.texto)}</p>
               ))}
             </div>
+            {introducaoDaRevisao}
           </div>
         </Secao>
 

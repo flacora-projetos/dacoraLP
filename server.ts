@@ -4,6 +4,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import metaCapiHandler from "./api/meta-capi";
 import painelDecisaoHandler from "./api/painel-decisao";
+import painelAnaliseIntroducaoHandler from "./api/painel-analise-introducao";
 import painelEnvioHandler from "./api/painel-envio";
 import painelFilaHandler from "./api/painel-fila";
 import painelRelatorioHandler from "./api/painel-relatorio";
@@ -43,6 +44,7 @@ async function startServer() {
   app.all("/api/painel-relatorio", painelRelatorioHandler);
   app.all("/api/painel-relatorio-interno", painelRelatorioInternoHandler);
   app.all("/api/painel-decisao", painelDecisaoHandler);
+  app.all("/api/painel-analise-introducao", painelAnaliseIntroducaoHandler);
   app.all("/api/painel-envio", painelEnvioHandler);
   app.all("/api/relatorio-publico", relatorioPublicoHandler);
 

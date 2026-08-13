@@ -1,0 +1,79 @@
+import { useEffect, useState } from 'react';
+
+export type AcaoDaIntroducao = 'carregar' | 'gerar' | 'aplicar' | 'editar' | 'desfazer';
+export interface SugestaoDaIntroducao { id: string; estado: string; texto: string; checksum: string; }
+
+export function AnaliseIntroducao({
+  original,
+  podeRevisar,
+  aoAcionar,
+  aoMudarTexto,
+}: {
+  original: string;
+  podeRevisar: boolean;
+  aoAcionar: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
+  aoMudarTexto: (texto: string | null) => void;
+}) {
+  const [sugestao, setSugestao] = useState<SugestaoDaIntroducao | null>(null);
+  const [estado, setEstado] = useState<'ociosa' | 'carregando' | 'erro'>('carregando');
+  const [mensagem, setMensagem] = useState('');
+  const [editando, setEditando] = useState(false);
+  const [textoEditado, setTextoEditado] = useState('');
+
+  useEffect(() => {
+    if (!podeRevisar) { setEstado('ociosa'); return; }
+    void aoAcionar('carregar').then((atual) => {
+      setSugestao(atual);
+      if (atual && (atual.estado === 'aplicada' || atual.estado === 'editada')) aoMudarTexto(atual.texto);
+      setEstado('ociosa');
+    }).catch(() => { setMensagem('A sugestão anterior não pôde ser carregada.'); setEstado('erro'); });
+  }, [aoAcionar, aoMudarTexto, podeRevisar]);
+
+  async function agir(acao: Exclude<AcaoDaIntroducao, 'carregar'>, texto?: string) {
+    setEstado('carregando'); setMensagem('');
+    try {
+      const atual = await aoAcionar(acao, sugestao ?? undefined, texto);
+      if (!atual) throw new Error('sem_sugestao');
+      setSugestao(atual);
+      if (acao === 'aplicar' || acao === 'editar') aoMudarTexto(atual.texto);
+      if (acao === 'desfazer') aoMudarTexto(null);
+      setEditando(false); setEstado('ociosa');
+    } catch (erro) {
+      setMensagem(erro instanceof Error ? erro.message : 'Não foi possível concluir esta ação.');
+      setEstado('erro');
+    }
+  }
+
+  if (!podeRevisar) return null;
+  return (
+    <aside className="dcp-analise-introducao" aria-label="Revisão assistida da introdução">
+      <div className="dcp-analise-introducao__cabecalho">
+        <div><p className="dcp-eyebrow">Revisão assistida</p><h3>Introdução</h3></div>
+        <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('gerar')}>
+          Melhorar análise
+        </button>
+      </div>
+      {estado === 'carregando' && <p className="dcp-analise-introducao__estado" aria-live="polite">Carregando sugestão editorial…</p>}
+      {mensagem && <p className="dcp-analise-introducao__erro" role="alert">{mensagem} O texto original permanece preservado.</p>}
+      {sugestao?.estado === 'desfeita' && <p className="dcp-analise-introducao__estado" aria-live="polite">Sugestão desfeita. O texto original foi restaurado.</p>}
+      {sugestao && sugestao.estado !== 'desfeita' && (
+        <div className="dcp-analise-introducao__comparacao">
+          <div><strong>Original</strong><p>{original}</p></div>
+          <div><strong>Sugestão</strong>{editando ? (
+            <textarea aria-label="Editar sugestão da introdução" value={textoEditado} onChange={(evento) => setTextoEditado(evento.target.value)} />
+          ) : <p>{sugestao.texto}</p>}</div>
+          <div className="dcp-analise-introducao__acoes">
+            {editando ? <>
+              <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('editar', textoEditado)}>Salvar edição</button>
+              <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => setEditando(false)}>Cancelar</button>
+            </> : <>
+              <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('aplicar')}>Aplicar na revisão</button>
+              <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => { setTextoEditado(sugestao.texto); setEditando(true); }}>Editar</button>
+              <button type="button" className="dcp-botao dcp-botao--discreto" disabled={estado === 'carregando'} onClick={() => void agir('desfazer')}>Desfazer</button>
+            </>}
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
