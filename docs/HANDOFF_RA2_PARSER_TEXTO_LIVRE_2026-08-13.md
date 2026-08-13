@@ -56,7 +56,9 @@ auditoria continuam protegendo a revisão.
 
 ## Próximo gate
 
-Revisar o diff, registrar a atualização no índice canônico da fábrica e obter
-GO específico para integrar/publicar. Depois, repetir o teste autenticado em
-desktop e celular sem aprovar, recusar ou enviar relatório real. RA3 permanece
-bloqueada.
+O Flávio deu GO explícito para integrar/publicar em 2026-08-13. O pre-flight
+confirmou `origin/main` em `c5e6407`, a branch em `7f50fce`, zero commits atrás,
+quatro à frente e merge-base exatamente `c5e6407`; portanto a integração pode
+ser fast-forward, sem merge de conteúdo concorrente. Depois da publicação,
+repetir o teste autenticado em desktop e celular sem aplicar, aprovar, recusar
+ou enviar relatório real. RA3 permanece bloqueada.
