@@ -34,9 +34,10 @@ primeiro print da Karyne v9 provou contraste quase ilegível e
 confirmou cartão claro, contexto derivado e botão habilitado. A primeira geração
 real seguinte chegou ao Sonnet, mas o parser recusou o envelope textual como
 `saida_invalida`. `b32650e` está em `main` e no deployment de produção
-`J6HtfNDKMVxZd9miEcmYZJtBVZEp`, estado `Ready`: normaliza JSON estrito, cerca Markdown e
-preâmbulo, mantém texto livre recusado e preserva a validação de todos os números
-contra o contexto factual. `verifica:analise`, `verifica:revisao` e build completo
+`J6HtfNDKMVxZd9miEcmYZJtBVZEp`, estado `Ready`, iniciou a correção. O fechamento
+subsequente aceita JSON estrito, cerca Markdown, preâmbulo, chave textual única e
+texto direto; JSON malformado continua recusado e todos os números permanecem
+validados contra o contexto factual. `verifica:analise`, `verifica:revisao` e build completo
 passaram. O agente não repetiu a geração para não criar ação editorial em nome do
 revisor. Sem decisão ou envio.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,

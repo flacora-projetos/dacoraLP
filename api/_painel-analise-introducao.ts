@@ -147,25 +147,32 @@ export function extrairTextoAplicavel(blocos: Array<{ type?: string; text?: stri
   const candidatos = (blocos ?? [])
     .filter((bloco) => bloco?.type === 'text' && typeof bloco.text === 'string')
     .map((bloco) => bloco.text!.trim())
-    .filter(Boolean);
-
-  for (const candidato of candidatos) {
-    const semCerca = candidato
+    .filter(Boolean)
+    .map((candidato) => candidato
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```$/i, '')
-      .trim();
-    const inicio = semCerca.indexOf('{');
-    const fim = semCerca.lastIndexOf('}');
-    const tentativas = [semCerca, inicio >= 0 && fim > inicio ? semCerca.slice(inicio, fim + 1) : ''];
+      .trim());
+
+  for (const candidato of candidatos) {
+    const inicio = candidato.indexOf('{');
+    const fim = candidato.lastIndexOf('}');
+    const tentativas = [candidato, inicio >= 0 && fim > inicio ? candidato.slice(inicio, fim + 1) : ''];
     for (const tentativa of [...new Set(tentativas)].filter(Boolean)) {
       try {
-        const texto = JSON.parse(tentativa)?.texto;
+        const parsed = JSON.parse(tentativa);
+        if (typeof parsed === 'string' && parsed.trim()) return parsed.trim();
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+        const texto = parsed.texto;
         if (typeof texto === 'string' && texto.trim()) return texto.trim();
+        const camposTextuais = Object.values(parsed).filter((valor): valor is string => typeof valor === 'string' && Boolean(valor.trim()));
+        if (camposTextuais.length === 1) return camposTextuais[0].trim();
       } catch {
         // Tenta a próxima representação textual antes de falhar fechado.
       }
     }
   }
+  const textoPuro = candidatos.join('\n\n').trim();
+  if (textoPuro && !/[{}\[\]]/.test(textoPuro)) return textoPuro;
   return '';
 }
 
