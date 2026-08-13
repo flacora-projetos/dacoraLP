@@ -22,13 +22,13 @@ A introdução é o primeiro e mais importante alvo da caneta mágica. A limpeza
 C1/C2/C3 já implementada na branch `codex/limpeza-relatorios-gate3` continua
 sem publicação e virou insumo subordinado da RA; não deve ser integrada nem
 publicada isoladamente para retomar o Gate 3.
-**RA1 corrigida após reprovação Sol High, em 2026-08-13:** a moldura interna
-agora mostra os fatos governados com valor atual, base e variação em pt-BR;
-zero/variação inferior ao limiar não vira movimento; a abertura deixa de
-atribuir resultado ao investimento e múltiplos resultados são preservados. A
-rota local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` permite
-revisar a página inteira da Karyne sem Supabase e não entra no build de
-produção. Regressões de revisão, Karyne, linguagem e build passaram. O estado
+**RA1 corrigida após a segunda reprovação Sol High, em 2026-08-13:** o fallback
+abre com fatos atuais e a seleção do principal é independente da ordem. A rota
+local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
+somente a fixture governada da Karyne, sem contexto ou variações injetados, não
+consulta Supabase e não entra no build de produção. Regressão de revisão e build
+passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
+O estado
 é **corrigida e validada localmente; aguardando nova revisão Sol High e Preview**:
 sem push, Preview, merge, publicação, decisão, envio ou RA2.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
@@ -705,10 +705,9 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **RA1 implementada e validada localmente:** as branches da fábrica e do
-   painel são `codex/ra1-contexto-analitico`. O contexto factual, fallback e a
-   visualização interna de “o que a análise recebeu” passaram; resta Preview
-   desktop/celular se autorizado. Não há caneta, modelo, endpoint, migration,
+1. **RA1 corrigida e validada localmente:** as branches da fábrica e do
+   painel são `codex/ra1-segunda-correcao`. Aguarda a terceira revisão Sol High;
+   Preview desktop/celular permanece posterior, se autorizado. Não há caneta, modelo, endpoint, migration,
    decisão, envio, push ou publicação nesta fase.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
