@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import type { AnalysisContextV1 } from '../reports/snapshot';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
 import { formatarCompetencia } from '../reports/format';
 import DecisaoDaRevisao, {
@@ -74,6 +75,26 @@ function ListaDeSinais({ sinais }: { sinais: SinalDaRevisao[] }) {
   );
 }
 
+function ContextoDaAnalise({ contexto }: { contexto?: AnalysisContextV1 }) {
+  if (!contexto || contexto.versao !== 'analysis_context_v1') return null;
+  return (
+    <details className="dcp-contexto-analise">
+      <summary>O que a análise recebeu</summary>
+      <p>Contexto factual {contexto.versao}; não é texto para o cliente nem uma explicação causal.</p>
+      {contexto.relacoes.length > 0 ? (
+        <ul>
+          {contexto.relacoes.map((relacao) => <li key={`${relacao.tipo}-${relacao.plataforma}-${relacao.texto}`}>{relacao.texto}</li>)}
+        </ul>
+      ) : (
+        <p>Não há relações comparáveis nesta versão.</p>
+      )}
+      {contexto.limitacoes.length > 0 && (
+        <p>Limitações: {contexto.limitacoes.map(item => item.id).join(', ')} sem comparação liberada.</p>
+      )}
+    </details>
+  );
+}
+
 /**
  * Sem canal de decisão, os botões existem desabilitados.
  *
@@ -144,6 +165,7 @@ function FaixaDeRevisao({
         </summary>
         <ListaDeSinais sinais={relatorio.sinais} />
       </details>
+      <ContextoDaAnalise contexto={relatorio.snapshot.analysisContext} />
       {podeOferecerDecisao ? (
         <DecisaoDaRevisao
           relatorio={{

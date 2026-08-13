@@ -90,6 +90,25 @@ assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum p
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
 
+{
+  const comContexto: any = structuredClone(relatorio);
+  comContexto.snapshot.analysisContext = {
+    versao: 'analysis_context_v1',
+    competencia: '2026-07',
+    fatos: [],
+    relacoes: [{
+      tipo: 'cpm_entrega', plataforma: 'meta', sustentadaPor: ['meta_cpm', 'meta_impressoes'],
+      texto: 'CPM subiu enquanto as impressões caíram.',
+    }],
+    limitacoes: [{ id: 'meta_cpc', motivo: 'comparacao_indisponivel' }],
+  };
+  const htmlContexto = renderToStaticMarkup(createElement(MemoryRouter, null,
+    createElement(RevisaoMoldura, { relatorio: comContexto }, createElement('div', null, 'Documento')),
+  ));
+  assert.match(htmlContexto, /O que a análise recebeu/);
+  assert.match(htmlContexto, /CPM subiu enquanto as impressões caíram/);
+}
+
 const dadosVazios: DadosDeBloco = {
   faixas: {},
   tabelas: {},

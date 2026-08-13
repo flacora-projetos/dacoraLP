@@ -387,6 +387,30 @@ export interface Leitura {
   proximosPassos: Afirmacao[];
 }
 
+/** Projeção factual para revisão assistida; nunca é exibida na rota pública. */
+export interface AnalysisContextV1 {
+  versao: 'analysis_context_v1';
+  competencia: string;
+  fatos: Array<{
+    id: string;
+    plataforma: string;
+    tipo: string;
+    rotulo: string;
+    unidade: Unidade;
+    atual: number;
+    competenciaBase?: string;
+    base?: number;
+    variacao?: number;
+  }>;
+  relacoes: Array<{
+    tipo: string;
+    plataforma: string;
+    sustentadaPor: string[];
+    texto: string;
+  }>;
+  limitacoes: Array<{ id: string; motivo: string }>;
+}
+
 /* ------------------------------------------------------------------ */
 /* Publicação                                                          */
 /* ------------------------------------------------------------------ */
@@ -419,6 +443,8 @@ export interface SnapshotBase {
   identidade: Identidade;
   fontes: Fonte[];
   leitura: Leitura;
+  /** Presente nos snapshots gerados após a RA1. */
+  analysisContext?: AnalysisContextV1;
   publicacao: Publicacao;
 }
 

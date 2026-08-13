@@ -696,10 +696,11 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **RA0 nesta sessão; RA1 na próxima sessão em BG:** a organização, os gates e
-   o livro de eventos ficam no documento canônico da RA. RA1 deve mapear o
-   contexto factual e definir o contrato da introdução antes de qualquer botão
-   com modelo.
+1. **RA1 implementada e validada localmente:** as branches da fábrica e do
+   painel são `codex/ra1-contexto-analitico`. O contexto factual, fallback e a
+   visualização interna de “o que a análise recebeu” passaram; resta Preview
+   desktop/celular se autorizado. Não há caneta, modelo, endpoint, migration,
+   decisão, envio, push ou publicação nesta fase.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.

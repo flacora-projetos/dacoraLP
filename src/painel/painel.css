@@ -336,6 +336,26 @@
   color: var(--dc-cinza);
 }
 
+.dcp-contexto-analise {
+  margin-top: 1rem;
+  border-top: 1px solid var(--dc-filete);
+  padding-top: 0.85rem;
+  color: var(--dc-cinza);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.dcp-contexto-analise summary {
+  cursor: pointer;
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dcp-contexto-analise ul {
+  margin: 0.55rem 0;
+  padding-left: 1rem;
+}
+
 .dcp-lista-config {
   margin: 0.6rem 0 0;
   padding-left: 1.1rem;
