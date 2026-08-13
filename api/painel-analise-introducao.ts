@@ -7,7 +7,6 @@ import {
   hashDoContexto,
   lerPedidoEditorial,
   validarLinhaParaAnalise,
-  validarNumerosDaSugestao,
   type LinhaAnalise,
 } from './_painel-analise-introducao.js';
 
@@ -35,7 +34,7 @@ async function lerRelatorio(id: string, config: NonNullable<ReturnType<typeof co
 }
 
 function respostaSugestao(linha: any) {
-  return linha ? { id: linha.sugestao_id, estado: linha.estado, texto: linha.texto_atual, checksum: linha.relatorio_checksum } : null;
+  return linha ? { id: linha.sugestao_id ?? linha.id, estado: linha.estado, texto: linha.texto_atual, checksum: linha.relatorio_checksum } : null;
 }
 
 export default async function handler(req: Request, res: Response) {
@@ -67,12 +66,7 @@ export default async function handler(req: Request, res: Response) {
       const resposta = await fetch(consulta, { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } });
       if (!resposta.ok) return res.status(503).json({ erro: 'auditoria_indisponivel', mensagem: 'A análise assistida ainda não está disponível nesta revisão.' });
       const [sugestao] = await resposta.json();
-      return res.status(200).json({ sugestao: sugestao ? { id: sugestao.id, estado: sugestao.estado, texto: sugestao.texto_atual, checksum: sugestao.relatorio_checksum } : null });
-    }
-
-    if (pedido.acao === 'editar') {
-      const numeros = validarNumerosDaSugestao(pedido.texto ?? '', contexto);
-      if (!numeros.ok) return res.status(422).json({ erro: 'edicao_numerica_invalida', mensagem: numeros.mensagem });
+      return res.status(200).json({ sugestao: respostaSugestao(sugestao) });
     }
 
     let modelo: string | null = null;

@@ -7,7 +7,6 @@ import {
   contextoDoSnapshot,
   extrairTextoAplicavel,
   lerPedidoEditorial,
-  validarNumerosDaSugestao,
 } from '../api/_painel-analise-introducao.ts';
 import { AnaliseIntroducao } from '../src/painel/AnaliseIntroducao.tsx';
 
@@ -28,7 +27,13 @@ function linha(extra: Record<string, unknown> = {}) {
     estado: 'gerado', checksum: CHECKSUM, substituido_por: null, revogado_em: null,
     conteudo: {
       identidade: { clienteNome: 'Cliente Governado', tipoRelatorio: 'mensal', caminhoLocal: 'C:/segredo/nunca-envie' },
-      leitura: { resumoExecutivo: [{ texto: 'Foram 16 leads com investimento de R$ 1.200,00.' }] },
+      leitura: {
+        resumoExecutivo: [{ texto: 'Foram 16 leads com investimento de R$ 1.200,00.' }],
+        destaques: [{ texto: 'A mudança de medição tornou o critério de lead mais restrito.', sustentadaPor: ['meta_resultado'] }],
+        atencao: [{ texto: 'O custo aumentou no mesmo período.', sustentadaPor: ['meta_resultado'] }],
+        proximosPassos: [],
+      },
+      montagem: [{ id: 'campanhas', titulo: 'Campanhas', apoio: 'Entrega do mês', pergunta: 'Houve interrupção de veiculação?' }],
       analysisContext: {
         versao: 'analysis_context_v1', competencia: '2026-07',
         fatos: [
@@ -52,25 +57,7 @@ assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Aqui está a resposta
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"analise":"Saída em chave alternativa."}' }]), 'Saída em chave alternativa.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Saída textual direta.' }]), 'Saída textual direta.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"texto":"JSON truncado"' }]), '', 'estrutura JSON malformada continua recusada');
-assert.equal(validarNumerosDaSugestao('A conta registrou 16 leads e R$ 1.200,00.', contexto).ok, true);
-assert.equal(validarNumerosDaSugestao('Em julho de 2026, a conta registrou 16 leads.', contexto).ok, true);
-assert.equal(validarNumerosDaSugestao('A conta registrou 17 leads.', contexto).ok, false, 'número novo nunca fica aplicável');
-{
-  const percentual = contextoDoSnapshot(linha({
-    conteudo: {
-      ...linha().conteudo,
-      analysisContext: {
-        ...linha().conteudo.analysisContext,
-        fatos: [{ id: 'meta_ctr', rotulo: 'CTR', unidade: 'percentual', atual: 0.025, base: 0.02, variacao: 0.333333 }],
-      },
-    },
-  }) as any);
-  assert.ok(percentual);
-  assert.equal(validarNumerosDaSugestao('O CTR foi de 2,5%.', percentual).ok, true);
-  assert.equal(validarNumerosDaSugestao('A base do CTR foi 2,0%.', percentual).ok, true);
-  assert.equal(validarNumerosDaSugestao('O CTR subiu 33,3%.', percentual).ok, true);
-  assert.equal(validarNumerosDaSugestao('O CTR foi de 7,7%.', percentual).ok, false, 'percentual alheio continua bloqueado');
-}
+assert.match(JSON.stringify(contexto.leituraDoRelatorio), /critério de lead mais restrito/);
 assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro', analysis_context: { inventado: true } }).ok, true);
 
 const linhaLegada = linha({
@@ -87,7 +74,7 @@ const linhaLegada = linha({
         { id: 'google_investimento', rotulo: 'Investimento', unidade: 'brl', valor: { estado: 'ok', numero: 1000.98 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 722.77 }, variacao: 0.384922 } },
         { id: 'google_conversoes', rotulo: 'Leads', unidade: 'decimal', valor: { estado: 'ok', numero: 16 }, comparativo: { permitido: true, competenciaBase: '2026-06', valorBase: { estado: 'ok', numero: 36 }, variacao: -0.555556 } },
       ] },
-    } },
+    }, tabelas: { campanhas: { linhas: [{ nome: 'Campanha principal', status: 'pausada' }] } }, evolucoesMensais: {}, quebras: {}, series: {} },
   },
 });
 const contextoLegado = contextoDoSnapshot(linhaLegada as any);
@@ -153,6 +140,7 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   const contextoEnviado = JSON.stringify((modelo!.corpo as any).messages[0].content);
   assert.match(contextoEnviado, /Cliente Governado/);
   assert.match(contextoEnviado, /16/);
+  assert.match(contextoEnviado, /critério de lead mais restrito/, 'o Sonnet precisa receber o que já está escrito nas demais leituras do relatório');
   assert.doesNotMatch(contextoEnviado, /outro-cliente|999999|caminhoLocal|segredo/i, 'browser e paths locais não entram no prompt');
   const rpc = chamadas.find((item) => item.url.includes('/rpc/'))!;
   assert.equal((rpc.corpo as any).p_por, 'revisor@exemplo.com');
@@ -167,6 +155,7 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.equal(resposta.status, 200, 'relatório real anterior à RA1 com JSON cercado precisa chegar ao Sonnet');
   const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /863\.91|863,91/);
+  assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /Campanha principal|pausada/, 'o Sonnet precisa receber as tabelas que o relatório apresenta');
   linhaDoBanco = linha();
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 }
@@ -174,10 +163,15 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
 {
   saidaSonnet = '{"texto":"A conta registrou 17 leads."}';
   const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
-  assert.equal(resposta.status, 422);
-  assert.equal(resposta.corpo.erro, 'saida_numerica_invalida');
-  assert.equal(chamadas.some((item) => item.url.includes('/rpc/')), false, 'saída numérica inválida nunca é aplicável nem auditada como geração');
+  assert.equal(resposta.status, 200, 'a proposta do Sonnet precisa chegar à revisão humana sem regex numérica');
+  assert.equal(resposta.corpo.sugestao.texto, 'A conta registrou 17 leads.');
+  assert.equal(chamadas.some((item) => item.url.includes('/rpc/')), true);
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
+}
+
+{
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'A conta registrou 17 leads.' });
+  assert.equal(resposta.status, 200, 'edição humana não pode ser bloqueada por regex numérica');
 }
 
 {
@@ -209,4 +203,4 @@ assert.equal(indisponivel.ok, false);
 assert.equal(indisponivel.ok === false && indisponivel.erro, 'sonnet_indisponivel', 'sem segredo/modelo a rota falha fechada');
 process.env.ANTHROPIC_API_KEY = 'chave-de-teste';
 globalThis.fetch = fetchOriginal;
-console.log('OK — RA2: auth, isolamento client→backend, checksum, números, ações, auditoria e caneta restrita à revisão.');
+console.log('OK — RA2: auth, contexto editorial completo, saída livre do Sonnet, ações, auditoria e caneta restrita à revisão.');
