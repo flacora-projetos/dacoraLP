@@ -1,14 +1,17 @@
 # Handoff — RA2: texto livre do provider
 
-**Estado:** correção local na branch `codex/ra2-texto-livre-provider`, criada de
+**Estado:** correção na branch `codex/ra2-texto-livre-provider`, criada de
 `dacoraLP/main/c5e6407`. A produção recusou a chamada autenticada do relatório
 `9918bac9-6686-49e4-b1e6-3d6a5225a722` com HTTP 422 `saida_invalida`; não houve
-aprovação, recusa, solicitação de envio, envio, merge, push ou deploy nesta
-correção.
+aprovação, recusa, solicitação de envio, envio, merge ou deploy nesta correção.
 
 **Commit da implementação:** `a0c2698` (`fix(ra2): aceitar texto livre do
 provider`). O registro deste commit entra no movimento documental seguinte;
-esta linha ainda não afirma push, merge ou publicação.
+esta linha ainda não afirma merge ou publicação.
+
+**Push:** `origin/codex/ra2-texto-livre-provider` confirmou
+`6ccbeead7785349adecfd75987b4425646cbb67d`. A branch não dispara deploy; não
+houve merge em `main` nem publicação.
 
 ## Problema confirmado
 
