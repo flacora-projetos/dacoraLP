@@ -2,10 +2,35 @@
  * Karyne Magalhães — julho de 2026. Fixture da W0, montada pelo CATÁLOGO.
  *
  * ┌──────────────────────────────────────────────────────────────────────┐
- * │  TODOS OS NÚMEROS DESTE ARQUIVO SÃO INVENTADOS.                      │
- * │  Este repositório é PÚBLICO. Os valores fecham entre si e exercitam   │
- * │  os casos difíceis do formato; não descrevem a operação real.        │
+ * │  ATENÇÃO — ESTE ARQUIVO NÃO É MAIS SÓ DADO INVENTADO.                │
+ * │  Desde 2026-08-12, os números de resultado e o investimento mês a    │
+ * │  mês são os GOVERNADOS DE VERDADE, sincronizados com a fábrica.      │
+ * │  Este repositório é PÚBLICO e a rota da demonstração não tem login.  │
  * └──────────────────────────────────────────────────────────────────────┘
+ *
+ * **Decisão do Flávio em 2026-08-12, ao ver a demo já com dado real:** *"pra que
+ * deixar a demo com dados falsos? se ela está com dados verdadeiros o errado é o
+ * claude.md"*. O que se ganha é o que dado inventado nunca dá — **a demonstração
+ * erra junto com a fábrica.** Foi assim que o desvio da vigência apareceu: este
+ * arquivo dizia 74 mensagens e 21 conversões enquanto o relatório real já dizia
+ * 22 leads e 16, e a diferença ficou visível.
+ *
+ * O que continua valendo, e não pode ser afrouxado por causa disso:
+ *
+ *  - **nenhum ID de plataforma real entra aqui** — nem conta, nem campanha, nem
+ *    anúncio. Reconferido em 2026-08-12;
+ *  - **número daqui não é fonte de verdade.** Quem define resultado é o cadastro
+ *    e a fábrica; este arquivo só reflete o que elas resolveram;
+ *  - **dado real de OUTRO cliente numa rota de demonstração é decisão nova do
+ *    PO**, não consequência desta. As outras fixtures continuam declarando, cada
+ *    uma no próprio cabeçalho, que são inventadas.
+ *
+ * **O arquivo é misto, e a diferença importa para quem for editar:** são reais o
+ * investimento mês a mês, os resultados por vigência e os totais de julho das
+ * duas contas. **As repartições internas continuam ilustrativas** — quanto cada
+ * grupo de anúncios, palavra-chave, termo ou criativo levou do total, e os
+ * nomes deles. As repartições somam os totais reais, que é o que a regressão
+ * `verifica:karyne-conversao` exige; mudar uma linha obriga a refazer a conta.
  *
  * Quarto relatório montado pelo catálogo, e o primeiro **com duas
  * plataformas**. Ele existe para exercitar três coisas que os três anteriores
