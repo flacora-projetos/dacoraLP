@@ -22,7 +22,7 @@
  * seria somar coisas diferentes.
  */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { PlataformaId, SituacaoCampanha, Unidade, Valor } from '../snapshot';
 import { formatarParticipacao, textoValor } from '../format';
 import type { ChartTheme } from './chartTheme';
@@ -79,6 +79,19 @@ interface Props {
   notas?: string[];
   /** Rótulo da participação mostrada no detalhe. */
   participacaoRotulo?: string;
+  /**
+   * C2 da direção de 2026-08-12: tabela grande demais para abrir inteira.
+   *
+   * Quando definido e a lista excede este número, só as primeiras linhas
+   * (já ordenadas pela coluna principal) ficam visíveis, com um resumo e um
+   * botão "ver todas". Duas travas, e nenhuma é negociável:
+   *
+   *  • o resumo é contagem, nunca conclusão nossa sobre o que ele mostra;
+   *  • as linhas além do limite continuam no HTML, só com uma classe de
+   *    recolhimento — a impressão remove essa classe visual (`report.css`),
+   *    então quem imprime nunca perde dado.
+   */
+  limiteLinhasVisiveis?: number;
 }
 
 const SITUACAO: Record<string, string> = {
@@ -115,8 +128,11 @@ export default function TabelaDeEntidades({
   total,
   notas,
   participacaoRotulo,
+  limiteLinhasVisiveis,
 }: Props) {
   const [abertas, setAbertas] = useState<Record<string, boolean>>({});
+  const [verTudo, setVerTudo] = useState(false);
+  const listaId = useId();
 
   const ordenadas = [...linhas].sort((a, b) => ordenavel(b.principal) - ordenavel(a.principal));
   const maior = Math.max(...ordenadas.map((l) => ordenavel(l.principal)), 1);
@@ -128,8 +144,33 @@ export default function TabelaDeEntidades({
 
   const alternar = (id: string) => setAbertas((atual) => ({ ...atual, [id]: !atual[id] }));
 
+  // C2: só recolhe quando a lista de fato excede o limite. Uma tabela curta
+  // não ganha resumo nem botão — não há o que "ver mais".
+  const limite =
+    typeof limiteLinhasVisiveis === 'number' && ordenadas.length > limiteLinhasVisiveis
+      ? limiteLinhasVisiveis
+      : null;
+
   return (
     <div className="dc-campanhas">
+      {limite && (
+        <div className="dc-tabela-resumo">
+          <p className="dc-tabela-resumo__texto">
+            {verTudo
+              ? `Mostrando as ${ordenadas.length} linhas.`
+              : `Mostrando as ${limite} primeiras de ${ordenadas.length} linhas, ordenadas por ${principal.rotulo.toLowerCase()}.`}
+          </p>
+          <button
+            type="button"
+            className="dc-botao-vermais"
+            aria-expanded={verTudo}
+            aria-controls={listaId}
+            onClick={() => setVerTudo((atual) => !atual)}
+          >
+            {verTudo ? 'Ver menos' : `Ver todas as ${ordenadas.length} linhas`}
+          </button>
+        </div>
+      )}
       <table className="dc-tabela-campanhas">
         <caption className="dc-sr">{pergunta}</caption>
         <thead>
@@ -153,9 +194,12 @@ export default function TabelaDeEntidades({
           </tr>
         </thead>
 
-        <tbody>
-          {ordenadas.map((linha) => {
+        <tbody id={listaId}>
+          {ordenadas.map((linha, indice) => {
             const aberta = !!abertas[linha.id];
+            // C2: linha além do resumo. Continua no DOM e usa só uma classe
+            // de recolhimento, que a impressão remove (ver report.css).
+            const recolhida = !!limite && !verTudo && indice >= limite;
             const proporcao = Math.max(ordenavel(linha.principal), 0) / maior;
             const estilo = theme.series[linha.plataforma];
             const participacao =
@@ -166,7 +210,13 @@ export default function TabelaDeEntidades({
             return [
               <tr
                 key={linha.id}
-                className={aberta ? 'dc-linha dc-linha--aberta' : 'dc-linha'}
+                className={[
+                  'dc-linha',
+                  aberta ? 'dc-linha--aberta' : '',
+                  recolhida ? 'dc-linha--recolhida' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 data-plataforma={linha.plataforma}
               >
                 <th scope="row">

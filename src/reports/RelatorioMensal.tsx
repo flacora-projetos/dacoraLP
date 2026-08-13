@@ -42,7 +42,7 @@ export default function RelatorioMensal({ snapshot, competencias, proposta, demo
       id: 'indicadores',
       titulo: `Os números que resumem ${competenciaTexto.split(' de ')[0]}`,
       apoio:
-        'Cada indicador traz a fonte e a base de comparação. Valor que não veio aparece escrito, nunca como zero.',
+        'Cada indicador traz a origem e a base de comparação. Valor que não veio aparece escrito, nunca como zero.',
       conteudo: (
         <div className="dc-kpis">
           {snapshot.indicadores.map((metrica) => (

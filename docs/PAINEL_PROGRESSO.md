@@ -15,7 +15,11 @@ merge `335a2f5`, enviada ao GitHub e verificada em produção. Rota:
 O redesign compartilhado **Editorial de Performance** também foi aprovado pelo
 Flávio e publicado; o checkpoint do código levado à produção é `61e27c8`. A
 validação nominal da Fernanda ainda não foi registrada e é o Gate 3 que fecha o
-visual antes de nova implementação.
+visual antes de nova implementação. **Exceção autorizada pelo Flávio em 2026-08-12:** antes desse
+gate, executar a limpeza de linguagem C1/C2/C3 para a Fernanda avaliar já a versão limpa. Ela foi
+implementada na branch `codex/limpeza-relatorios-gate3`, ainda sem publicação: diagnóstico técnico
+fica na fila interna, texto de cliente recebe vocabulário humano e palavras-chave/termos/ranking de
+criativos abrem resumidos com `ver mais`, preservando conteúdo completo em HTML e impressão/PDF.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -54,7 +58,7 @@ fábrica está aplicada, mas a leitura remota confirmou zero recipients
 sincronizados e zero itens acionáveis; por isso a interface falha fechada e não
 oferece envio enganoso. O worker continua sem execução ou agenda e não houve
 decisão nem envio real. Detalhe na seção 15.
-**Última atualização:** 2026-08-11
+**Última atualização:** 2026-08-12
 
 **Correção organizacional publicada em 2026-08-09 (`36824a6`):** a fila separa **mensais externos · carteira Dácora**, **mensais externos · carteira Allgrotech** e **mensais internos · Allgrotech** usando `identidade.carteira` e `identidade.produto`, nunca o nome do cliente. Snapshot legado sem esses campos fica numa seção explícita de classificação pendente. A mesma correção reconhece os resultados de contas com várias conversões (`*_resultado_grupo_N`) e remove a mensagem obsoleta de que falta definir o resultado no cadastro. Na leitura direta de 2026-08-10, o banco tinha 79 versões da competência 2026-07; as 34 correntes eram 19 Allgrotech e 15 Dácora, com 33 em `gerado` e a Karyne v6 em `liberado` com áudio privado. Naquela correção, a P3 permaneceu intocada.
 

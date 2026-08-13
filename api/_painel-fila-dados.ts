@@ -295,11 +295,22 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
     sinais.push({
       tipo: 'secoes_indisponiveis',
       texto: `${quantas} ${quantas === 1 ? 'seção indisponível' : 'seções indisponíveis'}`,
+      // O documento do cliente (C1, 2026-08-12) só mostra uma frase neutra
+      // quando o motivo carrega vocabulário técnico. Este `detalhe` é o
+      // diagnóstico completo, sem filtro — inclusive `dependeDe`, que não
+      // aparece mais no relatório publicado. É aqui, e só aqui, que ele
+      // continua legível para quem decide se o relatório sai como está.
       detalhe:
         `${quantas === 1 ? 'Uma seção sai' : `${quantas} seções saem`} dizendo o que falta, em vez de ` +
         `sumir ou ser preenchida com estimativa: ` +
         indisponiveis
-          .map((bloco: any) => `"${bloco.titulo}" — ${bloco.indisponivel?.motivo ?? 'sem motivo declarado'}`)
+          .map((bloco: any) => {
+            const motivo = bloco.indisponivel?.motivo ?? 'sem motivo declarado';
+            const dependeDe = bloco.indisponivel?.dependeDe
+              ? ` (depende de ${bloco.indisponivel.dependeDe})`
+              : '';
+            return `"${bloco.titulo}" — ${motivo}${dependeDe}`;
+          })
           .join(' · '),
       alvo: indisponiveis[0]?.id ?? 'qualidade',
       peso: PESO.secoes_indisponiveis + (quantas - 1) * 5,

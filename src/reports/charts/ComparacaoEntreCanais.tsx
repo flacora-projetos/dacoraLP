@@ -7,7 +7,7 @@
  * 320 px de largura sem rolagem lateral.
  *
  * A distinção entre canais é por luminosidade E textura, nunca só por cor.
- * Canal sem valor aparece escrito ("indisponível" / "falha na coleta"),
+ * Canal sem valor aparece escrito ("indisponível" / "não confirmado"),
  * nunca como barra de tamanho zero.
  */
 

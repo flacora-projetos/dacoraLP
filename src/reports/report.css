@@ -1924,6 +1924,56 @@
   background: var(--dc-sage);
 }
 
+/* ---------- C2: resumo e "ver mais" de blocos grandes ------------------ */
+/* Palavras-chave, termos de pesquisa e ranking de criativos (2026-08-12).
+   O conteúdo recolhido continua inteiro no HTML — só o CSS esconde — para
+   nunca sumir da impressão nem do leitor de tela quando aberto. */
+
+.dc-tabela-resumo,
+.dc-ranking-resumo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.7rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--dc-canvas);
+  border: 1px solid var(--dc-filete);
+  border-radius: var(--dc-raio);
+}
+
+.dc-tabela-resumo__texto,
+.dc-ranking-resumo__texto {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--dc-cinza);
+}
+
+.dc-botao-vermais {
+  flex-shrink: 0;
+  border: 1px solid var(--dc-verde);
+  color: var(--dc-verde);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dc-botao-vermais:hover {
+  background: var(--dc-verde);
+  color: #fff;
+}
+
+/* Recolhimento só de tela. O conteúdo continua no DOM e a regra de impressão
+   abaixo o reabre integralmente para PDF/papel. */
+.dc-tabela-campanhas tbody tr.dc-linha--recolhida,
+.dc-criativo--recolhido {
+  display: none;
+}
+
 /* ---------- B3: evolução mensal em tabela ------------------------------ */
 
 .dc-rolagem-tabela {
@@ -2219,14 +2269,9 @@
   background: var(--dc-verde-medio);
 }
 
-.dc-indisponivel__depende {
-  font-size: 0.8rem;
-  line-height: 1.55;
-  color: var(--dc-sage);
-  margin: 0;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--dc-filete);
-}
+/* `.dc-indisponivel__depende` foi removida em 2026-08-12: `dependeDe` é
+   diagnóstico técnico (C1, `motivo-cliente.ts`) e não aparece mais no
+   documento do cliente. */
 
 /* ---------- Leitura em áudio do relatório ----------------------------- */
 
@@ -3208,6 +3253,21 @@
   /* Nada importante fica escondido atrás de interação. */
   .dc-detalhe[hidden] {
     display: table-row !important;
+  }
+
+  /* C2 (2026-08-12): tabela e ranking recolhidos por resumo abrem por
+     inteiro na impressão — sem depender do atributo HTML `hidden`. */
+  .dc-tabela-campanhas tbody tr.dc-linha--recolhida {
+    display: table-row !important;
+  }
+
+  .dc-criativo--recolhido {
+    display: flex !important;
+  }
+
+  .dc-tabela-resumo,
+  .dc-ranking-resumo {
+    display: none;
   }
 
   .dc-grafico__dados[open] > summary,

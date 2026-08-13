@@ -25,7 +25,14 @@ import TabelaDeEntidades, {
 } from '../charts/TabelaDeEntidades';
 import type { ChartTheme } from '../charts/chartTheme';
 import { EtiquetaEscopo } from './escopo';
-import type { BlocoB2, ColunaTabela, CoberturaTabela, TabelaEntidades } from './tipos';
+import { textoParaCliente } from './motivo-cliente';
+import type {
+  BlocoB2,
+  ColunaTabela,
+  CoberturaTabela,
+  DimensaoEntidade,
+  TabelaEntidades,
+} from './tipos';
 
 interface Props {
   tabela: TabelaEntidades;
@@ -47,6 +54,15 @@ const SEM_COLUNA: Valor = {
   estado: 'ausente',
   motivo: 'A coleta não trouxe esta métrica para esta linha.',
 };
+
+/**
+ * C2 da direção de 2026-08-12: "blocos grandes demais... como o de termos e
+ * palavras-chave do Google" abrem resumidos. As duas dimensões que o PO citou
+ * são as únicas que costumam vir com muita linha — campanha e grupo de
+ * anúncios continuam abrindo inteiros, porque não é sobre eles a queixa.
+ */
+const DIMENSOES_QUE_RECOLHEM: DimensaoEntidade[] = ['palavra_chave', 'termo_de_pesquisa'];
+const LIMITE_LINHAS_VISIVEIS = 8;
 
 /**
  * O aviso de lista parcial, e ele vem ANTES da tabela de propósito.
@@ -73,21 +89,23 @@ function AvisoCobertura({
   sufixo?: string;
   somaListada: Valor | null;
 }) {
+  const motivos = cobertura.motivos.map(textoParaCliente);
   return (
-    <div className="dc-cobertura" role="note" aria-label="Cobertura parcial da tabela">
-      <p className="dc-cobertura__rotulo">Cobertura parcial</p>
+    <div className="dc-cobertura" role="note" aria-label="Esta lista é parcial">
+      <p className="dc-cobertura__rotulo">Lista parcial</p>
       <p className="dc-cobertura__linha">
         {rotuloColuna} da lista abaixo:{' '}
         <strong>{textoValor(somaListada ?? SEM_COLUNA, unidade, sufixo)}</strong>, de{' '}
         <strong>{textoValor(cobertura.totalDoUniverso, unidade, sufixo)}</strong> em{' '}
-        {cobertura.universo}. <strong>Esta lista não cobre o total</strong>, e não é para
-        cobrir.
+        {cobertura.universo}. <strong>Esta lista representa só uma parte do total.</strong>
       </p>
-      <ul className="dc-cobertura__motivos">
-        {cobertura.motivos.map((motivo) => (
-          <li key={motivo}>{motivo}</li>
-        ))}
-      </ul>
+      {motivos.length > 0 && (
+        <ul className="dc-cobertura__motivos">
+          {motivos.map((motivo) => (
+            <li key={motivo}>{motivo}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -106,10 +124,7 @@ export default function B2TabelaEntidades({
      * seção vazia que ninguém saberia explicar.
      */
     return (
-      <p className="dc-motivo">
-        Esta tabela não pôde ser montada: a coluna principal “{tabela.colunaPrincipal}” não existe
-        entre as colunas configuradas.
-      </p>
+      <p className="dc-motivo">Esta tabela não está disponível neste relatório.</p>
     );
   }
 
@@ -153,10 +168,7 @@ export default function B2TabelaEntidades({
         />
       )}
       {tabela.cobertura && !colunaCobertura && (
-        <p className="dc-motivo">
-          Esta tabela declara cobertura sobre a coluna “{tabela.cobertura.colunaId}”, que não
-          existe entre as colunas configuradas.
-        </p>
+        <p className="dc-motivo">Esta lista parcial não está disponível neste relatório.</p>
       )}
       <div className="dc-superficie">
         <TabelaDeEntidades
@@ -174,8 +186,11 @@ export default function B2TabelaEntidades({
               secundarias.map((coluna) => [coluna.id, tabela.total.valores[coluna.id] ?? null]),
             ),
           }}
-          notas={tabela.definicoes}
+          notas={tabela.definicoes.map(textoParaCliente)}
           participacaoRotulo={config.participacaoRotulo}
+          limiteLinhasVisiveis={
+            DIMENSOES_QUE_RECOLHEM.includes(tabela.dimensao) ? LIMITE_LINHAS_VISIVEIS : undefined
+          }
         />
       </div>
     </>

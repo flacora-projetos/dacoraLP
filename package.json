@@ -19,6 +19,7 @@
     "verifica:decisao": "tsx scripts/verifica-painel-decisao.mts",
     "verifica:envio": "tsx scripts/verifica-painel-envio.mts",
     "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
+    "verifica:linguagem": "tsx scripts/verifica-linguagem-relatorio.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",
     "start": "node dist/server.cjs"

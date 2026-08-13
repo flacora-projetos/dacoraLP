@@ -93,17 +93,17 @@ export default function ConfrontoMidiaLoja({ confronto }: { confronto: Confronto
 
       <div className="dc-superficie">
         <h3 className="dc-confronto__titulo-tabela">
-          O que cada fonte conta, e em que janela
+          O que cada origem registra, e em que janela
         </h3>
         <div className="dc-confronto__rolagem">
           <table className="dc-tabela-fontes-venda">
             <caption className="dc-sr">
-              Fontes que contam venda neste relatório, o que cada uma conta, a janela declarada
+              Origens de venda deste relatório, o que cada uma registra e a janela declarada
               por ela e os valores do período.
             </caption>
             <thead>
               <tr>
-                <th scope="col">Fonte</th>
+                <th scope="col">Origem</th>
                 <th scope="col">O que ela conta</th>
                 <th scope="col">Janela declarada</th>
                 <th scope="col" className="dc-num">

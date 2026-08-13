@@ -30,6 +30,7 @@ import {
   formatarPeriodo,
 } from './format';
 import { BlocoLeitura, Chip, ChipFonte, Secao, nomePlataforma } from './componentes';
+import { textoParaCliente } from './blocos/motivo-cliente';
 import type { PropostaId } from './charts/chartTheme';
 import './report.css';
 
@@ -113,7 +114,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
           <span className="dc-topo__cliente">{identidade.clienteNome}</span>
 
           <div className="dc-topo__seletor">
-            <label htmlFor="competencia">Competência</label>
+            <label htmlFor="competencia">Período</label>
             <select id="competencia" className="dc-select" defaultValue={identidade.competencia}>
               {competencias.map((c) => (
                 <option key={c.competencia} value={c.competencia} disabled={!c.publicada}>
@@ -164,7 +165,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
               className={`dc-resumo ${proposta === 'B' ? 'dc-resumo--verde' : 'dc-resumo--claro'}`}
             >
               {leitura.resumoExecutivo.map((afirmacao) => (
-                <p key={afirmacao.texto}>{afirmacao.texto}</p>
+                <p key={afirmacao.texto}>{textoParaCliente(afirmacao.texto)}</p>
               ))}
             </div>
           </div>
@@ -203,11 +204,13 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
         <Secao
           indice={proximo()}
           id="qualidade"
-          titulo="Qualidade dos dados e fontes"
-          apoio="De onde veio cada número, quando foi coletado e o que faltou. Esta seção é parte do relatório, não um apêndice."
+          titulo="Qualidade e origem dos dados"
+          apoio="De onde veio cada número, quando foi consultado e o que faltou. Esta seção é parte do relatório, não um apêndice."
         >
           <div className="dc-fontes">
-            {snapshot.fontes.map((fonte) => (
+            {snapshot.fontes.map((fonte) => {
+              const observacoes = fonte.observacoes.map(textoParaCliente);
+              return (
               <div
                 className="dc-fonte"
                 key={fonte.plataforma}
@@ -227,19 +230,20 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
                       )} a ${formatarDataExtenso(fonte.janela.fim)}.`
                     : 'Sem janela consultada.'}{' '}
                   {fonte.coletadoEm
-                    ? `Coletado em ${formatarCarimbo(fonte.coletadoEm)}.`
-                    : 'Não houve coleta.'}
+                    ? `Consultado em ${formatarCarimbo(fonte.coletadoEm)}.`
+                    : 'Não foi consultado.'}
                 </p>
 
-                {fonte.observacoes.length > 0 && (
+                {observacoes.length > 0 && (
                   <ul className="dc-fonte__observacoes">
-                    {fonte.observacoes.map((obs) => (
+                    {observacoes.map((obs) => (
                       <li key={obs}>{obs}</li>
                     ))}
                   </ul>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </Secao>
 
@@ -247,7 +251,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
         <footer className="dc-rodape">
           <span className="dc-rodape__marca">{marca.assinatura}</span>
           <p>
-            Este relatório é um documento fechado: os números foram coletados uma vez, no
+            Este relatório é um documento fechado: os números foram registrados uma vez, no
             fechamento do período, e não mudam quando a página é reaberta. Reconsultar as
             plataformas meses depois devolve valores diferentes.
           </p>
@@ -263,7 +267,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
               </span>
             )}
             <span>
-              Fontes: {snapshot.fontes.map((f) => nomePlataforma(f.plataforma)).join(', ')}
+              Origens: {snapshot.fontes.map((f) => nomePlataforma(f.plataforma)).join(', ')}
             </span>
           </div>
         </footer>

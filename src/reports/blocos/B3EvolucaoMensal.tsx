@@ -27,6 +27,7 @@
 import ComparacaoEntreCanais from '../charts/ComparacaoEntreCanais';
 import type { ChartTheme } from '../charts/chartTheme';
 import { formatarCompetencia, textoValor } from '../format';
+import { textoParaCliente } from './motivo-cliente';
 import type { BlocoB3, EvolucaoMensal } from './tipos';
 
 /** "2026-07" → "Julho". O ano já está no título da seção. */
@@ -82,6 +83,8 @@ function GraficoPorMetrica({ evolucao, theme }: { evolucao: EvolucaoMensal; them
 }
 
 export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
+  const definicoes = evolucao.definicoes.map(textoParaCliente);
+
   if (config.apresentacao === 'grafico') {
     /**
      * O total do período não pode sumir só porque a apresentação virou
@@ -111,9 +114,9 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
           </p>
         )}
 
-        {evolucao.definicoes.length > 0 && (
+        {definicoes.length > 0 && (
           <ul className="dc-notas-tabela">
-            {evolucao.definicoes.map((nota) => (
+            {definicoes.map((nota) => (
               <li key={nota}>{nota}</li>
             ))}
           </ul>
@@ -181,9 +184,9 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
         </table>
       </div>
 
-      {evolucao.definicoes.length > 0 && (
+      {definicoes.length > 0 && (
         <ul className="dc-notas-tabela">
-          {evolucao.definicoes.map((nota) => (
+          {definicoes.map((nota) => (
             <li key={nota}>{nota}</li>
           ))}
         </ul>

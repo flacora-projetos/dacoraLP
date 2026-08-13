@@ -23,8 +23,11 @@
  *    a data é obrigatória no tipo, então não há como esquecer dela.
  */
 
+import { useId, useState } from 'react';
+
 import { formatarDataExtenso, textoValor } from '../format';
 import { EtiquetaEscopo } from './escopo';
+import { motivoParaCliente } from './motivo-cliente';
 import type { RankingCriativos } from './tipos';
 
 const NOME_SITUACAO: Record<string, string> = {
@@ -33,7 +36,17 @@ const NOME_SITUACAO: Record<string, string> = {
   encerrada: 'Encerrado',
 };
 
+/**
+ * C2 da direção de 2026-08-12: "ranking de criativos" é citado nominalmente
+ * como bloco grande que precisa de resumo. Só recolhe quando de fato excede
+ * o limite — um ranking de três anúncios não ganha botão para "ver mais".
+ */
+const LIMITE_CRIATIVOS_VISIVEIS = 6;
+
 export default function B4RankingCriativos({ ranking }: { ranking: RankingCriativos }) {
+  const [verTudo, setVerTudo] = useState(false);
+  const listaId = useId();
+
   /**
    * O motivo de uma miniatura faltar quase sempre é o mesmo para todos os
    * cartões, e repeti-lo dentro de cada um transforma a explicação em ruído —
@@ -45,11 +58,19 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
     ...new Set(
       ranking.criativos
         .filter((criativo) => !criativo.miniatura)
-        .map((criativo) => criativo.motivoSemMiniatura ?? 'Miniatura não guardada nesta coleta.'),
+        .map((criativo) =>
+          motivoParaCliente(
+            criativo.motivoSemMiniatura ?? 'Miniatura não disponível para este anúncio.',
+            'Miniatura não disponível para este anúncio.',
+          ),
+        ),
     ),
   ];
 
   const temSituacao = ranking.criativos.some((criativo) => criativo.situacao);
+
+  const limite =
+    ranking.criativos.length > LIMITE_CRIATIVOS_VISIVEIS ? LIMITE_CRIATIVOS_VISIVEIS : null;
 
   return (
     <>
@@ -58,9 +79,35 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
         Ordenados por <strong>{ranking.ordenadoPor}</strong>, do maior para o menor.
       </p>
 
-      <ol className="dc-criativos">
+      {limite && (
+        <div className="dc-ranking-resumo">
+          <p className="dc-ranking-resumo__texto">
+            {verTudo
+              ? `Mostrando os ${ranking.criativos.length} anúncios.`
+              : `Mostrando os ${limite} primeiros de ${ranking.criativos.length} anúncios.`}
+          </p>
+          <button
+            type="button"
+            className="dc-botao-vermais"
+            aria-expanded={verTudo}
+            aria-controls={listaId}
+            onClick={() => setVerTudo((atual) => !atual)}
+          >
+            {verTudo ? 'Ver menos' : `Ver todos os ${ranking.criativos.length} anúncios`}
+          </button>
+        </div>
+      )}
+
+      <ol className="dc-criativos" id={listaId}>
         {ranking.criativos.map((criativo, posicao) => (
-          <li className="dc-criativo" key={criativo.id}>
+          <li
+            className={
+              !!limite && !verTudo && posicao >= limite
+                ? 'dc-criativo dc-criativo--recolhido'
+                : 'dc-criativo'
+            }
+            key={criativo.id}
+          >
             <div className="dc-criativo__miniatura">
               {criativo.miniatura ? (
                 <img
@@ -118,8 +165,8 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
         <ul className="dc-notas-tabela">
           {temSituacao && (
             <li>
-              A situação de cada anúncio é a do momento da coleta, não a do período do relatório:
-              um anúncio pode ter rodado o mês inteiro e ter sido pausado depois.
+              A situação de cada anúncio é a mais recente que conferimos, não a do período do
+              relatório: um anúncio pode ter rodado o mês inteiro e ter sido pausado depois.
             </li>
           )}
           {motivos.map((motivo) => (

@@ -19,6 +19,7 @@ import {
   formatarVariacao,
   textoDoEstadoVazio,
 } from './format';
+import { motivoParaCliente, textoParaCliente } from './blocos/motivo-cliente';
 
 /* ------------------------------------------------------------------ */
 
@@ -41,11 +42,11 @@ const TOM_POR_SITUACAO: Record<SituacaoFonte, TomChip> = {
 };
 
 const TEXTO_SITUACAO: Record<SituacaoFonte, string> = {
-  sucesso: 'Coleta completa',
-  parcial: 'Coleta parcial',
-  indisponivel: 'Fonte indisponível',
+  sucesso: 'Dados completos',
+  parcial: 'Dados parciais',
+  indisponivel: 'Sem dados neste período',
   nao_configurada: 'Não contratada',
-  erro: 'Falha na coleta',
+  erro: 'Não confirmado',
 };
 
 export function ChipFonte({ situacao }: { situacao: SituacaoFonte }) {
@@ -59,7 +60,7 @@ export function ChipFonte({ situacao }: { situacao: SituacaoFonte }) {
 /**
  * O único lugar que transforma `Valor` em texto na tela.
  * Ausência e falha nunca viram `0` e nunca são comunicadas só por cor:
- * levam palavra ("indisponível", "falha na coleta"). "Não se aplica" é traço,
+ * levam palavra ("indisponível", "não confirmado"). "Não se aplica" é traço,
  * e é tratado como estado neutro — não é problema a resolver.
  */
 export function ValorExibido({
@@ -94,8 +95,14 @@ export function ValorExibido({
   );
 }
 
+/**
+ * O motivo de um valor não medido, filtrado pelo classificador de
+ * vocabulário técnico (C1 da direção de 2026-08-12) antes de chegar à tela
+ * do cliente — mesma régua do `BlocoIndisponivel`, aplicada aqui porque é o
+ * único ponto por onde o motivo de uma métrica ausente ou com falha passa.
+ */
 export function Motivo({ texto }: { texto: string }) {
-  return <p className="dc-motivo">{texto}</p>;
+  return <p className="dc-motivo">{motivoParaCliente(texto, 'Não disponível neste relatório.')}</p>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -135,7 +142,11 @@ export function ComparativoExibido({
   if (!comparativo) return null;
 
   if (!comparativo.permitido) {
-    return <p className="dc-origem">Sem comparação: {comparativo.motivo}</p>;
+    return (
+      <p className="dc-origem">
+        {motivoParaCliente(comparativo.motivo, 'Não há comparação disponível para este número.')}
+      </p>
+    );
   }
 
   if (comparativo.variacao === null || comparativo.variacao === undefined) return null;
@@ -184,10 +195,10 @@ export function nomePlataforma(id: PlataformaId): string {
 
 export function OrigemExibida({ metrica }: { metrica: Metrica }) {
   const fontes = metrica.origem.fontes.map(nomePlataforma).join(' + ');
-  const formula = metrica.origem.formula ? ` · ${metrica.origem.formula}` : '';
+  const formula = metrica.origem.formula ? ` · ${textoParaCliente(metrica.origem.formula)}` : '';
   return (
     <p className="dc-origem">
-      Fonte: {fontes}
+      Via {fontes}
       {formula}
     </p>
   );
@@ -203,7 +214,7 @@ export function Indicador({ metrica }: { metrica: Metrica }) {
 
   return (
     <article className="dc-kpi" data-plataforma={plataforma}>
-      <h3 className="dc-kpi__rotulo">{metrica.rotulo}</h3>
+      <h3 className="dc-kpi__rotulo">{textoParaCliente(metrica.rotulo)}</h3>
 
       <ValorExibido
         valor={metrica.valor}
@@ -215,7 +226,7 @@ export function Indicador({ metrica }: { metrica: Metrica }) {
       {metrica.valor.estado !== 'ok' && <Motivo texto={metrica.valor.motivo} />}
 
       {metrica.descricao && metrica.valor.estado === 'ok' && (
-        <p className="dc-kpi__descricao">{metrica.descricao}</p>
+        <p className="dc-kpi__descricao">{textoParaCliente(metrica.descricao)}</p>
       )}
 
       <div className="dc-kpi__rodape">
@@ -255,9 +266,9 @@ export function Secao({
         </span>
         <div>
           <h2 className="dc-secao__titulo" id={`${id ?? indice}-titulo`}>
-            {titulo}
+            {textoParaCliente(titulo)}
           </h2>
-          {apoio && <p className="dc-secao__apoio">{apoio}</p>}
+          {apoio && <p className="dc-secao__apoio">{textoParaCliente(apoio)}</p>}
         </div>
       </header>
       {children}
@@ -284,7 +295,7 @@ export function BlocoLeitura({
       <h3 className="dc-bloco-leitura__titulo">{titulo}</h3>
       <ul className="dc-lista-afirmacoes" data-tom={tom}>
         {itens.map((item) => (
-          <li key={item.texto}>{item.texto}</li>
+          <li key={item.texto}>{textoParaCliente(item.texto)}</li>
         ))}
       </ul>
     </div>

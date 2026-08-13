@@ -135,7 +135,9 @@ export function formatarPeriodo(inicio: string, fim: string): string {
 /* ------------------------------------------------------------------ */
 
 export const ROTULO_AUSENTE = 'indisponível';
-export const ROTULO_FALHA = 'falha na coleta';
+// Renomeado em 2026-08-12 (C3, vocabulário de cliente): "coleta" é jargão
+// de quem audita o sistema, não do cliente que lê o número.
+export const ROTULO_FALHA = 'não confirmado';
 /**
  * "Não se aplica" é traço, e traço curto de propósito: ele precisa se
  * distinguir do texto de ausência a um relance, porque as duas coisas pedem
