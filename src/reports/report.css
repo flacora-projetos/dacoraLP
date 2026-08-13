@@ -3250,6 +3250,23 @@
     display: none !important;
   }
 
+  /* A revisão envolve o documento, mas não pertence ao PDF do cliente. */
+  .dcp-revisao__faixa,
+  .dcp-revisao__navegacao,
+  .dcp-analises-relatorio,
+  .dcp-analise-introducao,
+  .dcp-analise-secao__controles {
+    display: none !important;
+  }
+
+  .dcp-revisao__grade {
+    display: block !important;
+  }
+
+  .dcp-revisao__documento {
+    min-width: 0 !important;
+  }
+
   /* Nada importante fica escondido atrás de interação. */
   .dc-detalhe[hidden] {
     display: table-row !important;
@@ -3282,6 +3299,7 @@
   .dc-fonte,
   .dc-confronto__quadro,
   .dc-confronto__texto,
+  .dc-analise-editorial,
   .dc-audio {
     break-inside: avoid;
   }

@@ -31,9 +31,10 @@ interface Props {
   proposta: PropostaId;
   demo?: { rotulo: string; href: string; descricao: string };
   introducaoDaRevisao?: ReactNode;
+  analiseDaSecao?: (secao: `bloco:${string}`) => ReactNode;
 }
 
-export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao }: Props) {
+export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao }: Props) {
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
 
   const secoes: SecaoRelatorio[] = useMemo(() => {
@@ -48,16 +49,19 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
     );
 
     return snapshot.montagem
-      .map((config) => ({
-        id: config.id,
-        titulo: config.titulo,
-        apoio: config.apoio,
-        conteudo: renderizarBloco(config, {
+      .map((config) => {
+        const conteudo = renderizarBloco(config, {
           dados: snapshot.dados,
           theme,
           rotulosPlataforma,
-        }),
-      }))
+        });
+        return {
+          id: config.id,
+          titulo: config.titulo,
+          apoio: config.apoio,
+          conteudo: conteudo === null ? null : <>{conteudo}{analiseDaSecao?.(`bloco:${config.id}`)}</>,
+        };
+      })
       /**
        * Bloco que devolve nada sai da lista antes da numeração. Hoje só o B8
        * faz isso, e de propósito: comentário humano é opcional de verdade, e
@@ -65,7 +69,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
        * título com o corpo vazio embaixo.
        */
       .filter((secao) => secao.conteudo !== null);
-  }, [snapshot, theme]);
+  }, [analiseDaSecao, snapshot, theme]);
 
   return (
     <Esqueleto

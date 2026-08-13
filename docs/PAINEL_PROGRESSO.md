@@ -28,7 +28,7 @@ local de desenvolvimento `/painel-de-relatorios/revisao-local-ra1` consome
 somente a fixture governada da Karyne, sem contexto ou variações injetados, não
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
-O estado é **RA2 concluída e validada em produção**. A migration `20260813213535_ra2_corrigir_persistencia_edicao` foi aplicada e conferida; a fábrica está em `master/1f38597`, o painel funcional em `main/31f393f` e o deployment Production `dpl_DrAsn5YhYmc4DtptFpTsVES3MkHS` ficou `READY`. A função mantém `security invoker`, `search_path` vazio e execução exclusiva da `service_role`. No smoke autenticado, a sugestão real foi editada com POST 200, renderizou o novo texto e permaneceu após recarregar; o banco confirmou estado `editada` e evento `editar` por `flacora@gmail.com`. Em 390×844 não houve overflow horizontal. O relatório permaneceu `gerado`, sem aprovação/recusa, `aplicada_em=null` e zero envios. RA3 está liberada para nova sessão, mas não foi iniciada.
+O estado é **RA2 concluída em produção; RA3 implementada e validada localmente, com gate remoto aberto**. RA3 usa `codex/ra3-analises-secao`, base `7e9bc67`, e mantém a `main` intacta. B1–B6 têm função analítica compartilhada; B7/B8/AUDIO, indisponível e dado ausente não ganham caneta. Geração geral e local compartilham contexto/prompt, o contexto do mês fica privado e os controles só existem na revisão decidível. Regressões, build, segurança e navegador desktop/celular/PDF passaram. Sem migration remota, modelo real, aplicação real, aprovação, envio, merge ou publicação. Novo GO é necessário para migration/Preview e smoke autenticado persistente.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
@@ -703,7 +703,7 @@ função quebrada, e a resposta diz qual dos três casos é (`nao_configurado`,
 
 ## 7. A próxima coisa a fazer
 
-1. **Integrar e revalidar a correção de completude RA2:** revisar `codex/ra2-resposta-completa`, publicar somente com GO próprio e repetir o teste autenticado no relatório afetado em desktop/celular. O aceite exige caneta visível, geração completa e análise factual útil. Não há decisão, envio ou RA3.
+1. **Executar o gate remoto da RA3 somente com novo GO:** migration Supabase + read-back, Preview e smoke autenticado persistente em relatório apropriado. Aplicação real, aprovação e envio continuam fora sem autorização própria.
 2. **Introdução primeiro:** ela é a peça de maior impacto para o cliente e o
    primeiro alvo da caneta mágica. A sugestão assistida aparece somente na tela
    de revisão, nunca no relatório já aprovado ou público.

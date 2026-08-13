@@ -24,6 +24,14 @@ import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
 import type { EstadoSeguroDoEnvioP5, ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 import { useLinkDeVoltaParaFila } from './linkDeVolta';
 import { AnaliseIntroducao, type AcaoDaIntroducao, type SugestaoDaIntroducao } from './AnaliseIntroducao';
+import {
+  AnaliseDaSecao,
+  AnalisesSecaoProvider,
+  type AcaoAnalisesUI,
+  type ResultadoAnalisesUI,
+  type SugestaoSecao,
+} from './AnalisesSecao';
+import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
 
 export function RevisaoApresentada({
   relatorio,
@@ -32,6 +40,7 @@ export function RevisaoApresentada({
   aoCarregarEnvio,
   aoSolicitarEnvio,
   aoAnalisarIntroducao,
+  aoAnalisarSecoes,
 }: {
   relatorio: RelatorioDaRevisao | null;
   quem?: string;
@@ -39,6 +48,7 @@ export function RevisaoApresentada({
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
+  aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
 }) {
   const [introducaoRevisada, setIntroducaoRevisada] = useState<string | null>(null);
   const snapshotDaRevisao = useMemo(() => {
@@ -46,13 +56,9 @@ export function RevisaoApresentada({
     return { ...relatorio.snapshot, leitura: { ...relatorio.snapshot.leitura, resumoExecutivo: [{ texto: introducaoRevisada, sustentadaPor: [] }] } };
   }, [relatorio, introducaoRevisada]);
   const introducaoOriginal = relatorio?.snapshot.leitura.resumoExecutivo.map((item) => item.texto).join('\n\n') ?? '';
-  return <RevisaoMoldura
-    relatorio={relatorio}
-    quem={quem}
-    aoDecidir={aoDecidir}
-    aoCarregarEnvio={aoCarregarEnvio}
-    aoSolicitarEnvio={aoSolicitarEnvio}
-  >{relatorio ? (
+  const espacosAnaliticos = useMemo(() => relatorio ? espacosAnaliticosDoSnapshot(relatorio.snapshot).map(({ secao, blocoId, titulo, objetivo }) => ({ secao, blocoId, titulo, objetivo })) : [], [relatorio]);
+  const renderizarAnaliseDaSecao = useCallback((secao: `bloco:${string}`) => <AnaliseDaSecao secao={secao} />, []);
+  const documento = relatorio ? (
     <RelatorioMontado
       snapshot={snapshotDaRevisao ?? relatorio.snapshot}
       proposta="B"
@@ -67,8 +73,20 @@ export function RevisaoApresentada({
         aoAcionar={aoAnalisarIntroducao}
         aoMudarTexto={setIntroducaoRevisada}
       /> : undefined}
+      analiseDaSecao={aoAnalisarSecoes && relatorio.podeDecidir ? renderizarAnaliseDaSecao : undefined}
     />
-  ) : null}</RevisaoMoldura>;
+  ) : null;
+  return <RevisaoMoldura
+    relatorio={relatorio}
+    quem={quem}
+    aoDecidir={aoDecidir}
+    aoCarregarEnvio={aoCarregarEnvio}
+    aoSolicitarEnvio={aoSolicitarEnvio}
+  >{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
+    <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} aoAcionar={aoAnalisarSecoes}>
+      {documento}
+    </AnalisesSecaoProvider>
+  ) : documento}</RevisaoMoldura>;
 }
 
 export default function Revisao({ relatorioId }: { relatorioId: string }) {
@@ -277,6 +295,34 @@ export function RevisaoComSessao({
     return corpo?.sugestao ?? null;
   }, [relatorio, usuarioId]);
 
+  const analisarSecoes = useCallback(async (
+    acao: AcaoAnalisesUI,
+    dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string },
+  ): Promise<ResultadoAnalisesUI> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id || !relatorioAtual.checksum) throw new Error('A sessão expirou. Reabra a revisão — nada foi alterado.');
+    const url = `/api/painel-analises-secao?id=${encodeURIComponent(relatorioAtual.id)}&checksum=${encodeURIComponent(relatorioAtual.checksum)}`;
+    const resposta = acao === 'carregar'
+      ? await fetch(url, { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } })
+      : await fetch('/api/painel-analises-secao', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: relatorioAtual.id,
+            checksum: relatorioAtual.checksum,
+            acao,
+            secao: dados?.secao,
+            sugestaoId: dados?.sugestao?.id,
+            texto: dados?.texto,
+            contexto: dados?.contexto,
+          }),
+        });
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'As análises estão indisponíveis agora.'));
+    return corpo ?? {};
+  }, [relatorio, usuarioId]);
+
   if (carregando) {
     return (
       <section className="dcp-revisao__carregando" aria-busy="true" aria-live="polite">
@@ -313,6 +359,7 @@ export function RevisaoComSessao({
       aoCarregarEnvio={carregarEnvio}
       aoSolicitarEnvio={solicitarEnvio}
       aoAnalisarIntroducao={analisarIntroducao}
+      aoAnalisarSecoes={analisarSecoes}
     />
   );
 }
