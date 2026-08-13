@@ -9,7 +9,7 @@ plano/handoff canônico indicado nele no repositório `OpenClaw-Dacora`.
 A frente **RA — Revisão Analítica Assistida dos Relatórios Mensais** é a
 prioridade de desenvolvimento do painel. Sua fonte organizacional é
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-A **RA2 está implementada localmente, aguardando revisão adversarial e validação humana** em `codex/ra2-caneta-introducao`, limitada à caneta da introdução antes da aprovação. O handler Vercel autenticado relê o snapshot com service role, monta `analysis_context_v1` no servidor e chama Sonnet direto, sem Ozzy, Edge Function ou confiança no contexto enviado pelo navegador. Migration permanece local; smoke autenticado desktop/celular ainda é gate. Sem push, Preview remoto, merge, publicação, decisão ou envio. A introdução do relatório é o primeiro e mais importante alvo da caneta mágica;
+A **correção percentual RA2 está pronta, aguardando nova revisão e smoke autenticado/humano** em `codex/ra2-caneta-introducao`, limitada à caneta da introdução antes da aprovação. A revisão adversarial revelou que `2,5%`, `2,0%` e `33,3%` governados eram bloqueados; agora são aceitos apenas como representações visuais derivadas, e `7,7%` permanece recusado. Handler Vercel, service role, `analysis_context_v1` e demais limites não mudaram. Migration permanece local; sem push, Preview remoto, merge, publicação, decisão ou envio. A introdução do relatório é o primeiro e mais importante alvo da caneta mágica;
 C1/C2/C3 são insumo subordinado, não uma publicação independente. Cada fase RA
 deve acontecer em sessão própria, na branch/worktree indicada pelo documento.
 

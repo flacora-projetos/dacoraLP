@@ -48,6 +48,22 @@ assert.ok(contexto);
 assert.equal(validarNumerosDaSugestao('A conta registrou 16 leads e R$ 1.200,00.', contexto).ok, true);
 assert.equal(validarNumerosDaSugestao('Em julho de 2026, a conta registrou 16 leads.', contexto).ok, true);
 assert.equal(validarNumerosDaSugestao('A conta registrou 17 leads.', contexto).ok, false, 'número novo nunca fica aplicável');
+{
+  const percentual = contextoDoSnapshot(linha({
+    conteudo: {
+      ...linha().conteudo,
+      analysisContext: {
+        ...linha().conteudo.analysisContext,
+        fatos: [{ id: 'meta_ctr', rotulo: 'CTR', unidade: 'percentual', atual: 0.025, base: 0.02, variacao: 0.333333 }],
+      },
+    },
+  }) as any);
+  assert.ok(percentual);
+  assert.equal(validarNumerosDaSugestao('O CTR foi de 2,5%.', percentual).ok, true);
+  assert.equal(validarNumerosDaSugestao('A base do CTR foi 2,0%.', percentual).ok, true);
+  assert.equal(validarNumerosDaSugestao('O CTR subiu 33,3%.', percentual).ok, true);
+  assert.equal(validarNumerosDaSugestao('O CTR foi de 7,7%.', percentual).ok, false, 'percentual alheio continua bloqueado');
+}
 assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro', analysis_context: { inventado: true } }).ok, true);
 
 process.env.SUPABASE_URL = 'https://exemplo.supabase.co';

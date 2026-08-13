@@ -51,13 +51,24 @@ function numeroNormalizado(valor: string): number | null {
 export function validarNumerosDaSugestao(texto: string, contexto: ReturnType<typeof contextoDoSnapshot>) {
   if (!contexto) return { ok: false as const, mensagem: 'O contexto factual desta versão não está disponível.' };
   const permitidos = new Set<number>();
+  const permitidosComPercentual = new Set<number>();
+  const umaCasaPercentual = (valor: number) => Number((valor * 100).toFixed(1));
   for (const trecho of contexto.identidade.competencia.match(/\d+/g) ?? []) permitidos.add(Number(trecho));
   for (const fato of contexto.fatos) {
     for (const valor of [fato?.atual, fato?.base]) if (typeof valor === 'number' && Number.isFinite(valor)) permitidos.add(Number(valor.toFixed(6)));
-    if (typeof fato?.variacao === 'number' && Number.isFinite(fato.variacao)) { permitidos.add(Number(fato.variacao.toFixed(6))); permitidos.add(Number((fato.variacao * 100).toFixed(6))); }
+    if (fato?.unidade === 'percentual') {
+      for (const valor of [fato?.atual, fato?.base]) if (typeof valor === 'number' && Number.isFinite(valor)) permitidosComPercentual.add(umaCasaPercentual(valor));
+    }
+    if (typeof fato?.variacao === 'number' && Number.isFinite(fato.variacao)) {
+      permitidos.add(Number(fato.variacao.toFixed(6)));
+      permitidos.add(Number((fato.variacao * 100).toFixed(6)));
+      permitidosComPercentual.add(umaCasaPercentual(fato.variacao));
+    }
   }
   const incompatíveis = (texto.match(NUMERO_NO_TEXTO) ?? []).filter((bruto) => {
-    const valor = numeroNormalizado(bruto); return valor === null || !permitidos.has(Number(valor.toFixed(6)));
+    const valor = numeroNormalizado(bruto);
+    const fonte = bruto.endsWith('%') ? permitidosComPercentual : permitidos;
+    return valor === null || !fonte.has(Number(valor.toFixed(6)));
   });
   return incompatíveis.length === 0 ? { ok: true as const } : { ok: false as const, mensagem: 'A sugestão trouxe número sem correspondência no contexto factual.' };
 }

@@ -29,8 +29,9 @@ somente a fixture governada da Karyne, sem contexto ou variações injetados, n�
 consulta Supabase e não entra no build de produção. Regressão de revisão e build
 passaram; o navegador local falhou ao iniciar, então não há alegação de smoke.
 O estado
-é **RA2 implementada localmente, aguardando revisão adversarial e validação humana**:
-handler Vercel autenticado, snapshot/contexto relidos server-side e Sonnet dedicado sem tools; testes e build passaram. O `tsc` mantém seis erros preexistentes, sem RA2 novo. O smoke autenticado desktop/celular permanece pendente; sem push, Preview remoto, merge, publicação, decisão ou envio.
+é **correção percentual RA2 pronta, aguardando nova revisão e smoke autenticado/humano**:
+a revisão adversarial revelou bloqueio de `2,5%`, `2,0%` e `33,3%` derivados do contexto percentual; a validação agora aceita só essas formas visuais e recusa `7,7%`. Handler Vercel, snapshot/contexto server-side e Sonnet dedicado sem tools permanecem iguais. O `tsc` mantém seis erros preexistentes, sem RA2 novo; sem push, Preview remoto, merge, publicação, decisão ou envio.
+`verifica:analise`, `verifica:revisao`, o recorte RA1/RA2/funil da fábrica (74/74) e build completo passaram após a correção.
 **Correção aprovada e integrada em 2026-08-07:** o merge `9e287b1` em `main`,
 enviado ao GitHub na sequência autorizada, resolve caminhos privados
 `storage://relatorios-miniaturas/...` somente depois
