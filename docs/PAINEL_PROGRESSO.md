@@ -84,6 +84,12 @@ custou caro descobrir.
 > ocorrido deve ser registrado na mesma sessão; a ausência do registro significa
 > que o estado não está comprovado.
 
+> A frente não depende de esta conversa continuar aberta. Codex, Claude Code ou
+> GPT customizado podem assumir uma fase, mas só Git + plano RA + este estado +
+> handoff atualizado transferem fatos. Antes de faltar contexto, a sessão deixa
+> checkpoint com branch/`HEAD`, diff, testes, efeitos externos e próximo gate;
+> executor sem acesso ao checkout entrega proposta, não implementação provada.
+
 ---
 
 ## 1. Situação em uma frase

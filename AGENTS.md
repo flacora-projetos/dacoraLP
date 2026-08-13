@@ -13,6 +13,12 @@ A introdução do relatório é o primeiro e mais importante alvo da caneta mág
 C1/C2/C3 são insumo subordinado, não uma publicação independente. Cada fase RA
 deve acontecer em sessão própria, na branch/worktree indicada pelo documento.
 
+A RA não pertence a esta conversa nem a um modelo. Codex, Claude Code ou um
+GPT customizado podem assumir uma fase compatível, mas Git, plano, estado e
+handoff são a continuidade oficial. Executor sem acesso real ao checkout e aos
+testes entrega proposta a revalidar. Antes de faltar contexto, pare a expansão
+e registre branch, `HEAD`, diff, testes, efeitos externos e próximo gate.
+
 Toda mudança de estado deve ser documentada na mesma sessão: implementação,
 teste, commit, push, merge, publicação e validação em produção são eventos
 distintos e não podem ser inferidos uns dos outros.
