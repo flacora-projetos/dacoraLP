@@ -250,10 +250,17 @@ const faixaGoogle: FaixaIndicadores = {
  * Duas métricas por plataforma, que é o que o relatório de origem mostra no
  * gráfico de eixo duplo. Aqui elas viram um painel cada.
  *
- * Março tem observação e valores ausentes na Meta: **não houve veiculação**.
- * Isso é diferente de "veiculou e não deu resultado", e a distinção aparece na
- * tela — o painel escreve a observação ao lado do mês em vez de desenhar uma
- * barra de tamanho zero, que seria lida como resultado nulo.
+ * Cada mês leva a observação da definição que estava vigente nele, porque a
+ * série atravessa a troca de 22/06: sem isso, a queda de junho para julho
+ * pareceria perda de desempenho, quando é mudança do que está sendo contado.
+ *
+ * Esta série não tem mês sem veiculação — o dado governado da Karyne veiculou
+ * nos sete meses. A distinção entre **ausência** e **zero medido**, que o
+ * catálogo precisa provar, continua na página em dois lugares onde ela é
+ * verdade: os dias 19 e 20 na série diária, que interrompem a linha em vez de
+ * virar zero, e o grupo de anúncios pausado, que tem investimento e resultado
+ * zero (medição) mas CTR e CPC não aplicáveis (divisão por zero). Não inventar
+ * um mês vazio aqui só para exercitar a regra.
  */
 const evolucaoMeta: EvolucaoMensal = {
   id: 'evolucao_meta_2026',
@@ -838,8 +845,6 @@ export const karyneMontada202607: SnapshotMontado = {
         'custo_por_conversao',
         'cliques',
         'ctr',
-        'conversoes',
-        'custo_por_conversao',
       ],
     },
   ],

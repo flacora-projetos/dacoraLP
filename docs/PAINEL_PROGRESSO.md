@@ -1053,6 +1053,34 @@ provado. `verifica:karyne-conversao` passou a exigir, além do que já exigia:
 Cada uma dessas seis travas foi provada quebrando o dado de propósito e
 conferindo que a regressão reprova.
 
+Dois defeitos menores da mesma rodada foram fechados junto:
+
+**O comentário do código afirmava um caso que não existe mais.** O bloco acima
+de `evolucaoMeta` dizia que março não teve veiculação e que a série exercitava
+ali a diferença entre ausência e zero — o dado governado veiculou nos sete
+meses, e o comentário virou falso sem ninguém mexer nele. Foi reescrito para
+descrever a série que existe (a observação de vigência mês a mês) e para apontar
+onde a distinção **de fato** aparece na página: os dias 19 e 20 da série diária,
+que interrompem a linha, e o grupo de anúncios pausado, com zero medido em
+investimento e resultado mas CTR e CPC não aplicáveis. Não inventar um mês vazio
+só para exercitar a regra.
+
+**O glossário explicava a mesma coisa duas vezes.** Ao trocar `mensagens` por
+`conversoes` na montagem, a lista colidiu com um `conversoes` que já estava lá —
+e `termosDoGlossario` não deduplicava, então o cliente lia "Conversões" e "Custo
+por conversão" repetidos, com aviso de chave repetida no React. **A correção foi
+no catálogo, não na montagem da Karyne:** repetição some na primeira ocorrência
+dentro de `termosDoGlossario`, o que vale para todo cliente, inclusive os que
+ainda não existem. A lista da Karyne foi limpa junto, para a configuração dizer
+o que quer dizer. As duas pontas têm regressão — a montagem não pode repetir, e
+o catálogo tem que deduplicar mesmo se ela repetir —, e as duas foram provadas
+quebrando o código de propósito. O glossário na tela passou de 9 termos com 2
+repetidos para 7 sem repetição.
+
+**Estado: publicado em produção em 12/08/2026**, com autorização do Flávio, pela
+branch `fix/karyne-fechamento-blocos`. Build limpo, 3 rotas institucionais
+pré-renderizadas e relatórios fora do sitemap.
+
 ---
 
 ## 12. A visão geral da operação (D1 e D2)

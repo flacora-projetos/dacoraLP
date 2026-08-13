@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
+import { termosDoGlossario } from '../src/reports/glossario.ts';
 
 function valorNumero(valor: { estado: string; numero?: number } | undefined, contexto: string) {
   assert.ok(valor, `${contexto}: valor ausente`);
@@ -209,6 +210,22 @@ for (const faixa of [meta, google]) {
     );
   }
 }
+
+// 6. O glossário nunca explica a mesma coisa duas vezes — nem por montagem
+//    repetida, nem por descuido do catálogo.
+const b7 = karyneMontada202607.montagem.find((secao: any) => secao.bloco === 'B7');
+assert.ok(b7, 'a Karyne precisa continuar com o glossário no rodapé');
+const idsDoGlossario = (b7 as any).metricas as string[];
+assert.deepEqual(
+  idsDoGlossario,
+  [...new Set(idsDoGlossario)],
+  'a montagem do glossário não pode repetir o mesmo termo',
+);
+assert.deepEqual(
+  termosDoGlossario(['cpm', 'cpm', 'cpc']).map((t) => t.id),
+  ['cpm', 'cpc'],
+  'o catálogo do glossário precisa deduplicar mesmo se a montagem repetir',
+);
 
 console.log('OK - Karyne usa conversao governada por vigencia: historico preservado, junho misto, julho 22/16 e comparacao contextualizada sem regra especial.');
 console.log('OK - fechamento entre blocos: grupos, serie diaria e faixa batem; parciais declaram cobertura; junho e a mesma base em toda a pagina.');
