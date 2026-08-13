@@ -16,6 +16,11 @@ import { nomePlataforma } from '../src/reports/componentes.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 import { checksumDoConteudo } from './checksum-relatorio.mts';
 
+const fonteRevisaoLocal = readFileSync(new URL('../src/pages/PainelRevisaoLocal.tsx', import.meta.url), 'utf8');
+assert.match(fonteRevisaoLocal, /karyneMontada202607/, 'a rota local precisa partir da fixture governada');
+assert.doesNotMatch(fonteRevisaoLocal, /snapshot\.analysisContext\s*=/, 'a rota local não pode injetar contexto analítico manual');
+assert.doesNotMatch(fonteRevisaoLocal, /967\.73|1100\.5/, 'a rota local não pode reintroduzir bases inventadas');
+
 const ID = '11111111-1111-4111-8111-111111111111';
 const { publicacao: _publicacao, ...conteudoDaFixture } = karyneMontada202607;
 const conteudo = {
