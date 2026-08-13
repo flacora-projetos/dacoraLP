@@ -5,6 +5,7 @@ import handler from '../api/painel-analise-introducao.ts';
 import {
   chamarSonnetIntroducao,
   contextoDoSnapshot,
+  extrairTextoAplicavel,
   lerPedidoEditorial,
   validarNumerosDaSugestao,
 } from '../api/_painel-analise-introducao.ts';
@@ -45,6 +46,10 @@ function linha(extra: Record<string, unknown> = {}) {
 
 const contexto = contextoDoSnapshot(linha() as any);
 assert.ok(contexto);
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"texto":"Saída estrita."}' }]), 'Saída estrita.');
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: '```json\n{"texto":"Saída cercada."}\n```' }]), 'Saída cercada.');
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Aqui está a resposta:\n{"texto":"Saída com preâmbulo."}' }]), 'Saída com preâmbulo.');
+assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'sem objeto aplicável' }]), '', 'texto livre continua recusado');
 assert.equal(validarNumerosDaSugestao('A conta registrou 16 leads e R$ 1.200,00.', contexto).ok, true);
 assert.equal(validarNumerosDaSugestao('Em julho de 2026, a conta registrou 16 leads.', contexto).ok, true);
 assert.equal(validarNumerosDaSugestao('A conta registrou 17 leads.', contexto).ok, false, 'número novo nunca fica aplicável');
@@ -155,9 +160,9 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
 
 {
   linhaDoBanco = linhaLegada;
-  saidaSonnet = '{"texto":"Meta Ads registrou investimento de R$ 863,91 e 22 leads."}';
+  saidaSonnet = '```json\n{"texto":"Meta Ads registrou investimento de R$ 863,91 e 22 leads."}\n```';
   const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar' });
-  assert.equal(resposta.status, 200, 'relatório real anterior à RA1 precisa chegar ao Sonnet');
+  assert.equal(resposta.status, 200, 'relatório real anterior à RA1 com JSON cercado precisa chegar ao Sonnet');
   const modelo = chamadas.find((item) => item.url.includes('/v1/messages'))!;
   assert.match(JSON.stringify((modelo.corpo as any).messages[0].content), /863\.91|863,91/);
   linhaDoBanco = linha();

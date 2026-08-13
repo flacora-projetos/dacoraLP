@@ -143,6 +143,32 @@ export function contextoDoSnapshot(linha: LinhaAnalise) {
 
 export function hashDoContexto(contexto: unknown): string { return createHash('sha256').update(JSON.stringify(contexto)).digest('hex'); }
 
+export function extrairTextoAplicavel(blocos: Array<{ type?: string; text?: string }> | undefined): string {
+  const candidatos = (blocos ?? [])
+    .filter((bloco) => bloco?.type === 'text' && typeof bloco.text === 'string')
+    .map((bloco) => bloco.text!.trim())
+    .filter(Boolean);
+
+  for (const candidato of candidatos) {
+    const semCerca = candidato
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    const inicio = semCerca.indexOf('{');
+    const fim = semCerca.lastIndexOf('}');
+    const tentativas = [semCerca, inicio >= 0 && fim > inicio ? semCerca.slice(inicio, fim + 1) : ''];
+    for (const tentativa of [...new Set(tentativas)].filter(Boolean)) {
+      try {
+        const texto = JSON.parse(tentativa)?.texto;
+        if (typeof texto === 'string' && texto.trim()) return texto.trim();
+      } catch {
+        // Tenta a próxima representação textual antes de falhar fechado.
+      }
+    }
+  }
+  return '';
+}
+
 function numeroNormalizado(valor: string): number | null {
   const limpo = valor.replace(/R\$\s*/g, '').replace(/%/g, '').replace(/\./g, '').replace(',', '.');
   const numero = Number(limpo);
@@ -187,11 +213,10 @@ export async function chamarSonnetIntroducao(contexto: NonNullable<ReturnType<ty
   if (!apiKey || !modelo || !/^claude-sonnet-/i.test(modelo)) return { ok: false as const, status: 503, erro: 'sonnet_indisponivel', mensagem: 'A análise assistida ainda não está configurada com o Sonnet da revisão.' };
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30_000);
   try {
-    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 700, system: 'Você revisa somente a introdução de relatórios mensais em português do Brasil. Use exclusivamente os fatos e relações recebidos. Não invente causa, número, recomendação, cliente ou dado. Responda JSON estrito: {"texto":"..."}.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
+    const resposta = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: modelo, max_tokens: 700, system: 'Você revisa somente a introdução de relatórios mensais em português do Brasil. Use exclusivamente os fatos e relações recebidos. Não invente causa, número, recomendação, cliente ou dado. Responda somente com um objeto JSON no formato {"texto":"..."}, sem cerca Markdown e sem explicação antes ou depois.', messages: [{ role: 'user', content: JSON.stringify(contexto) }] }), signal: controller.signal });
     if (!resposta.ok) return { ok: false as const, status: 502, erro: 'sonnet_falhou', mensagem: 'Não foi possível gerar a sugestão agora.' };
     const corpo = await resposta.json() as { content?: Array<{ type?: string; text?: string }> };
-    const bruto = corpo.content?.find((item) => item.type === 'text')?.text?.trim() ?? '';
-    let texto = ''; try { texto = String(JSON.parse(bruto)?.texto ?? '').trim(); } catch { /* resposta inválida abaixo */ }
+    const texto = extrairTextoAplicavel(corpo.content);
     if (!texto || texto.length > 3500) return { ok: false as const, status: 422, erro: 'saida_invalida', mensagem: 'O modelo respondeu em formato não aplicável.' };
     const validacao = validarNumerosDaSugestao(texto, contexto);
     if (!validacao.ok) return { ok: false as const, status: 422, erro: 'saida_numerica_invalida', mensagem: validacao.mensagem };
