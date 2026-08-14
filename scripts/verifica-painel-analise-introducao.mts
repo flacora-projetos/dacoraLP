@@ -44,12 +44,36 @@ function linha(extra: Record<string, unknown> = {}) {
       montagem: [{ id: 'campanhas', titulo: 'Campanhas', apoio: 'Entrega do mês', pergunta: 'Houve interrupção de veiculação?' }],
       analysisContext: {
         versao: 'analysis_context_v1', competencia: '2026-07',
+        resumoDoMes: {
+          familia: 'lead_ou_trafego',
+          kpisPrincipais: ['meta_investimento', 'meta_resultado'],
+          kpisMidia: ['meta_investimento', 'meta_resultado'],
+          faltantes: [],
+        },
+        funilLeadsMensagens: {
+          id: 'funil_leads_mensagens',
+          fonte: 'crm',
+          etapas: [
+            { id: 'entrada', rotulo: 'Entraram', valor: 100 },
+            { id: 'lead', rotulo: 'Viraram lead', valor: 16 },
+          ],
+          transicoes: [{ id: 'entrada_para_lead', de: 'entrada', para: 'lead', taxa: 0.16, perda: 0.84 }],
+          gargalo: { id: 'entrada_para_lead', de: 'entrada', para: 'lead', taxa: 0.16, perda: 0.84 },
+        },
         fatos: [
           { id: 'meta_resultado', rotulo: 'Leads', unidade: 'inteiro', atual: 16, base: 12, variacao: 0.333333 },
           { id: 'meta_investimento', rotulo: 'Investimento', unidade: 'brl', atual: 1200, base: 1000, variacao: 0.2 },
         ],
         relacoes: [{ tipo: 'investimento_resultado', plataforma: 'meta', sustentadaPor: ['meta_resultado', 'meta_investimento'], texto: 'Os dois movimentos ocorreram na mesma comparação.' }],
         limitacoes: [],
+      },
+      dados: {
+        funis: {
+          funil_leads_mensagens: {
+            id: 'funil_leads_mensagens',
+            etapas: [{ id: 'entrada', rotulo: 'Entraram', valor: 100 }, { id: 'lead', rotulo: 'Viraram lead', valor: 16 }],
+          },
+        },
       },
       caminhoLocal: 'C:/segredo/fora-do-contexto',
     },
@@ -67,6 +91,9 @@ assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Primeiro parágrafo.'
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '**Leitura** com {chaves} e `markdown`.' }]), '**Leitura** com {chaves} e `markdown`.', 'markdown e chaves não tornam texto útil inválido');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '```json\n{"texto":"JSON truncado"\n```' }]), '```json\n{"texto":"JSON truncado"\n```', 'JSON imperfeito continua disponível para revisão humana');
 assert.match(JSON.stringify(contexto.leituraDoRelatorio), /critério de lead mais restrito/);
+assert.equal(contexto.resumoDoMes?.familia, 'lead_ou_trafego');
+assert.equal((contexto.funilLeadsMensagens as any)?.gargalo?.taxa, 0.16);
+assert.equal((contexto.dadosDoRelatorio as any)?.funis?.funil_leads_mensagens?.etapas?.length, 2);
 assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro', analysis_context: { inventado: true } }).ok, true);
 assert.equal(lerPedidoEditorial({ id: ID, checksum: CHECKSUM, acao: 'editar', sugestaoId: SUGESTAO_ID, texto: 'Texto editorial '.repeat(300) }).ok, true, 'edição acima de 3.500 caracteres não pode ser descartada');
 

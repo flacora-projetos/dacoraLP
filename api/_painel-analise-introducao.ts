@@ -165,8 +165,21 @@ export function contextoDoSnapshot(linha: LinhaAnalise) {
       tabelas: dados.tabelas ?? {},
       evolucoesMensais: dados.evolucoesMensais ?? {},
       quebras: dados.quebras ?? {},
+      funis: dados.funis ?? {},
       series: dados.series ?? {},
     } : {},
+    resumoDoMes: contexto.resumoDoMes && typeof contexto.resumoDoMes === 'object'
+      ? contexto.resumoDoMes
+      : null,
+    funilEcommerce: contexto.funilEcommerce && typeof contexto.funilEcommerce === 'object'
+      ? contexto.funilEcommerce
+      : null,
+    funilLeadsMensagens: contexto.funilLeadsMensagens && typeof contexto.funilLeadsMensagens === 'object'
+      ? contexto.funilLeadsMensagens
+      : null,
+    funilInstagram: contexto.funilInstagram && typeof contexto.funilInstagram === 'object'
+      ? contexto.funilInstagram
+      : null,
     fatos: contexto.fatos,
     relacoes: Array.isArray(contexto.relacoes) ? contexto.relacoes : [],
     limitacoes: Array.isArray(contexto.limitacoes) ? contexto.limitacoes : [],
