@@ -97,7 +97,9 @@ function AvisoCobertura({
         {rotuloColuna} da lista abaixo:{' '}
         <strong>{textoValor(somaListada ?? SEM_COLUNA, unidade, sufixo)}</strong>, de{' '}
         <strong>{textoValor(cobertura.totalDoUniverso, unidade, sufixo)}</strong> em{' '}
-        {cobertura.universo}. <strong>Esta lista representa só uma parte do total.</strong>
+        {/* O rótulo "Lista parcial" acima e os dois números ao lado já dizem
+            que a lista é parcial. A frase que repetia isso saiu. */}
+        {cobertura.universo}.
       </p>
       {motivos.length > 0 && (
         <ul className="dc-cobertura__motivos">
