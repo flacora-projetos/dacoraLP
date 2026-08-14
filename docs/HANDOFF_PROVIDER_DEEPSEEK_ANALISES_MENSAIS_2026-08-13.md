@@ -119,8 +119,10 @@ A variável antiga única `MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL` não é mais 
 
 A skill externa de Security Guidance não estava instalada/exposta no Bridge durante esta retomada (`count: 0`), portanto o gate foi executado manualmente. Para UX foram consultadas as skills `frontend-design` e `impeccable-design-polish`, preservando a direção Editorial de Performance e restringindo o refino aos controles de análise/contexto.
 
-## Gate desta rodada
+## Fechamento desta rodada
 
-O PO autorizou explicitamente trabalhar até o fim e publicar em produção. Antes do merge/push ainda são obrigatórios: smoke local seguro, revisão final do diff/status e commit da branch. Depois da publicação: HTTP do painel/raiz, identificação do bundle novo no domínio e atualização documental do estado realmente publicado. Não há alteração de env, migration, aprovação/recusa de relatório nem envio a cliente nesta entrega.
+O PO autorizou explicitamente trabalhar até o fim e publicar em produção. A entrega funcional foi commitada em `992fa56` (`fix RA context and concise analysis UX`), integrada por fast-forward em `main` e enviada para `origin/main`. No estado integrado, `verifica:analise`, `verifica:revisao` e build passaram novamente. Produção respondeu HTTP 200 em `/painel-de-relatorios`; a API de introdução respondeu 401 sem sessão, preservando o gate; e o HTML público passou a servir `assets/index-DcWibYQd.js`, exatamente o bundle JS gerado pelo build integrado. Não houve alteração de env, migration, aprovação/recusa de relatório nem envio a cliente nesta entrega.
+
+O smoke autenticado de uma geração real com V4 Pro não foi repetido automaticamente porque exigiria sessão humana e chamada paga sobre relatório real. A causa técnica da latência foi confirmada no código e alinhada à documentação oficial do DeepSeek; o ganho do novo modo não-pensante deve ser observado no próximo uso humano do Pro. O contrato de contexto, por outro lado, está coberto por regressão server-side: introdução e seções relêem o contexto persistido, e contexto forjado no navegador não substitui o salvo.
 
 O redirect OAuth do Preview que bloqueou o smoke RA3 continua dependência separada e não será contornado. Voicebox/áudio está fora desta frente.
