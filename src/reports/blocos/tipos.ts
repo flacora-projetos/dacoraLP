@@ -452,7 +452,14 @@ export interface DesfechoFunil {
   id: string;
   rotulo: string;
   valor: number;
+  /**
+   * Desfecho NÃO tem taxa, e a ausência é deliberada: novos seguidores não são
+   * atribuíveis ao anúncio, então uma porcentagem daria à mídia o crédito por
+   * quem chegou de outro lugar. O campo não existe de propósito.
+   */
   observacao?: string;
+  /** Quando o desfecho é medido em janela diferente da das etapas. */
+  janela?: JanelaFunil;
 }
 
 export interface JanelaFunil {
