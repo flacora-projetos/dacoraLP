@@ -155,6 +155,11 @@ export default async function handler(req: Request, res: Response) {
     }
 
     const linhas = (await respostaLinhas.json()) as LinhaDoBanco[];
+    /* Falhar fechado está certo: sem o contrato P5 as ações somem. Falhar
+       INVISÍVEL está errado — a fila precisa dizer que elas sumiram por
+       indisponibilidade, senão a pessoa conclui que aquele relatório não as
+       tem. */
+    let acoesIndisponiveis = false;
     let acoesPorRelatorio = new Map<string, {
       destinatarioNome: string | null;
       podeSolicitarEnvio: boolean;
@@ -175,9 +180,11 @@ export default async function handler(req: Request, res: Response) {
           envioEstado: linha.envio_estado ?? null,
         }]));
       } else {
+        acoesIndisponiveis = true;
         console.warn(`[painel-fila] Estado P5 indisponível para ações: HTTP ${respostaAcoes.status}.`);
       }
     } catch (erroAcoes) {
+      acoesIndisponiveis = true;
       console.warn('[painel-fila] Estado P5 indisponível para ações:', erroAcoes instanceof Error ? erroAcoes.message : erroAcoes);
     }
     const itensDaFila = montarFila(linhas).map((item) => {
@@ -207,6 +214,7 @@ export default async function handler(req: Request, res: Response) {
       competencia,
       competencias,
       itens: itensDaFila,
+      acoesIndisponiveis,
       visaoGeral: montarVisaoGeral(linhas, competencia, new Date().toISOString()),
     });
   } catch (err) {

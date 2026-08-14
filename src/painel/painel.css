@@ -705,9 +705,25 @@
   margin-top: 0.35rem;
 }
 .dcp-estado-acoes .dcp-botao {
-  min-height: 32px;
-  padding: 0.3rem 0.5rem;
+  /* 44px é o alvo de toque mínimo; a fila é operada no celular e estes botões
+     ficam dentro de uma célula de tabela, colados um no outro. */
+  min-height: 44px;
+  padding: 0.45rem 0.7rem;
   font-size: 0.74rem;
+}
+.dcp-fila__aviso,
+.dcp-fila__erro {
+  margin: 0.9rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.dcp-fila__aviso { color: var(--dc-cinza); }
+.dcp-fila__erro { color: var(--dc-alerta, #a3231a); font-weight: 600; }
+.dcp-dialogo__consequencia {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: var(--dc-cinza);
+  line-height: 1.5;
 }
 
 .dcp-tabela__sem-sinal {

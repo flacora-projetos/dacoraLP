@@ -14,10 +14,11 @@
  * Quem calcula tudo isso é o servidor (`api/_painel-fila-dados.ts`). Esta tela
  * não soma, não compara e não decide o que é sinal: ela apresenta.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link, useSearchParams } from 'react-router-dom';
 import { usarPainelAuth } from './AuthContext';
+import PortalDoDialogo from './PortalDoDialogo';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
 import VisaoGeral, {
   type CampoDeFiltro,
@@ -106,6 +107,8 @@ interface RespostaFila {
   competencia: string | null;
   competencias: string[];
   itens: ItemDaFila[];
+  /** O contrato P5 não respondeu; as ações pós-aprovação não podem ser oferecidas. */
+  acoesIndisponiveis?: boolean;
   /**
    * O resumo da operação, calculado no mesmo pedido.
    *
@@ -394,25 +397,28 @@ function linkParaAbrirRelatorio(item: ItemDaFila, buscaAtual: URLSearchParams): 
   return `?${preservados.toString()}`;
 }
 
+export type AcaoDaFila = 'enviar' | 'voltar';
+export interface ResultadoDaAcaoDaFila { ok: boolean; mensagem: string }
+
 function AcoesDoEstadoAprovado({
   item,
-  aoVoltarEdicao,
-  aoEnviar,
+  aoAbrir,
+  ocupada,
 }: {
   item: ItemDaFila;
-  aoVoltarEdicao?: (item: ItemDaFila) => void;
-  aoEnviar?: (item: ItemDaFila) => void;
+  aoAbrir?: (acao: AcaoDaFila, item: ItemDaFila) => void;
+  ocupada: boolean;
 }) {
-  if (!item.podeVoltarEdicao && !item.podeSolicitarEnvio) return null;
+  if (!aoAbrir || (!item.podeVoltarEdicao && !item.podeSolicitarEnvio)) return null;
   return (
     <span className="dcp-estado-acoes" aria-label={`Ações do relatório aprovado de ${item.clienteNome}`}>
-      {item.podeVoltarEdicao && aoVoltarEdicao && (
-        <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => aoVoltarEdicao(item)}>
+      {item.podeVoltarEdicao && (
+        <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada} onClick={() => aoAbrir('voltar', item)}>
           Voltar para edição
         </button>
       )}
-      {item.podeSolicitarEnvio && aoEnviar && (
-        <button type="button" className="dcp-botao dcp-botao--primario" onClick={() => aoEnviar(item)}>
+      {item.podeSolicitarEnvio && (
+        <button type="button" className="dcp-botao dcp-botao--primario" disabled={ocupada} onClick={() => aoAbrir('enviar', item)}>
           Enviar
         </button>
       )}
@@ -420,19 +426,114 @@ function AcoesDoEstadoAprovado({
   );
 }
 
+/**
+ * A confirmação das duas ações pós-aprovação.
+ *
+ * Ela existe como diálogo próprio, e não como `window.confirm`, porque enviar
+ * é efeito externo: sai do painel e chega ao grupo do cliente. A régua do
+ * projeto para isso é ecoar por escrito o que vai acontecer — cliente,
+ * competência, versão e destino — e só então aceitar o clique. O `confirm` do
+ * navegador não formata, não mostra estado de carregamento e devolve o erro
+ * num `alert` que a pessoa fecha sem ler.
+ *
+ * Enquanto executa, os dois botões ficam desabilitados. Erro fica visível na
+ * própria caixa, com o diálogo aberto, para a pessoa poder tentar de novo sem
+ * reabrir nada.
+ */
+export function DialogoDaAcaoDaFila({
+  acao,
+  item,
+  executando,
+  erro,
+  aoConfirmar,
+  aoCancelar,
+}: {
+  acao: AcaoDaFila;
+  item: ItemDaFila;
+  executando: boolean;
+  erro: string | null;
+  aoConfirmar: () => void;
+  aoCancelar: () => void;
+}) {
+  const id = useId();
+  const caixa = useRef<HTMLDivElement | null>(null);
+  const primeiroBotao = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => { primeiroBotao.current?.focus(); }, []);
+  useEffect(() => {
+    function aoTeclar(evento: KeyboardEvent) {
+      if (evento.key === 'Escape' && !executando) {
+        evento.preventDefault();
+        aoCancelar();
+        return;
+      }
+      if (evento.key !== 'Tab' || !caixa.current) return;
+      const focaveis = caixa.current.querySelectorAll<HTMLElement>('button:not([disabled])');
+      if (focaveis.length === 0) return;
+      const primeiro = focaveis[0];
+      const ultimo = focaveis[focaveis.length - 1];
+      if (evento.shiftKey && document.activeElement === primeiro) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primeiro.focus();
+      }
+    }
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [aoCancelar, executando]);
+
+  const enviando = acao === 'enviar';
+  const titulo = enviando ? 'Enviar o relatório ao cliente' : 'Voltar o relatório para edição';
+  return (
+    <PortalDoDialogo>
+      <div className="dcp-dialogo__fundo" role="presentation">
+        <div className="dcp-dialogo" role="dialog" aria-modal="true" aria-labelledby={`${id}-titulo`} ref={caixa}>
+          <h2 id={`${id}-titulo`}>{titulo}</h2>
+          <p className="dcp-dialogo__eco">
+            {item.clienteNome}, {formatarCompetencia(item.competencia)}, versão {item.versao}
+            {enviando && item.destinatarioNome ? `, para ${item.destinatarioNome}` : ''}.
+          </p>
+          <p className="dcp-dialogo__consequencia">
+            {enviando
+              ? 'O relatório vai para o grupo do cliente. O envio é registrado e não pode ser desfeito por aqui.'
+              : 'A aprovação será removida e o relatório volta para edição, na mesma versão. Fica registrado quem reabriu.'}
+          </p>
+          {erro && <p className="dcp-dialogo__erro" role="alert">{erro}</p>}
+          <div className="dcp-dialogo__acoes">
+            <button
+              type="button"
+              ref={primeiroBotao}
+              className={enviando ? 'dcp-botao dcp-botao--primario' : 'dcp-botao'}
+              disabled={executando}
+              onClick={aoConfirmar}
+            >
+              {executando ? 'Registrando…' : enviando ? 'Enviar agora' : 'Voltar para edição'}
+            </button>
+            <button type="button" className="dcp-botao dcp-botao--discreto" disabled={executando} onClick={aoCancelar}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </PortalDoDialogo>
+  );
+}
+
 function TabelaDeRelatorios({
   titulo,
   itens,
   competencia,
-  aoVoltarEdicao,
-  aoEnviar,
+  aoAbrirAcao,
+  acaoEmCurso,
 }: {
   key?: string;
   titulo: string;
   itens: ItemDaFila[];
   competencia: string;
-  aoVoltarEdicao?: (item: ItemDaFila) => void;
-  aoEnviar?: (item: ItemDaFila) => void;
+  aoAbrirAcao?: (acao: AcaoDaFila, item: ItemDaFila) => void;
+  acaoEmCurso: boolean;
 }) {
   const [buscaAtual] = useSearchParams();
   const idTitulo = `grupo-${titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\W+/g, '-').toLowerCase()}`;
@@ -476,7 +577,7 @@ function TabelaDeRelatorios({
                       <span className="dcp-estado__forma" aria-hidden="true" />
                       {textoDoEstado(item)}
                     </span>
-                    <AcoesDoEstadoAprovado item={item} aoVoltarEdicao={aoVoltarEdicao} aoEnviar={aoEnviar} />
+                    <AcoesDoEstadoAprovado item={item} aoAbrir={aoAbrirAcao} ocupada={acaoEmCurso} />
                     <span className="dcp-tabela__movel-numeros">
                       {textoDoInvestimento(item)} · {textoDoResultado(item)}
                     </span>
@@ -487,7 +588,7 @@ function TabelaDeRelatorios({
                     <span className="dcp-estado__forma" aria-hidden="true" />
                     {textoDoEstado(item)}
                   </span>
-                  <AcoesDoEstadoAprovado item={item} aoVoltarEdicao={aoVoltarEdicao} aoEnviar={aoEnviar} />
+                  <AcoesDoEstadoAprovado item={item} aoAbrir={aoAbrirAcao} ocupada={acaoEmCurso} />
                 </td>
                 <td className="dcp-tabela__numero dcp-tabela__secundaria" title={detalheDoInvestimento(item)}>
                   {textoDoInvestimento(item)}
@@ -564,14 +665,12 @@ function EsqueletoDaFila() {
  */
 export function FilaApresentada({
   dados,
-  aoVoltarEdicao,
-  aoEnviar,
+  aoExecutarAcao,
 }: {
   dados: RespostaFila;
-  aoVoltarEdicao?: (item: ItemDaFila) => void;
-  aoEnviar?: (item: ItemDaFila) => void;
+  aoExecutarAcao?: (acao: AcaoDaFila, item: ItemDaFila) => Promise<ResultadoDaAcaoDaFila>;
 }) {
-  return <CorpoDaFila dados={dados} aoVoltarEdicao={aoVoltarEdicao} aoEnviar={aoEnviar} />;
+  return <CorpoDaFila dados={dados} aoExecutarAcao={aoExecutarAcao} />;
 }
 
 export default function Fila() {
@@ -650,38 +749,42 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
     void buscar(competenciaPedida);
   }, [buscar, competenciaPedida]);
 
-  async function voltarParaEdicao(item: ItemDaFila) {
+  /**
+   * As duas ações pós-aprovação, com o mesmo contrato de retorno.
+   *
+   * Nada de `window.confirm`/`window.alert`: o eco e o erro são da tela, e o
+   * erro precisa ficar visível junto do botão em vez de num alerta que a
+   * pessoa fecha sem ler.
+   */
+  async function executarAcaoDaFila(acao: AcaoDaFila, item: ItemDaFila): Promise<ResultadoDaAcaoDaFila> {
     const sessaoAtual = sessaoAtualRef.current;
-    if (!sessaoAtual || !item.checksum) return;
-    if (!window.confirm(`Remover a aprovação de ${item.clienteNome} e voltar este relatório para edição?`)) return;
-    const resposta = await fetch('/api/painel-reabrir-edicao', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: item.id, checksum: item.checksum }),
-    });
-    const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok || corpo?.reaberto !== true) {
-      window.alert(String(corpo?.mensagem ?? 'Não foi possível voltar este relatório para edição.'));
-      return;
+    if (!sessaoAtual) return { ok: false, mensagem: 'A sessão expirou. Recarregue o painel.' };
+    if (!item.checksum) return { ok: false, mensagem: 'Este relatório está sem impressão digital na fila. Atualize antes de agir.' };
+    if (acao === 'enviar' && !item.destinatarioNome) {
+      return { ok: false, mensagem: 'Este cliente não tem destino canônico sincronizado.' };
     }
-    await buscar(competenciaPedida);
-  }
 
-  async function enviarDaFila(item: ItemDaFila) {
-    const sessaoAtual = sessaoAtualRef.current;
-    if (!sessaoAtual || !item.checksum || !item.destinatarioNome) return;
-    if (!window.confirm(`Enviar agora o relatório de ${item.clienteNome} para ${item.destinatarioNome}?`)) return;
-    const resposta = await fetch('/api/painel-envio', {
+    const rota = acao === 'enviar' ? '/api/painel-envio' : '/api/painel-reabrir-edicao';
+    const resposta = await fetch(rota, {
       method: 'POST',
       headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: item.id, checksum: item.checksum }),
     });
     const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok || corpo?.solicitado !== true) {
-      window.alert(String(corpo?.mensagem ?? 'Não foi possível solicitar o envio.'));
-      return;
+    const confirmou = acao === 'enviar' ? corpo?.solicitado === true : corpo?.reaberto === true;
+    if (!resposta.ok || !confirmou) {
+      return {
+        ok: false,
+        mensagem: String(corpo?.mensagem ?? 'O servidor recusou a operação. Atualize a fila e confira o estado.'),
+      };
     }
     await buscar(competenciaPedida);
+    return {
+      ok: true,
+      mensagem: acao === 'enviar'
+        ? `Envio solicitado para ${item.clienteNome}. A entrega só é confirmada quando o recibo voltar.`
+        : `${item.clienteNome} voltou para edição, na mesma versão.`,
+    };
   }
 
   if (carregando) {
@@ -725,8 +828,7 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
 
   return <CorpoDaFila
     dados={dados ?? { competencia: null, competencias: [], itens: [] }}
-    aoVoltarEdicao={(item) => void voltarParaEdicao(item)}
-    aoEnviar={(item) => void enviarDaFila(item)}
+    aoExecutarAcao={executarAcaoDaFila}
   />;
 }
 
@@ -735,13 +837,33 @@ const CAMPOS_DE_FILTRO: CampoDeFiltro[] = ['carteira', 'produto', 'formato', 'es
 
 function CorpoDaFila({
   dados,
-  aoVoltarEdicao,
-  aoEnviar,
+  aoExecutarAcao,
 }: {
   dados: RespostaFila;
-  aoVoltarEdicao?: (item: ItemDaFila) => void;
-  aoEnviar?: (item: ItemDaFila) => void;
+  aoExecutarAcao?: (acao: AcaoDaFila, item: ItemDaFila) => Promise<ResultadoDaAcaoDaFila>;
 }) {
+  const [pendente, setPendente] = useState<{ acao: AcaoDaFila; item: ItemDaFila } | null>(null);
+  const [executando, setExecutando] = useState(false);
+  const [erroDaAcao, setErroDaAcao] = useState<string | null>(null);
+  const [avisoDaAcao, setAvisoDaAcao] = useState<string | null>(null);
+
+  async function confirmarAcao() {
+    if (!pendente || !aoExecutarAcao) return;
+    setExecutando(true);
+    setErroDaAcao(null);
+    try {
+      const resultado = await aoExecutarAcao(pendente.acao, pendente.item);
+      if (!resultado.ok) { setErroDaAcao(resultado.mensagem); return; }
+      setPendente(null);
+      setAvisoDaAcao(resultado.mensagem);
+    } catch (erro) {
+      /* Rede caindo não pode virar clique que "não fez nada": sem isto a
+         promessa rejeitava em silêncio e a pessoa clicava de novo. */
+      setErroDaAcao(erro instanceof Error ? erro.message : 'Não foi possível concluir agora. Tente de novo.');
+    } finally {
+      setExecutando(false);
+    }
+  }
   const competencias = dados?.competencias ?? [];
   const competencia = dados?.competencia ?? null;
   const itens = dados?.itens ?? [];
@@ -966,13 +1088,35 @@ function CorpoDaFila({
                   titulo={grupo.titulo}
                   itens={grupo.itens}
                   competencia={competencia}
-                  aoVoltarEdicao={aoVoltarEdicao}
-                  aoEnviar={aoEnviar}
+                  aoAbrirAcao={aoExecutarAcao ? (acao, item) => { setErroDaAcao(null); setAvisoDaAcao(null); setPendente({ acao, item }); } : undefined}
+                  acaoEmCurso={executando}
                 />
               ))}
             </div>
           )}
         </>
+      )}
+
+      {dados?.acoesIndisponiveis && (
+        <p className="dcp-fila__aviso" role="status">
+          Ações temporariamente indisponíveis. Atualize a fila.
+        </p>
+      )}
+      {avisoDaAcao && !pendente && (
+        <p className="dcp-fila__aviso" role="status">{avisoDaAcao}</p>
+      )}
+      {erroDaAcao && !pendente && (
+        <p className="dcp-fila__erro" role="alert">{erroDaAcao}</p>
+      )}
+      {pendente && aoExecutarAcao && (
+        <DialogoDaAcaoDaFila
+          acao={pendente.acao}
+          item={pendente.item}
+          executando={executando}
+          erro={erroDaAcao}
+          aoConfirmar={() => void confirmarAcao()}
+          aoCancelar={() => { if (!executando) { setPendente(null); setErroDaAcao(null); } }}
+        />
       )}
 
       <p className="dcp-fila__rodape">

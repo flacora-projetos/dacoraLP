@@ -431,6 +431,45 @@ async function chamarReabrir(corpo: unknown) {
   assert.equal(saida.corpo.reaberto, false);
 }
 
+/* Achado 11 — a lição da RA2: erro de execução de SQL não pode virar 409.
+   Lá, uma coluna ambígua (42702) foi apresentada como conflito de
+   concorrência, e a correção certa ficou meses invisível porque a mensagem
+   dizia outra coisa. Erro conhecido vira código próprio; desconhecido vira 502
+   genérico, e a mensagem do banco não vaza para a tela. */
+{
+  const casos = [
+    { corpo: 'envio_ja_solicitado', status: 409, erro: 'envio_ja_solicitado' },
+    { corpo: 'checksum_divergente', status: 409, erro: 'checksum_divergente' },
+    {
+      corpo: 'ERROR: column reference "relatorio_checksum" is ambiguous (SQLSTATE 42702)',
+      status: 502,
+      erro: 'reabertura_recusada',
+    },
+    { corpo: '{"message":"function public.reabrir_relatorio_para_edicao does not exist"}', status: 502, erro: 'reabertura_recusada' },
+  ];
+  for (const caso of casos) {
+    globalThis.fetch = (async (entrada: any) => {
+      const url = String(entrada);
+      if (url.includes('/auth/v1/user')) return new Response(JSON.stringify(usuario), { status: 200, headers: { 'content-type': 'application/json' } });
+      if (url.includes('/rpc/reabrir_relatorio_para_edicao')) return new Response(caso.corpo, { status: 400 });
+      throw new Error(`URL não dublada: ${url}`);
+    }) as typeof fetch;
+
+    const saida = await chamarReabrir({ id: ID, checksum: CHECKSUM });
+    assert.equal(saida.status, caso.status, `status errado para: ${caso.corpo.slice(0, 40)}`);
+    assert.equal(saida.corpo.erro, caso.erro, `código errado para: ${caso.corpo.slice(0, 40)}`);
+    assert.equal(saida.corpo.reaberto, false);
+
+    const mensagem = String(saida.corpo.mensagem ?? '');
+    for (const vazamento of ['SQLSTATE', '42702', 'column reference', 'does not exist']) {
+      assert.ok(
+        !mensagem.includes(vazamento),
+        `a mensagem da tela não pode carregar o texto do banco (vazou "${vazamento}")`,
+      );
+    }
+  }
+}
+
 globalThis.fetch = fetchOriginal;
 
 console.log('verifica-painel-ra4: ok');

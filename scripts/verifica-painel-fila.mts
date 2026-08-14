@@ -643,7 +643,7 @@ globalThis.fetch = fetchOriginal;
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { FilaApresentada } from '../src/painel/Fila.tsx';
+import { DialogoDaAcaoDaFila, FilaApresentada } from '../src/painel/Fila.tsx';
 
 function desenhar(dados: any): string {
   return renderToStaticMarkup(
@@ -712,9 +712,12 @@ function desenhar(dados: any): string {
   assert.ok(html.includes('2 relatórios'), 'faltou o resumo com a contagem');
   assert.ok(html.includes('em ordem de atenção'), 'a fila precisa avisar que não é alfabética');
 
-  // Só leitura: nenhum verbo de decisão nesta tela.
-  for (const proibido of ['Aprovar', 'Recusar', 'Enviar']) {
-    assert.ok(!html.includes(`>${proibido}<`), `a fila não pode ter botão "${proibido}" — isso é a P3/P5`);
+  /* Aprovar e recusar NUNCA aparecem na fila: exigem o relatório aberto, e é
+     essa a regra que a tela existe para sustentar. Enviar e voltar para edição
+     só aparecem no estado aprovado, com as flags que o servidor calcula — sem
+     elas, como neste cenário, a fila continua sendo só leitura. */
+  for (const proibido of ['Aprovar', 'Recusar', 'Enviar', 'Voltar para edição']) {
+    assert.ok(!html.includes(`>${proibido}<`), `sem ação pós-aprovação a fila não pode ter "${proibido}"`);
   }
 
   // Abrir a revisão é NAVEGAÇÃO: link semântico e deep-link na URL, não
@@ -896,25 +899,84 @@ function desenhar(dados: any): string {
     podeSolicitarEnvio: true,
     destinatarioNome: 'Cliente Aprovado',
   };
-  const html = renderToStaticMarkup(
+  const dados = { competencia: '2026-07', competencias: ['2026-07'], itens: [item] };
+  const desenharComAcoes = (extra = {}) => renderToStaticMarkup(
     createElement(
       MemoryRouter,
       null,
       createElement(FilaApresentada, {
-        dados: { competencia: '2026-07', competencias: ['2026-07'], itens: [item] },
-        aoVoltarEdicao: () => undefined,
-        aoEnviar: () => undefined,
+        dados: { ...dados, ...extra },
+        aoExecutarAcao: async () => ({ ok: true, mensagem: 'não chamado' }),
       }),
     ),
   );
+
+  const html = desenharComAcoes();
   const celulaEstado = /<td class="dcp-tabela__secundaria">([\s\S]*?)<\/td>/.exec(html)?.[1] ?? '';
   assert.match(celulaEstado, /aprovado por flavio/i);
   assert.match(celulaEstado, /Voltar para edição/);
   assert.match(celulaEstado, />Enviar</);
   assert.doesNotMatch(html, /<th scope="col">Ações<\/th>/, 'a fila não cria uma coluna extra só para essas ações');
+
+  /* Achado 4 — enviar é efeito externo e não pode sair de um `confirm` do
+     navegador. O clique abre confirmação própria, e é ela que carrega o eco. */
+  assert.doesNotMatch(html, /onclick="[^"]*confirm/i, 'a confirmação não pode ser a do navegador');
+
+  /* Achado 9 — sem o contrato P5 as ações somem, e a fila precisa DIZER isso
+     em vez de deixar a pessoa concluir que aquele relatório não as tem. */
+  const semP5 = desenharComAcoes({ acoesIndisponiveis: true });
+  assert.match(semP5, /Ações temporariamente indisponíveis\. Atualize a fila\./);
+}
+
+/* ================================================================== */
+/* 8. O DIÁLOGO DAS AÇÕES ECOA O QUE VAI ACONTECER                     */
+/* ================================================================== */
+{
+  const linhaAprovada = linha({
+    slug: 'eco-do-envio',
+    nome: 'Cliente do Eco',
+    estado: 'liberado',
+    faixas: [faixa({ plataforma: 'meta', investimento: 10, resultado: 1 })],
+  });
+  linhaAprovada.aprovado_por = 'flavio@dacora.com.br';
+  linhaAprovada.aprovado_em = '2026-08-14T08:00:00Z';
+  linhaAprovada.versao = 4;
+  const [base] = montarFila([linhaAprovada]);
+  const item = {
+    ...base,
+    checksum: 'abc123',
+    podeVoltarEdicao: true,
+    podeSolicitarEnvio: true,
+    destinatarioNome: 'Grupo do Cliente',
+  };
+
+  for (const acao of ['enviar', 'voltar'] as const) {
+    const html = renderToStaticMarkup(
+      createElement(DialogoDaAcaoDaFila, {
+        acao,
+        item,
+        executando: false,
+        erro: null,
+        aoConfirmar: () => undefined,
+        aoCancelar: () => undefined,
+      }),
+    );
+    assert.match(html, /role="dialog"/);
+    assert.match(html, /Cliente do Eco/, 'o eco precisa nomear o cliente');
+    assert.match(html, /versão 4/, 'o eco precisa dizer qual versão');
+    assert.match(html, /Cancelar/, 'sempre existe saída sem efeito');
+    if (acao === 'enviar') {
+      assert.match(html, /Grupo do Cliente/, 'o destino precisa aparecer antes da confirmação');
+      assert.match(html, /Enviar agora/);
+      assert.match(html, /não pode ser desfeito/, 'a consequência do envio precisa estar escrita');
+    } else {
+      assert.match(html, /aprovação será removida/, 'a consequência da reabertura precisa estar escrita');
+      assert.doesNotMatch(html, /Enviar agora/, 'voltar para edição não pode oferecer envio');
+    }
+  }
 }
 
 console.log(
-  'OK — fila do painel: números, sinais, ordem, contratos de recusa, ações pós-aprovação no estado, ' +
-    'e links preservando competência/aba/filtros',
+  'OK — fila do painel: números, sinais, ordem, contratos de recusa, ações pós-aprovação com eco próprio, ' +
+    'aviso quando o contrato P5 não responde, e links preservando competência/aba/filtros',
 );
