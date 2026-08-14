@@ -441,6 +441,8 @@ export interface JanelaFunil {
   fim: string;
   dias?: number;
   reduzida?: boolean;
+  /** Janela móvel da fonte não coincide integralmente com a competência do relatório. */
+  foraDaCompetencia?: boolean;
   limiteDaFonteDias?: number;
 }
 

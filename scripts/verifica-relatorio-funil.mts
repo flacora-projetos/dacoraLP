@@ -41,10 +41,10 @@ const instagram: FunilRelatorio = {
   fonte: 'instagram',
   janela: {
     competencia: '2026-07',
-    inicio: '2026-07-02',
-    fim: '2026-07-31',
+    inicio: '2026-07-16',
+    fim: '2026-08-14',
     dias: 30,
-    reduzida: true,
+    foraDaCompetencia: true,
     limiteDaFonteDias: 30,
   },
   etapas: [
@@ -72,11 +72,11 @@ const instagram: FunilRelatorio = {
     },
   ],
   observacao:
-    'A Meta limita novos seguidores a no máximo 30 dias. Como 2026-07 tem 31 dias, este funil usa 2026-07-02 a 2026-07-31 (30 dias).',
+    'A Meta limita novos seguidores a no máximo 30 dias. Por isso este funil usa a janela móvel recente de 2026-07-16 a 2026-08-14 (30 dias), que não coincide integralmente com a competência 2026-07.',
 };
 
 const htmlInstagram = renderToStaticMarkup(createElement(BlocoFunil, { funil: instagram }));
-assert.match(htmlInstagram, /02\/07 a 31\/07/);
+assert.match(htmlInstagram, /16\/07 a 14\/08/);
 assert.match(htmlInstagram, /30 dias/);
 assert.match(htmlInstagram, /Novos seguidores/);
 assert.match(htmlInstagram, /Meta limita novos seguidores a no máximo 30 dias/);
