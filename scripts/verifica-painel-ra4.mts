@@ -14,6 +14,7 @@ import {
   estadoEditorialDaSugestao,
   resumoEditorialDaRevisao,
   secoesEditoriaisObrigatorias,
+  estadoEditorialDaSecao,
   type SugestaoEditorialPersistida,
 } from '../api/_painel-estado-editorial.ts';
 import * as autoridadeDeOrigem from '../src/painel/estadoEditorial.ts';
@@ -66,6 +67,11 @@ assert.equal(
   'a lista de seções obrigatórias não pode ter duas implementações',
 );
 assert.equal(
+  estadoEditorialDaSecao,
+  autoridadeDeOrigem.estadoEditorialDaSecao,
+  'a resolução de estado por seção não pode ter duas implementações',
+);
+assert.equal(
   estadoEditorialDaSugestao,
   autoridadeDeOrigem.estadoEditorialDaSugestao,
   'o mapeamento de estados não pode ter duas implementações',
@@ -99,6 +105,68 @@ const resumoPendente = resumoEditorialDaRevisao(karyneMontada202607, comSugestao
 assert.equal(resumoPendente.podeAprovar, false);
 assert.equal(resumoPendente.pendentes[0].secao, 'introducao');
 assert.equal(resumoPendente.pendentes[0].estado, 'sugerida');
+
+/* Achado 5 — gerar de novo não pode apagar a decisão humana anterior.
+   Cenário real: gera A, gera B, humano aplica A. B continua sendo a linha mais
+   nova e continua em `pronta`. A seção está resolvida e precisa contar como
+   resolvida. A ordem aqui é `gerado_em desc`, como vem do banco. */
+{
+  const secao = obrigatorias[1].secao;
+  const comSegundaGeracaoNaoRevista: SugestaoEditorialPersistida[] = [
+    { secao, estado: 'pronta', geradoEm: '2026-08-14T10:05:00Z' },
+    { secao, estado: 'aplicada', geradoEm: '2026-08-14T10:00:00Z' },
+  ];
+  assert.equal(
+    estadoEditorialDaSecao(comSegundaGeracaoNaoRevista),
+    'pronta',
+    'uma sugestão nova não revista não pode anular a que o humano aplicou',
+  );
+
+  const resumo = resumoEditorialDaRevisao(karyneMontada202607, [
+    ...todasProntas.filter((item) => item.secao !== secao),
+    ...comSegundaGeracaoNaoRevista,
+  ]);
+  assert.equal(resumo.podeAprovar, true, 'a aprovação não pode travar por causa de uma segunda geração');
+
+  /* Mas estado ilegível continua falhando fechado, inclusive por cima de uma
+     decisão válida: não dá para afirmar revisão completa sobre linha que não
+     sabemos ler. */
+  assert.equal(
+    estadoEditorialDaSecao([
+      { secao, estado: 'estado-que-ninguem-conhece' },
+      { secao, estado: 'aplicada' },
+    ]),
+    'falhou',
+  );
+}
+
+/* Achado 1 — "revisada sem análise" é decisão humana e conta como revisão.
+   Não é `desfeita`: desfazer continua devolvendo a seção para não iniciada. */
+{
+  const secao = obrigatorias[2].secao;
+  assert.equal(estadoEditorialDaSecao([], true), 'revisada_sem_analise');
+  assert.equal(estadoEditorialDaSecao([{ secao, estado: 'desfeita' }], false), 'nao_iniciada');
+  assert.equal(
+    estadoEditorialDaSecao([{ secao, estado: 'desfeita' }], true),
+    'revisada_sem_analise',
+    'dispensar depois de desfazer é uma decisão nova, não um resíduo',
+  );
+  assert.equal(
+    estadoEditorialDaSecao([{ secao, estado: 'pronta' }], true),
+    'revisada_sem_analise',
+    'a decisão de não publicar ganha de uma sugestão só gerada',
+  );
+
+  const semSugestaoNenhuma = todasProntas.filter((item) => item.secao !== secao);
+  assert.equal(
+    resumoEditorialDaRevisao(karyneMontada202607, semSugestaoNenhuma).podeAprovar,
+    false,
+    'seção sem decisão nenhuma continua bloqueando',
+  );
+  const comDispensa = resumoEditorialDaRevisao(karyneMontada202607, semSugestaoNenhuma, [secao]);
+  assert.equal(comDispensa.podeAprovar, true, 'dispensa registrada libera a aprovação');
+  assert.equal(comDispensa.secoes.find((item) => item.secao === secao)?.estado, 'revisada_sem_analise');
+}
 
 function relatorioDaTela(revisaoEditorial: typeof resumoPronto) {
   return {

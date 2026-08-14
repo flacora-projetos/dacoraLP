@@ -22,6 +22,7 @@ import {
 
 export {
   estadoEditorialDaSugestao,
+  estadoEditorialDaSecao,
   estadoEditorialEstaPronto,
   secoesEditoriaisObrigatorias,
   resumoEditorialDaRevisao,
