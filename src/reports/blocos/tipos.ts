@@ -400,6 +400,68 @@ export type AudioRelatorio =
     };
 
 /* ------------------------------------------------------------------ */
+/* Funil factual                                                       */
+/* ------------------------------------------------------------------ */
+
+export interface EtapaFunil {
+  id: string;
+  rotulo: string;
+  valor: number;
+}
+
+export interface TransicaoFunil {
+  id: string;
+  de: string;
+  para: string;
+  taxa: number | null;
+  perda: number | null;
+}
+
+export interface GargaloFunil {
+  /** Contrato do e-commerce. */
+  transicaoId?: string;
+  /** Contrato genérico de CRM/Instagram. */
+  id?: string;
+  de: string;
+  para: string;
+  taxa: number | null;
+  perda: number | null;
+}
+
+export interface DesfechoFunil {
+  id: string;
+  rotulo: string;
+  valor: number;
+  observacao?: string;
+}
+
+export interface JanelaFunil {
+  competencia?: string;
+  inicio: string;
+  fim: string;
+  dias?: number;
+  reduzida?: boolean;
+  limiteDaFonteDias?: number;
+}
+
+/**
+ * A página só apresenta este contrato. Taxas, gargalo, elegibilidade e janela
+ * já foram decididos pela fábrica; o portal não refaz a matemática.
+ */
+export interface FunilRelatorio {
+  id: string;
+  rotulo?: string;
+  fonte?: string;
+  etapas: EtapaFunil[];
+  transicoes: TransicaoFunil[];
+  gargalo: GargaloFunil | null;
+  regraDoGargalo?: string;
+  janela?: JanelaFunil;
+  desfechosAdicionais?: DesfechoFunil[];
+  observacao?: string;
+}
+
+/* ------------------------------------------------------------------ */
 /* A montagem                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -552,6 +614,16 @@ export interface BlocoB8 extends BlocoBase {
 }
 
 /**
+ * Funil factual compartilhado. Usa nome sem número porque B9–B11 já estão
+ * reservados no catálogo histórico da Sant'Alberti.
+ */
+export interface BlocoFunil extends BlocoBase {
+  bloco: 'FUNIL';
+  /** Id em `dados.funis`. */
+  funil: string;
+}
+
+/**
  * Leitura opcional do relatório. Não recebe número B9 porque B9–B11 já estão
  * reservados no catálogo para as seções da Sant'Alberti.
  */
@@ -570,6 +642,7 @@ export type BlocoConfigurado =
   | BlocoB6
   | BlocoB7
   | BlocoB8
+  | BlocoFunil
   | BlocoAudio;
 
 export type BlocoId = BlocoConfigurado['bloco'];
@@ -584,6 +657,11 @@ export interface DadosDeBloco {
   evolucoesMensais: Record<string, EvolucaoMensal>;
   rankingsCriativos: Record<string, RankingCriativos>;
   quebras: Record<string, QuebraPorDimensao>;
+  /**
+   * Funis calculados pela fábrica. Opcional para preservar snapshots gerados
+   * antes da RM5; montagem nova que pede FUNIL sempre aponta para esta coleção.
+   */
+  funis?: Record<string, FunilRelatorio>;
   /**
    * Séries diárias do B5. Ausente quando a montagem não tem nenhum — que é o
    * caso de três dos quatro relatórios montados.

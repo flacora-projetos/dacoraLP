@@ -391,6 +391,17 @@ export interface Leitura {
 export interface AnalysisContextV1 {
   versao: 'analysis_context_v1';
   competencia: string;
+  /** Campos acrescentados pela fábrica nas fases RM1–RM4. O portal não recalcula nenhum deles. */
+  tipoRelatorio?: TipoRelatorio | 'small_cap';
+  resumoDoMes?: {
+    familia: string;
+    kpisPrincipais: string[];
+    kpisMidia: string[];
+    faltantes: string[];
+  };
+  funilEcommerce?: Record<string, unknown>;
+  funilLeadsMensagens?: Record<string, unknown>;
+  funilInstagram?: Record<string, unknown>;
   fatos: Array<{
     id: string;
     plataforma: string;
