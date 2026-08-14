@@ -585,7 +585,55 @@
 }
 
 .dc-funil__desfecho p,
+.dc-funil__motivo,
 .dc-funil__observacao {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+}
+
+/* Ausência é declarada, não gritada: tem o tamanho do número que substitui,
+   mas sem o peso, para não competir com as etapas que foram medidas. */
+.dc-funil__valor--ausente {
+  font-size: clamp(1rem, 0.85rem + 0.5vw, 1.2rem);
+  font-weight: 500;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__motivo {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+}
+
+.dc-funil__taxa--ausente {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__ressalvas {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--dc-sinal) 6%, transparent);
+  border-radius: 10px;
+}
+
+.dc-funil__ressalvas-titulo {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dc-sinal);
+}
+
+.dc-funil__ressalvas ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.dc-funil__ressalvas li {
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--dc-cinza);

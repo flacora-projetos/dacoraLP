@@ -35,9 +35,18 @@ export default function BlocoFunil({ funil }: { funil: FunilRelatorio }) {
               <article className="dc-funil__etapa">
                 <span className="dc-funil__ordem">{String(indice + 1).padStart(2, '0')}</span>
                 <span className="dc-funil__rotulo">{etapa.rotulo}</span>
-                <strong className="dc-funil__valor dc-numero">
-                  {formatarNumero(etapa.valor, 'inteiro')}
-                </strong>
+                {etapa.valor == null ? (
+                  <>
+                    {/* Ausência declarada. Escrever 0 aqui seria afirmar que
+                        ninguém passou por esta etapa, que é coisa diferente. */}
+                    <strong className="dc-funil__valor dc-funil__valor--ausente">não medido</strong>
+                    {etapa.motivo && <p className="dc-funil__motivo">{etapa.motivo}</p>}
+                  </>
+                ) : (
+                  <strong className="dc-funil__valor dc-numero">
+                    {formatarNumero(etapa.valor, 'inteiro')}
+                  </strong>
+                )}
               </article>
 
               {transicao && (
@@ -47,9 +56,15 @@ export default function BlocoFunil({ funil }: { funil: FunilRelatorio }) {
                   aria-label={`${etapa.rotulo} para a próxima etapa`}
                 >
                   <span className="dc-funil__seta" aria-hidden="true">→</span>
-                  <span className="dc-funil__taxa">
-                    {transicao.taxa == null ? 'taxa não calculável' : formatarParticipacao(transicao.taxa)}
-                  </span>
+                  {transicao.taxa == null ? (
+                    /* O motivo ocupa o lugar do percentual. "Taxa não
+                       calculável", sozinho, não diz a ninguém o que fazer. */
+                    <span className="dc-funil__taxa dc-funil__taxa--ausente">
+                      {transicao.motivo ?? 'sem taxa para este período'}
+                    </span>
+                  ) : (
+                    <span className="dc-funil__taxa">{formatarParticipacao(transicao.taxa)}</span>
+                  )}
                   {ehGargalo && <span className="dc-funil__gargalo">Maior gargalo</span>}
                 </div>
               )}
@@ -69,6 +84,17 @@ export default function BlocoFunil({ funil }: { funil: FunilRelatorio }) {
               {item.observacao && <p>{item.observacao}</p>}
             </article>
           ))}
+        </div>
+      )}
+
+      {(funil.avisos?.length ?? 0) > 0 && (
+        <div className="dc-funil__ressalvas" role="note">
+          <p className="dc-funil__ressalvas-titulo">Sobre a medição deste funil</p>
+          <ul>
+            {funil.avisos?.map((aviso) => (
+              <li key={aviso.id}>{aviso.texto}</li>
+            ))}
+          </ul>
         </div>
       )}
 

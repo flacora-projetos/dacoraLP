@@ -406,7 +406,11 @@ export type AudioRelatorio =
 export interface EtapaFunil {
   id: string;
   rotulo: string;
-  valor: number;
+  /** `null` quando a fonte não devolveu a etapa. Nunca é convertido para zero. */
+  valor: number | null;
+  medida?: boolean;
+  /** Por que a etapa não foi medida. Só existe quando `medida` é falso. */
+  motivo?: string;
 }
 
 export interface TransicaoFunil {
@@ -415,6 +419,17 @@ export interface TransicaoFunil {
   para: string;
   taxa: number | null;
   perda: number | null;
+  /**
+   * Por que esta passagem não tem taxa: etapa não medida, base zerada, ou
+   * etapa que superou a anterior. A página imprime este texto no lugar do
+   * percentual — número acima de 100% nunca chega até aqui.
+   */
+  motivo?: string;
+}
+
+export interface AvisoFunil {
+  id: string;
+  texto: string;
 }
 
 export interface GargaloFunil {
@@ -466,6 +481,8 @@ export interface FunilRelatorio {
   janela?: JanelaFunil;
   desfechosAdicionais?: DesfechoFunil[];
   observacao?: string;
+  /** Ressalvas de medição. Aparecem para o cliente, por decisão do PO. */
+  avisos?: AvisoFunil[];
 }
 
 /* ------------------------------------------------------------------ */

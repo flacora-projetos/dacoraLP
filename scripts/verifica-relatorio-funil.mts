@@ -82,3 +82,42 @@ assert.match(htmlInstagram, /Novos seguidores/);
 assert.match(htmlInstagram, /Meta limita novos seguidores a no máximo 30 dias/);
 
 console.log('verifica-relatorio-funil: ok');
+
+/**
+ * RM6 — o funil não some por causa de um elo torto, e o número impossível
+ * nunca chega à tela. Decisão do PO em 2026-08-14, com o aviso visível ao
+ * cliente por escolha dele.
+ */
+const comRessalva: FunilRelatorio = {
+  id: 'funil_ecommerce',
+  rotulo: 'Leitura do funil',
+  etapas: [
+    { id: 'sessoes', rotulo: 'Sessões', valor: 1000, medida: true },
+    { id: 'carrinhos', rotulo: 'Carrinhos', valor: 120, medida: true },
+    { id: 'checkouts', rotulo: 'Checkouts', valor: null, medida: false, motivo: 'a fonte não devolveu esta etapa no período' },
+    { id: 'compras', rotulo: 'Compras', valor: 12, medida: true },
+  ],
+  transicoes: [
+    { id: 'sessoes_para_carrinhos', de: 'sessoes', para: 'carrinhos', taxa: 0.12, perda: 0.88 },
+    { id: 'carrinhos_para_checkouts', de: 'carrinhos', para: 'checkouts', taxa: null, perda: null, motivo: 'Checkouts não foi medida no período, então esta passagem não tem taxa' },
+    { id: 'checkouts_para_compras', de: 'checkouts', para: 'compras', taxa: null, perda: null, motivo: 'Checkouts não foi medida no período, então esta passagem não tem taxa' },
+  ],
+  gargalo: { id: 'sessoes_para_carrinhos', de: 'sessoes', para: 'carrinhos', taxa: 0.12, perda: 0.88 },
+  avisos: [{ id: 'carrinhos_para_checkouts_sem_medida', texto: 'Checkouts não foi medida no período, então esta passagem não tem taxa' }],
+};
+
+const htmlRessalva = renderToStaticMarkup(createElement(BlocoFunil, { funil: comRessalva }));
+assert.match(htmlRessalva, /Sobre a medição deste funil/);
+assert.match(htmlRessalva, /não medido/);
+assert.match(htmlRessalva, /Checkouts não foi medida/);
+// As etapas medidas continuam impressas, que é a razão de o bloco não sumir.
+assert.match(htmlRessalva, /1\.000/);
+assert.match(htmlRessalva, /12,0%/);
+// E o gargalo continua sendo apontado entre as passagens que têm taxa.
+assert.match(htmlRessalva, /Maior gargalo/);
+// Nenhuma porcentagem acima de 100% pode aparecer na página.
+for (const [, numero] of htmlRessalva.matchAll(/(\d+(?:,\d+)?)%/g)) {
+  assert.ok(Number(numero.replace(',', '.')) <= 100, `percentual acima de 100% na tela: ${numero}%`);
+}
+
+console.log('verifica-relatorio-funil: ok (com ressalva de medição)');
