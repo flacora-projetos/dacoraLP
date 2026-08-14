@@ -1,8 +1,15 @@
 import { formatarNumero, formatarParticipacao, formatarPeriodo } from '../format';
 import type { FunilRelatorio } from './tipos';
 
+/**
+ * `transicaoId` é o nome antigo, que só o funil de e-commerce usava. A fábrica
+ * unificou em `id`, mas snapshot gravado não muda: relatório persistido antes
+ * disso continua chegando com o nome antigo, e some da tela se a leitura o
+ * ignorar. Ler os dois não é indecisão de contrato — é o preço de documento
+ * imutável.
+ */
 function idDoGargalo(funil: FunilRelatorio): string | null {
-  return funil.gargalo?.transicaoId ?? funil.gargalo?.id ?? null;
+  return funil.gargalo?.id ?? funil.gargalo?.transicaoId ?? null;
 }
 
 export default function BlocoFunil({ funil }: { funil: FunilRelatorio }) {

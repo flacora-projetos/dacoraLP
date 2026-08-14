@@ -418,9 +418,14 @@ export interface TransicaoFunil {
 }
 
 export interface GargaloFunil {
-  /** Contrato do e-commerce. */
+  /**
+   * Nome HISTÓRICO, só do e-commerce, aposentado na fábrica em 2026-08-14
+   * quando os dois construtores de funil passaram a ser um só. Continua aqui
+   * porque snapshot gravado é imutável: os relatórios já persistidos com este
+   * campo têm que seguir abrindo.
+   */
   transicaoId?: string;
-  /** Contrato genérico de CRM/Instagram. */
+  /** Nome corrente, usado por todo funil gerado a partir de 2026-08-14. */
   id?: string;
   de: string;
   para: string;
