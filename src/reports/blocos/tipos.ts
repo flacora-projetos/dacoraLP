@@ -90,6 +90,18 @@ export type DimensaoEntidade =
   | 'palavra_chave'
   | 'termo_de_pesquisa'
   | 'produto'
+  /**
+   * Peça criativa de um grupo de recursos do Performance Max — título, imagem,
+   * vídeo, botão. Entrou em 2026-08-14, quando a fábrica passou a montar a
+   * seção.
+   *
+   * ⚠️ É a única dimensão cuja tabela **não tem total somado**, e não é
+   * descuido: o Google combina várias peças no mesmo anúncio e atribui a mesma
+   * conversão a cada uma delas. A fábrica manda cada célula do total como
+   * `nao_aplicavel` com o motivo — o bloco não precisa saber disso, mas quem
+   * for mexer aqui precisa.
+   */
+  | 'criativo_pmax'
   | 'canal_ga4';
 
 export interface ColunaTabela {
