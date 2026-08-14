@@ -10,6 +10,7 @@ import DecisaoDaRevisao, {
 } from './DecisaoDaRevisao';
 import EnvioDaRevisao, { type ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 import { useLinkDeVoltaParaFila } from './linkDeVolta';
+import type { ResumoEditorialRA4 } from './estadoEditorial';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -55,6 +56,7 @@ export interface RelatorioDaRevisao {
     estado: EstadoDaNotificacaoInterna;
     destinoReferencia: string;
   } | null;
+  revisaoEditorial?: ResumoEditorialRA4;
 }
 
 function ListaDeSinais({ sinais }: { sinais: SinalDaRevisao[] }) {
@@ -149,6 +151,7 @@ function FaixaDeRevisao({
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
 }) {
   const competencia = formatarCompetencia(relatorio.competencia);
+  const linkDeVolta = useLinkDeVoltaParaFila();
   const podeOferecerDecisao = Boolean(aoDecidir && relatorio.checksum);
   const podeMontarEnvio = Boolean(
     relatorio.checksum &&
@@ -195,6 +198,7 @@ function FaixaDeRevisao({
             recusaMotivo: relatorio.recusaMotivo ?? null,
             correcao: relatorio.correcao ?? null,
             notificacaoInterna: relatorio.notificacaoInterna ?? null,
+            revisaoEditorial: relatorio.revisaoEditorial,
           }}
           quem={quem ?? 'você'}
           aoDecidir={aoDecidir as (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>}
@@ -206,6 +210,7 @@ function FaixaDeRevisao({
         <EnvioDaRevisao
           aoCarregar={aoCarregarEnvio as () => Promise<ResultadoDoEnvioP5>}
           aoSolicitar={aoSolicitarEnvio as () => Promise<ResultadoDoEnvioP5>}
+          linkDeVolta={linkDeVolta}
         />
       )}
     </aside>

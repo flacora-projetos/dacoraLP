@@ -697,6 +697,19 @@
   display: none;
 }
 
+.dcp-estado-acoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+.dcp-estado-acoes .dcp-botao {
+  min-height: 32px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.74rem;
+}
+
 .dcp-tabela__sem-sinal {
   color: var(--dc-cinza);
   font-size: 0.8rem;
@@ -1039,6 +1052,21 @@
   display: grid;
   gap: 0.6rem;
 }
+
+.dcp-estado-editorial {
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--dc-filete);
+  border-bottom: 1px solid var(--dc-filete);
+  color: var(--dc-cinza);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.dcp-estado-editorial strong { display: block; color: var(--dc-tinta); font-size: 0.8rem; }
+.dcp-estado-editorial p { margin: 0.25rem 0 0; }
+.dcp-estado-editorial ul { margin: 0.4rem 0 0; padding-left: 1.05rem; }
+.dcp-estado-editorial li + li { margin-top: 0.15rem; }
+.dcp-estado-editorial--pronto { border-bottom-color: var(--dc-verde-medio); }
+.dcp-estado-editorial--atencao { border-bottom-color: var(--dc-sinal); }
 
 /*
  * O eco: o texto literal do que vai ser gravado.

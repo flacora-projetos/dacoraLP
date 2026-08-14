@@ -374,7 +374,7 @@ try {
     return { ok: true as const, estado: (montado as any).estado };
   };
 
-  flushSync(() => raiz.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar })));
+  flushSync(() => raiz.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar, linkDeVolta: '/painel-de-relatorios?competencia=2026-07' })));
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.ok(elemento.querySelector('[role="dialog"]'));
   assert.ok(
@@ -399,16 +399,16 @@ try {
     }
   }
 
-  clicar(botao('Agora não'));
-  assert.equal(solicitacoes, 0, 'Agora não não chama RPC');
-  assert.equal(elemento.querySelector('[role="dialog"]'), null);
-  assert.match(elemento.textContent ?? '', /Reabra a revisão/);
+  const voltar = elemento.querySelector('a[href="/painel-de-relatorios?competencia=2026-07"]') as HTMLAnchorElement | null;
+  assert.ok(voltar, 'faltou a opção Voltar para a fila');
+  assert.equal(voltar?.textContent?.trim(), 'Voltar para a fila');
+  assert.equal(solicitacoes, 0, 'Voltar para a fila não chama RPC de envio');
 
   flushSync(() => raiz.unmount());
   const raizDois = createRoot(elemento);
-  flushSync(() => raizDois.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar })));
+  flushSync(() => raizDois.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar, linkDeVolta: '/painel-de-relatorios?competencia=2026-07' })));
   await new Promise((resolve) => setTimeout(resolve, 0));
-  const enviar = botao('Enviar');
+  const enviar = botao('Enviar agora');
   clicar(enviar);
   clicar(enviar);
   await aguardarTexto(/Envio solicitado/);
@@ -429,6 +429,6 @@ try {
 }
 
 console.log(
-  'OK — P5B: destino canônico antes da ação, Agora não sem RPC, sessão como solicitante, ' +
+  'OK — P5B: destino canônico antes da ação, Voltar para a fila sem RPC, sessão como solicitante, ' +
   'retry idempotente, estados duráveis e enviado somente com recibo confirmado',
 );

@@ -50,6 +50,7 @@ export interface LinhaDoBanco {
   versao: number;
   estado: string;
   gerado_em: string | null;
+  checksum?: string | null;
   aprovado_por: string | null;
   aprovado_em: string | null;
   /**
@@ -149,6 +150,7 @@ export interface ItemDaFila {
   versao: number;
   estado: EstadoNaTela;
   geradoEm: string | null;
+  checksum: string | null;
   aprovadoPor: string | null;
   aprovadoEm: string | null;
   recusadoPor: string | null;
@@ -490,6 +492,7 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
     versao: linha.versao,
     estado,
     geradoEm: linha.gerado_em,
+    checksum: linha.checksum ?? null,
     aprovadoPor: linha.aprovado_por,
     aprovadoEm: linha.aprovado_em,
     recusadoPor: linha.recusado_por ?? null,

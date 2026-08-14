@@ -37,6 +37,7 @@ import {
   traduzirRecusaDoBanco,
   type LinhaDecidida,
 } from './_painel-decisao-regras.js';
+import { conferirEstadoEditorial } from './_painel-estado-editorial.js';
 
 /** O mínimo para montar o eco e registrar a auditoria. `token` fica de fora. */
 const COLUNAS_DA_LEITURA = [
@@ -68,6 +69,51 @@ interface LinhaLida extends LinhaDecidida {
   cliente_slug: string;
   competencia: string;
   versao: number;
+}
+
+interface LinhaParaEstadoEditorial {
+  id: string;
+  checksum: string;
+  estado: string;
+  substituido_por: string | null;
+  revogado_em: string | null;
+  conteudo: any;
+}
+
+async function conferirProntidaoEditorialParaAprovacao(
+  pedido: { id: string; checksumVisto: string },
+  config: { urlSupabase: string; chaveDeServico: string },
+) {
+  const resposta = await fetch(
+    `${config.urlSupabase}/rest/v1/relatorios?id=eq.${pedido.id}&select=id,checksum,estado,substituido_por,revogado_em,conteudo&limit=1`,
+    { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } },
+  );
+  if (!resposta.ok) throw new Error(`leitura_pre_aprovacao_http_${resposta.status}`);
+  const [linha] = (await resposta.json()) as LinhaParaEstadoEditorial[];
+  if (!linha) return { ok: false as const, status: 404, erro: 'relatorio_nao_encontrado', mensagem: 'Este relatório não está mais disponível. Volte para a fila.' };
+  if (linha.checksum !== pedido.checksumVisto) return { ok: false as const, status: 409, erro: 'checksum_divergente', mensagem: 'Este relatório mudou desde que você o abriu. Recarregue a revisão antes de aprovar.' };
+  if (linha.estado !== 'gerado' || linha.substituido_por || linha.revogado_em) return { ok: false as const, status: 409, erro: 'versao_fora_de_revisao', mensagem: 'Esta versão não está mais aberta para revisão.' };
+  if (!linha.conteudo || typeof linha.conteudo !== 'object' || !Array.isArray(linha.conteudo.montagem)) {
+    return { ok: false as const, status: 422, erro: 'conteudo_incompleto', mensagem: 'O conteúdo desta versão está incompleto e não pode ser aprovado.' };
+  }
+  const resumo = await conferirEstadoEditorial(
+    linha.id,
+    linha.checksum,
+    linha.conteudo,
+    config,
+  );
+  if (!resumo.podeAprovar) {
+    const titulos = resumo.pendentes.slice(0, 4).map((secao) => secao.titulo);
+    const complemento = resumo.pendentes.length > 4 ? ` e mais ${resumo.pendentes.length - 4}` : '';
+    return {
+      ok: false as const,
+      status: 409,
+      erro: 'analises_pendentes',
+      mensagem: `Ainda há ${resumo.pendentes.length} análise(s) obrigatória(s) para revisar: ${titulos.join(', ')}${complemento}. Revise ou aplique essas análises antes da aprovação.`,
+      resumo,
+    };
+  }
+  return { ok: true as const, resumo };
 }
 
 function corpoDoPedido(req: Request): unknown {
@@ -124,6 +170,21 @@ export default async function handler(req: Request, res: Response) {
   const quem = acesso.email;
 
   try {
+    if (pedido.decisao === 'aprovar') {
+      const prontidao = await conferirProntidaoEditorialParaAprovacao(pedido, {
+        urlSupabase,
+        chaveDeServico,
+      });
+      if (prontidao.ok === false) {
+        return res.status(prontidao.status).json({
+          erro: prontidao.erro,
+          mensagem: prontidao.mensagem,
+          gravado: false,
+          revisaoEditorial: 'resumo' in prontidao ? prontidao.resumo : undefined,
+        });
+      }
+    }
+
     /* 1. A decisão, numa transação do banco. ------------------------------- */
     const respostaDecisao = await fetch(`${urlSupabase}/rest/v1/rpc/decidir_relatorio`, {
       method: 'POST',

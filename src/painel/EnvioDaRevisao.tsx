@@ -82,13 +82,13 @@ function DialogoDeEnvio({
   solicitando,
   erro,
   aoEnviar,
-  aoAdiar,
+  linkDeVolta,
 }: {
   estado: EstadoSeguroDoEnvioP5;
   solicitando: boolean;
   erro: string | null;
   aoEnviar: () => void;
-  aoAdiar: () => void;
+  linkDeVolta: string;
 }) {
   const id = useId();
   const caixa = useRef<HTMLDivElement | null>(null);
@@ -98,13 +98,9 @@ function DialogoDeEnvio({
 
   useEffect(() => {
     function aoTeclar(evento: KeyboardEvent) {
-      if (evento.key === 'Escape' && !solicitando) {
-        evento.preventDefault();
-        aoAdiar();
-        return;
-      }
+      if (evento.key === 'Escape' && !solicitando) return;
       if (evento.key !== 'Tab' || !caixa.current) return;
-      const focaveis = caixa.current.querySelectorAll<HTMLElement>('button:not([disabled])');
+      const focaveis = caixa.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]:not([aria-disabled="true"])');
       if (focaveis.length === 0) return;
       const primeiro = focaveis[0];
       const ultimo = focaveis[focaveis.length - 1];
@@ -118,7 +114,7 @@ function DialogoDeEnvio({
     }
     document.addEventListener('keydown', aoTeclar);
     return () => document.removeEventListener('keydown', aoTeclar);
-  }, [aoAdiar, solicitando]);
+  }, [solicitando]);
 
   return (
     <PortalDoDialogo>
@@ -153,16 +149,17 @@ function DialogoDeEnvio({
               disabled={solicitando}
               aria-label={`Enviar o relatório de ${estado.clienteNome} para ${estado.destinatarioNome}`}
             >
-              {solicitando ? 'Solicitando…' : 'Enviar'}
+              {solicitando ? 'Solicitando…' : 'Enviar agora'}
             </button>
-            <button
-              type="button"
+            <a
               className="dcp-botao dcp-botao--discreto"
-              onClick={aoAdiar}
-              disabled={solicitando}
+              href={linkDeVolta}
+              aria-disabled={solicitando ? 'true' : undefined}
+              tabIndex={solicitando ? -1 : undefined}
+              onClick={(evento) => { if (solicitando) evento.preventDefault(); }}
             >
-              Agora não
-            </button>
+              Voltar para a fila
+            </a>
           </div>
         </div>
       </div>
@@ -173,15 +170,16 @@ function DialogoDeEnvio({
 export default function EnvioDaRevisao({
   aoCarregar,
   aoSolicitar,
+  linkDeVolta,
 }: {
   aoCarregar: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitar: () => Promise<ResultadoDoEnvioP5>;
+  linkDeVolta: string;
 }) {
   const [estado, setEstado] = useState<EstadoSeguroDoEnvioP5 | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [dialogoAberto, setDialogoAberto] = useState(false);
-  const [adiado, setAdiado] = useState(false);
   const [solicitando, setSolicitando] = useState(false);
   const solicitacaoEmCurso = useRef(false);
 
@@ -235,9 +233,7 @@ export default function EnvioDaRevisao({
     <div className="dcp-envio">
       <p className="dcp-envio__rotulo">Envio ao cliente</p>
       <p className="dcp-envio__estado" role={estado.envio?.estado === 'incerto' ? 'alert' : 'status'}>
-        {adiado
-          ? 'Envio adiado. Reabra a revisão quando quiser solicitar.'
-          : textoDoEstadoDoEnvio(estado)}
+        {textoDoEstadoDoEnvio(estado)}
       </p>
       {dialogoAberto && estado.destinatarioNome && (
         <DialogoDeEnvio
@@ -245,11 +241,7 @@ export default function EnvioDaRevisao({
           solicitando={solicitando}
           erro={erro}
           aoEnviar={() => void solicitar()}
-          aoAdiar={() => {
-            setDialogoAberto(false);
-            setAdiado(true);
-            setErro(null);
-          }}
+          linkDeVolta={linkDeVolta}
         />
       )}
     </div>

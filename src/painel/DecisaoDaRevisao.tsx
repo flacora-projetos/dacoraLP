@@ -23,6 +23,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatarCompetencia } from '../reports/format';
 import PortalDoDialogo from './PortalDoDialogo';
+import type { EstadoEditorialRA4, ResumoEditorialRA4 } from './estadoEditorial';
 
 /** A mesma régua do servidor e do banco. Ver `api/_painel-decisao-regras.ts`. */
 export const MINIMO_DO_MOTIVO = 10;
@@ -73,6 +74,7 @@ export interface RelatorioDecidivel {
     estado: EstadoDaNotificacaoInterna;
     destinoReferencia: string;
   } | null;
+  revisaoEditorial?: ResumoEditorialRA4;
 }
 
 /* ------------------------------------------------------------------ */
@@ -83,6 +85,46 @@ function diaEMes(iso: string | null): string {
   if (!iso) return '';
   const [, mes, dia] = iso.slice(0, 10).split('-');
   return dia && mes ? `${dia}/${mes}` : '';
+}
+
+const ROTULOS_ESTADO_EDITORIAL: Record<EstadoEditorialRA4, string> = {
+  nao_iniciada: 'não iniciada',
+  sugerida: 'sugestão aguardando revisão',
+  editada: 'editada',
+  pronta: 'pronta',
+  inconclusiva: 'inconclusiva revisada',
+  falhou: 'falhou',
+};
+
+function EstadoEditorialDaAprovacao({ resumo }: { resumo?: ResumoEditorialRA4 }) {
+  if (!resumo?.disponivel) {
+    return (
+      <div className="dcp-estado-editorial dcp-estado-editorial--atencao" role="status">
+        <strong>Análises para aprovação</strong>
+        <p>{resumo?.mensagem ?? 'O estado das análises ainda não foi conferido. Recarregue a revisão antes de aprovar.'}</p>
+      </div>
+    );
+  }
+  if (resumo.podeAprovar) {
+    return (
+      <div className="dcp-estado-editorial dcp-estado-editorial--pronto" role="status">
+        <strong>Análises prontas</strong>
+        <p>{resumo.prontas}/{resumo.totalObrigatorias} análises obrigatórias foram revisadas.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="dcp-estado-editorial dcp-estado-editorial--atencao" role="status">
+      <strong>Análises para aprovação · {resumo.prontas}/{resumo.totalObrigatorias} prontas</strong>
+      <ul>
+        {resumo.pendentes.slice(0, 4).map((secao) => (
+          <li key={secao.secao}>{secao.titulo}: {ROTULOS_ESTADO_EDITORIAL[secao.estado]}</li>
+        ))}
+      </ul>
+      {resumo.pendentes.length > 4 && <p>Há mais {resumo.pendentes.length - 4} seção(ões) pendente(s).</p>}
+      <p>Revise ou aplique as análises pendentes antes de aprovar. A recusa continua disponível.</p>
+    </div>
+  );
 }
 
 export function textoDaNotificacaoInterna(estado: EstadoDaNotificacaoInterna): string {
@@ -321,6 +363,7 @@ export default function DecisaoDaRevisao({
 
   const jaDecidido = textoDoJaDecidido(relatorio);
   const rotuloDoObjeto = `${relatorio.clienteNome}, ${formatarCompetencia(relatorio.competencia)}`;
+  const podeAprovarEditorialmente = relatorio.revisaoEditorial?.podeAprovar === true;
 
   function fecharDialogo() {
     setConfirmando(null);
@@ -376,6 +419,8 @@ export default function DecisaoDaRevisao({
         </p>
       )}
 
+      <EstadoEditorialDaAprovacao resumo={relatorio.revisaoEditorial} />
+
       {confirmando === 'aprovar' ? (
         <div className="dcp-decisao__confirmacao">
           <p className="dcp-decisao__eco">{ecoDaDecisao(relatorio, 'aprovar', quem, '')}</p>
@@ -412,6 +457,8 @@ export default function DecisaoDaRevisao({
               setResultado(null);
               setConfirmando('aprovar');
             }}
+            disabled={!podeAprovarEditorialmente}
+            aria-describedby={idBloqueio}
             aria-label={`Aprovar o relatório de ${rotuloDoObjeto}`}
           >
             Aprovar relatório

@@ -1,10 +1,10 @@
 /**
- * A fila do mês — a tela principal do painel (fase P1).
+ * A fila do mês — a tela principal do painel (fase P1, com ações pós-aprovação RA4).
  *
- * **Só leitura.** Não existe aqui nenhum botão de aprovar, recusar ou enviar, e
- * a ausência é a decisão, não um esquecimento: aprovar sem o relatório na tela
- * é exatamente o que este painel existe para impedir, e um botão na lista
- * convida a isso. A aprovação acontece na tela de revisão, na P2/P3.
+ * Aprovar e recusar continuam fora da fila: exigem o relatório aberto. Depois
+ * do GO, porém, a fila pode oferecer somente duas ações pós-aprovação seguras:
+ * voltar para edição (enquanto não houver intenção de envio) e solicitar envio
+ * pelo contrato P5. O servidor continua sendo a autoridade final das duas.
  *
  * O que a fila entrega é **triagem**: qual destes relatórios eu preciso olhar
  * com cuidado, e qual eu despacho em trinta segundos. Por isso a ordem não é
@@ -72,6 +72,7 @@ interface ItemDaFila {
   versao: number;
   estado: EstadoNaTela;
   geradoEm: string | null;
+  checksum: string | null;
   aprovadoPor: string | null;
   aprovadoEm: string | null;
   recusadoPor?: string | null;
@@ -95,6 +96,10 @@ interface ItemDaFila {
   investimentoPorPlataforma: NumeroDaFila[];
   resultados: NumeroDaFila[];
   sinais: Sinal[];
+  podeVoltarEdicao?: boolean;
+  podeSolicitarEnvio?: boolean;
+  destinatarioNome?: string | null;
+  envioEstado?: string | null;
 }
 
 interface RespostaFila {
@@ -389,15 +394,45 @@ function linkParaAbrirRelatorio(item: ItemDaFila, buscaAtual: URLSearchParams): 
   return `?${preservados.toString()}`;
 }
 
+function AcoesDoEstadoAprovado({
+  item,
+  aoVoltarEdicao,
+  aoEnviar,
+}: {
+  item: ItemDaFila;
+  aoVoltarEdicao?: (item: ItemDaFila) => void;
+  aoEnviar?: (item: ItemDaFila) => void;
+}) {
+  if (!item.podeVoltarEdicao && !item.podeSolicitarEnvio) return null;
+  return (
+    <span className="dcp-estado-acoes" aria-label={`Ações do relatório aprovado de ${item.clienteNome}`}>
+      {item.podeVoltarEdicao && aoVoltarEdicao && (
+        <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => aoVoltarEdicao(item)}>
+          Voltar para edição
+        </button>
+      )}
+      {item.podeSolicitarEnvio && aoEnviar && (
+        <button type="button" className="dcp-botao dcp-botao--primario" onClick={() => aoEnviar(item)}>
+          Enviar
+        </button>
+      )}
+    </span>
+  );
+}
+
 function TabelaDeRelatorios({
   titulo,
   itens,
   competencia,
+  aoVoltarEdicao,
+  aoEnviar,
 }: {
   key?: string;
   titulo: string;
   itens: ItemDaFila[];
   competencia: string;
+  aoVoltarEdicao?: (item: ItemDaFila) => void;
+  aoEnviar?: (item: ItemDaFila) => void;
 }) {
   const [buscaAtual] = useSearchParams();
   const idTitulo = `grupo-${titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\W+/g, '-').toLowerCase()}`;
@@ -441,6 +476,7 @@ function TabelaDeRelatorios({
                       <span className="dcp-estado__forma" aria-hidden="true" />
                       {textoDoEstado(item)}
                     </span>
+                    <AcoesDoEstadoAprovado item={item} aoVoltarEdicao={aoVoltarEdicao} aoEnviar={aoEnviar} />
                     <span className="dcp-tabela__movel-numeros">
                       {textoDoInvestimento(item)} · {textoDoResultado(item)}
                     </span>
@@ -451,6 +487,7 @@ function TabelaDeRelatorios({
                     <span className="dcp-estado__forma" aria-hidden="true" />
                     {textoDoEstado(item)}
                   </span>
+                  <AcoesDoEstadoAprovado item={item} aoVoltarEdicao={aoVoltarEdicao} aoEnviar={aoEnviar} />
                 </td>
                 <td className="dcp-tabela__numero dcp-tabela__secundaria" title={detalheDoInvestimento(item)}>
                   {textoDoInvestimento(item)}
@@ -525,8 +562,16 @@ function EsqueletoDaFila() {
  * escreve o código não tem e não deve ter. Com a apresentação exportada, a
  * regressão renderiza a tabela com relatórios de mentira e confere o que saiu.
  */
-export function FilaApresentada({ dados }: { dados: RespostaFila }) {
-  return <CorpoDaFila dados={dados} />;
+export function FilaApresentada({
+  dados,
+  aoVoltarEdicao,
+  aoEnviar,
+}: {
+  dados: RespostaFila;
+  aoVoltarEdicao?: (item: ItemDaFila) => void;
+  aoEnviar?: (item: ItemDaFila) => void;
+}) {
+  return <CorpoDaFila dados={dados} aoVoltarEdicao={aoVoltarEdicao} aoEnviar={aoEnviar} />;
 }
 
 export default function Fila() {
@@ -605,6 +650,40 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
     void buscar(competenciaPedida);
   }, [buscar, competenciaPedida]);
 
+  async function voltarParaEdicao(item: ItemDaFila) {
+    const sessaoAtual = sessaoAtualRef.current;
+    if (!sessaoAtual || !item.checksum) return;
+    if (!window.confirm(`Remover a aprovação de ${item.clienteNome} e voltar este relatório para edição?`)) return;
+    const resposta = await fetch('/api/painel-reabrir-edicao', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, checksum: item.checksum }),
+    });
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok || corpo?.reaberto !== true) {
+      window.alert(String(corpo?.mensagem ?? 'Não foi possível voltar este relatório para edição.'));
+      return;
+    }
+    await buscar(competenciaPedida);
+  }
+
+  async function enviarDaFila(item: ItemDaFila) {
+    const sessaoAtual = sessaoAtualRef.current;
+    if (!sessaoAtual || !item.checksum || !item.destinatarioNome) return;
+    if (!window.confirm(`Enviar agora o relatório de ${item.clienteNome} para ${item.destinatarioNome}?`)) return;
+    const resposta = await fetch('/api/painel-envio', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, checksum: item.checksum }),
+    });
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok || corpo?.solicitado !== true) {
+      window.alert(String(corpo?.mensagem ?? 'Não foi possível solicitar o envio.'));
+      return;
+    }
+    await buscar(competenciaPedida);
+  }
+
   if (carregando) {
     return (
       <section className="dcp-fila">
@@ -644,13 +723,25 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
     );
   }
 
-  return <CorpoDaFila dados={dados ?? { competencia: null, competencias: [], itens: [] }} />;
+  return <CorpoDaFila
+    dados={dados ?? { competencia: null, competencias: [], itens: [] }}
+    aoVoltarEdicao={(item) => void voltarParaEdicao(item)}
+    aoEnviar={(item) => void enviarDaFila(item)}
+  />;
 }
 
 /** As dimensões de filtro, na mesma ordem em que aparecem como parâmetro de URL. */
 const CAMPOS_DE_FILTRO: CampoDeFiltro[] = ['carteira', 'produto', 'formato', 'estado', 'sinal'];
 
-function CorpoDaFila({ dados }: { dados: RespostaFila }) {
+function CorpoDaFila({
+  dados,
+  aoVoltarEdicao,
+  aoEnviar,
+}: {
+  dados: RespostaFila;
+  aoVoltarEdicao?: (item: ItemDaFila) => void;
+  aoEnviar?: (item: ItemDaFila) => void;
+}) {
   const competencias = dados?.competencias ?? [];
   const competencia = dados?.competencia ?? null;
   const itens = dados?.itens ?? [];
@@ -875,6 +966,8 @@ function CorpoDaFila({ dados }: { dados: RespostaFila }) {
                   titulo={grupo.titulo}
                   itens={grupo.itens}
                   competencia={competencia}
+                  aoVoltarEdicao={aoVoltarEdicao}
+                  aoEnviar={aoEnviar}
                 />
               ))}
             </div>
@@ -883,8 +976,7 @@ function CorpoDaFila({ dados }: { dados: RespostaFila }) {
       )}
 
       <p className="dcp-fila__rodape">
-        Esta tela é só leitura. Aprovar e recusar acontecem na tela de revisão, com o relatório
-        aberto — não existe caminho para aprovar sem ver o que vai para o cliente.
+        Aprovar e recusar continuam acontecendo com o relatório aberto. Depois da aprovação, a fila permite enviar ou voltar para edição enquanto nenhuma intenção de envio tiver sido criada.
       </p>
     </section>
   );

@@ -464,7 +464,9 @@ function dublarSupabase(usuario: unknown | null, linhasDoBanco: any[] = []) {
     chamadasAoBanco.push({ url, cabecalhos: opcoes?.headers ?? {} });
     const corpo = url.includes('select=competencia&')
       ? linhasDoBanco.map((l) => ({ competencia: l.competencia }))
-      : linhasDoBanco;
+      : url.includes('/rest/v1/relatorio_p5_portal?')
+        ? []
+        : linhasDoBanco;
     return new Response(JSON.stringify(corpo), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -578,7 +580,8 @@ const tresVersoesDoMesmoRelatorio = [
   assert.equal(r.status, 200);
   assert.equal(r.corpo.itens.length, 1);
   assert.equal(r.corpo.itens[0].versao, 3);
-  assert.match(chamadasAoBanco.at(-1)?.url ?? '', /order=cliente_slug\.asc,versao\.desc/);
+  const leituraPrincipal = chamadasAoBanco.find((chamada) => chamada.url.includes('/rest/v1/painel_relatorios_com_correcao?'));
+  assert.match(leituraPrincipal?.url ?? '', /order=cliente_slug\.asc,versao\.desc/);
 }
 
 /* Banco vazio: resposta honesta, não erro. ----------------------------- */
@@ -873,7 +876,45 @@ function desenhar(dados: any): string {
   );
 }
 
+/* ================================================================== */
+/* 7. AÇÕES PÓS-APROVAÇÃO FICAM NO PRÓPRIO ESTADO (RA4)              */
+/* ================================================================== */
+{
+  const linhaAprovada = linha({
+    slug: 'aprovado-com-acoes',
+    nome: 'Cliente Aprovado',
+    estado: 'liberado',
+    faixas: [faixa({ plataforma: 'meta', investimento: 10, resultado: 1 })],
+  });
+  linhaAprovada.aprovado_por = 'flavio@dacora.com.br';
+  linhaAprovada.aprovado_em = '2026-08-14T08:00:00Z';
+  const [base] = montarFila([linhaAprovada]);
+  const item = {
+    ...base,
+    checksum: 'abc123',
+    podeVoltarEdicao: true,
+    podeSolicitarEnvio: true,
+    destinatarioNome: 'Cliente Aprovado',
+  };
+  const html = renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      null,
+      createElement(FilaApresentada, {
+        dados: { competencia: '2026-07', competencias: ['2026-07'], itens: [item] },
+        aoVoltarEdicao: () => undefined,
+        aoEnviar: () => undefined,
+      }),
+    ),
+  );
+  const celulaEstado = /<td class="dcp-tabela__secundaria">([\s\S]*?)<\/td>/.exec(html)?.[1] ?? '';
+  assert.match(celulaEstado, /aprovado por flavio/i);
+  assert.match(celulaEstado, /Voltar para edição/);
+  assert.match(celulaEstado, />Enviar</);
+  assert.doesNotMatch(html, /<th scope="col">Ações<\/th>/, 'a fila não cria uma coluna extra só para essas ações');
+}
+
 console.log(
-  'OK — fila do painel: números, sinais, ordem, o endpoint nos caminhos de recusa, a tabela desenhada, ' +
-    'e o link de abrir relatório preservando competência/aba/filtros (2026-08-12)',
+  'OK — fila do painel: números, sinais, ordem, contratos de recusa, ações pós-aprovação no estado, ' +
+    'e links preservando competência/aba/filtros',
 );

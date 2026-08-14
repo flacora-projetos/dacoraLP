@@ -42,6 +42,7 @@ const COLUNAS = [
   'versao',
   'estado',
   'gerado_em',
+  'checksum',
   'aprovado_por',
   'aprovado_em',
   // As três colunas do "não", criadas pela migração da P3. Sem elas a fila
@@ -154,6 +155,42 @@ export default async function handler(req: Request, res: Response) {
     }
 
     const linhas = (await respostaLinhas.json()) as LinhaDoBanco[];
+    let acoesPorRelatorio = new Map<string, {
+      destinatarioNome: string | null;
+      podeSolicitarEnvio: boolean;
+      envioId: string | null;
+      envioEstado: string | null;
+    }>();
+    try {
+      const respostaAcoes = await fetch(
+        `${urlSupabase}/rest/v1/relatorio_p5_portal?competencia=eq.${competencia}&select=relatorio_id,destinatario_nome,pode_solicitar_envio,envio_id,envio_estado`,
+        { headers: cabecalhos },
+      );
+      if (respostaAcoes.ok) {
+        const linhasAcoes = await respostaAcoes.json() as Array<any>;
+        acoesPorRelatorio = new Map(linhasAcoes.map((linha) => [linha.relatorio_id, {
+          destinatarioNome: linha.destinatario_nome ?? null,
+          podeSolicitarEnvio: linha.pode_solicitar_envio === true,
+          envioId: linha.envio_id ?? null,
+          envioEstado: linha.envio_estado ?? null,
+        }]));
+      } else {
+        console.warn(`[painel-fila] Estado P5 indisponível para ações: HTTP ${respostaAcoes.status}.`);
+      }
+    } catch (erroAcoes) {
+      console.warn('[painel-fila] Estado P5 indisponível para ações:', erroAcoes instanceof Error ? erroAcoes.message : erroAcoes);
+    }
+    const itensDaFila = montarFila(linhas).map((item) => {
+      const acao = acoesPorRelatorio.get(item.id);
+      const liberadoSemEnvio = item.estado === 'liberado' && !item.enviadoEm && Boolean(acao) && !acao?.envioId;
+      return {
+        ...item,
+        podeVoltarEdicao: liberadoSemEnvio,
+        podeSolicitarEnvio: acao?.podeSolicitarEnvio === true,
+        destinatarioNome: acao?.destinatarioNome ?? null,
+        envioEstado: acao?.envioEstado ?? null,
+      };
+    });
 
     /* A visão geral sai da MESMA leitura, de propósito.
      *
@@ -169,7 +206,7 @@ export default async function handler(req: Request, res: Response) {
     return res.status(200).json({
       competencia,
       competencias,
-      itens: montarFila(linhas),
+      itens: itensDaFila,
       visaoGeral: montarVisaoGeral(linhas, competencia, new Date().toISOString()),
     });
   } catch (err) {

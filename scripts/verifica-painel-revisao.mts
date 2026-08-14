@@ -571,8 +571,11 @@ const autorizada = {
   assert.equal(resposta.status, 200);
   assert.equal(resposta.corpo.relatorio.conteudoCarregado, true);
   assert.equal(resposta.corpo.relatorio.clienteNome, 'Cliente Exemplo');
-  assert.equal(chamadasAoBanco.length, 1);
-  assert.ok(!chamadasAoBanco[0].includes('token'), 'a credencial pública não pode ser consultada na P2');
+  assert.equal(chamadasAoBanco.length, 2, 'a revisão lê o relatório e o estado editorial privado');
+  assert.ok(chamadasAoBanco.some((url) => url.includes('/relatorio_analise_sugestoes?')), 'a RA4 precisa carregar a prontidão editorial');
+  assert.ok(chamadasAoBanco.every((url) => !url.includes('token')), 'a credencial pública não pode ser consultada na revisão');
+  assert.equal(resposta.corpo.relatorio.revisaoEditorial.disponivel, true);
+  assert.equal(resposta.corpo.relatorio.revisaoEditorial.podeAprovar, false, 'sem análises revisadas a aprovação começa protegida');
   assert.match(resposta.cabecalhos['cache-control'], /no-store/);
 }
 {

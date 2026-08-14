@@ -275,6 +275,25 @@ function dublar(usuario: unknown | null, cenario: Cenario = {}) {
     const corpo = init?.body ? JSON.parse(String(init.body)) : null;
     chamadasAoBanco.push({ url, corpo });
 
+    if (url.includes('/rest/v1/relatorios?')) {
+      return new Response(JSON.stringify([{
+        id: ID,
+        checksum: CHECKSUM,
+        estado: 'gerado',
+        substituido_por: null,
+        revogado_em: null,
+        conteudo: { montagem: [], dados: {} },
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+
+    if (url.includes('/rest/v1/relatorio_analise_sugestoes?')) {
+      return new Response(JSON.stringify([{
+        secao: 'introducao',
+        estado: 'aplicada',
+        gerado_em: '2026-08-13T22:00:00Z',
+      }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+
     if (url.includes('/rpc/decidir_relatorio')) {
       if (cenario.erroDoBanco) {
         return new Response(
@@ -418,10 +437,12 @@ for (const corpoTorto of [
   assert.equal(escritas.length, 1, 'a escrita acontece numa chamada só, dentro da transação');
   assert.ok(escritas[0].url.includes('/rpc/decidir_relatorio'));
   const leituras = chamadasAoBanco.filter((c) => !c.corpo);
-  assert.equal(leituras.length, 1, 'uma leitura de volta, e só');
+  assert.equal(leituras.filter((c) => c.url.includes('/rest/v1/relatorios?')).length, 1, 'a aprovação faz um preflight do documento');
+  assert.equal(leituras.filter((c) => c.url.includes('/rest/v1/relatorio_analise_sugestoes?')).length, 1, 'a aprovação confere o estado editorial server-side');
+  const readbacks = leituras.filter((c) => c.url.includes('/rest/v1/painel_relatorios_com_correcao?id=eq.'));
+  assert.equal(readbacks.length, 1, 'depois da escrita há uma leitura de volta, e só');
   assert.ok(
-    leituras[0].url.includes('/rest/v1/painel_relatorios_com_correcao?id=eq.') &&
-      !leituras[0].url.includes('token'),
+    !readbacks[0].url.includes('token'),
     'o read-back lê a linha por id, sem pedir a credencial pública',
   );
 
@@ -464,9 +485,9 @@ for (const corpoTorto of [
   assert.equal(saida.corpo.gravado, false);
   assert.match(saida.corpo.mensagem, /mudou desde que você o abriu/);
   assert.equal(
-    chamadasAoBanco.filter((c) => c.url.includes('select=')).length,
+    chamadasAoBanco.filter((c) => c.url.includes('/rest/v1/painel_relatorios_com_correcao')).length,
     0,
-    'decisão recusada não lê a linha de volta — não há o que conferir',
+    'decisão recusada pela RPC não faz o read-back final',
   );
 }
 
@@ -687,6 +708,14 @@ const decidivel = {
   recusadoPor: null,
   recusadoEm: null,
   recusaMotivo: null,
+  revisaoEditorial: {
+    disponivel: true,
+    podeAprovar: true,
+    totalObrigatorias: 1,
+    prontas: 1,
+    pendentes: [],
+    secoes: [{ secao: 'introducao', titulo: 'Introdução', estado: 'pronta', prontaParaAprovacao: true }],
+  },
 };
 
 {
@@ -695,7 +724,7 @@ const decidivel = {
   assert.equal(
     (html.match(/ disabled=""/g) ?? []).length,
     0,
-    'com decisão possível, os dois botões ficam habilitados',
+    'com decisão possível e análises prontas, os dois botões ficam habilitados',
   );
   // Rótulo que diz o OBJETO: "Aprovar" sozinho não diz nada num leitor de tela.
   assert.match(html, /aria-label="Aprovar o relatório de Cliente Exemplo, julho de 2026"/);

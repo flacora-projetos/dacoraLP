@@ -10,6 +10,8 @@ import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarItem, type LinhaDoBanco } from './_painel-fila-dados.js';
 import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
 import { resolverAudiosPrivados } from './_audios-relatorio.js';
+import { conferirEstadoEditorial } from './_painel-estado-editorial.js';
+import { resumoEditorialIndisponivel } from '../src/painel/estadoEditorial.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -152,14 +154,33 @@ export default async function handler(req: Request, res: Response) {
       });
     }
 
-    const relatorio = montarRelatorioParaRevisao(linha);
-    if (!relatorio) {
+    const relatorioBase = montarRelatorioParaRevisao(linha);
+    if (!relatorioBase) {
       return res.status(422).json({
         erro: 'conteudo_incompleto',
         mensagem: 'O relatório existe, mas o conteúdo não chegou inteiro. Ele não pode ser revisado.',
       });
     }
 
+    let revisaoEditorial;
+    try {
+      revisaoEditorial = await conferirEstadoEditorial(
+        linha.id,
+        linha.checksum,
+        relatorioBase.snapshot,
+        { urlSupabase, chaveDeServico },
+      );
+    } catch (erro) {
+      console.warn(
+        '[painel-relatorio] Estado editorial indisponível:',
+        erro instanceof Error ? erro.message : erro,
+      );
+      revisaoEditorial = resumoEditorialIndisponivel(
+        'Não foi possível conferir as análises agora. A aprovação fica protegida até a revisão ser recarregada.',
+      );
+    }
+
+    const relatorio = { ...relatorioBase, revisaoEditorial };
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,
       { clienteSlug: linha.cliente_slug, competencia: linha.competencia },
