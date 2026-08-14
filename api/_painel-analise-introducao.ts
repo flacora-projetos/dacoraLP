@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provider.js';
 
-export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v2_revisao_livre';
+export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v3_contexto_mes_conciso';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACOES = new Set(['gerar', 'aplicar', 'editar', 'desfazer']);
 const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
@@ -173,6 +173,10 @@ export function contextoDoSnapshot(linha: LinhaAnalise) {
   };
 }
 
+export function contextoDaIntroducaoComMes(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>>, contextoMes: string) {
+  return { ...contexto, contextoDoMes: contextoMes.trim() };
+}
+
 export function hashDoContexto(contexto: unknown): string { return createHash('sha256').update(JSON.stringify(contexto)).digest('hex'); }
 
 export function extrairTextoAplicavel(blocos: Array<{ type?: string; text?: string }> | undefined): string {
@@ -204,11 +208,11 @@ export function validarLinhaParaAnalise(linha: LinhaAnalise | undefined, checksu
   return { ok: true as const };
 }
 
-export async function chamarAnaliseIntroducao(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>>, modo: ModoAnalise = 'automatico') {
+export async function chamarAnaliseIntroducao(contexto: NonNullable<ReturnType<typeof contextoDoSnapshot>> & { contextoDoMes?: string }, modo: ModoAnalise = 'automatico') {
   const resposta = await gerarAnaliseAssistida({
     operacao: 'introducao',
     modo,
-    system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione os dois ou três achados mais importantes; investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela e não se limite a repetir que um indicador subiu ou caiu. Conclua a resposta em poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.',
+    system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações, o contexto interno do mês e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione apenas os dois ou três achados mais importantes; use o contexto do mês quando ele ajudar a explicar ou qualificar um achado e não o ignore quando for material. Investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela, não faça lista e evite encadear ideias por ponto e vírgula. Prefira frases curtas e poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.',
     conteudo: JSON.stringify(contexto),
     interpretar: (texto) => extrairTextoAplicavel([{ type: 'text', text: texto }]) || null,
   });

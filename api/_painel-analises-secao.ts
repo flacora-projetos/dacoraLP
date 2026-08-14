@@ -3,7 +3,7 @@ import { contextoDoSnapshot, type LinhaAnalise } from './_painel-analise-introdu
 import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provider.js';
 import { espacosAnaliticosDoSnapshot, type EspacoAnalitico } from '../src/reports/blocos/analise.js';
 
-export const ANALISES_SECAO_PROMPT_VERSAO = 'ra3_secoes_v1_contexto_mes';
+export const ANALISES_SECAO_PROMPT_VERSAO = 'ra3_secoes_v2_contexto_mes_conciso';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SECAO_VALIDA = /^bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/;
 const ACOES = new Set(['salvar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer']);
@@ -126,7 +126,7 @@ export async function chamarAnalisesSecao(
   const resposta = await gerarAnaliseAssistida({
     operacao: 'secoes',
     modo,
-    system: 'Você é um analista de performance revisando as seções de um relatório mensal em português do Brasil. Leia o relatório inteiro, o contexto interno do mês e todos os espaços analíticos antes de escrever. Para cada seção-alvo, produza uma análise editorial breve e útil: investigue evidências e contexto para explicar o que importa, sem apenas narrar subida ou queda e sem repetir a tabela. Não invente causalidade; quando houver somente uma hipótese plausível, identifique-a como hipótese. Mantenha as análises coerentes entre si e com a introdução. Responda somente com JSON válido no formato {"analises":[{"secao":"bloco:id","texto":"análise"}]}, com exatamente uma entrada para cada seção-alvo. O texto não tem limite artificial de caracteres e não deve ser rejeitado por mencionar números.',
+    system: 'Você é um analista de performance revisando as seções de um relatório mensal em português do Brasil. Leia o relatório inteiro, o contexto interno do mês e todos os espaços analíticos antes de escrever. Para cada seção-alvo, selecione somente a conclusão mais útil e produza uma análise editorial curta, direta e fácil de ler. Prefira uma ou duas frases curtas em um único parágrafo; não faça lista, não encadeie observações por ponto e vírgula e não repita números já óbvios na tabela. Use o contexto do mês quando ele ajudar a explicar ou qualificar o achado e não o ignore quando for material. Investigue evidências e contexto para explicar o que importa, sem apenas narrar subida ou queda. Não invente causalidade; quando houver somente uma hipótese plausível, identifique-a como hipótese. Mantenha as análises coerentes entre si e com a introdução. Responda somente com JSON válido no formato {"analises":[{"secao":"bloco:id","texto":"análise"}]}, com exatamente uma entrada para cada seção-alvo. Não existe limite artificial de caracteres e o texto não deve ser rejeitado por mencionar números; a concisão deve vir da seleção editorial, não de corte mecânico.',
     conteudo: JSON.stringify(contexto),
     interpretar: (texto) => extrairAnalisesDoSonnet([{ type: 'text', text: texto }], alvos),
   });

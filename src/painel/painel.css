@@ -2020,6 +2020,14 @@
 .dcp-contexto-mes summary > span { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0.35rem 0.55rem; }
 .dcp-contexto-mes summary small { color: var(--dc-cinza); font-size: 0.76rem; font-weight: 400; }
 .dcp-contexto-mes > p { margin: 0.65rem 0; color: var(--dc-cinza); font-size: 0.82rem; line-height: 1.5; }
+.dcp-contexto-mes__salvo {
+  padding: 0.75rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--dc-canvas) 72%, transparent);
+}
+.dcp-contexto-mes__salvo > p { white-space: pre-wrap; color: var(--dc-tinta); line-height: 1.55; }
+.dcp-contexto-mes__acoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 .dcp-analises-relatorio__rodape,
 .dcp-analise-secao__topo,
@@ -2061,7 +2069,9 @@
 .dcp-analise-secao__topo strong { color: var(--dc-tinta); }
 .dcp-analise-secao__topo span { font-size: 0.82rem; line-height: 1.45; }
 .dcp-analise-secao__sugestao { margin-top: 0.8rem; }
-.dcp-analise-secao__sugestao > p { margin: 0 0 0.7rem; white-space: pre-wrap; color: var(--dc-tinta); }
+.dcp-analise-secao__texto { margin: 0 0 0.7rem; color: var(--dc-tinta); }
+.dcp-analise-secao__texto p { margin: 0; line-height: 1.6; }
+.dcp-analise-secao__texto p + p { margin-top: 0.55rem; }
 .dcp-analise-secao__erro { color: var(--dc-sinal); }
 .dc-analise-editorial {
   margin: 0 0 1rem;
@@ -2071,8 +2081,9 @@
   color: var(--dc-tinta);
   font-family: var(--dc-fonte-base);
   line-height: 1.6;
-  white-space: pre-wrap;
 }
+.dc-analise-editorial p { margin: 0; }
+.dc-analise-editorial p + p { margin-top: 0.55rem; }
 
 @media (max-width: 560px) {
   .dcp-revisao__navegacao--flutuante {

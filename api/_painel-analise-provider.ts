@@ -149,8 +149,7 @@ async function chamarDeepSeek(
       body: JSON.stringify({
         model: modelo,
         max_tokens: maxTokens,
-        thinking: { type: 'enabled' },
-        reasoning_effort: 'high',
+        thinking: { type: 'disabled' },
         messages: [{ role: 'system', content: system }, { role: 'user', content: pedido.conteudo }],
       }),
     }, deps.timeoutMs);

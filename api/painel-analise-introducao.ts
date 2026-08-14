@@ -3,6 +3,7 @@ import { conferirAcesso } from './_painel-autorizacao.js';
 import {
   ANALISE_PROMPT_VERSAO,
   chamarAnaliseIntroducao,
+  contextoDaIntroducaoComMes,
   contextoDoSnapshot,
   hashDoContexto,
   lerPedidoEditorial,
@@ -33,6 +34,13 @@ async function lerRelatorio(id: string, config: NonNullable<ReturnType<typeof co
   });
   if (!resposta.ok) throw new Error(`leitura_relatorio_http_${resposta.status}`);
   return (await resposta.json() as LinhaAnalise[])[0];
+}
+
+async function lerContextoMes(id: string, checksum: string, config: NonNullable<ReturnType<typeof configuracao>>) {
+  const url = `${config.urlSupabase}/rest/v1/relatorio_contextos_mes?relatorio_id=eq.${id}&relatorio_checksum=eq.${encodeURIComponent(checksum)}&select=contexto&limit=1`;
+  const resposta = await fetch(url, { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } });
+  if (!resposta.ok) throw new Error(`leitura_contexto_http_${resposta.status}`);
+  return (await resposta.json() as Array<{ contexto?: string }>)[0]?.contexto ?? '';
 }
 
 function respostaSugestao(linha: any, modeloGerado?: string | null) {
@@ -78,8 +86,8 @@ export default async function handler(req: Request, res: Response) {
     const relatorio = await lerRelatorio(pedido.id, config);
     const linhaValida = validarLinhaParaAnalise(relatorio, pedido.checksum);
     if (!linhaValida.ok) return res.status(linhaValida.status).json(linhaValida);
-    const contexto = contextoDoSnapshot(relatorio);
-    if (!contexto) return res.status(422).json({ erro: 'contexto_indisponivel', mensagem: 'Esta versão não tem o contexto factual necessário para a análise.' });
+    const contextoBase = contextoDoSnapshot(relatorio);
+    if (!contextoBase) return res.status(422).json({ erro: 'contexto_indisponivel', mensagem: 'Esta versão não tem o contexto factual necessário para a análise.' });
 
     if (req.method === 'GET') {
       const consulta = `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${pedido.id}&relatorio_checksum=eq.${encodeURIComponent(pedido.checksum)}&secao=eq.introducao&order=gerado_em.desc&limit=1&select=id,estado,texto_atual,relatorio_checksum,modelo`;
@@ -91,8 +99,11 @@ export default async function handler(req: Request, res: Response) {
 
     let modelo: string | null = null;
     let textoSugerido: string | null = null;
+    let contextoAnalitico: ReturnType<typeof contextoDaIntroducaoComMes> | null = null;
     if (pedido.acao === 'gerar') {
-      const analise = await chamarAnaliseIntroducao(contexto, pedido.modo);
+      const contextoMes = await lerContextoMes(pedido.id, pedido.checksum, config);
+      contextoAnalitico = contextoDaIntroducaoComMes(contextoBase, contextoMes);
+      const analise = await chamarAnaliseIntroducao(contextoAnalitico, pedido.modo);
       if (analise.ok === false) return res.status(analise.status).json({ erro: analise.erro, mensagem: analise.mensagem });
       modelo = analise.modelo;
       textoSugerido = analise.texto;
@@ -108,8 +119,8 @@ export default async function handler(req: Request, res: Response) {
         p_por: acesso.email,
         p_modelo: modelo,
         p_prompt_versao: pedido.acao === 'gerar' ? ANALISE_PROMPT_VERSAO : null,
-        p_contexto_hash: pedido.acao === 'gerar' ? hashDoContexto(contexto) : null,
-        p_texto_original: pedido.acao === 'gerar' ? contexto.introducaoAtual : null,
+        p_contexto_hash: contextoAnalitico ? hashDoContexto(contextoAnalitico) : null,
+        p_texto_original: pedido.acao === 'gerar' ? contextoBase.introducaoAtual : null,
         p_texto_sugerido: textoSugerido,
         p_sugestao_id: pedido.sugestaoId ?? null,
         p_texto_editado: pedido.acao === 'editar' ? pedido.texto : null,

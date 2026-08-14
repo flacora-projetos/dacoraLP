@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import handler from '../api/painel-analise-introducao.ts';
 import {
   chamarAnaliseIntroducao,
+  contextoDaIntroducaoComMes,
   contextoDoSnapshot,
   extrairTextoAplicavel,
   lerPedidoEditorial,
@@ -58,6 +59,7 @@ function linha(extra: Record<string, unknown> = {}) {
 
 const contexto = contextoDoSnapshot(linha() as any);
 assert.ok(contexto);
+assert.equal(contextoDaIntroducaoComMes(contexto!, '  Houve mudança comercial confirmada.  ').contextoDoMes, 'Houve mudança comercial confirmada.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '{"texto":"Saída estrita."}' }]), 'Saída estrita.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '```json\n{"texto":"Saída cercada."}\n```' }]), 'Saída cercada.');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Saída textual direta.' }]), 'Saída textual direta.');
@@ -104,6 +106,7 @@ process.env.ANTHROPIC_MODEL_RA2 = 'claude-sonnet-5';
 
 let chamadas: Array<{ url: string; corpo: unknown }> = [];
 let linhaDoBanco: any = linha();
+let contextoMesDoBanco = 'Em julho, a equipe alterou a qualificação dos leads e priorizou contatos com maior intenção.';
 let saidaSonnet: string | string[] = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 let stopReason = 'stop';
 let stopReasonSonnet = 'end_turn';
@@ -123,6 +126,7 @@ function dublar(usuario: unknown | null) {
     if (url.includes('api.deepseek.com')) return new Response(JSON.stringify({ choices: [{ message: { content: saidaSonnet }, finish_reason: stopReason }], usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/v1/messages')) return new Response(JSON.stringify({ content: (Array.isArray(saidaSonnet) ? saidaSonnet : [saidaSonnet]).map((text) => ({ type: 'text', text })), stop_reason: stopReasonSonnet, stop_sequence: stopSequence }), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rest/v1/relatorios')) return new Response(JSON.stringify([linhaDoBanco]), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/rest/v1/relatorio_contextos_mes')) return new Response(JSON.stringify(contextoMesDoBanco ? [{ contexto: contextoMesDoBanco }] : []), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('relatorio_analise_sugestoes')) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/registrar_sugestao_analise_introducao') && respostaRpcDublada) return new Response(JSON.stringify(respostaRpcDublada.corpo), { status: respostaRpcDublada.status, headers: { 'content-type': 'application/json' } });
     if (url.includes('/rpc/registrar_sugestao_analise_introducao')) {
@@ -167,7 +171,7 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
 }
 
 {
-  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro-cliente', analysis_context: { fatos: [{ atual: 999999 }] } });
+  const resposta = await chamar(usuarioAutorizado, { id: ID, checksum: CHECKSUM, acao: 'gerar', cliente_slug: 'outro-cliente', contexto: 'contexto forjado no navegador', analysis_context: { fatos: [{ atual: 999999 }] } });
   assert.equal(resposta.status, 200);
   const modelo = chamadas.find((item) => item.url.includes('api.deepseek.com'));
   assert.ok(modelo, 'geração precisa tentar DeepSeek primeiro, somente no servidor');
@@ -175,7 +179,11 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.match(contextoEnviado, /Cliente Governado/);
   assert.match(contextoEnviado, /16/);
   assert.match(contextoEnviado, /critério de lead mais restrito/, 'o provider precisa receber o que já está escrito nas demais leituras do relatório');
-  assert.doesNotMatch(contextoEnviado, /outro-cliente|999999|caminhoLocal|segredo/i, 'browser e paths locais não entram no prompt');
+  assert.match(contextoEnviado, /alterou a qualificação dos leads/, 'a introdução precisa reler no servidor o Contexto do mês salvo');
+  assert.doesNotMatch(contextoEnviado, /outro-cliente|999999|contexto forjado|caminhoLocal|segredo/i, 'browser e paths locais não entram no prompt');
+  assert.match(String((modelo!.corpo as any).messages[0].content), /contexto interno do mês/);
+  assert.match(String((modelo!.corpo as any).messages[0].content), /dois ou três achados mais importantes/);
+  assert.match(String((modelo!.corpo as any).messages[0].content), /evite encadear ideias por ponto e vírgula/);
   const rpc = chamadas.find((item) => item.url.includes('/rpc/'))!;
   assert.equal((rpc.corpo as any).p_por, 'revisor@exemplo.com');
   assert.equal((rpc.corpo as any).p_relatorio_id, ID);
@@ -197,6 +205,7 @@ async function chamar(usuario: unknown | null, corpo?: unknown, metodo = 'POST')
   assert.doesNotMatch(String((modelo.corpo as any).messages[0].content), /objeto JSON/);
   assert.doesNotMatch(String((modelo.corpo as any).messages[0].content), /3\.500|3500/);
   assert.equal((modelo.corpo as any).max_tokens, 16_384, 'DeepSeek recebe folga real para encerrar sem corte');
+  assert.deepEqual((modelo.corpo as any).thinking, { type: 'disabled' }, 'introdução não ativa raciocínio profundo desnecessário');
   linhaDoBanco = linha();
   saidaSonnet = '{"texto":"A conta registrou 16 leads com investimento de R$ 1.200,00."}';
 }

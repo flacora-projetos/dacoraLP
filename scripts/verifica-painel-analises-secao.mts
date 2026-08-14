@@ -10,7 +10,8 @@ import {
   lerPedidoAnaliseSecao,
 } from '../api/_painel-analises-secao.ts';
 import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.ts';
-import { AnaliseDaSecao, AnalisesSecaoProvider, sugestaoDaSecaoEstaFechada } from '../src/painel/AnalisesSecao.tsx';
+import { AnaliseDaSecao, AnalisesSecaoProvider, sugestaoDaSecaoEstaFechada, type AcaoAnalisesUI } from '../src/painel/AnalisesSecao.tsx';
+import { paragrafosDaAnaliseEditorial } from '../src/painel/analiseEditorial.ts';
 
 const ID = '33333333-3333-4333-8333-333333333333';
 const SUGESTAO_ID = '55555555-5555-4555-8555-555555555555';
@@ -74,6 +75,8 @@ assert.deepEqual(extrairAnalisesDoSonnet([{ type: 'text', text: JSON.stringify({
 assert.equal(extrairAnalisesDoSonnet([{ type: 'text', text: '{"analises":[{"secao":"bloco:indicadores","texto":"Só uma"}]}' }], espacos), null, 'lote incompleto não pode persistir parcialmente');
 assert.equal(extrairAnalisesDoSonnet([{ type: 'text', text: '{"analises":[{"secao":"bloco:glossario","texto":"Extra"}]}' }], [espacos[0]]), null, 'o modelo não cria caneta fora do catálogo');
 assert.equal(lerPedidoAnaliseSecao({ id: ID, checksum: CHECKSUM, acao: 'editar', secao: 'bloco:indicadores', sugestaoId: SUGESTAO_ID, texto: textoLongo }).ok, true);
+assert.deepEqual(paragrafosDaAnaliseEditorial('Primeiro achado; Segundo achado; Terceiro achado'), ['Primeiro achado.', 'Segundo achado.', 'Terceiro achado.'], 'cadeia legada por ponto e vírgula ganha leitura em blocos sem alterar o texto persistido');
+assert.deepEqual(paragrafosDaAnaliseEditorial('Primeiro parágrafo.\n\nSegundo parágrafo.'), ['Primeiro parágrafo.', 'Segundo parágrafo.'], 'parágrafos explícitos do modelo são preservados');
 
 const html = renderToStaticMarkup(createElement(AnalisesSecaoProvider, {
   podeRevisar: true,
@@ -87,7 +90,7 @@ const html = renderToStaticMarkup(createElement(AnalisesSecaoProvider, {
 assert.match(html, /Gerar análises do relatório/, 'a geração global continua disponível para preencher as análises das seções');
 assert.match(html, /A introdução continua no botão “Melhorar análise”/, 'a UX diferencia a geração das seções da revisão da introdução');
 assert.match(html, /Contexto do mês/);
-assert.match(html, /modelo selecionado lê este contexto/i);
+assert.match(html, /independentemente do modelo selecionado/i);
 assert.doesNotMatch(html, /\bSonnet\b/, 'o contexto não pode prometer um provider fixo quando o modelo é selecionável');
 assert.equal((html.match(/aria-label="Refinar análise de/g) ?? []).length, 1, 'bloco sem função analítica não recebe caneta');
 assert.equal(sugestaoDaSecaoEstaFechada(undefined), false);
@@ -99,9 +102,65 @@ assert.equal(sugestaoDaSecaoEstaFechada({ id: SUGESTAO_ID, secao: 'bloco:indicad
 const css = readFileSync(new URL('../src/painel/painel.css', import.meta.url), 'utf8');
 const cssRelatorio = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
 assert.match(cssRelatorio, /@media print[\s\S]*\.dcp-analises-relatorio[\s\S]*display:\s*none !important/);
-assert.match(css, /\.dc-analise-editorial\s*\{[\s\S]*white-space:\s*pre-wrap/);
+assert.match(css, /\.dc-analise-editorial p \+ p\s*\{[\s\S]*margin-top:/, 'análises aplicadas precisam ter ritmo entre parágrafos');
 const rotaPublica = readFileSync(new URL('../api/relatorio-publico.ts', import.meta.url), 'utf8');
 assert.doesNotMatch(rotaPublica, /relatorio_contextos_mes|painel-analises-secao|contextoDoMes/, 'contexto interno não entra na rota pública');
+
+{
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const { JSDOM } = require('jsdom') as typeof import('jsdom');
+  const dom = new JSDOM('<!doctype html><html><body><div id="montagem"></div></body></html>', { pretendToBeVisual: true });
+  for (const nome of ['window', 'document', 'navigator', 'HTMLElement', 'Element', 'Node', 'Event', 'MouseEvent']) {
+    Object.defineProperty(globalThis, nome, { value: (dom.window as any)[nome], configurable: true, writable: true });
+  }
+  const { flushSync } = await import('react-dom');
+  const { createRoot } = await import('react-dom/client');
+  const recebidas: Array<{ acao: AcaoAnalisesUI; contexto?: string }> = [];
+  let salvo = 'Promoção válida até o fim de julho.';
+  const montagem = dom.window.document.getElementById('montagem')!;
+  const raiz = createRoot(montagem);
+  flushSync(() => raiz.render(createElement(AnalisesSecaoProvider, {
+    podeRevisar: true,
+    espacos: [],
+    aoAcionar: async (acao: AcaoAnalisesUI, dados?: { contexto?: string }) => {
+      recebidas.push({ acao, contexto: dados?.contexto });
+      if (acao === 'carregar') return { contexto: { texto: salvo } };
+      if (acao === 'salvar_contexto') { salvo = dados?.contexto ?? ''; return { contexto: { texto: salvo } }; }
+      return {};
+    },
+    children: createElement('div'),
+  })));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.match(montagem.textContent ?? '', /Promoção válida até o fim de julho/);
+  const editar = [...montagem.querySelectorAll('button')].find((botao) => botao.textContent?.includes('Editar contexto')) as HTMLButtonElement;
+  assert.ok(editar, 'contexto salvo precisa oferecer edição explícita');
+  flushSync(() => editar.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  let campo = montagem.querySelector('#dcp-contexto-mes') as HTMLTextAreaElement;
+  assert.equal(campo.value, 'Promoção válida até o fim de julho.');
+  flushSync(() => {
+    (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any).set.call(campo, 'Promoção encerrada em 20/07.');
+    campo.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  });
+  const cancelar = [...montagem.querySelectorAll('button')].find((botao) => botao.textContent?.trim() === 'Cancelar') as HTMLButtonElement;
+  flushSync(() => cancelar.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  assert.match(montagem.textContent ?? '', /Promoção válida até o fim de julho/, 'cancelar restaura o contexto persistido');
+  const editarNovamente = [...montagem.querySelectorAll('button')].find((botao) => botao.textContent?.includes('Editar contexto')) as HTMLButtonElement;
+  flushSync(() => editarNovamente.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  campo = montagem.querySelector('#dcp-contexto-mes') as HTMLTextAreaElement;
+  flushSync(() => {
+    (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any).set.call(campo, 'Promoção encerrada em 20/07.');
+    campo.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  });
+  const salvar = [...montagem.querySelectorAll('button')].find((botao) => botao.textContent?.trim() === 'Salvar contexto') as HTMLButtonElement;
+  flushSync(() => salvar.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(recebidas.at(-1), { acao: 'salvar_contexto', contexto: 'Promoção encerrada em 20/07.' });
+  assert.match(montagem.textContent ?? '', /Promoção encerrada em 20\/07/);
+  assert.match(montagem.textContent ?? '', /Editar contexto/, 'depois de salvar, o estado volta a oferecer edição');
+  flushSync(() => raiz.unmount());
+  dom.window.close();
+}
 
 process.env.SUPABASE_URL = 'https://exemplo.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'anon-de-teste';
@@ -165,7 +224,9 @@ assert.equal(chamadas.length, 0, 'sem sessão não lê contexto, chama modelo ou
   assert.match(prompt, /Houve promoção e mudança da página/);
   assert.doesNotMatch(prompt, /forjado no browser|segredo\.exemplo/);
   assert.match(modelo.corpo.messages[0].content, /coerentes entre si e com a introdução/);
-  assert.match(modelo.corpo.messages[0].content, /não tem limite artificial de caracteres/);
+  assert.match(modelo.corpo.messages[0].content, /uma ou duas frases curtas/);
+  assert.match(modelo.corpo.messages[0].content, /não encadeie observações por ponto e vírgula/);
+  assert.match(modelo.corpo.messages[0].content, /Não existe limite artificial de caracteres/);
   const rpc = chamadas.find((item) => item.url.includes('/rpc/registrar_sugestoes'))!;
   assert.equal(rpc.corpo.p_prompt_versao, ANALISES_SECAO_PROMPT_VERSAO);
   assert.equal(rpc.corpo.p_modelo, 'automatico/deepseek/deepseek-v4-flash');

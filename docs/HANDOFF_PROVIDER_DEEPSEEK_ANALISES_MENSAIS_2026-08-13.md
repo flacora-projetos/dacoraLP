@@ -1,11 +1,11 @@
 # Handoff — provider das análises mensais: Flash, Pro e Sonnet
 
 **Frente:** paralela à RA3; não é uma fase RA3.
-**Branch do painel:** `codex/ra-deepseek-provider`
-**Base coordenada:** fechamento documental RA3 `afba341`
-**Commit funcional inicial:** `d18b468`
-**Commit funcional atual:** `04299ee`
-**Produção:** intocada; branch local está 1 commit à frente do remoto e não foi pushada nesta retomada.
+**Branch original do provider:** `codex/ra-deepseek-provider`
+**Branch do refino atual:** `codex/ra-contexto-formatacao`
+**Base do refino atual:** `main/b174a3b`
+**Produção no início desta rodada:** `main/b174a3b`, com Flash/Pro/Sonnet e UX RA já publicados.
+**Escopo desta rodada:** contexto persistido em introdução + seções, concisão/formatação e redução da latência DeepSeek editorial.
 
 ## Contrato implementado
 
@@ -24,13 +24,15 @@ A tela de revisão também oferece modos explícitos para benchmark humano:
 - `sonnet`: somente Sonnet, sem fallback;
 - `automatico`: Flash → Pro → Sonnet.
 
-O modo selecionado vai no pedido apenas em ações de geração, é validado por whitelist no servidor e fica incorporado ao campo auditável `modelo` como `modo/provider/modelo`. Sugestões antigas no formato `provider/modelo` continuam legíveis na UI.
+O modo selecionado vai no pedido apenas em ações de geração, é validado por whitelist no servidor e fica incorporado ao campo auditável `modelo` como `modo/provider/modelo`. Sugestões antigas no formato `provider/modelo` continuam legíveis na UI. **Trocar de modelo não altera nem apaga o Contexto do mês**: cada geração relê o texto persistido no servidor usando `relatorio_id + checksum`.
 
 `MONTHLY_REPORT_ANALYSIS_PRIMARY_PROVIDER=sonnet` continua sendo rollback operacional do modo automático para Sonnet. `MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER` permite mudar a cadeia automática sem condicional por cliente.
 
 ## DeepSeek
 
-Os dois modelos usam Chat Completions com thinking habilitado e `reasoning_effort=high`. O conteúdo útil vem somente de `message.content`; `reasoning_content` nunca é persistido nem logado.
+Os dois modelos usam Chat Completions em **modo não-pensante** (`thinking.type=disabled`) para esta tarefa editorial. O teste real do PO com Dr. Lucas mostrou latência excessiva no V4 Pro; a inspeção do provider encontrou `thinking` habilitado por padrão no código, `reasoning_effort=high`, teto de saída amplo e timeout de 50 s. A documentação oficial do DeepSeek confirma que Flash e Pro suportam os modos thinking/non-thinking e descreve o Flash como a variante de resposta mais rápida. Como a tarefa é redação editorial sobre fatos já calculados — não raciocínio aberto nem uso de tools — o provider passou a desligar thinking tanto no Flash quanto no Pro. O teto de saída amplo permanece como proteção contra truncamento; não foi introduzido limite de caracteres.
+
+O conteúdo útil continua vindo somente de `message.content`; `reasoning_content` nunca é persistido nem logado.
 
 Configuração separada:
 
@@ -49,6 +51,18 @@ O teto padrão local permanece em 16.384 tokens por modelo. Quando um DeepSeek t
 ## Sonnet
 
 Sonnet continua configurado por `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL_RA2` e `ANTHROPIC_MODEL_RA3`, com teto padrão de 4.000 tokens. Em modo explícito `sonnet`, nenhum DeepSeek é tentado.
+
+## Contexto do mês e causa da perda observada
+
+A causa encontrada não era troca de modelo. A rota RA3 das **seções** já relia `relatorio_contextos_mes` no servidor antes de montar o prompt, mas a rota RA2 da **introdução** chamava `contextoDoSnapshot()` diretamente e nunca consultava essa tabela. Por isso um contexto salvo podia aparecer corretamente nas análises das seções e ser ignorado por **Melhorar análise**, independentemente de usar Pro, Flash ou Sonnet.
+
+A correção unifica o contrato: a introdução agora relê o mesmo contexto persistido no servidor no momento da geração, incorpora `contextoDoMes` ao objeto enviado ao provider e calcula o hash de auditoria sobre esse mesmo objeto. Conteúdo `contexto` enviado pelo navegador continua ignorado. A UI deixa o contexto salvo em modo de leitura e oferece **Editar contexto**; Cancelar restaura o valor persistido e Salvar volta ao estado de leitura.
+
+## Concisão e apresentação editorial
+
+Os prompts de introdução e seções agora pedem seleção editorial, não corte mecânico. A introdução prioriza somente dois ou três achados; cada seção busca a conclusão mais útil em uma ou duas frases curtas, sem lista, sem repetir a tabela e sem encadear observações por ponto e vírgula. Não há limite artificial de caracteres.
+
+Para sugestões antigas ou respostas que ainda venham como cadeia `frase; frase; frase`, a UI aplica uma normalização **somente de apresentação**, separando os trechos em parágrafos legíveis sem alterar o texto persistido. Parágrafos já produzidos pelo modelo são preservados.
 
 ## Persistência e fallback
 
@@ -96,25 +110,17 @@ A variável antiga única `MONTHLY_REPORT_ANALYSIS_DEEPSEEK_MODEL` não é mais 
 
 ## Verificações desta retomada
 
-- `npm.cmd run verifica:analise`: verde após migração das regressões RA2/RA3 para Flash/Pro; cobre cadeia automática, uma condensação por modelo, modos manuais sem fallback, parser incompleto, timeout, falha tripla e auditoria `modo/provider/modelo`;
-- `npm.cmd run verifica:revisao`: verde;
-- `npm.cmd run build`: verde após correção de um fechamento JSX incompleto deixado pela sessão interrompida;
-- `npm.cmd run lint`: retorna somente as seis falhas React herdadas já documentadas no baseline RA3; zero erro em arquivo desta frente;
-- `git diff --check`: verde antes do commit funcional;
-- revisão de segurança manual: auth existente permanece antes da leitura/modelo; `modo` é whitelistado server-side; segredos seguem server-side; nenhuma rota pública ganhou provider/contexto/sugestão; telemetria não contém payload.
+- `npm run verifica:analise`: verde; cobre provider, contexto do mês server-side na introdução e nas seções, rejeição de contexto forjado no browser, edição/cancelamento/novo salvamento do contexto, concisão do prompt, formatação de ponto e vírgula, fallback e auditoria;
+- `npm run verifica:revisao`: verde;
+- `npm run build`: verde, incluindo `verifica:karyne-conversao`, `verifica:linguagem`, Vite client/SSR, prerender e bundle server;
+- `npm run lint`: retorna somente as seis falhas TypeScript herdadas já documentadas no baseline; zero delas está nos arquivos desta entrega;
+- `git diff --check`: verde;
+- revisão de segurança manual: auth existente permanece antes da leitura/modelo; contexto da introdução e das seções é relido server-side; payload do browser não substitui contexto salvo; `modo` continua whitelistado; segredos seguem server-side; rota pública continua sem contexto interno; telemetria continua sem prompt/resposta/segredo.
 
-A skill externa de Security Guidance não estava instalada/exposta no Bridge durante esta retomada (`count: 0`), portanto o gate foi executado manualmente e deve ser repetido com a ferramenta se ela voltar a estar disponível antes de publicação.
+A skill externa de Security Guidance não estava instalada/exposta no Bridge durante esta retomada (`count: 0`), portanto o gate foi executado manualmente. Para UX foram consultadas as skills `frontend-design` e `impeccable-design-polish`, preservando a direção Editorial de Performance e restringindo o refino aos controles de análise/contexto.
 
-## Gates ainda abertos
+## Gate desta rodada
 
-- configurar os envs novos somente no escopo Preview autorizado;
-- push da branch e Preview `READY` — não realizado nesta retomada;
-- uma chamada Flash real completa em Karyne e uma em relatório não-Karyne/contexto maior;
-- uma comparação controlada Flash × Pro × Sonnet usando os modos explícitos e a mesma rubrica humana;
-- fallback automático controlado em Preview;
-- read-back das sugestões com `modelo` correto, sem aplicação/aprovação/recusa/envio;
-- smoke desktop e 390×844;
-- repetir Security Guidance se a ferramenta estiver disponível;
-- nenhuma replicação de env, merge ou deploy de produção sem novo GO.
+O PO autorizou explicitamente trabalhar até o fim e publicar em produção. Antes do merge/push ainda são obrigatórios: smoke local seguro, revisão final do diff/status e commit da branch. Depois da publicação: HTTP do painel/raiz, identificação do bundle novo no domínio e atualização documental do estado realmente publicado. Não há alteração de env, migration, aprovação/recusa de relatório nem envio a cliente nesta entrega.
 
 O redirect OAuth do Preview que bloqueou o smoke RA3 continua dependência separada e não será contornado. Voicebox/áudio está fora desta frente.

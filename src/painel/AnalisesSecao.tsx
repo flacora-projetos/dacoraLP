@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { rotuloDaAuditoria } from './modoAnalise';
+import { paragrafosDaAnaliseEditorial } from './analiseEditorial';
 
 export interface EspacoAnaliticoSeguro { secao: string; blocoId: string; titulo: string; objetivo: string; }
 export interface SugestaoSecao { id: string; secao: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
@@ -39,6 +40,7 @@ export function AnalisesSecaoProvider({
   const [sugestoes, setSugestoes] = useState<Map<string, SugestaoSecao>>(new Map());
   const [contexto, setContexto] = useState('');
   const [contextoSalvo, setContextoSalvo] = useState('');
+  const [editandoContexto, setEditandoContexto] = useState(true);
   const [ocupada, setOcupada] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const espacosMap = useMemo(() => new Map(espacos.map((espaco) => [espaco.secao, espaco])), [espacos]);
@@ -52,6 +54,7 @@ export function AnalisesSecaoProvider({
       const texto = resultado.contexto?.texto ?? '';
       setContexto(texto);
       setContextoSalvo(texto);
+      setEditandoContexto(!texto);
       setSugestoes(mapaDeSugestoes(resultado.sugestoes ?? []));
     }).catch((erro) => {
       if (ativa) setMensagem(erro instanceof Error ? erro.message : 'As análises anteriores não puderam ser carregadas.');
@@ -64,8 +67,8 @@ export function AnalisesSecaoProvider({
     try {
       const resultado = await aoAcionar('salvar_contexto', { contexto });
       const salvo = resultado.contexto?.texto ?? '';
-      setContexto(salvo); setContextoSalvo(salvo);
-      setMensagem('Contexto interno salvo. Ele não faz parte do relatório do cliente.');
+      setContexto(salvo); setContextoSalvo(salvo); setEditandoContexto(false);
+      setMensagem('Contexto interno salvo. As próximas sugestões usarão esta versão.');
     } catch (erro) {
       setMensagem(erro instanceof Error ? erro.message : 'O contexto não pôde ser salvo.');
     } finally { setOcupada(false); }
@@ -111,23 +114,36 @@ export function AnalisesSecaoProvider({
         </div>
         <details className="dcp-contexto-mes">
           <summary>
-            <span><strong>Contexto do mês</strong><small>Opcional · usado nas próximas sugestões de revisão</small></span>
+            <span><strong>Contexto do mês</strong><small>Opcional · usado nas próximas sugestões da introdução e das seções</small></span>
           </summary>
-          <p>Adicione fatos internos que não aparecem nas plataformas. O modelo selecionado lê este contexto junto com o relatório.</p>
-          <label className="dcp-sr" htmlFor="dcp-contexto-mes">Contexto do mês</label>
-          <textarea
-            id="dcp-contexto-mes"
-            rows={4}
-            value={contexto}
-            onChange={(evento) => setContexto(evento.target.value)}
-            placeholder="Ex.: houve promoção, mudança de página, falta de estoque ou alteração na qualidade dos leads."
-          />
-          <div className="dcp-analises-relatorio__rodape">
-            <span>Interno: não aparece ao cliente sem ação editorial explícita.</span>
-            <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada || contexto === contextoSalvo} onClick={() => void salvarContexto()}>
-              Salvar contexto
-            </button>
-          </div>
+          <p>Adicione fatos internos que não aparecem nas plataformas. O contexto salvo é relido no servidor e acompanha a próxima geração, independentemente do modelo selecionado.</p>
+          {editandoContexto ? <>
+            <label className="dcp-sr" htmlFor="dcp-contexto-mes">Contexto do mês</label>
+            <textarea
+              id="dcp-contexto-mes"
+              rows={4}
+              value={contexto}
+              onChange={(evento) => setContexto(evento.target.value)}
+              placeholder="Ex.: houve promoção, mudança de página, falta de estoque ou alteração na qualidade dos leads."
+            />
+            <div className="dcp-analises-relatorio__rodape">
+              <span>Interno: não aparece ao cliente sem ação editorial explícita.</span>
+              <div className="dcp-contexto-mes__acoes">
+                {contextoSalvo && <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada} onClick={() => { setContexto(contextoSalvo); setEditandoContexto(false); setMensagem(''); }}>Cancelar</button>}
+                <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada || contexto === contextoSalvo} onClick={() => void salvarContexto()}>
+                  Salvar contexto
+                </button>
+              </div>
+            </div>
+          </> : <div className="dcp-contexto-mes__salvo">
+            <p>{contextoSalvo}</p>
+            <div className="dcp-analises-relatorio__rodape">
+              <span>Interno: não aparece ao cliente sem ação editorial explícita.</span>
+              <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada} onClick={() => { setContexto(contextoSalvo); setEditandoContexto(true); setMensagem(''); }}>
+                Editar contexto
+              </button>
+            </div>
+          </div>}
         </details>
         {mensagem && <p className="dcp-analises-relatorio__mensagem" aria-live="polite">{mensagem}</p>}
       </aside>
@@ -154,7 +170,7 @@ export function AnaliseDaSecao({ secao }: { secao: string }) {
   const aplicada = sugestao && (sugestao.estado === 'aplicada' || sugestao.estado === 'editada');
   return (
     <div className="dcp-analise-secao">
-      {aplicada && <p className="dc-analise-editorial">{sugestao.texto}</p>}
+      {aplicada && <div className="dc-analise-editorial">{paragrafosDaAnaliseEditorial(sugestao.texto).map((paragrafo, indice) => <p key={`${secao}-${indice}`}>{paragrafo}</p>)}</div>}
       <div className="dcp-analise-secao__controles">
         <div className="dcp-analise-secao__topo">
           <div><strong>Análise editorial</strong><span>{espaco.objetivo}</span></div>
@@ -165,7 +181,7 @@ export function AnaliseDaSecao({ secao }: { secao: string }) {
         {sugestao && !sugestaoDaSecaoEstaFechada(sugestao) && (
           <div className="dcp-analise-secao__sugestao">
             {sugestao.modelo && <small className="dcp-analise-modelo">{rotuloDaAuditoria(sugestao.modelo)}</small>}
-            {editando ? <textarea aria-label={`Editar análise de ${espaco.titulo}`} rows={7} value={texto} onChange={(evento) => setTexto(evento.target.value)} /> : <p>{sugestao.texto}</p>}
+            {editando ? <textarea aria-label={`Editar análise de ${espaco.titulo}`} rows={7} value={texto} onChange={(evento) => setTexto(evento.target.value)} /> : <div className="dcp-analise-secao__texto">{paragrafosDaAnaliseEditorial(sugestao.texto).map((paragrafo, indice) => <p key={`${secao}-sugestao-${indice}`}>{paragrafo}</p>)}</div>}
             <div className="dcp-analise-secao__acoes">
               {editando ? <>
                 <button type="button" className="dcp-botao dcp-botao--primario" disabled={contexto.ocupada} onClick={() => void agir('editar', texto)}>Salvar edição</button>

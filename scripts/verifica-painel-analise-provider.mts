@@ -47,8 +47,8 @@ function sonnet(texto = 'COMPLETA: Sonnet encerrou o fallback.', stopReason = 'e
   assert.equal(chamadas.length, 1, 'Flash completo nao chama Pro nem Sonnet');
   assert.equal(chamadas[0].corpo.model, 'deepseek-v4-flash');
   assert.equal(chamadas[0].corpo.max_tokens, 16_384, 'o teto governado tem folga real sobre 1.600/4.000');
-  assert.deepEqual(chamadas[0].corpo.thinking, { type: 'enabled' });
-  assert.equal(chamadas[0].corpo.reasoning_effort, 'high');
+  assert.deepEqual(chamadas[0].corpo.thinking, { type: 'disabled' }, 'redação editorial não deve pagar latência de thinking por padrão');
+  assert.equal('reasoning_effort' in chamadas[0].corpo, false, 'reasoning_effort não é enviado quando thinking está desabilitado');
   assert.equal(chamadas[0].corpo.messages[1].content.length, contextoSensivel.length, 'contexto grande chega inteiro ao provider');
   const log = JSON.stringify(eventos);
   assert.doesNotMatch(log, /cliente-governado|contexto-grande|raciocinio que nunca|segredo-deepseek|segredo-sonnet/);
