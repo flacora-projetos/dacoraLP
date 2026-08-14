@@ -1,14 +1,22 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import handler from '../api/painel-decisao.ts';
 import handlerReabrir from '../api/painel-reabrir-edicao.ts';
+/**
+ * As funções vêm da porta de produção (`api/_painel-estado-editorial.ts`), não
+ * do módulo de origem: o que este script exercita precisa ser literalmente o
+ * que a função serverless executa. A igualdade de referência logo abaixo prova
+ * que continua existindo uma implementação só.
+ */
 import {
   estadoEditorialDaSugestao,
   resumoEditorialDaRevisao,
   secoesEditoriaisObrigatorias,
   type SugestaoEditorialPersistida,
-} from '../src/painel/estadoEditorial.ts';
+} from '../api/_painel-estado-editorial.ts';
+import * as autoridadeDeOrigem from '../src/painel/estadoEditorial.ts';
 import DecisaoDaRevisao from '../src/painel/DecisaoDaRevisao.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 
@@ -16,6 +24,52 @@ const ID = '22222222-2222-4222-8222-222222222222';
 const CHECKSUM = 'abc123def456abc123def456abc123de';
 const EMAIL = 'pessoa.autorizada@exemplo.com';
 const MOTIVO = 'A seção de Meta precisa ser revista antes de gerar uma nova versão.';
+
+/* A cadeia de importação da função serverless precisa carregar extensão
+   explícita em todo import relativo de valor. Sem isso o módulo resolve no
+   `tsx` e no Vite, passa em tudo aqui, e só quebra no deploy — que foi
+   exatamente o que levou alguém a duplicar a regra em vez de corrigir o
+   caminho. Import só de tipo é apagado na compilação e fica de fora. */
+{
+  const raiz = new URL('..', import.meta.url);
+  const naCadeia = [
+    'api/_painel-estado-editorial.ts',
+    'src/painel/estadoEditorial.ts',
+    'src/reports/blocos/analise.ts',
+  ];
+  for (const arquivo of naCadeia) {
+    const fonte = readFileSync(new URL(arquivo, raiz), 'utf8');
+    for (const linha of fonte.split('\n')) {
+      if (/^\s*import\s+type\b/.test(linha)) continue;
+      const especificador = /\bfrom\s+'(\.[^']*)'/.exec(linha)?.[1];
+      if (!especificador) continue;
+      assert.match(
+        especificador,
+        /\.(js|mjs|cjs|json)$/,
+        `${arquivo}: o import relativo '${especificador}' precisa de extensão explícita para sobreviver ao runtime da função serverless`,
+      );
+    }
+  }
+}
+
+/* Autoridade única: a função que a API executa e a função do módulo de origem
+   precisam ser o MESMO objeto. Se alguém reintroduzir uma cópia dentro de
+   `api/`, a igualdade de referência quebra aqui, antes do deploy. */
+assert.equal(
+  resumoEditorialDaRevisao,
+  autoridadeDeOrigem.resumoEditorialDaRevisao,
+  'a API precisa usar a mesma função de prontidão editorial da origem, não uma cópia',
+);
+assert.equal(
+  secoesEditoriaisObrigatorias,
+  autoridadeDeOrigem.secoesEditoriaisObrigatorias,
+  'a lista de seções obrigatórias não pode ter duas implementações',
+);
+assert.equal(
+  estadoEditorialDaSugestao,
+  autoridadeDeOrigem.estadoEditorialDaSugestao,
+  'o mapeamento de estados não pode ter duas implementações',
+);
 
 assert.equal(estadoEditorialDaSugestao(undefined), 'nao_iniciada');
 assert.equal(estadoEditorialDaSugestao('pronta'), 'sugerida');

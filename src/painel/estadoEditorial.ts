@@ -1,5 +1,17 @@
-import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
-import type { SnapshotMontado } from '../reports/blocos/tipos';
+/**
+ * A regra de prontidão editorial da RA4 — **autoridade única**.
+ *
+ * A tela, a função serverless (`api/_painel-estado-editorial.ts`) e as
+ * regressões importam daqui. Não criar uma segunda implementação: esta é a
+ * regra que decide se uma aprovação pode acontecer, e duas cópias significam
+ * que a testada e a que decide podem divergir sem ninguém perceber.
+ *
+ * ⚠️ As importações abaixo levam `.js` de propósito. O runtime ESM da função
+ * serverless resolve por extensão explícita; sem ela, o módulo quebra no
+ * deploy — foi o que motivou a duplicação temporária de 2026-08-14.
+ */
+import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise.js';
+import type { SnapshotMontado } from '../reports/blocos/tipos.js';
 
 export type EstadoEditorialRA4 =
   | 'nao_iniciada'
