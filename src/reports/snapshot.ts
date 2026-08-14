@@ -397,7 +397,23 @@ export interface AnalysisContextV1 {
     familia: string;
     kpisPrincipais: string[];
     kpisMidia: string[];
+    /** Investimento, CPM e CPC: valem para a conta, não para um objetivo. */
+    entregaDaPlataforma?: string[];
+    /**
+     * Um conjunto de KPIs por conversão contratada. `rotulo` é nulo no grupo
+     * anônimo — resultado medido cujo objetivo não está declarado —, e nesse
+     * caso o grupo nunca ganha título.
+     */
+    porObjetivo?: Array<{
+      id: string;
+      plataforma: string;
+      rotulo: string | null;
+      familia: string | null;
+      kpis: string[];
+    }>;
     faltantes: string[];
+    /** Por que os KPIs da loja faltam: sem loja integrada, falha, ou recusa. */
+    motivoDosFaltantes?: string;
   };
   funilEcommerce?: Record<string, unknown>;
   funilLeadsMensagens?: Record<string, unknown>;
