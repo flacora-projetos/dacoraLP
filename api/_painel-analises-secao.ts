@@ -6,10 +6,23 @@ import { espacosAnaliticosDoSnapshot, type EspacoAnalitico } from '../src/report
 export const ANALISES_SECAO_PROMPT_VERSAO = 'ra3_secoes_v2_contexto_mes_conciso';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SECAO_VALIDA = /^bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/;
-const ACOES = new Set(['salvar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer']);
+const ACOES = new Set([
+  'salvar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer',
+  'dispensar', 'reverter_dispensa',
+]);
 const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 
-export type AcaoAnaliseSecao = 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer';
+/**
+ * "Revisada sem análise" também vale para a introdução, que não é um bloco e
+ * por isso não passa em `SECAO_VALIDA`. As demais ações continuam restritas a
+ * blocos, porque a caneta da introdução tem endpoint próprio.
+ */
+const SECAO_DISPENSAVEL = /^(introducao|bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119})$/;
+const ACOES_DE_DISPENSA = new Set(['dispensar', 'reverter_dispensa']);
+
+export type AcaoAnaliseSecao =
+  | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
+  | 'dispensar' | 'reverter_dispensa';
 export interface PedidoAnaliseSecao {
   id: string;
   checksum: string;
@@ -41,6 +54,9 @@ export function lerPedidoAnaliseSecao(bruto: unknown):
   }
   if (['gerar_secao', 'aplicar', 'editar', 'desfazer'].includes(acao) && !SECAO_VALIDA.test(secao ?? '')) {
     return { ok: false, erro: 'secao_invalida', mensagem: 'Esta seção não tem uma função analítica cadastrada.' };
+  }
+  if (ACOES_DE_DISPENSA.has(acao) && !SECAO_DISPENSAVEL.test(secao ?? '')) {
+    return { ok: false, erro: 'secao_invalida', mensagem: 'Esta seção não faz parte da revisão obrigatória.' };
   }
   if (['aplicar', 'editar', 'desfazer'].includes(acao) && !UUID_VALIDO.test(sugestaoId ?? '')) {
     return { ok: false, erro: 'sugestao_invalida', mensagem: 'A sugestão não está vinculada a esta revisão.' };

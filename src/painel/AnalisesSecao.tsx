@@ -5,8 +5,19 @@ import { paragrafosDaAnaliseEditorial } from './analiseEditorial';
 export interface EspacoAnaliticoSeguro { secao: string; blocoId: string; titulo: string; objetivo: string; }
 export interface SugestaoSecao { id: string; secao: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
 export interface ContextoMesSeguro { texto: string; atualizadoPor?: string; atualizadoEm?: string; }
-export type AcaoAnalisesUI = 'carregar' | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer';
-export interface ResultadoAnalisesUI { contexto?: ContextoMesSeguro | null; sugestoes?: SugestaoSecao[]; sugestao?: SugestaoSecao | null; espacos?: EspacoAnaliticoSeguro[]; }
+export type AcaoAnalisesUI =
+  | 'carregar' | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
+  | 'dispensar' | 'reverter_dispensa';
+/** Quem revisou a seção e decidiu não publicar análise nenhuma. */
+export interface DispensaDeSecao { secao: string; por?: string | null; em?: string | null }
+export interface ResultadoAnalisesUI {
+  contexto?: ContextoMesSeguro | null;
+  sugestoes?: SugestaoSecao[];
+  sugestao?: SugestaoSecao | null;
+  espacos?: EspacoAnaliticoSeguro[];
+  dispensas?: DispensaDeSecao[];
+  dispensa?: { secao: string; ativa: boolean; por?: string | null; em?: string | null } | null;
+}
 
 export function sugestaoDaSecaoEstaFechada(sugestao: SugestaoSecao | undefined): boolean {
   return sugestao?.estado === 'aplicada' || sugestao?.estado === 'editada' || sugestao?.estado === 'desfeita';
@@ -15,6 +26,7 @@ export function sugestaoDaSecaoEstaFechada(sugestao: SugestaoSecao | undefined):
 interface EstadoAnalises {
   espacos: Map<string, EspacoAnaliticoSeguro>;
   sugestoes: Map<string, SugestaoSecao>;
+  dispensas: Map<string, DispensaDeSecao>;
   ocupada: boolean;
   mensagem: string;
   agir: (acao: Exclude<AcaoAnalisesUI, 'carregar' | 'salvar_contexto' | 'gerar_todas'>, secao: string, texto?: string) => Promise<void>;
@@ -38,6 +50,7 @@ export function AnalisesSecaoProvider({
   children: ReactNode;
 }) {
   const [sugestoes, setSugestoes] = useState<Map<string, SugestaoSecao>>(new Map());
+  const [dispensas, setDispensas] = useState<Map<string, DispensaDeSecao>>(new Map());
   const [contexto, setContexto] = useState('');
   const [contextoSalvo, setContextoSalvo] = useState('');
   const [editandoContexto, setEditandoContexto] = useState(true);
@@ -56,6 +69,7 @@ export function AnalisesSecaoProvider({
       setContextoSalvo(texto);
       setEditandoContexto(!texto);
       setSugestoes(mapaDeSugestoes(resultado.sugestoes ?? []));
+      setDispensas(new Map((resultado.dispensas ?? []).map((item) => [item.secao, item])));
     }).catch((erro) => {
       if (ativa) setMensagem(erro instanceof Error ? erro.message : 'As análises anteriores não puderam ser carregadas.');
     }).finally(() => { if (ativa) setOcupada(false); });
@@ -85,11 +99,26 @@ export function AnalisesSecaoProvider({
     } finally { setOcupada(false); }
   }
 
-  async function agir(acao: 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer', secao: string, texto?: string) {
+  async function agir(
+    acao: 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer' | 'dispensar' | 'reverter_dispensa',
+    secao: string,
+    texto?: string,
+  ) {
     const sugestao = sugestoes.get(secao);
     setOcupada(true); setMensagem('');
     try {
       const resultado = await aoAcionar(acao, { secao, sugestao, texto });
+      if (acao === 'dispensar' || acao === 'reverter_dispensa') {
+        const decidida = resultado.dispensa;
+        if (!decidida || decidida.secao !== secao) throw new Error('A decisão não foi registrada.');
+        setDispensas((anteriores) => {
+          const mapa = new Map(anteriores);
+          if (decidida.ativa) mapa.set(secao, { secao, por: decidida.por, em: decidida.em });
+          else mapa.delete(secao);
+          return mapa;
+        });
+        return;
+      }
       const atual = resultado.sugestao ?? resultado.sugestoes?.[0];
       if (!atual) throw new Error('A ação não retornou uma sugestão persistida.');
       setSugestoes((anteriores) => new Map(anteriores).set(secao, atual));
@@ -101,7 +130,7 @@ export function AnalisesSecaoProvider({
 
   if (!podeRevisar) return <>{children}</>;
   return (
-    <ContextoAnalises.Provider value={{ espacos: espacosMap, sugestoes, ocupada, mensagem, agir }}>
+    <ContextoAnalises.Provider value={{ espacos: espacosMap, sugestoes, dispensas, ocupada, mensagem, agir }}>
       <aside className="dcp-analises-relatorio" aria-label="Análises assistidas das seções do relatório">
         <div className="dcp-analises-relatorio__cabecalho">
           <div>
@@ -152,6 +181,49 @@ export function AnalisesSecaoProvider({
   );
 }
 
+/**
+ * "Revisada sem análise" — a saída para quem leu a seção e decidiu que ali não
+ * cabe texto analítico.
+ *
+ * Sem ela, a única forma de destravar a aprovação seria publicar a sugestão do
+ * modelo, e a RA passaria a obrigar aceitação em vez de revisão. Serve blocos e
+ * a introdução, porque as duas contam como seção obrigatória.
+ */
+export function DispensaDaSecao({ secao, titulo }: { secao: string; titulo: string }) {
+  const contexto = useContext(ContextoAnalises);
+  if (!contexto) return null;
+  const dispensa = contexto.dispensas.get(secao);
+  if (dispensa) {
+    return (
+      <p className="dcp-analise-dispensa" role="status">
+        <span>
+          Revisada sem análise{dispensa.por ? ` por ${dispensa.por}` : ''}. Nenhum texto analítico será publicado nesta seção.
+        </span>
+        <button
+          type="button"
+          className="dcp-botao dcp-botao--discreto"
+          disabled={contexto.ocupada}
+          onClick={() => void contexto.agir('reverter_dispensa', secao).catch(() => {})}
+          aria-label={`Voltar a exigir análise em ${titulo}`}
+        >
+          Voltar a exigir análise
+        </button>
+      </p>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="dcp-botao dcp-botao--discreto dcp-analise-dispensa__acao"
+      disabled={contexto.ocupada}
+      onClick={() => void contexto.agir('dispensar', secao).catch(() => {})}
+      aria-label={`Marcar ${titulo} como revisada sem análise`}
+    >
+      Revisada sem análise
+    </button>
+  );
+}
+
 export function AnaliseDaSecao({ secao }: { secao: string }) {
   const contexto = useContext(ContextoAnalises);
   const espaco = contexto?.espacos.get(secao);
@@ -174,9 +246,12 @@ export function AnaliseDaSecao({ secao }: { secao: string }) {
       <div className="dcp-analise-secao__controles">
         <div className="dcp-analise-secao__topo">
           <div><strong>Análise editorial</strong><span>{espaco.objetivo}</span></div>
-          <button type="button" className="dcp-botao dcp-botao--discreto" disabled={contexto.ocupada} onClick={() => void agir('gerar_secao')} aria-label={`Refinar análise de ${espaco.titulo}`}>
-            ✎ Refinar análise
-          </button>
+          <div className="dcp-analise-secao__botoes">
+            <button type="button" className="dcp-botao dcp-botao--discreto" disabled={contexto.ocupada} onClick={() => void agir('gerar_secao')} aria-label={`Refinar análise de ${espaco.titulo}`}>
+              ✎ Refinar análise
+            </button>
+            <DispensaDaSecao secao={secao} titulo={espaco.titulo} />
+          </div>
         </div>
         {sugestao && !sugestaoDaSecaoEstaFechada(sugestao) && (
           <div className="dcp-analise-secao__sugestao">

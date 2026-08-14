@@ -1053,6 +1053,28 @@
   gap: 0.6rem;
 }
 
+/* "Revisada sem análise" — decisão humana, não estado de erro. Fica discreta
+   ao lado de "Refinar análise" e vira uma linha declarada quando ativa. */
+.dcp-analise-secao__botoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.dcp-analise-dispensa {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--dc-cinza);
+}
+.dcp-analise-dispensa .dcp-botao,
+.dcp-analise-dispensa__acao {
+  min-height: 44px;
+}
+
 .dcp-estado-editorial {
   padding: 0.7rem 0;
   border-top: 1px solid var(--dc-filete);

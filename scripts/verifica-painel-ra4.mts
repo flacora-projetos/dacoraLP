@@ -222,6 +222,7 @@ const usuario = {
 };
 const fetchOriginal = globalThis.fetch;
 let sugestoesDoBanco = comSugestaoNaoRevisada;
+let dispensasDoBanco: string[] = [];
 let chamadas: Array<{ url: string; corpo: any }> = [];
 
 function linhaAprovada() {
@@ -291,6 +292,13 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
       gerado_em: `2026-08-13T22:${String(59 - indice).padStart(2, '0')}:00Z`,
     }))), { status: 200, headers: { 'content-type': 'application/json' } });
   }
+  if (url.includes('/rest/v1/relatorio_secoes_dispensadas?')) {
+    return new Response(JSON.stringify(dispensasDoBanco.map((secao) => ({
+      secao,
+      dispensada_por: EMAIL,
+      dispensada_em: '2026-08-14T09:00:00Z',
+    }))), { status: 200, headers: { 'content-type': 'application/json' } });
+  }
   if (url.includes('/rpc/decidir_relatorio')) {
     return new Response(JSON.stringify([{ relatorio_id: ID, ja_estava_assim: false }]), { status: 200, headers: { 'content-type': 'application/json' } });
   }
@@ -334,6 +342,34 @@ async function chamar(corpo: unknown) {
   assert.equal(saida.status, 200);
   assert.equal(saida.corpo.gravado, true);
   assert.equal(chamadas.filter((item) => item.url.includes('/rpc/decidir_relatorio')).length, 1);
+}
+
+/* A dispensa é lida no servidor, não vem da tela: a mesma pendência que
+   bloqueia sem dispensa passa a liberar com a dispensa gravada no banco. */
+{
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  dispensasDoBanco = ['introducao'];
+  const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'aprovar' });
+  assert.equal(saida.status, 200, 'seção revisada sem análise conta como revisada');
+  assert.equal(saida.corpo.gravado, true);
+  dispensasDoBanco = [];
+}
+
+/* Falha ao ler as dispensas não pode virar "ninguém dispensou nada": isso
+   travaria aprovação legítima e é o caminho pelo qual ausência vira zero. */
+{
+  sugestoesDoBanco = todasProntas;
+  const fetchAnterior = globalThis.fetch;
+  globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
+    if (String(entrada).includes('/rest/v1/relatorio_secoes_dispensadas?')) {
+      return new Response('erro interno', { status: 500 });
+    }
+    return fetchAnterior(entrada, init);
+  }) as typeof fetch;
+  const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'aprovar' });
+  assert.equal(saida.status, 502, 'leitura indisponível precisa falhar fechado, não liberar nem inventar lista vazia');
+  assert.equal(saida.corpo.gravado, false);
+  globalThis.fetch = fetchAnterior;
 }
 
 {

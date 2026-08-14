@@ -61,12 +61,46 @@ export async function lerSugestoesEditoriais(
     }));
 }
 
+export interface DispensaVigente {
+  secao: string;
+  por: string | null;
+  em: string | null;
+}
+
+/**
+ * As seções que um humano marcou como "revisada sem análise" nesta versão.
+ *
+ * ⚠️ Falha de leitura aqui **não** vira lista vazia. Lista vazia significaria
+ * "ninguém dispensou nada" e travaria aprovações legítimas; pior, o inverso
+ * também vale — tratar erro como ausência é o caminho pelo qual ausência vira
+ * zero. O erro sobe e a prontidão fica indisponível, que é o estado honesto.
+ */
+export async function lerDispensasVigentes(
+  relatorioId: string,
+  checksum: string,
+  config: ConfiguracaoEditorial,
+): Promise<DispensaVigente[]> {
+  const url = `${config.urlSupabase}/rest/v1/relatorio_secoes_dispensadas?relatorio_id=eq.${encodeURIComponent(relatorioId)}&relatorio_checksum=eq.${encodeURIComponent(checksum)}&revogada_em=is.null&select=secao,dispensada_por,dispensada_em`;
+  const resposta = await fetch(url, { headers: headers(config) });
+  if (!resposta.ok) throw new Error(`leitura_dispensas_http_${resposta.status}`);
+  return (await resposta.json() as Array<Record<string, unknown>>)
+    .filter((linha) => typeof linha.secao === 'string')
+    .map((linha) => ({
+      secao: String(linha.secao),
+      por: typeof linha.dispensada_por === 'string' ? linha.dispensada_por : null,
+      em: typeof linha.dispensada_em === 'string' ? linha.dispensada_em : null,
+    }));
+}
+
 export async function conferirEstadoEditorial(
   relatorioId: string,
   checksum: string,
   snapshot: SnapshotMontado,
   config: ConfiguracaoEditorial,
 ): Promise<ResumoEditorialRA4> {
-  const sugestoes = await lerSugestoesEditoriais(relatorioId, checksum, config);
-  return resumoEditorialDaRevisao(snapshot, sugestoes);
+  const [sugestoes, dispensas] = await Promise.all([
+    lerSugestoesEditoriais(relatorioId, checksum, config),
+    lerDispensasVigentes(relatorioId, checksum, config),
+  ]);
+  return resumoEditorialDaRevisao(snapshot, sugestoes, dispensas.map((item) => item.secao));
 }
