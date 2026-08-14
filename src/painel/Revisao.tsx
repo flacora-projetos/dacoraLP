@@ -27,6 +27,7 @@ import { AnaliseIntroducao, type AcaoDaIntroducao, type SugestaoDaIntroducao } f
 import {
   AnaliseDaSecao,
   AnalisesSecaoProvider,
+  DispensaDaSecao,
   type AcaoAnalisesUI,
   type ResultadoAnalisesUI,
   type SugestaoSecao,
@@ -79,12 +80,18 @@ export function RevisaoApresentada({
         rotulo: formatarCompetencia(relatorio.competencia),
         publicada: relatorio.estado === 'liberado' || relatorio.estado === 'enviado',
       }]}
-      introducaoDaRevisao={aoAnalisarIntroducao && relatorio.podeDecidir ? <AnaliseIntroducao
-        original={introducaoOriginal}
-        podeRevisar={relatorio.podeDecidir === true}
-        aoAcionar={aoAnalisarIntroducao}
-        aoMudarTexto={setIntroducaoRevisada}
-      /> : undefined}
+      introducaoDaRevisao={aoAnalisarIntroducao && relatorio.podeDecidir ? <>
+        <AnaliseIntroducao
+          original={introducaoOriginal}
+          podeRevisar={relatorio.podeDecidir === true}
+          aoAcionar={aoAnalisarIntroducao}
+          aoMudarTexto={setIntroducaoRevisada}
+        />
+        {/* A introdução é seção obrigatória como qualquer bloco, e por isso
+            também precisa da saída "revisada sem análise". A caneta dela tem
+            endpoint próprio; a dispensa é a mesma das seções. */}
+        <DispensaDaSecao secao="introducao" titulo="Introdução" />
+      </> : undefined}
       analiseDaSecao={aoAnalisarSecoes && relatorio.podeDecidir ? renderizarAnaliseDaSecao : undefined}
     />
   ) : null;

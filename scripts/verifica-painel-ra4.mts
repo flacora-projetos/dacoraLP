@@ -1,14 +1,23 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import handler from '../api/painel-decisao.ts';
 import handlerReabrir from '../api/painel-reabrir-edicao.ts';
+/**
+ * As funções vêm da porta de produção (`api/_painel-estado-editorial.ts`), não
+ * do módulo de origem: o que este script exercita precisa ser literalmente o
+ * que a função serverless executa. A igualdade de referência logo abaixo prova
+ * que continua existindo uma implementação só.
+ */
 import {
   estadoEditorialDaSugestao,
   resumoEditorialDaRevisao,
   secoesEditoriaisObrigatorias,
+  estadoEditorialDaSecao,
   type SugestaoEditorialPersistida,
-} from '../src/painel/estadoEditorial.ts';
+} from '../api/_painel-estado-editorial.ts';
+import * as autoridadeDeOrigem from '../src/painel/estadoEditorial.ts';
 import DecisaoDaRevisao from '../src/painel/DecisaoDaRevisao.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 
@@ -16,6 +25,57 @@ const ID = '22222222-2222-4222-8222-222222222222';
 const CHECKSUM = 'abc123def456abc123def456abc123de';
 const EMAIL = 'pessoa.autorizada@exemplo.com';
 const MOTIVO = 'A seção de Meta precisa ser revista antes de gerar uma nova versão.';
+
+/* A cadeia de importação da função serverless precisa carregar extensão
+   explícita em todo import relativo de valor. Sem isso o módulo resolve no
+   `tsx` e no Vite, passa em tudo aqui, e só quebra no deploy — que foi
+   exatamente o que levou alguém a duplicar a regra em vez de corrigir o
+   caminho. Import só de tipo é apagado na compilação e fica de fora. */
+{
+  const raiz = new URL('..', import.meta.url);
+  const naCadeia = [
+    'api/_painel-estado-editorial.ts',
+    'src/painel/estadoEditorial.ts',
+    'src/reports/blocos/analise.ts',
+  ];
+  for (const arquivo of naCadeia) {
+    const fonte = readFileSync(new URL(arquivo, raiz), 'utf8');
+    for (const linha of fonte.split('\n')) {
+      if (/^\s*import\s+type\b/.test(linha)) continue;
+      const especificador = /\bfrom\s+'(\.[^']*)'/.exec(linha)?.[1];
+      if (!especificador) continue;
+      assert.match(
+        especificador,
+        /\.(js|mjs|cjs|json)$/,
+        `${arquivo}: o import relativo '${especificador}' precisa de extensão explícita para sobreviver ao runtime da função serverless`,
+      );
+    }
+  }
+}
+
+/* Autoridade única: a função que a API executa e a função do módulo de origem
+   precisam ser o MESMO objeto. Se alguém reintroduzir uma cópia dentro de
+   `api/`, a igualdade de referência quebra aqui, antes do deploy. */
+assert.equal(
+  resumoEditorialDaRevisao,
+  autoridadeDeOrigem.resumoEditorialDaRevisao,
+  'a API precisa usar a mesma função de prontidão editorial da origem, não uma cópia',
+);
+assert.equal(
+  secoesEditoriaisObrigatorias,
+  autoridadeDeOrigem.secoesEditoriaisObrigatorias,
+  'a lista de seções obrigatórias não pode ter duas implementações',
+);
+assert.equal(
+  estadoEditorialDaSecao,
+  autoridadeDeOrigem.estadoEditorialDaSecao,
+  'a resolução de estado por seção não pode ter duas implementações',
+);
+assert.equal(
+  estadoEditorialDaSugestao,
+  autoridadeDeOrigem.estadoEditorialDaSugestao,
+  'o mapeamento de estados não pode ter duas implementações',
+);
 
 assert.equal(estadoEditorialDaSugestao(undefined), 'nao_iniciada');
 assert.equal(estadoEditorialDaSugestao('pronta'), 'sugerida');
@@ -45,6 +105,68 @@ const resumoPendente = resumoEditorialDaRevisao(karyneMontada202607, comSugestao
 assert.equal(resumoPendente.podeAprovar, false);
 assert.equal(resumoPendente.pendentes[0].secao, 'introducao');
 assert.equal(resumoPendente.pendentes[0].estado, 'sugerida');
+
+/* Achado 5 — gerar de novo não pode apagar a decisão humana anterior.
+   Cenário real: gera A, gera B, humano aplica A. B continua sendo a linha mais
+   nova e continua em `pronta`. A seção está resolvida e precisa contar como
+   resolvida. A ordem aqui é `gerado_em desc`, como vem do banco. */
+{
+  const secao = obrigatorias[1].secao;
+  const comSegundaGeracaoNaoRevista: SugestaoEditorialPersistida[] = [
+    { secao, estado: 'pronta', geradoEm: '2026-08-14T10:05:00Z' },
+    { secao, estado: 'aplicada', geradoEm: '2026-08-14T10:00:00Z' },
+  ];
+  assert.equal(
+    estadoEditorialDaSecao(comSegundaGeracaoNaoRevista),
+    'pronta',
+    'uma sugestão nova não revista não pode anular a que o humano aplicou',
+  );
+
+  const resumo = resumoEditorialDaRevisao(karyneMontada202607, [
+    ...todasProntas.filter((item) => item.secao !== secao),
+    ...comSegundaGeracaoNaoRevista,
+  ]);
+  assert.equal(resumo.podeAprovar, true, 'a aprovação não pode travar por causa de uma segunda geração');
+
+  /* Mas estado ilegível continua falhando fechado, inclusive por cima de uma
+     decisão válida: não dá para afirmar revisão completa sobre linha que não
+     sabemos ler. */
+  assert.equal(
+    estadoEditorialDaSecao([
+      { secao, estado: 'estado-que-ninguem-conhece' },
+      { secao, estado: 'aplicada' },
+    ]),
+    'falhou',
+  );
+}
+
+/* Achado 1 — "revisada sem análise" é decisão humana e conta como revisão.
+   Não é `desfeita`: desfazer continua devolvendo a seção para não iniciada. */
+{
+  const secao = obrigatorias[2].secao;
+  assert.equal(estadoEditorialDaSecao([], true), 'revisada_sem_analise');
+  assert.equal(estadoEditorialDaSecao([{ secao, estado: 'desfeita' }], false), 'nao_iniciada');
+  assert.equal(
+    estadoEditorialDaSecao([{ secao, estado: 'desfeita' }], true),
+    'revisada_sem_analise',
+    'dispensar depois de desfazer é uma decisão nova, não um resíduo',
+  );
+  assert.equal(
+    estadoEditorialDaSecao([{ secao, estado: 'pronta' }], true),
+    'revisada_sem_analise',
+    'a decisão de não publicar ganha de uma sugestão só gerada',
+  );
+
+  const semSugestaoNenhuma = todasProntas.filter((item) => item.secao !== secao);
+  assert.equal(
+    resumoEditorialDaRevisao(karyneMontada202607, semSugestaoNenhuma).podeAprovar,
+    false,
+    'seção sem decisão nenhuma continua bloqueando',
+  );
+  const comDispensa = resumoEditorialDaRevisao(karyneMontada202607, semSugestaoNenhuma, [secao]);
+  assert.equal(comDispensa.podeAprovar, true, 'dispensa registrada libera a aprovação');
+  assert.equal(comDispensa.secoes.find((item) => item.secao === secao)?.estado, 'revisada_sem_analise');
+}
 
 function relatorioDaTela(revisaoEditorial: typeof resumoPronto) {
   return {
@@ -100,6 +222,7 @@ const usuario = {
 };
 const fetchOriginal = globalThis.fetch;
 let sugestoesDoBanco = comSugestaoNaoRevisada;
+let dispensasDoBanco: string[] = [];
 let chamadas: Array<{ url: string; corpo: any }> = [];
 
 function linhaAprovada() {
@@ -169,6 +292,13 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
       gerado_em: `2026-08-13T22:${String(59 - indice).padStart(2, '0')}:00Z`,
     }))), { status: 200, headers: { 'content-type': 'application/json' } });
   }
+  if (url.includes('/rest/v1/relatorio_secoes_dispensadas?')) {
+    return new Response(JSON.stringify(dispensasDoBanco.map((secao) => ({
+      secao,
+      dispensada_por: EMAIL,
+      dispensada_em: '2026-08-14T09:00:00Z',
+    }))), { status: 200, headers: { 'content-type': 'application/json' } });
+  }
   if (url.includes('/rpc/decidir_relatorio')) {
     return new Response(JSON.stringify([{ relatorio_id: ID, ja_estava_assim: false }]), { status: 200, headers: { 'content-type': 'application/json' } });
   }
@@ -212,6 +342,34 @@ async function chamar(corpo: unknown) {
   assert.equal(saida.status, 200);
   assert.equal(saida.corpo.gravado, true);
   assert.equal(chamadas.filter((item) => item.url.includes('/rpc/decidir_relatorio')).length, 1);
+}
+
+/* A dispensa é lida no servidor, não vem da tela: a mesma pendência que
+   bloqueia sem dispensa passa a liberar com a dispensa gravada no banco. */
+{
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  dispensasDoBanco = ['introducao'];
+  const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'aprovar' });
+  assert.equal(saida.status, 200, 'seção revisada sem análise conta como revisada');
+  assert.equal(saida.corpo.gravado, true);
+  dispensasDoBanco = [];
+}
+
+/* Falha ao ler as dispensas não pode virar "ninguém dispensou nada": isso
+   travaria aprovação legítima e é o caminho pelo qual ausência vira zero. */
+{
+  sugestoesDoBanco = todasProntas;
+  const fetchAnterior = globalThis.fetch;
+  globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
+    if (String(entrada).includes('/rest/v1/relatorio_secoes_dispensadas?')) {
+      return new Response('erro interno', { status: 500 });
+    }
+    return fetchAnterior(entrada, init);
+  }) as typeof fetch;
+  const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'aprovar' });
+  assert.equal(saida.status, 502, 'leitura indisponível precisa falhar fechado, não liberar nem inventar lista vazia');
+  assert.equal(saida.corpo.gravado, false);
+  globalThis.fetch = fetchAnterior;
 }
 
 {

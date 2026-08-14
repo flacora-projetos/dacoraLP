@@ -92,6 +92,7 @@ const ROTULOS_ESTADO_EDITORIAL: Record<EstadoEditorialRA4, string> = {
   sugerida: 'sugestão aguardando revisão',
   editada: 'editada',
   pronta: 'pronta',
+  revisada_sem_analise: 'revisada sem análise',
   inconclusiva: 'inconclusiva revisada',
   falhou: 'falhou',
 };

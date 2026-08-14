@@ -9,6 +9,7 @@ import {
   lerPedidoAnaliseSecao,
 } from './_painel-analises-secao.js';
 import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.js';
+import { lerDispensasVigentes } from './_painel-estado-editorial.js';
 
 const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,substituido_por,revogado_em,conteudo';
 const FALHAS_DE_CONCORRENCIA = new Set(['checksum_divergente', 'versao_fora_de_revisao', 'sugestao_nao_encontrada']);
@@ -102,18 +103,60 @@ export default async function handler(req: Request, res: Response) {
     const linhaValida = validarLinhaParaAnalise(relatorio, pedido.checksum);
     if (!linhaValida.ok) return res.status(linhaValida.status).json(linhaValida);
     const espacos = espacosAnaliticosDoSnapshot(relatorio.conteudo);
+    const dispensavel = pedido.acao === 'dispensar' || pedido.acao === 'reverter_dispensa';
     const espaco = pedido.secao ? espacos.find((item) => item.secao === pedido.secao) : null;
-    if (pedido.secao && !espaco) return res.status(422).json({ erro: 'secao_sem_funcao_analitica', mensagem: 'Este bloco não tem função analítica cadastrada.' });
+    /* A dispensa vale para toda seção obrigatória, e a introdução é obrigatória
+       sem ser um bloco analítico — ela não aparece em `espacos`. */
+    const secaoObrigatoria = pedido.secao === 'introducao' || Boolean(espaco);
+    if (pedido.secao && !espaco && !(dispensavel && secaoObrigatoria)) {
+      return res.status(422).json({ erro: 'secao_sem_funcao_analitica', mensagem: 'Este bloco não tem função analítica cadastrada.' });
+    }
 
     if (req.method === 'GET') {
-      const [contexto, sugestoes] = await Promise.all([
+      const [contexto, sugestoes, dispensas] = await Promise.all([
         lerContextoMes(pedido.id, pedido.checksum, config),
         lerSugestoes(pedido.id, pedido.checksum, config),
+        lerDispensasVigentes(pedido.id, pedido.checksum, config),
       ]);
       return res.status(200).json({
         contexto: contexto ? { texto: contexto.contexto, atualizadoPor: contexto.atualizado_por, atualizadoEm: contexto.atualizado_em } : null,
         sugestoes,
+        dispensas,
         espacos: espacos.map(({ secao, blocoId, titulo, objetivo }) => ({ secao, blocoId, titulo, objetivo })),
+      });
+    }
+
+    if (dispensavel) {
+      const rpc = await fetch(`${config.urlSupabase}/rest/v1/rpc/registrar_dispensa_secao`, {
+        method: 'POST',
+        headers: { ...headers(config), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p_relatorio_id: pedido.id,
+          p_checksum_visto: pedido.checksum,
+          p_secao: pedido.secao,
+          p_por: acesso.email,
+          p_dispensar: pedido.acao === 'dispensar',
+        }),
+      });
+      if (!rpc.ok) {
+        const falha = await falhaDaRpc(rpc);
+        return res.status(falha.status).json({ erro: falha.erro, mensagem: falha.mensagem });
+      }
+      const [decidida] = await rpc.json();
+      if (!decidida || decidida.secao_decidida !== pedido.secao) {
+        return res.status(409).json({
+          erro: 'revisao_desatualizada',
+          mensagem: 'A revisão mudou antes de registrar esta decisão. Reabra o relatório.',
+        });
+      }
+      console.log(`[painel-analises-secao] ${pedido.acao} · ${pedido.id} · ${pedido.secao} · por ${acesso.email}`);
+      return res.status(200).json({
+        dispensa: {
+          secao: decidida.secao_decidida,
+          ativa: decidida.dispensa_ativa === true,
+          por: decidida.decidida_por ?? null,
+          em: decidida.decidida_em ?? null,
+        },
       });
     }
 
