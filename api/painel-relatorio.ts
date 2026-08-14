@@ -10,8 +10,7 @@ import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarItem, type LinhaDoBanco } from './_painel-fila-dados.js';
 import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
 import { resolverAudiosPrivados } from './_audios-relatorio.js';
-import { conferirEstadoEditorial } from './_painel-estado-editorial.js';
-import { resumoEditorialIndisponivel } from '../src/painel/estadoEditorial.js';
+import { conferirEstadoEditorial, resumoEditorialIndisponivel } from './_painel-estado-editorial.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
