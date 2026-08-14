@@ -9,13 +9,19 @@ import {
   extrairTextoAplicavel,
   lerPedidoEditorial,
 } from '../api/_painel-analise-introducao.ts';
-import { AnaliseIntroducao, type AcaoDaIntroducao } from '../src/painel/AnaliseIntroducao.tsx';
+import { AnaliseIntroducao, sugestaoDaIntroducaoEstaFechada, type AcaoDaIntroducao } from '../src/painel/AnaliseIntroducao.tsx';
 
 const ID = '33333333-3333-4333-8333-333333333333';
 const OUTRO_ID = '44444444-4444-4444-8444-444444444444';
 const SUGESTAO_ID = '55555555-5555-4555-8555-555555555555';
 const CHECKSUM = 'checksum-ra2-testado';
 const fetchOriginal = globalThis.fetch;
+
+assert.equal(sugestaoDaIntroducaoEstaFechada(null), false);
+assert.equal(sugestaoDaIntroducaoEstaFechada({ id: SUGESTAO_ID, estado: 'pronta', texto: 'Proposta', checksum: CHECKSUM }), false);
+assert.equal(sugestaoDaIntroducaoEstaFechada({ id: SUGESTAO_ID, estado: 'aplicada', texto: 'Aplicada', checksum: CHECKSUM }), true);
+assert.equal(sugestaoDaIntroducaoEstaFechada({ id: SUGESTAO_ID, estado: 'editada', texto: 'Editada', checksum: CHECKSUM }), true);
+assert.equal(sugestaoDaIntroducaoEstaFechada({ id: SUGESTAO_ID, estado: 'desfeita', texto: 'Desfeita', checksum: CHECKSUM }), true);
 
 const usuarioAutorizado = {
   id: 'usuario-teste', email: 'revisor@exemplo.com',
@@ -340,7 +346,8 @@ for (const acao of ['aplicar', 'editar', 'desfazer'] as const) {
         recebidas.push({ acao, texto });
         if (acao === 'carregar') return sugestaoInicial;
         if (acao === 'editar' && deveFalharAoSalvar) throw new Error('A edição não pôde ser salva.');
-        return { ...sugestaoInicial, estado: acao === 'editar' ? 'editada' : 'pronta', texto: texto ?? sugestaoInicial.texto };
+        const estado = acao === 'editar' ? 'editada' : acao === 'aplicar' ? 'aplicada' : acao === 'desfazer' ? 'desfeita' : 'pronta';
+        return { ...sugestaoInicial, estado, texto: texto ?? sugestaoInicial.texto };
       },
     }));
   });
@@ -369,15 +376,6 @@ for (const acao of ['aplicar', 'editar', 'desfazer'] as const) {
   assert.equal(campo.rows, 12, 'o campo começa com altura útil para revisar um resumo');
   assert.match(readFileSync(new URL('../src/painel/painel.css', import.meta.url), 'utf8'), /min-height:\s*clamp\(14rem, 48vh, 28rem\)/, 'a altura da edição precisa responder ao viewport');
 
-  const textoNovo = '  Texto novo enviado exatamente como foi digitado.  ';
-  escrever(campo, textoNovo);
-  clicar(botaoPor('Salvar edição'));
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.deepEqual(recebidas.at(-1), { acao: 'editar', texto: textoNovo }, 'salvar envia exatamente o texto novo ao handler');
-  assert.equal(textosAplicados.at(-1), textoNovo, 'a edição persistida atualiza a revisão');
-
-  clicar(botaoPor('Editar'));
-  campo = montagem.querySelector('textarea') as HTMLTextAreaElement;
   escrever(campo, '   ');
   const antesDoVazio = recebidas.length;
   clicar(botaoPor('Salvar edição'));
@@ -389,7 +387,7 @@ for (const acao of ['aplicar', 'editar', 'desfazer'] as const) {
   const antesDoCancelar = recebidas.length;
   clicar(botaoPor('Cancelar'));
   assert.equal(recebidas.length, antesDoCancelar, 'cancelar não persiste nada');
-  assert.match(montagem.textContent ?? '', /Texto novo enviado exatamente como foi digitado/, 'cancelar restaura a sugestão já salva');
+  assert.match(montagem.textContent ?? '', /Resumo inicial completo/, 'cancelar restaura a sugestão já persistida');
 
   clicar(botaoPor('Editar'));
   campo = montagem.querySelector('textarea') as HTMLTextAreaElement;
@@ -401,6 +399,25 @@ for (const acao of ['aplicar', 'editar', 'desfazer'] as const) {
   assert.match(montagem.querySelector('[role="alert"]')?.textContent ?? '', /A edição não pôde ser salva/);
   assert.equal((montagem.querySelector('textarea') as HTMLTextAreaElement).value, textoComErro, 'erro de salvar não perde o texto digitado');
   assert.deepEqual(recebidas.at(-1), { acao: 'editar', texto: textoComErro });
+
+  deveFalharAoSalvar = false;
+  const textoNovo = '  Texto novo enviado exatamente como foi digitado.  ';
+  escrever(campo, textoNovo);
+  clicar(botaoPor('Salvar edição'));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(recebidas.at(-1), { acao: 'editar', texto: textoNovo }, 'salvar envia exatamente o texto novo ao handler');
+  assert.equal(textosAplicados.at(-1), textoNovo, 'a edição persistida atualiza a revisão');
+  assert.equal(montagem.querySelector('textarea'), null, 'edição persistida fecha o estado de comparação');
+  assert.doesNotMatch(montagem.textContent ?? '', /OriginalSugestão/, 'a comparação não permanece aberta depois de salvar');
+  assert.match(montagem.textContent ?? '', /Revisão aplicada à introdução/);
+
+  clicar(botaoPor('Melhorar análise'));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  botaoPor('Aplicar na revisão');
+  clicar(botaoPor('Aplicar na revisão'));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.doesNotMatch(montagem.textContent ?? '', /Aplicar na revisão/, 'aplicar fecha a comparação em vez de deixá-la aberta');
+  assert.match(montagem.textContent ?? '', /Revisão aplicada à introdução/);
 
   flushSync(() => raiz.unmount());
   dom.window.close();

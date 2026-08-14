@@ -33,6 +33,7 @@ import {
 } from './AnalisesSecao';
 import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
 import { OPCOES_MODO_ANALISE, type ModoAnaliseUI } from './modoAnalise';
+import { afirmacoesDaIntroducaoRevisada } from './revisaoAnalise';
 
 export function RevisaoApresentada({
   relatorio,
@@ -58,7 +59,13 @@ export function RevisaoApresentada({
   const [introducaoRevisada, setIntroducaoRevisada] = useState<string | null>(null);
   const snapshotDaRevisao = useMemo(() => {
     if (!relatorio || !introducaoRevisada) return relatorio?.snapshot;
-    return { ...relatorio.snapshot, leitura: { ...relatorio.snapshot.leitura, resumoExecutivo: [{ texto: introducaoRevisada, sustentadaPor: [] }] } };
+    return {
+      ...relatorio.snapshot,
+      leitura: {
+        ...relatorio.snapshot.leitura,
+        resumoExecutivo: afirmacoesDaIntroducaoRevisada(introducaoRevisada),
+      },
+    };
   }, [relatorio, introducaoRevisada]);
   const introducaoOriginal = relatorio?.snapshot.leitura.resumoExecutivo.map((item) => item.texto).join('\n\n') ?? '';
   const espacosAnaliticos = useMemo(() => relatorio ? espacosAnaliticosDoSnapshot(relatorio.snapshot).map(({ secao, blocoId, titulo, objetivo }) => ({ secao, blocoId, titulo, objetivo })) : [], [relatorio]);
@@ -82,12 +89,12 @@ export function RevisaoApresentada({
     />
   ) : null;
   const seletorDeModelo = relatorio?.podeDecidir && modoAnalise && aoMudarModoAnalise ? (
-    <section className="dcp-modo-analise" aria-label="Modelo da analise assistida">
-      <label htmlFor="dcp-modo-analise">Modelo para a proxima geracao</label>
+    <section className="dcp-modo-analise" aria-label="Modelo da análise assistida">
+      <label htmlFor="dcp-modo-analise">Modelo de IA</label>
       <select id="dcp-modo-analise" value={modoAnalise} onChange={(evento) => aoMudarModoAnalise(evento.target.value as ModoAnaliseUI)}>
         {OPCOES_MODO_ANALISE.map((opcao) => <option key={opcao.valor} value={opcao.valor}>{opcao.rotulo}</option>)}
       </select>
-      <p>Comparacao manual: avalie utilidade analitica, aderencia ao escopo, sobrealcance, concisao e completude. Os modos explicitos nao usam fallback.</p>
+      <p>Usado nas próximas sugestões de revisão.</p>
     </section>
   ) : null;
   return <RevisaoMoldura

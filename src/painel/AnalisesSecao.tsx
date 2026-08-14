@@ -7,6 +7,10 @@ export interface ContextoMesSeguro { texto: string; atualizadoPor?: string; atua
 export type AcaoAnalisesUI = 'carregar' | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer';
 export interface ResultadoAnalisesUI { contexto?: ContextoMesSeguro | null; sugestoes?: SugestaoSecao[]; sugestao?: SugestaoSecao | null; espacos?: EspacoAnaliticoSeguro[]; }
 
+export function sugestaoDaSecaoEstaFechada(sugestao: SugestaoSecao | undefined): boolean {
+  return sugestao?.estado === 'aplicada' || sugestao?.estado === 'editada' || sugestao?.estado === 'desfeita';
+}
+
 interface EstadoAnalises {
   espacos: Map<string, EspacoAnaliticoSeguro>;
   sugestoes: Map<string, SugestaoSecao>;
@@ -72,9 +76,9 @@ export function AnalisesSecaoProvider({
     try {
       const resultado = await aoAcionar('gerar_todas');
       setSugestoes(mapaDeSugestoes(resultado.sugestoes ?? []));
-      setMensagem('Análises geradas em conjunto. Revise cada seção antes de aplicar.');
+      setMensagem('Análises das seções geradas. Revise cada proposta antes de aplicar.');
     } catch (erro) {
-      setMensagem(erro instanceof Error ? erro.message : 'As análises não puderam ser geradas.');
+      setMensagem(erro instanceof Error ? erro.message : 'As análises das seções não puderam ser geradas.');
     } finally { setOcupada(false); }
   }
 
@@ -95,31 +99,36 @@ export function AnalisesSecaoProvider({
   if (!podeRevisar) return <>{children}</>;
   return (
     <ContextoAnalises.Provider value={{ espacos: espacosMap, sugestoes, ocupada, mensagem, agir }}>
-      <aside className="dcp-analises-relatorio" aria-label="Análises assistidas do relatório">
+      <aside className="dcp-analises-relatorio" aria-label="Análises assistidas das seções do relatório">
         <div className="dcp-analises-relatorio__cabecalho">
           <div>
-            <p className="dcp-eyebrow">Contexto e análises</p>
-            <h3>Análises por seção</h3>
-            <p>O Sonnet lê o relatório inteiro e este contexto interno. A geração conjunta mantém as seções sob a mesma leitura editorial.</p>
+            <strong>Análises das seções</strong>
+            <p>Preenche as análises ao longo do relatório. A introdução continua no botão “Melhorar análise”.</p>
           </div>
-          <button type="button" className="dcp-botao dcp-botao--primario" disabled={ocupada || espacos.length === 0} onClick={() => void gerarTodas()}>
+          <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada} onClick={() => void gerarTodas()}>
             Gerar análises do relatório
           </button>
         </div>
-        <label htmlFor="dcp-contexto-mes"><strong>Contexto do mês</strong></label>
-        <textarea
-          id="dcp-contexto-mes"
-          rows={5}
-          value={contexto}
-          onChange={(evento) => setContexto(evento.target.value)}
-          placeholder="Ex.: houve promoção, mudança de página, falta de estoque ou alteração na qualidade dos leads."
-        />
-        <div className="dcp-analises-relatorio__rodape">
-          <span>Campo interno: não aparece ao cliente sem uma ação editorial explícita.</span>
-          <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada || contexto === contextoSalvo} onClick={() => void salvarContexto()}>
-            Salvar contexto
-          </button>
-        </div>
+        <details className="dcp-contexto-mes">
+          <summary>
+            <span><strong>Contexto do mês</strong><small>Opcional · usado nas próximas sugestões de revisão</small></span>
+          </summary>
+          <p>Adicione fatos internos que não aparecem nas plataformas. O modelo selecionado lê este contexto junto com o relatório.</p>
+          <label className="dcp-sr" htmlFor="dcp-contexto-mes">Contexto do mês</label>
+          <textarea
+            id="dcp-contexto-mes"
+            rows={4}
+            value={contexto}
+            onChange={(evento) => setContexto(evento.target.value)}
+            placeholder="Ex.: houve promoção, mudança de página, falta de estoque ou alteração na qualidade dos leads."
+          />
+          <div className="dcp-analises-relatorio__rodape">
+            <span>Interno: não aparece ao cliente sem ação editorial explícita.</span>
+            <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada || contexto === contextoSalvo} onClick={() => void salvarContexto()}>
+              Salvar contexto
+            </button>
+          </div>
+        </details>
         {mensagem && <p className="dcp-analises-relatorio__mensagem" aria-live="polite">{mensagem}</p>}
       </aside>
       {children}
@@ -153,7 +162,7 @@ export function AnaliseDaSecao({ secao }: { secao: string }) {
             ✎ Refinar análise
           </button>
         </div>
-        {sugestao && sugestao.estado !== 'desfeita' && (
+        {sugestao && !sugestaoDaSecaoEstaFechada(sugestao) && (
           <div className="dcp-analise-secao__sugestao">
             {sugestao.modelo && <small className="dcp-analise-modelo">{rotuloDaAuditoria(sugestao.modelo)}</small>}
             {editando ? <textarea aria-label={`Editar análise de ${espaco.titulo}`} rows={7} value={texto} onChange={(evento) => setTexto(evento.target.value)} /> : <p>{sugestao.texto}</p>}

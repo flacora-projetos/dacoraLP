@@ -4,6 +4,10 @@ import { rotuloDaAuditoria } from './modoAnalise';
 export type AcaoDaIntroducao = 'carregar' | 'gerar' | 'aplicar' | 'editar' | 'desfazer';
 export interface SugestaoDaIntroducao { id: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
 
+export function sugestaoDaIntroducaoEstaFechada(sugestao: SugestaoDaIntroducao | null): boolean {
+  return sugestao?.estado === 'aplicada' || sugestao?.estado === 'editada' || sugestao?.estado === 'desfeita';
+}
+
 export function AnaliseIntroducao({
   original,
   podeRevisar,
@@ -89,7 +93,10 @@ export function AnaliseIntroducao({
       {estado === 'carregando' && <p className="dcp-analise-introducao__estado" aria-live="polite">Carregando sugestão editorial…</p>}
       {mensagem && <p className="dcp-analise-introducao__erro" role="alert">{mensagem} O texto original permanece preservado.</p>}
       {sugestao?.estado === 'desfeita' && <p className="dcp-analise-introducao__estado" aria-live="polite">Sugestão desfeita. O texto original foi restaurado.</p>}
-      {sugestao && sugestao.estado !== 'desfeita' && (
+      {(sugestao?.estado === 'aplicada' || sugestao?.estado === 'editada') && (
+        <p className="dcp-analise-introducao__estado" aria-live="polite">Revisão aplicada à introdução. Use “Melhorar análise” para gerar uma nova proposta.</p>
+      )}
+      {sugestao && !sugestaoDaIntroducaoEstaFechada(sugestao) && (
         <div className="dcp-analise-introducao__comparacao">
           <div><strong>Original</strong><p>{original}</p></div>
           <div><strong>Sugestão</strong>{sugestao.modelo && <small className="dcp-analise-modelo">{rotuloDaAuditoria(sugestao.modelo)}</small>}{editando ? (

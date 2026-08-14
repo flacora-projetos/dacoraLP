@@ -10,7 +10,7 @@ import {
   lerPedidoAnaliseSecao,
 } from '../api/_painel-analises-secao.ts';
 import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.ts';
-import { AnaliseDaSecao, AnalisesSecaoProvider } from '../src/painel/AnalisesSecao.tsx';
+import { AnaliseDaSecao, AnalisesSecaoProvider, sugestaoDaSecaoEstaFechada } from '../src/painel/AnalisesSecao.tsx';
 
 const ID = '33333333-3333-4333-8333-333333333333';
 const SUGESTAO_ID = '55555555-5555-4555-8555-555555555555';
@@ -84,9 +84,17 @@ const html = renderToStaticMarkup(createElement(AnalisesSecaoProvider, {
     createElement(AnaliseDaSecao, { secao: 'bloco:glossario' }),
   ),
 }));
-assert.match(html, /Gerar análises do relatório/);
+assert.match(html, /Gerar análises do relatório/, 'a geração global continua disponível para preencher as análises das seções');
+assert.match(html, /A introdução continua no botão “Melhorar análise”/, 'a UX diferencia a geração das seções da revisão da introdução');
 assert.match(html, /Contexto do mês/);
+assert.match(html, /modelo selecionado lê este contexto/i);
+assert.doesNotMatch(html, /\bSonnet\b/, 'o contexto não pode prometer um provider fixo quando o modelo é selecionável');
 assert.equal((html.match(/aria-label="Refinar análise de/g) ?? []).length, 1, 'bloco sem função analítica não recebe caneta');
+assert.equal(sugestaoDaSecaoEstaFechada(undefined), false);
+assert.equal(sugestaoDaSecaoEstaFechada({ id: SUGESTAO_ID, secao: 'bloco:indicadores', estado: 'pronta', texto: 'Proposta', checksum: CHECKSUM }), false);
+assert.equal(sugestaoDaSecaoEstaFechada({ id: SUGESTAO_ID, secao: 'bloco:indicadores', estado: 'aplicada', texto: 'Aplicada', checksum: CHECKSUM }), true);
+assert.equal(sugestaoDaSecaoEstaFechada({ id: SUGESTAO_ID, secao: 'bloco:indicadores', estado: 'editada', texto: 'Editada', checksum: CHECKSUM }), true);
+assert.equal(sugestaoDaSecaoEstaFechada({ id: SUGESTAO_ID, secao: 'bloco:indicadores', estado: 'desfeita', texto: 'Desfeita', checksum: CHECKSUM }), true);
 
 const css = readFileSync(new URL('../src/painel/painel.css', import.meta.url), 'utf8');
 const cssRelatorio = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');

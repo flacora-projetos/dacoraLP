@@ -8,6 +8,7 @@ import handler, { montarRelatorioParaRevisao } from '../api/painel-relatorio.ts'
 import { resolverAudiosPrivados } from '../api/_audios-relatorio.ts';
 import { resolverMiniaturasPrivadas } from '../api/_miniaturas-relatorio.ts';
 import { RevisaoMoldura } from '../src/painel/RevisaoMoldura.tsx';
+import { afirmacoesDaIntroducaoRevisada } from '../src/painel/revisaoAnalise.ts';
 import BlocoAudioRelatorio from '../src/reports/blocos/BlocoAudioRelatorio.tsx';
 import { renderizarBloco } from '../src/reports/blocos/catalogo.tsx';
 import type { BlocoAudio, DadosDeBloco } from '../src/reports/blocos/tipos.ts';
@@ -91,9 +92,21 @@ const linha = {
 
 const relatorio = montarRelatorioParaRevisao(linha);
 assert.ok(relatorio, 'a linha válida precisa montar a revisão');
+assert.deepEqual(
+  afirmacoesDaIntroducaoRevisada('Primeiro achado.\n\nSegundo achado.\n\nTerceiro achado.').map((item) => item.texto),
+  ['Primeiro achado.', 'Segundo achado.', 'Terceiro achado.'],
+  'a introdução aplicada precisa preservar os parágrafos para manter a hierarquia tipográfica do resumo original',
+);
 assert.equal(relatorio.snapshot.publicacao.checksum, linha.checksum, 'checksum precisa vir da coluna persistida');
 assert.equal(relatorio.snapshot.identidade.clienteNome, 'Cliente Exemplo');
 assert.equal(montarRelatorioParaRevisao({ ...linha, conteudo: null }), null);
+
+{
+  const fonteRevisao = readFileSync(new URL('../src/painel/Revisao.tsx', import.meta.url), 'utf8');
+  assert.match(fonteRevisao, /Modelo de IA/);
+  assert.match(fonteRevisao, /Usado nas próximas sugestões de revisão/);
+  assert.doesNotMatch(fonteRevisao, /Modelo para a proxima geracao|Comparacao manual/);
+}
 
 {
   const comContexto: any = structuredClone(relatorio);
