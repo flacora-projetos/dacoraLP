@@ -7,6 +7,7 @@ import {
   chamarAnaliseIntroducao,
   contextoDaIntroducaoComMes,
   contextoDoSnapshot,
+  descreverJanelaDoRelatorio,
   extrairTextoAplicavel,
   lerPedidoEditorial,
 } from '../api/_painel-analise-introducao.ts';
@@ -90,6 +91,42 @@ assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Saída textual direta
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: 'Primeiro parágrafo.' }, { type: 'tool_use', text: 'Ignorado.' }, { type: 'text', text: 'Segundo parágrafo.' }]), 'Primeiro parágrafo.\n\nSegundo parágrafo.', 'todos os blocos textuais úteis precisam chegar à revisão');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '**Leitura** com {chaves} e `markdown`.' }]), '**Leitura** com {chaves} e `markdown`.', 'markdown e chaves não tornam texto útil inválido');
 assert.equal(extrairTextoAplicavel([{ type: 'text', text: '```json\n{"texto":"JSON truncado"\n```' }]), '```json\n{"texto":"JSON truncado"\n```', 'JSON imperfeito continua disponível para revisão humana');
+/**
+ * A JANELA REAL PRECISA CHEGAR À IA — regressão do defeito de 2026-08-15.
+ *
+ * O contexto levava só `competencia: '2026-08'`, e o modelo escrevia sobre um
+ * mês fechado num rascunho de catorze dias. A página sempre imprimiu o período
+ * certo; quem não o recebia era o modelo. Estes três casos falham se o campo
+ * voltar a sumir, se "parcial" deixar de ser dito, ou — o pior — se período
+ * ausente passar a ser lido como mês inteiro.
+ */
+const janelaParcial = descreverJanelaDoRelatorio(
+  { periodo: { inicio: '2026-08-01', fim: '2026-08-14' }, emAndamento: true, temDiaFechado: true },
+  '2026-08',
+);
+assert.equal(janelaParcial.declarada, true);
+assert.equal(janelaParcial.parcial, true);
+assert.equal(janelaParcial.dias, 14, 'o modelo precisa saber quantos dias o documento cobre');
+assert.match(janelaParcial.texto, /PARCIAL/);
+assert.match(janelaParcial.texto, /14 dias/);
+assert.equal(janelaParcial.emAndamento, true);
+
+// Mês fechado não pode ganhar aviso de parcial: alarme falso ensina a ignorar o campo.
+const janelaFechada = descreverJanelaDoRelatorio({ periodo: { inicio: '2026-07-01', fim: '2026-07-31' } }, '2026-07');
+assert.equal(janelaFechada.parcial, false);
+assert.equal(janelaFechada.dias, 31);
+assert.doesNotMatch(janelaFechada.texto, /PARCIAL/);
+assert.equal('emAndamento' in janelaFechada, false, 'snapshot sem o campo não pode ganhar um valor inventado');
+
+// Período truncado sem `emAndamento` declarado ainda é parcial: quem decide são as datas.
+assert.equal(descreverJanelaDoRelatorio({ periodo: { inicio: '2026-08-01', fim: '2026-08-10' } }, '2026-08').parcial, true);
+
+// ⚠️ Ausência nunca vira "mês inteiro".
+const janelaAusente = descreverJanelaDoRelatorio({}, '2026-08');
+assert.equal(janelaAusente.declarada, false);
+assert.match(janelaAusente.texto, /não presuma que ele cobre o mês inteiro/i);
+
+assert.equal((contexto.identidade as any).janela?.declarada, false, 'a janela viaja no contexto entregue ao modelo');
 assert.match(JSON.stringify(contexto.leituraDoRelatorio), /critério de lead mais restrito/);
 assert.equal(contexto.resumoDoMes?.familia, 'lead_ou_trafego');
 assert.equal((contexto.funilLeadsMensagens as any)?.gargalo?.taxa, 0.16);

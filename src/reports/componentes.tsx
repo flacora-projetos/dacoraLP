@@ -249,12 +249,20 @@ export function Secao({
   indice,
   titulo,
   apoio,
+  nota,
   children,
   id,
 }: {
   indice: string;
   titulo: string;
+  /** A abertura: uma linha, no cabeçalho. */
   apoio?: string;
+  /**
+   * A ressalva de leitura, ao PÉ da seção. Separada da abertura em 2026-08-15:
+   * a ressalva só faz sentido depois que o leitor viu o número a que ela se
+   * refere, e no cabeçalho ela empurrava os números para baixo da dobra.
+   */
+  nota?: string;
   children: ReactNode;
   id?: string;
 }) {
@@ -272,6 +280,7 @@ export function Secao({
         </div>
       </header>
       {children}
+      {nota && <p className="dc-secao__nota">{textoParaCliente(nota)}</p>}
     </section>
   );
 }

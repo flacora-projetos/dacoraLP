@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provider.js';
 
-export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v3_contexto_mes_conciso';
+export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v4_janela_declarada';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACOES = new Set(['gerar', 'aplicar', 'editar', 'desfazer']);
 const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
@@ -132,6 +132,100 @@ function projetarContextoLegado(linha: LinhaAnalise) {
   return { versao: 'analysis_context_v1', competencia: linha.competencia, fatos, relacoes, limitacoes };
 }
 
+/**
+ * A JANELA REAL DO DOCUMENTO, EM PORTUGUÊS, DENTRO DO CONTEXTO DA IA.
+ *
+ * O modelo recebia só `competencia: '2026-08'` e escrevia como se o mês
+ * estivesse fechado — inclusive num rascunho gerado no dia 15, cobrindo
+ * catorze dias. A página nunca errou: ela imprime `identidade.periodo`. Quem
+ * não recebia o período era a IA, e o número que ela via ("investimento de
+ * R$ 176,80") é metade de um mês, não um mês.
+ *
+ * As datas são FATO do documento, e a frase é derivada delas — não da
+ * intenção de quem gerou. `emAndamento`/`temDiaFechado` só viajam quando o
+ * snapshot os declara: documento anterior à cadência não os tem, e assumir
+ * `false` seria afirmar "mês fechado" sobre algo que ninguém escreveu.
+ *
+ * ⚠️ Sem período declarado a frase diz isso e MANDA NÃO PRESUMIR mês inteiro.
+ * Ausência aqui não pode virar "cobre tudo", que é a leitura confortável e
+ * errada.
+ */
+function ultimoDiaDaCompetencia(competencia: string): string | null {
+  const casa = /^(\d{4})-(\d{2})$/.exec(competencia ?? '');
+  if (!casa) return null;
+  const ano = Number(casa[1]);
+  const mes = Number(casa[2]);
+  if (mes < 1 || mes > 12) return null;
+  const ultimo = new Date(Date.UTC(ano, mes, 0));
+  return ultimo.toISOString().slice(0, 10);
+}
+
+function diaValido(valor: unknown): string | null {
+  return typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor) && !Number.isNaN(Date.parse(`${valor}T00:00:00Z`))
+    ? valor
+    : null;
+}
+
+function formatarDia(iso: string): string {
+  const [ano, mes, dia] = iso.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+export interface JanelaDoRelatorio {
+  /** Falso = o documento não declara período. Nunca leia isso como "mês inteiro". */
+  declarada: boolean;
+  inicio?: string;
+  fim?: string;
+  dias?: number;
+  /** Verdadeiro = o mês ainda não fechou e os números vão crescer. */
+  parcial?: boolean;
+  emAndamento?: boolean;
+  temDiaFechado?: boolean;
+  /** A frase que o modelo lê. É ela que proíbe falar do mês como fechado. */
+  texto: string;
+}
+
+export function descreverJanelaDoRelatorio(identidade: any, competencia: string): JanelaDoRelatorio {
+  const periodo = identidade?.periodo;
+  const inicio = diaValido(periodo?.inicio);
+  const fim = diaValido(periodo?.fim);
+  const declarados = {
+    ...(typeof identidade?.emAndamento === 'boolean' ? { emAndamento: identidade.emAndamento } : {}),
+    ...(typeof identidade?.temDiaFechado === 'boolean' ? { temDiaFechado: identidade.temDiaFechado } : {}),
+  };
+
+  if (!inicio || !fim) {
+    return {
+      declarada: false,
+      ...declarados,
+      texto:
+        'O período coberto por este relatório não está declarado no documento. Não presuma que ele cobre o mês inteiro ' +
+        'e não escreva nada que dependa de o mês estar fechado.',
+    };
+  }
+
+  const dias = Math.round((Date.parse(`${fim}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86_400_000) + 1;
+  const ultimoDia = ultimoDiaDaCompetencia(competencia);
+  const parcial = declarados.emAndamento === true || (ultimoDia !== null && fim < ultimoDia);
+  const intervalo = `${formatarDia(inicio)} a ${formatarDia(fim)}`;
+
+  return {
+    declarada: true,
+    inicio,
+    fim,
+    dias,
+    parcial,
+    ...declarados,
+    texto: parcial
+      ? `ATENÇÃO: este relatório é PARCIAL. Ele cobre ${intervalo}, ou seja ${dias} ${dias === 1 ? 'dia' : 'dias'} do mês, ` +
+        'e não o mês inteiro — o mês ainda está em andamento e os números vão crescer até o fechamento. ' +
+        'Todo número aqui é o acumulado até essa data. Não escreva "no mês", "o mês fechou", "no fim do mês" ' +
+        'nem projete o resultado final; fale do período medido. A comparação, quando existir, já é contra o ' +
+        'mesmo intervalo de dias do mês anterior, e não contra o mês anterior inteiro.'
+      : `Este relatório cobre ${intervalo}, o mês fechado (${dias} dias).`,
+  };
+}
+
 export function contextoDoSnapshot(linha: LinhaAnalise) {
   const embutido = linha.conteudo?.analysisContext;
   const contexto = embutido?.versao === 'analysis_context_v1' && Array.isArray(embutido.fatos)
@@ -147,7 +241,12 @@ export function contextoDoSnapshot(linha: LinhaAnalise) {
   const dados = linha.conteudo?.dados;
   return {
     versao: contexto.versao,
-    identidade: { clienteNome: identidade.clienteNome, competencia: linha.competencia, tipoRelatorio: typeof identidade.tipoRelatorio === 'string' ? identidade.tipoRelatorio : null },
+    identidade: {
+      clienteNome: identidade.clienteNome,
+      competencia: linha.competencia,
+      tipoRelatorio: typeof identidade.tipoRelatorio === 'string' ? identidade.tipoRelatorio : null,
+      janela: descreverJanelaDoRelatorio(identidade, linha.competencia),
+    },
     introducaoAtual: original,
     leituraDoRelatorio: leitura && typeof leitura === 'object' ? {
       destaques: Array.isArray(leitura.destaques) ? leitura.destaques : [],
@@ -225,7 +324,7 @@ export async function chamarAnaliseIntroducao(contexto: NonNullable<ReturnType<t
   const resposta = await gerarAnaliseAssistida({
     operacao: 'introducao',
     modo,
-    system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Leia a introdução atual, os fatos, as relações, o contexto interno do mês e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione apenas os dois ou três achados mais importantes; use o contexto do mês quando ele ajudar a explicar ou qualificar um achado e não o ignore quando for material. Investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela, não faça lista e evite encadear ideias por ponto e vírgula. Prefira frases curtas e poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.',
+    system: 'Você é um analista de performance revisando a introdução de um relatório mensal em português do Brasil. Antes de qualquer coisa, leia "identidade.janela": ela diz o período exato que este documento cobre e se ele é parcial. Quando for parcial, o mês NÃO fechou — escreva sobre o período medido, nunca sobre "o mês", e não projete o resultado final. Leia a introdução atual, os fatos, as relações, o contexto interno do mês e as demais leituras já presentes no relatório. Produza um resumo básico, sucinto e direto ao ponto para o cliente. Selecione apenas os dois ou três achados mais importantes; use o contexto do mês quando ele ajudar a explicar ou qualificar um achado e não o ignore quando for material. Investigue somente relações ou hipóteses úteis para entendê-los e, quando algo for hipótese, escreva como possibilidade, não como fato confirmado. Não detalhe cada métrica ou tabela, não faça lista e evite encadear ideias por ponto e vírgula. Prefira frases curtas e poucos parágrafos completos. Responda em texto puro, pronto para comparação e revisão humana. Não use JSON nem explique o formato da resposta.',
     conteudo: JSON.stringify(contexto),
     interpretar: (texto) => extrairTextoAplicavel([{ type: 'text', text: texto }]) || null,
   });

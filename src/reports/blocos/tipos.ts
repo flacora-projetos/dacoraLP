@@ -541,7 +541,20 @@ interface BlocoBase {
   /** Único dentro da montagem. Vira o id da seção e o alvo de âncora. */
   id: string;
   titulo: string;
+  /**
+   * A ABERTURA da seção: uma linha, no cabeçalho, dizendo o que o leitor ganha
+   * ali. Sem metodologia e sem ressalva — essas vão em `nota`.
+   */
   apoio?: string;
+  /**
+   * A RESSALVA de leitura, ao pé da seção, em corpo menor.
+   *
+   * Separada de `apoio` em 2026-08-15, por decisão do Flávio: um campo só fazia
+   * a primeira frase sobre cada seção ser metodologia. Fica DEPOIS dos números
+   * porque é ali que ela é lida — ninguém lê a ressalva de um número que ainda
+   * não viu.
+   */
+  nota?: string;
   /**
    * Presente = a seção aparece dizendo o que falta, em vez de sumir ou de ser
    * preenchida com estimativa. Ausente = o bloco renderiza normalmente.

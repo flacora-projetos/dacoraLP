@@ -29,37 +29,32 @@ const TERMOS: TermoGlossario[] = [
   {
     id: 'investimento',
     termo: 'Investimento',
-    texto:
-      'Quanto foi efetivamente gasto na plataforma no período, já com os impostos que ela cobra.',
+    texto: 'Quanto foi gasto na plataforma no período, já com os impostos dela.',
   },
   {
     id: 'impressoes',
     termo: 'Impressões',
-    texto:
-      'Quantas vezes o anúncio apareceu na tela de alguém. Uma mesma pessoa pode ver várias vezes, então isso não é o número de pessoas alcançadas.',
+    texto: 'Quantas vezes o anúncio apareceu. A mesma pessoa pode ver várias vezes, então não é o número de pessoas.',
   },
   {
     id: 'alcance',
     termo: 'Alcance',
-    texto: 'Quantas pessoas diferentes viram o anúncio pelo menos uma vez no período.',
+    texto: 'Quantas pessoas diferentes viram o anúncio no período.',
   },
   {
     id: 'cpm',
     termo: 'CPM — custo por mil impressões',
-    texto:
-      'Quanto custou, em média, aparecer mil vezes. Serve para comparar o preço do espaço de anúncio entre períodos e entre campanhas.',
+    texto: 'Quanto custou, em média, aparecer mil vezes.',
   },
   {
     id: 'cliques',
     termo: 'Cliques',
-    texto:
-      'Quantas vezes alguém clicou no anúncio. A plataforma conta como clique também o toque em partes do anúncio que não levam ao site — por isso o número de cliques e o de visitas costumam ser diferentes.',
+    texto: 'Quantas vezes alguém clicou no anúncio — inclusive em partes que não levam ao site.',
   },
   {
     id: 'cpc',
     termo: 'CPC — custo por clique',
-    texto:
-      'Quanto custou, em média, cada clique. A fórmula exata usada neste relatório está impressa embaixo da tabela, porque ela muda de cliente para cliente: uns contam só os cliques que levam ao destino, outros contam todos.',
+    texto: 'Quanto custou, em média, cada clique. A fórmula usada está impressa junto da tabela.',
   },
   {
     id: 'ctr',
@@ -77,20 +72,17 @@ const TERMOS: TermoGlossario[] = [
      * tarde.
      */
     termo: 'Mensagens iniciadas (ou conversas iniciadas)',
-    texto:
-      'Quantas conversas novas começaram a partir do anúncio. Conta a conversa que se inicia, não a venda que ela pode ter gerado depois.',
+    texto: 'Quantas conversas novas começaram a partir do anúncio — não a venda que veio depois.',
   },
   {
     id: 'custo_por_mensagem',
     termo: 'Custo por mensagem (ou por conversa)',
-    texto:
-      'Quanto custou, em média, cada conversa iniciada. Neste relatório o investimento usado na conta é sempre o do mesmo recorte mostrado ao lado — se o bloco é de uma campanha, é o investimento daquela campanha.',
+    texto: 'Quanto custou, em média, cada conversa iniciada.',
   },
   {
     id: 'visitas_perfil',
     termo: 'Visitas ao perfil',
-    texto:
-      'Quantas vezes alguém abriu o perfil do Instagram depois de ver o anúncio. A Meta devolve esse número em qualquer campanha que passe pelo Instagram, inclusive nas que não foram feitas para isso — por isso ele só é apresentado como resultado onde a campanha realmente foi comprada para levar ao perfil.',
+    texto: 'Quantas vezes alguém abriu o perfil do Instagram depois de ver o anúncio.',
   },
   {
     id: 'custo_por_visita',
@@ -100,13 +92,12 @@ const TERMOS: TermoGlossario[] = [
   {
     id: 'conversoes',
     termo: 'Conversões',
-    texto:
-      'Quantas vezes alguém fez a ação que combinamos contar como resultado — abrir conversa, ligar, preencher formulário. A plataforma pode contar frações de conversão quando divide o crédito entre mais de um anúncio, e por isso o número às vezes não é inteiro.',
+    texto: 'Quantas vezes alguém fez a ação combinada como resultado. Pode vir quebrado quando a plataforma divide o crédito.',
   },
   {
     id: 'custo_por_conversao',
     termo: 'Custo por conversão',
-    texto: 'Quanto custou, em média, cada resultado obtido no período.',
+    texto: 'Quanto custou, em média, cada resultado do período.',
   },
   /**
    * Os quatro termos de venda entraram com o primeiro relatório de e-commerce
@@ -119,62 +110,52 @@ const TERMOS: TermoGlossario[] = [
   {
     id: 'compras',
     termo: 'Compras atribuídas',
-    texto:
-      'Quantas compras a plataforma reconhece como resultado dos anúncios dela, dentro da janela de tempo que ela mesma declara. É a contagem da plataforma, e não o número de pedidos que a loja registrou.',
+    texto: 'Compras que a plataforma reconhece como resultado dos anúncios dela — não os pedidos que a loja registrou.',
   },
   {
     id: 'receita_atribuida',
     termo: 'Receita atribuída',
-    texto:
-      'Quanto de venda a plataforma reivindica para si na janela dela. Duas plataformas podem reivindicar a mesma venda, então somar as receitas atribuídas não devolve o faturamento da loja.',
+    texto: 'A venda que a plataforma reivindica para si. Somar plataformas não devolve o faturamento da loja.',
   },
   {
     id: 'roas',
     termo: 'ROAS — retorno sobre o investimento em anúncios',
-    texto:
-      'Quantos reais de receita a plataforma atribui a si para cada real investido nela. Como a receita é a que ela própria reivindica, o ROAS é a leitura da plataforma sobre o resultado dela.',
+    texto: 'Quantos reais de receita a plataforma atribui a si para cada real investido nela.',
   },
   {
     id: 'custo_por_compra',
     termo: 'Custo por compra',
-    texto:
-      'Quanto foi investido, em média, para cada compra atribuída — sempre dentro do mesmo recorte mostrado ao lado do número.',
+    texto: 'Quanto foi investido, em média, para cada compra atribuída.',
   },
   {
     id: 'cpc_medio',
     termo: 'CPC médio',
-    texto:
-      'O valor médio pago por clique, calculado pela própria plataforma sobre o período inteiro.',
+    texto: 'O valor médio pago por clique, calculado pela própria plataforma.',
   },
   {
     id: 'impressao_topo',
     termo: 'Aparições no topo',
-    texto:
-      'De cada cem vezes que o anúncio apareceu, em quantas ele ficou acima dos resultados normais da busca.',
+    texto: 'De cada cem aparições, em quantas o anúncio ficou acima dos resultados da busca.',
   },
   {
     id: 'impressao_primeiro_lugar',
     termo: 'Aparições no primeiro lugar',
-    texto:
-      'De cada cem vezes que o anúncio apareceu, em quantas ele foi o primeiro anúncio da página.',
+    texto: 'De cada cem aparições, em quantas o anúncio foi o primeiro da página.',
   },
   {
     id: 'tipo_conversao',
     termo: 'Tipo de conversão',
-    texto:
-      'A separação dos resultados por tipo de ação: conversa iniciada, ligação, formulário. Serve para saber por onde as pessoas preferem entrar em contato.',
+    texto: 'Os resultados separados por tipo de ação: conversa, ligação, formulário.',
   },
   {
     id: 'palavra_chave',
     termo: 'Palavra-chave',
-    texto:
-      'O termo que a gente comprou na busca. É diferente do termo de pesquisa, que é o que a pessoa realmente digitou antes de o anúncio aparecer.',
+    texto: 'O termo que compramos na busca — diferente do que a pessoa realmente digitou.',
   },
   {
     id: 'regiao',
     termo: 'Investimento por região',
-    texto:
-      'Onde o dinheiro foi aplicado, segundo a localização que a plataforma atribuiu a cada exibição. Uma parte pode aparecer como não determinada: é a própria plataforma dizendo que não soube identificar a região desse valor.',
+    texto: 'Onde o dinheiro foi aplicado, pela localização que a plataforma atribuiu a cada exibição.',
   },
 ];
 
