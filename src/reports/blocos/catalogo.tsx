@@ -24,6 +24,7 @@ import B6QuebraPorDimensao from './B6QuebraPorDimensao';
 import B7Glossario from './B7Glossario';
 import B8ComentarioHumano from './B8ComentarioHumano';
 import BlocoAudioRelatorio from './BlocoAudioRelatorio';
+import BlocoFunil from './BlocoFunil';
 import BlocoIndisponivel from './BlocoIndisponivel';
 import type { BlocoConfigurado, DadosDeBloco } from './tipos';
 
@@ -100,6 +101,12 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
 
     case 'B7':
       return <B7Glossario config={config} />;
+
+    case 'FUNIL': {
+      const funil = ctx.dados.funis?.[config.funil];
+      if (!funil) return <DadoFaltando bloco="FUNIL" chave={config.funil} />;
+      return <BlocoFunil funil={funil} />;
+    }
 
     case 'B8': {
       /**

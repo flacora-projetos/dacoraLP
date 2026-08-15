@@ -400,6 +400,99 @@ export type AudioRelatorio =
     };
 
 /* ------------------------------------------------------------------ */
+/* Funil factual                                                       */
+/* ------------------------------------------------------------------ */
+
+export interface EtapaFunil {
+  id: string;
+  rotulo: string;
+  /** `null` quando a fonte não devolveu a etapa. Nunca é convertido para zero. */
+  valor: number | null;
+  medida?: boolean;
+  /** Por que a etapa não foi medida. Só existe quando `medida` é falso. */
+  motivo?: string;
+}
+
+export interface TransicaoFunil {
+  id: string;
+  de: string;
+  para: string;
+  taxa: number | null;
+  perda: number | null;
+  /**
+   * Por que esta passagem não tem taxa: etapa não medida, base zerada, ou
+   * etapa que superou a anterior. A página imprime este texto no lugar do
+   * percentual — número acima de 100% nunca chega até aqui.
+   */
+  motivo?: string;
+}
+
+export interface AvisoFunil {
+  id: string;
+  texto: string;
+}
+
+export interface GargaloFunil {
+  /**
+   * Nome HISTÓRICO, só do e-commerce, aposentado na fábrica em 2026-08-14
+   * quando os dois construtores de funil passaram a ser um só. Continua aqui
+   * porque snapshot gravado é imutável: os relatórios já persistidos com este
+   * campo têm que seguir abrindo.
+   */
+  transicaoId?: string;
+  /** Nome corrente, usado por todo funil gerado a partir de 2026-08-14. */
+  id?: string;
+  de: string;
+  para: string;
+  taxa: number | null;
+  perda: number | null;
+}
+
+export interface DesfechoFunil {
+  id: string;
+  rotulo: string;
+  valor: number;
+  /**
+   * Desfecho NÃO tem taxa, e a ausência é deliberada: novos seguidores não são
+   * atribuíveis ao anúncio, então uma porcentagem daria à mídia o crédito por
+   * quem chegou de outro lugar. O campo não existe de propósito.
+   */
+  observacao?: string;
+  /** Quando o desfecho é medido em janela diferente da das etapas. */
+  janela?: JanelaFunil;
+}
+
+export interface JanelaFunil {
+  competencia?: string;
+  inicio: string;
+  fim: string;
+  dias?: number;
+  reduzida?: boolean;
+  /** Janela móvel da fonte não coincide integralmente com a competência do relatório. */
+  foraDaCompetencia?: boolean;
+  limiteDaFonteDias?: number;
+}
+
+/**
+ * A página só apresenta este contrato. Taxas, gargalo, elegibilidade e janela
+ * já foram decididos pela fábrica; o portal não refaz a matemática.
+ */
+export interface FunilRelatorio {
+  id: string;
+  rotulo?: string;
+  fonte?: string;
+  etapas: EtapaFunil[];
+  transicoes: TransicaoFunil[];
+  gargalo: GargaloFunil | null;
+  regraDoGargalo?: string;
+  janela?: JanelaFunil;
+  desfechosAdicionais?: DesfechoFunil[];
+  observacao?: string;
+  /** Ressalvas de medição. Aparecem para o cliente, por decisão do PO. */
+  avisos?: AvisoFunil[];
+}
+
+/* ------------------------------------------------------------------ */
 /* A montagem                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -552,6 +645,16 @@ export interface BlocoB8 extends BlocoBase {
 }
 
 /**
+ * Funil factual compartilhado. Usa nome sem número porque B9–B11 já estão
+ * reservados no catálogo histórico da Sant'Alberti.
+ */
+export interface BlocoFunil extends BlocoBase {
+  bloco: 'FUNIL';
+  /** Id em `dados.funis`. */
+  funil: string;
+}
+
+/**
  * Leitura opcional do relatório. Não recebe número B9 porque B9–B11 já estão
  * reservados no catálogo para as seções da Sant'Alberti.
  */
@@ -570,6 +673,7 @@ export type BlocoConfigurado =
   | BlocoB6
   | BlocoB7
   | BlocoB8
+  | BlocoFunil
   | BlocoAudio;
 
 export type BlocoId = BlocoConfigurado['bloco'];
@@ -584,6 +688,11 @@ export interface DadosDeBloco {
   evolucoesMensais: Record<string, EvolucaoMensal>;
   rankingsCriativos: Record<string, RankingCriativos>;
   quebras: Record<string, QuebraPorDimensao>;
+  /**
+   * Funis calculados pela fábrica. Opcional para preservar snapshots gerados
+   * antes da RM5; montagem nova que pede FUNIL sempre aponta para esta coleção.
+   */
+  funis?: Record<string, FunilRelatorio>;
   /**
    * Séries diárias do B5. Ausente quando a montagem não tem nenhum — que é o
    * caso de três dos quatro relatórios montados.

@@ -444,6 +444,239 @@
   padding: clamp(1.5rem, 1rem + 2.6vw, 2.6rem);
 }
 
+/* ---------- Funil factual -------------------------------------------- */
+
+.dc-funil {
+  overflow: hidden;
+}
+
+.dc-funil__janela {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0 0 1.2rem;
+  font-size: 0.78rem;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__janela > span:first-child {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dc-funil__janela strong {
+  color: var(--dc-tinta);
+  font-weight: 600;
+}
+
+.dc-funil__etapas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dc-funil__passo {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+}
+
+.dc-funil__passo:last-child {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dc-funil__etapa {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dc-funil__ordem {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--dc-sage);
+}
+
+.dc-funil__rotulo {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__valor {
+  margin-top: auto;
+  padding-top: 0.45rem;
+  font-family: var(--dc-fonte-numero);
+  font-size: clamp(1.7rem, 1.25rem + 1.4vw, 2.25rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--dc-tinta);
+  font-weight: 500;
+}
+
+.dc-funil__transicao {
+  width: clamp(4.5rem, 6vw, 5.7rem);
+  padding-inline: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  text-align: center;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__seta {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.dc-funil__taxa {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--dc-tinta);
+}
+
+.dc-funil__gargalo {
+  font-size: 0.62rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dc-sinal);
+}
+
+.dc-funil__transicao[data-gargalo='true'] .dc-funil__seta,
+.dc-funil__transicao[data-gargalo='true'] .dc-funil__taxa {
+  color: var(--dc-sinal);
+}
+
+.dc-funil__desfechos {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dc-filete);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.8rem;
+}
+
+.dc-funil__desfecho {
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--dc-verde) 4%, transparent);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dc-funil__desfecho p,
+.dc-funil__motivo,
+.dc-funil__observacao {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+}
+
+/* Ausência é declarada, não gritada: tem o tamanho do número que substitui,
+   mas sem o peso, para não competir com as etapas que foram medidas. */
+.dc-funil__valor--ausente {
+  font-size: clamp(1rem, 0.85rem + 0.5vw, 1.2rem);
+  font-weight: 500;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__motivo {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+}
+
+.dc-funil__taxa--ausente {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__ressalvas {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--dc-sinal) 6%, transparent);
+  border-radius: 10px;
+}
+
+.dc-funil__ressalvas-titulo {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dc-sinal);
+}
+
+.dc-funil__ressalvas ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.dc-funil__ressalvas li {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+}
+
+.dc-funil__desfecho .dc-funil__valor {
+  margin-top: 0;
+}
+
+.dc-funil__observacao {
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--dc-filete);
+}
+
+@media (max-width: 720px) {
+  .dc-funil__etapas {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .dc-funil__passo,
+  .dc-funil__passo:last-child {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dc-funil__transicao {
+    width: auto;
+    min-height: 4.4rem;
+    padding-block: 0.45rem;
+  }
+
+  .dc-funil__seta {
+    transform: rotate(90deg);
+  }
+
+  .dc-funil__etapa {
+    width: 100%;
+  }
+}
+
 /* ---------- Resumo executivo ----------------------------------------- */
 
 .dc-resumo p {

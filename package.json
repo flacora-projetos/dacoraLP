@@ -22,6 +22,7 @@
     "verifica:ra4": "tsx scripts/verifica-painel-ra4.mts",
     "verifica:envio": "tsx scripts/verifica-painel-envio.mts",
     "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
+    "verifica:funil": "tsx scripts/verifica-relatorio-funil.mts",
     "verifica:linguagem": "tsx scripts/verifica-linguagem-relatorio.mts",
     "verifica:karyne-conversao": "tsx scripts/verifica-karyne-conversao-governada.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
