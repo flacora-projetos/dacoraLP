@@ -59,6 +59,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
           id: config.id,
           titulo: config.titulo,
           apoio: config.apoio,
+          nota: config.nota,
           conteudo: conteudo === null ? null : <>{conteudo}{analiseDaSecao?.(`bloco:${config.id}`)}</>,
         };
       })

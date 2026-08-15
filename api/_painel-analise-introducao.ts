@@ -171,7 +171,21 @@ function formatarDia(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-export function descreverJanelaDoRelatorio(identidade: any, competencia: string) {
+export interface JanelaDoRelatorio {
+  /** Falso = o documento não declara período. Nunca leia isso como "mês inteiro". */
+  declarada: boolean;
+  inicio?: string;
+  fim?: string;
+  dias?: number;
+  /** Verdadeiro = o mês ainda não fechou e os números vão crescer. */
+  parcial?: boolean;
+  emAndamento?: boolean;
+  temDiaFechado?: boolean;
+  /** A frase que o modelo lê. É ela que proíbe falar do mês como fechado. */
+  texto: string;
+}
+
+export function descreverJanelaDoRelatorio(identidade: any, competencia: string): JanelaDoRelatorio {
   const periodo = identidade?.periodo;
   const inicio = diaValido(periodo?.inicio);
   const fim = diaValido(periodo?.fim);

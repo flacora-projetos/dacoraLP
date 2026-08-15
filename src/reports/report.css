@@ -2693,6 +2693,81 @@
 
 /* ---------- B7: glossário ---------------------------------------------- */
 
+/*
+ * A NOTA DE SEÇÃO — a ressalva de leitura, ao pé, depois dos números.
+ *
+ * Separada da abertura em 2026-08-15. Ela é menor e mais apagada que o corpo
+ * de propósito: é ressalva, não conteúdo. O filete acima separa sem criar mais
+ * uma caixa numa página que já tem muitas.
+ */
+.dc-secao__nota {
+  margin: 1.25rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--dc-filete);
+  color: var(--dc-cinza);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  max-width: 68ch;
+}
+
+/*
+ * O GLOSSÁRIO RECOLHIDO — item 4 do PO, 2026-08-15: "está enorme".
+ *
+ * Ele fecha o relatório com um paredão de definições que a maioria dos leitores
+ * não precisa, empurrando o fim da página para longe. Recolhido, ele deixa de
+ * competir com o conteúdo e continua a um clique de quem tiver dúvida.
+ *
+ * `<details>` nativo, sem JavaScript: funciona com o teclado, com leitor de
+ * tela e na impressão. `open` na impressão para o PDF nunca sair com o
+ * glossário escondido — quem imprime não tem onde clicar.
+ */
+.dc-glossario__resumo {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dc-cinza);
+  padding: 0.5rem 0;
+  /* Alvo de toque confortável no celular, sem virar botão. */
+  min-height: 44px;
+}
+
+.dc-glossario__resumo::-webkit-details-marker {
+  display: none;
+}
+
+.dc-glossario__resumo::after {
+  content: '';
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-0.1rem, -0.1rem);
+  transition: transform 0.15s ease;
+}
+
+.dc-glossario__caixa[open] > .dc-glossario__resumo::after {
+  transform: rotate(-135deg) translate(-0.1rem, -0.1rem);
+}
+
+.dc-glossario__resumo:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+@media print {
+  .dc-glossario__caixa > .dc-glossario {
+    display: grid !important;
+  }
+
+  .dc-glossario__resumo::after {
+    display: none;
+  }
+}
+
 .dc-glossario {
   margin: 0;
   display: grid;

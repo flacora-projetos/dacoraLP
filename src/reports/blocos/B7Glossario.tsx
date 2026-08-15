@@ -21,14 +21,29 @@ export default function B7Glossario({ config }: { config: BlocoB7 }) {
   const termos = termosDoGlossario(config.metricas);
   if (termos.length === 0) return null;
 
+  /**
+   * RECOLHIDO POR PADRÃO — item 4 do PO, 2026-08-15: "está enorme".
+   *
+   * Nada foi removido da lista: o que muda é que ela para de competir com o
+   * relatório. Quem tem dúvida num termo abre; quem não tem chega ao fim da
+   * página sem atravessar um paredão de definições.
+   *
+   * `<details>` nativo, sem JavaScript — teclado, leitor de tela e impressão
+   * funcionam de graça, e o CSS força a abertura no papel, onde não há clique.
+   */
   return (
-    <dl className="dc-glossario">
-      {termos.map((termo) => (
-        <div className="dc-glossario__item" key={termo.id}>
-          <dt>{termo.termo}</dt>
-          <dd>{termo.texto}</dd>
-        </div>
-      ))}
-    </dl>
+    <details className="dc-glossario__caixa">
+      <summary className="dc-glossario__resumo">
+        Ver o que cada número quer dizer ({termos.length})
+      </summary>
+      <dl className="dc-glossario">
+        {termos.map((termo) => (
+          <div className="dc-glossario__item" key={termo.id}>
+            <dt>{termo.termo}</dt>
+            <dd>{termo.texto}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }

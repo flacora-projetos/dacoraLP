@@ -37,7 +37,10 @@ import './report.css';
 export interface SecaoRelatorio {
   id: string;
   titulo: string;
+  /** A abertura: uma linha, no cabeçalho. */
   apoio?: string;
+  /** A ressalva de leitura, ao pé da seção, em corpo menor. */
+  nota?: string;
   conteudo: ReactNode;
 }
 
@@ -182,6 +185,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
             id={secao.id}
             titulo={secao.titulo}
             apoio={secao.apoio}
+            nota={secao.nota}
           >
             {secao.conteudo}
           </Secao>
