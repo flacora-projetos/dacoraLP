@@ -20,7 +20,8 @@
  */
 
 import type { Metrica } from '../snapshot';
-import { Indicador } from '../componentes';
+import { Indicador, NotasDoBloco } from '../componentes';
+import { textoParaCliente } from './motivo-cliente';
 import { termoDoGlossario } from '../glossario';
 import { EtiquetaEscopo } from './escopo';
 import type { BlocoB1, FaixaIndicadores } from './tipos';
@@ -54,14 +55,60 @@ export default function B1FaixaIndicadores({ faixa, config }: Props) {
     descricao: config.descricaoSobNumero ? descricaoDe(metrica) : undefined,
   }));
 
+  /**
+   * A SEÇÃO É DE UMA PLATAFORMA SÓ? — 2026-08-15.
+   *
+   * Quando todos os números vêm da mesma fonte única, o "Via Meta Ads" sob cada
+   * um é repetição: o título da seção já diz. Faixa que mistura plataformas
+   * mantém a origem em cada número, porque ali ela distingue de verdade.
+   */
+  const fontesDaFaixa = new Set(
+    metricas.flatMap((metrica) => (metrica.origem.fontes.length === 1 ? metrica.origem.fontes : ['+'])),
+  );
+  const plataformaUnica = fontesDaFaixa.size === 1 && !fontesDaFaixa.has('+');
+
+  /**
+   * As fórmulas descem para o pé da faixa, com o nome da métrica na frente.
+   *
+   * Decisão do Flávio em 2026-08-15, ajustando a regra anterior de "a fórmula
+   * fica impressa junto do número": ela continua na mesma seção, a um palmo do
+   * valor, e para de empurrar os números para baixo. A do CPC é a que mais
+   * importa e a que mais se perdia no meio das outras — "cliques totais" e
+   * "cliques no link" dão números diferentes com o mesmo nome.
+   */
+  const formulas = metricas
+    .filter((metrica) => metrica.origem.formula && metrica.valor.estado === 'ok')
+    .map((metrica) => `${metrica.rotulo}: ${metrica.origem.formula}`);
+
   return (
     <>
       <EtiquetaEscopo escopo={faixa.escopo} />
       <div className="dc-kpis">
         {metricas.map((metrica) => (
-          <Indicador key={metrica.id} metrica={metrica} />
+          <Indicador key={metrica.id} metrica={metrica} origem={plataformaUnica ? 'oculto' : 'completo'} />
         ))}
       </div>
+      {/*
+       * ⚠️ **A LISTA DE FÓRMULAS NUNCA É RECOLHIDA**, e isso é uma correção de
+       * curso feita na conferência em tela.
+       *
+       * Ela chegou a usar `NotasDoBloco`, que recolhe a partir de três itens —
+       * e escondeu atrás de um clique a fórmula do CPC. É exatamente a que não
+       * pode se esconder: "cliques totais" e "cliques no link" dão números
+       * diferentes com o mesmo nome (na Aviarte, R$ 0,40 contra R$ 0,60), e a
+       * regra da casa manda a fórmula acompanhar o número.
+       *
+       * O PO pediu a fórmula "numa nota só, no pé da seção" — não pediu que ela
+       * sumisse. Recolher é para as notas descritivas da tabela, que são muitas
+       * e opcionais; a conta de um número publicado é outra coisa.
+       */}
+      {plataformaUnica && formulas.length > 0 && (
+        <ul className="dc-notas-tabela dc-formulas">
+          {formulas.map((formula) => (
+            <li key={formula}>{textoParaCliente(formula)}</li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

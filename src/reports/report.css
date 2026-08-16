@@ -2711,6 +2711,59 @@
 }
 
 /*
+ * NOTAS DE BLOCO RECOLHIDAS — 2026-08-15.
+ *
+ * A tabela de campanhas fechava com seis parágrafos de nota, mais longos que a
+ * própria tabela. A partir de três elas nascem recolhidas; uma ou duas
+ * continuam abertas, porque esconder o que se lê num relance troca ruído por
+ * clique. Mesmo mecanismo do glossário, sem JavaScript.
+ */
+.dc-notas-resumo {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  color: var(--dc-cinza);
+  padding: 0.4rem 0;
+  min-height: 44px;
+}
+
+.dc-notas-resumo::-webkit-details-marker {
+  display: none;
+}
+
+.dc-notas-resumo::after {
+  content: '';
+  width: 0.36rem;
+  height: 0.36rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-0.08rem, -0.08rem);
+  transition: transform 0.15s ease;
+}
+
+.dc-notas-caixa[open] > .dc-notas-resumo::after {
+  transform: rotate(-135deg) translate(-0.08rem, -0.08rem);
+}
+
+.dc-notas-resumo:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+@media print {
+  .dc-notas-caixa > .dc-notas-tabela {
+    display: block !important;
+  }
+
+  .dc-notas-resumo::after {
+    display: none;
+  }
+}
+
+/*
  * O GLOSSÁRIO RECOLHIDO — item 4 do PO, 2026-08-15: "está enorme".
  *
  * Ele fecha o relatório com um paredão de definições que a maioria dos leitores

@@ -25,6 +25,7 @@
 import { useId, useState } from 'react';
 import type { PlataformaId, SituacaoCampanha, Unidade, Valor } from '../snapshot';
 import { formatarParticipacao, textoValor } from '../format';
+import { NotasDoBloco } from '../componentes';
 import type { ChartTheme } from './chartTheme';
 
 export interface ColunaEntidade {
@@ -337,13 +338,11 @@ export default function TabelaDeEntidades({
         </tfoot>
       </table>
 
-      {notas && notas.length > 0 && (
-        <ul className="dc-notas-tabela">
-          {notas.map((nota) => (
-            <li key={nota}>{nota}</li>
-          ))}
-        </ul>
-      )}
+      <NotasDoBloco quantidade={notas?.length ?? 0}>
+        {(notas ?? []).map((nota) => (
+          <li key={nota}>{nota}</li>
+        ))}
+      </NotasDoBloco>
     </div>
   );
 }

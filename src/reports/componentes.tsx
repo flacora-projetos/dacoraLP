@@ -193,13 +193,38 @@ export function nomePlataforma(id: PlataformaId): string {
   return NOME_PLATAFORMA[id] ?? id;
 }
 
-export function OrigemExibida({ metrica }: { metrica: Metrica }) {
+/**
+ * `modo` decide o que sobra desta linha — 2026-08-15.
+ *
+ * Ela imprimia sempre "Via Meta Ads · investimento ÷ impressões × 1.000", sob
+ * CADA número. Numa faixa de seis indicadores isso são seis linhas de método,
+ * 332 caracteres, e o "Via Meta Ads" aparece seis vezes numa seção intitulada
+ * "Meta Ads em julho".
+ *
+ * - `completo`  — como sempre foi. É o padrão, então quem chama de fora não muda.
+ * - `sem-plataforma` — a seção inteira é de uma plataforma só e já diz isso no
+ *   título; sobra a fórmula, que é a parte que o leitor não tem como deduzir.
+ * - `oculto`   — a fórmula foi recolhida para o pé da seção (ver `B1FaixaIndicadores`).
+ */
+export function OrigemExibida({
+  metrica,
+  modo = 'completo',
+}: {
+  metrica: Metrica;
+  modo?: 'completo' | 'sem-plataforma' | 'oculto';
+}) {
+  if (modo === 'oculto') return null;
+
+  const formula = metrica.origem.formula ? textoParaCliente(metrica.origem.formula) : '';
+  if (modo === 'sem-plataforma') {
+    return formula ? <p className="dc-origem">{formula}</p> : null;
+  }
+
   const fontes = metrica.origem.fontes.map(nomePlataforma).join(' + ');
-  const formula = metrica.origem.formula ? ` · ${textoParaCliente(metrica.origem.formula)}` : '';
   return (
     <p className="dc-origem">
       Via {fontes}
-      {formula}
+      {formula ? ` · ${formula}` : ''}
     </p>
   );
 }
@@ -208,7 +233,14 @@ export function OrigemExibida({ metrica }: { metrica: Metrica }) {
 /* Indicador                                                           */
 /* ------------------------------------------------------------------ */
 
-export function Indicador({ metrica }: { metrica: Metrica }) {
+export function Indicador({
+  metrica,
+  origem = 'completo',
+}: {
+  metrica: Metrica;
+  /** Ver `OrigemExibida`. O padrão preserva o comportamento de quem já chamava. */
+  origem?: 'completo' | 'sem-plataforma' | 'oculto';
+}) {
   const plataforma =
     metrica.origem.fontes.length === 1 ? metrica.origem.fontes[0] : 'multiplataforma';
 
@@ -235,9 +267,38 @@ export function Indicador({ metrica }: { metrica: Metrica }) {
           direcao={metrica.direcaoFavoravel}
           unidade={metrica.unidade}
         />
-        <OrigemExibida metrica={metrica} />
+        <OrigemExibida metrica={metrica} modo={origem} />
       </div>
     </article>
+  );
+}
+
+/**
+ * NOTAS DE UM BLOCO — recolhidas quando são muitas.
+ *
+ * Fonte única para as listas que hoje aparecem em B2/B3/B4/B5/B6. A tabela de
+ * campanhas da Aviarte fecha com **seis parágrafos de nota, mais longos que a
+ * própria tabela**; a partir de três, elas passam a nascer recolhidas.
+ *
+ * Uma ou duas continuam abertas: são curtas, e esconder o que se lê num relance
+ * troca ruído por clique. `<details>` nativo, como o glossário — teclado,
+ * leitor de tela e impressão funcionam sem JavaScript.
+ */
+const NOTAS_ATE_ONDE_CABEM_ABERTAS = 2;
+
+export function NotasDoBloco({ quantidade, children }: { quantidade: number; children: ReactNode }) {
+  if (quantidade <= 0) return null;
+
+  const lista = <ul className="dc-notas-tabela">{children}</ul>;
+  if (quantidade <= NOTAS_ATE_ONDE_CABEM_ABERTAS) return lista;
+
+  return (
+    <details className="dc-notas-caixa">
+      <summary className="dc-notas-resumo">
+        Ver {quantidade === 1 ? 'a observação' : `as ${quantidade} observações`} desta seção
+      </summary>
+      {lista}
+    </details>
   );
 }
 
