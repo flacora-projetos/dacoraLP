@@ -21,6 +21,7 @@
 import EvolucaoNoTempo from '../charts/EvolucaoNoTempo';
 import type { ChartTheme } from '../charts/chartTheme';
 import type { Serie } from '../snapshot';
+import { NotasDoBloco } from '../componentes';
 
 interface Props {
   serie: Serie;
@@ -32,13 +33,11 @@ export default function B5SerieTemporal({ serie, theme }: Props) {
     <div className="dc-superficie">
       <EvolucaoNoTempo serie={serie} theme={theme} />
 
-      {serie.observacoes.length > 0 && (
-        <ul className="dc-notas-tabela">
-          {serie.observacoes.map((nota) => (
-            <li key={nota}>{nota}</li>
-          ))}
-        </ul>
-      )}
+      <NotasDoBloco quantidade={serie.observacoes.length}>
+        {serie.observacoes.map((nota) => (
+          <li key={nota}>{nota}</li>
+        ))}
+      </NotasDoBloco>
     </div>
   );
 }

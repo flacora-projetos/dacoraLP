@@ -27,6 +27,7 @@
 import ComparacaoEntreCanais from '../charts/ComparacaoEntreCanais';
 import type { ChartTheme } from '../charts/chartTheme';
 import { formatarCompetencia, textoValor } from '../format';
+import { NotasDoBloco } from '../componentes';
 import { textoParaCliente } from './motivo-cliente';
 import type { BlocoB3, EvolucaoMensal } from './tipos';
 
@@ -114,13 +115,11 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
           </p>
         )}
 
-        {definicoes.length > 0 && (
-          <ul className="dc-notas-tabela">
-            {definicoes.map((nota) => (
-              <li key={nota}>{nota}</li>
-            ))}
-          </ul>
-        )}
+        <NotasDoBloco quantidade={definicoes.length}>
+          {definicoes.map((nota) => (
+            <li key={nota}>{nota}</li>
+          ))}
+        </NotasDoBloco>
       </div>
     );
   }
@@ -184,13 +183,11 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
         </table>
       </div>
 
-      {definicoes.length > 0 && (
-        <ul className="dc-notas-tabela">
-          {definicoes.map((nota) => (
-            <li key={nota}>{nota}</li>
-          ))}
-        </ul>
-      )}
+      <NotasDoBloco quantidade={definicoes.length}>
+        {definicoes.map((nota) => (
+          <li key={nota}>{nota}</li>
+        ))}
+      </NotasDoBloco>
     </div>
   );
 }

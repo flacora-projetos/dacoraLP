@@ -28,6 +28,7 @@
 import ComparacaoEntreCanais, { type ItemCanal } from '../charts/ComparacaoEntreCanais';
 import type { ChartTheme } from '../charts/chartTheme';
 import { textoValor } from '../format';
+import { NotasDoBloco } from '../componentes';
 import { EtiquetaEscopo } from './escopo';
 import type { QuebraPorDimensao } from './tipos';
 
@@ -72,16 +73,14 @@ export default function B6QuebraPorDimensao({ quebra, theme }: Props) {
           </p>
         )}
 
-        {(comNota.length > 0 || (quebra.definicoes?.length ?? 0) > 0) && (
-          <ul className="dc-notas-tabela">
-            {comNota.map((item) => (
-              <li key={item.id}>
-                <strong>{item.rotulo}:</strong> {item.nota}
-              </li>
-            ))}
-            {quebra.definicoes?.map((nota) => <li key={nota}>{nota}</li>)}
-          </ul>
-        )}
+        <NotasDoBloco quantidade={comNota.length + (quebra.definicoes?.length ?? 0)}>
+          {comNota.map((item) => (
+            <li key={item.id}>
+              <strong>{item.rotulo}:</strong> {item.nota}
+            </li>
+          ))}
+          {quebra.definicoes?.map((nota) => <li key={nota}>{nota}</li>)}
+        </NotasDoBloco>
       </div>
     </>
   );

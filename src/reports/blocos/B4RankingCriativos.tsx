@@ -26,6 +26,7 @@
 import { useId, useState } from 'react';
 
 import { formatarDataExtenso, textoValor } from '../format';
+import { NotasDoBloco } from '../componentes';
 import { EtiquetaEscopo } from './escopo';
 import { motivoParaCliente } from './motivo-cliente';
 import type { RankingCriativos } from './tipos';
@@ -161,19 +162,17 @@ export default function B4RankingCriativos({ ranking }: { ranking: RankingCriati
         ))}
       </ol>
 
-      {(motivos.length > 0 || temSituacao) && (
-        <ul className="dc-notas-tabela">
-          {temSituacao && (
-            <li>
-              A situação de cada anúncio é a mais recente que conferimos, não a do período do
-              relatório: um anúncio pode ter rodado o mês inteiro e ter sido pausado depois.
-            </li>
-          )}
-          {motivos.map((motivo) => (
-            <li key={motivo}>{motivo}</li>
-          ))}
-        </ul>
-      )}
+      <NotasDoBloco quantidade={motivos.length + (temSituacao ? 1 : 0)}>
+        {temSituacao && (
+          <li key="situacao">
+            A situação de cada anúncio é a mais recente que conferimos, não a do período do
+            relatório: um anúncio pode ter rodado o mês inteiro e ter sido pausado depois.
+          </li>
+        )}
+        {motivos.map((motivo) => (
+          <li key={motivo}>{motivo}</li>
+        ))}
+      </NotasDoBloco>
     </>
   );
 }
