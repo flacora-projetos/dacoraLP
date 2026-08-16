@@ -160,7 +160,17 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
           indice={proximo()}
           id="resumo"
           titulo="Resumo do mês"
-          apoio="Os principais movimentos e resultados registrados no período."
+          /**
+           * ⚠️ A ABERTURA NÃO PODE ANUNCIAR O QUE O TEXTO LOGO ABAIXO VAI DIZER.
+           *
+           * Ela era "Os principais movimentos e resultados registrados no
+           * período", e o primeiro parágrafo — em corpo de display — começava
+           * com "O principal movimento observado foi:". Título, abertura e
+           * primeira frase diziam a mesma coisa, uma embaixo da outra, antes de
+           * qualquer número. O preâmbulo do parágrafo caiu na fábrica; aqui a
+           * abertura passa a dizer onde o leitor está, não o que vem a seguir.
+           */
+          apoio="Cada número aparece detalhado nas seções seguintes."
         >
           <div
             className={proposta === 'B' ? 'dc-destaque' : 'dc-superficie'}
