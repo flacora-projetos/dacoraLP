@@ -11,7 +11,9 @@ import {
   type LinhaAnalise,
 } from './_painel-analise-introducao.js';
 
-const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,substituido_por,revogado_em,conteudo';
+import { registrarRevisaoViva } from './_painel-revisao-viva.js';
+
+const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,checksum_factual_editorial,substituido_por,revogado_em,conteudo';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const config = { maxDuration: 180 };
@@ -137,8 +139,25 @@ export default async function handler(req: Request, res: Response) {
     }
     const [resultado] = resultadoRpc;
     if (!resultado) return res.status(409).json({ erro: 'revisao_desatualizada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' });
-    console.log(`[painel-analise-introducao] ${pedido.acao} · ${pedido.id} · por ${acesso.email}`);
-    return res.status(200).json({ sugestao: respostaSugestao(resultado, modelo) });
+    const sugestao = respostaSugestao(resultado, modelo);
+    /* A introdução é seção obrigatória como qualquer bloco, e a decisão dela
+       vira revisão durável pelo mesmo caminho. `gerar` e `desfazer` ficam de
+       fora pelas mesmas razões registradas em `painel-analises-secao.ts`. */
+    const registro = (pedido.acao === 'aplicar' || pedido.acao === 'editar')
+      && sugestao && (sugestao.estado === 'aplicada' || sugestao.estado === 'editada') && sugestao.texto
+      ? await registrarRevisaoViva({
+          relatorioId: pedido.id,
+          checksumDocumento: pedido.checksum,
+          checksumFactual: relatorio.checksum_factual_editorial ?? null,
+          secao: 'introducao',
+          tipoDecisao: 'analise',
+          texto: sugestao.texto,
+          por: acesso.email,
+          origemSugestaoId: sugestao.id ?? pedido.sugestaoId ?? null,
+        }, config)
+      : null;
+    console.log(`[painel-analise-introducao] ${pedido.acao} · ${pedido.id} · por ${acesso.email}${registro ? ` · av=${registro}` : ''}`);
+    return res.status(200).json({ sugestao });
   } catch (erro) {
     console.error('[painel-analise-introducao] falha:', erro instanceof Error ? erro.message : erro);
     return res.status(502).json({ erro: 'analise_indisponivel', mensagem: 'Não foi possível concluir a análise agora. O texto original foi preservado.' });

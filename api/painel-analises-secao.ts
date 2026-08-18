@@ -10,8 +10,9 @@ import {
 } from './_painel-analises-secao.js';
 import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.js';
 import { lerDispensasVigentes } from './_painel-estado-editorial.js';
+import { registrarRevisaoViva, salvarContextoVivo } from './_painel-revisao-viva.js';
 
-const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,substituido_por,revogado_em,conteudo';
+const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,checksum_factual_editorial,substituido_por,revogado_em,conteudo';
 const FALHAS_DE_CONCORRENCIA = new Set(['checksum_divergente', 'versao_fora_de_revisao', 'sugestao_nao_encontrada']);
 
 export const config = { maxDuration: 180 };
@@ -149,7 +150,23 @@ export default async function handler(req: Request, res: Response) {
           mensagem: 'A revisão mudou antes de registrar esta decisão. Reabra o relatório.',
         });
       }
-      console.log(`[painel-analises-secao] ${pedido.acao} · ${pedido.id} · ${pedido.secao} · por ${acesso.email}`);
+      /* "Revisada sem análise" é decisão editorial e vira revisão durável.
+         `reverter_dispensa` NÃO escreve no modelo AV: a RPC só sabe registrar
+         uma decisão nova, e não existe "estado anterior" para restaurar sem
+         inventar informação. Quem cobre isso é a prontidão, que deixa o legado
+         derrubar a revisão AV quando ele tem decisão explícita em contrário. */
+      const registro = pedido.acao === 'dispensar' && decidida.dispensa_ativa === true
+        ? await registrarRevisaoViva({
+            relatorioId: pedido.id,
+            checksumDocumento: pedido.checksum,
+            checksumFactual: relatorio.checksum_factual_editorial ?? null,
+            secao: pedido.secao!,
+            tipoDecisao: 'sem_analise',
+            texto: null,
+            por: acesso.email,
+          }, config)
+        : null;
+      console.log(`[painel-analises-secao] ${pedido.acao} · ${pedido.id} · ${pedido.secao} · por ${acesso.email}${registro ? ` · av=${registro}` : ''}`);
       return res.status(200).json({
         dispensa: {
           secao: decidida.secao_decidida,
@@ -171,7 +188,16 @@ export default async function handler(req: Request, res: Response) {
         return res.status(falha.status).json({ erro: falha.erro, mensagem: falha.mensagem });
       }
       const [salvo] = await rpc.json();
-      console.log(`[painel-analises-secao] salvar_contexto · ${pedido.id} · por ${acesso.email}`);
+      const registro = salvo
+        ? await salvarContextoVivo({
+            relatorioId: pedido.id,
+            checksumDocumento: pedido.checksum,
+            checksumFactual: relatorio.checksum_factual_editorial ?? null,
+            contexto: typeof salvo.contexto === 'string' ? salvo.contexto : (pedido.contexto ?? ''),
+            por: acesso.email,
+          }, config)
+        : null;
+      console.log(`[painel-analises-secao] salvar_contexto · ${pedido.id} · por ${acesso.email}${registro ? ` · av=${registro}` : ''}`);
       return res.status(200).json({ contexto: salvo ? { texto: salvo.contexto, atualizadoPor: salvo.atualizado_por, atualizadoEm: salvo.atualizado_em } : null });
     }
 
@@ -216,7 +242,27 @@ export default async function handler(req: Request, res: Response) {
     const resultado = await rpc.json();
     if (!Array.isArray(resultado) || resultado.length === 0) return res.status(409).json({ erro: 'revisao_desatualizada', mensagem: 'A revisão mudou antes de registrar esta ação. Reabra o relatório.' });
     const sugestoes = resultado.map((linha: any) => sugestaoDaLinha(linha, modelo));
-    console.log(`[painel-analises-secao] ${pedido.acao} · ${pedido.id} · ${sugestoes.length} seção(ões) · por ${acesso.email}`);
+    /* Aplicar e editar são as duas decisões que publicam texto. `gerar` é
+       proposta do modelo, não decisão, e `desfazer` derruba a decisão sem ter
+       o que colocar no lugar — nenhum dos dois vira revisão durável. O texto
+       registrado é o que a RPC devolveu, não o que a tela mandou: vale o que
+       ficou gravado. */
+    const decidida = (pedido.acao === 'aplicar' || pedido.acao === 'editar')
+      ? sugestoes.find((item: any) => item?.secao === pedido.secao)
+      : null;
+    const registro = decidida && (decidida.estado === 'aplicada' || decidida.estado === 'editada') && decidida.texto
+      ? await registrarRevisaoViva({
+          relatorioId: pedido.id,
+          checksumDocumento: pedido.checksum,
+          checksumFactual: relatorio.checksum_factual_editorial ?? null,
+          secao: decidida.secao,
+          tipoDecisao: 'analise',
+          texto: decidida.texto,
+          por: acesso.email,
+          origemSugestaoId: decidida.id ?? pedido.sugestaoId ?? null,
+        }, config)
+      : null;
+    console.log(`[painel-analises-secao] ${pedido.acao} · ${pedido.id} · ${sugestoes.length} seção(ões) · por ${acesso.email}${registro ? ` · av=${registro}` : ''}`);
     return res.status(200).json({ sugestoes, sugestao: sugestoes.length === 1 ? sugestoes[0] : undefined });
   } catch (erro) {
     console.error('[painel-analises-secao] falha:', erro instanceof Error ? erro.message : erro);

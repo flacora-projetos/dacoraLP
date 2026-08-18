@@ -9,7 +9,7 @@ const LIMIAR_RELEVANTE = 0.05;
 
 export type AcaoEditorial = 'gerar' | 'aplicar' | 'editar' | 'desfazer';
 export interface PedidoEditorial { id: string; checksum: string; acao: AcaoEditorial; sugestaoId?: string; texto?: string; modo?: ModoAnalise; }
-export interface LinhaAnalise { id: string; cliente_slug: string; competencia: string; versao: number; estado: string; checksum: string; substituido_por?: string | null; revogado_em?: string | null; conteudo: any; }
+export interface LinhaAnalise { id: string; cliente_slug: string; competencia: string; versao: number; estado: string; checksum: string; /** Impressão digital dos fatos (AV1). Nula em documento anterior à coleta viva. */ checksum_factual_editorial?: string | null; substituido_por?: string | null; revogado_em?: string | null; conteudo: any; }
 
 export function lerPedidoEditorial(bruto: unknown): { ok: true; pedido: PedidoEditorial } | { ok: false; erro: string; mensagem: string } {
   if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return { ok: false, erro: 'pedido_invalido', mensagem: 'A solicitação da análise está incompleta.' };

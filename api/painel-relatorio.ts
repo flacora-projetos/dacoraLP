@@ -164,8 +164,22 @@ export default async function handler(req: Request, res: Response) {
     let revisaoEditorial;
     try {
       revisaoEditorial = await conferirEstadoEditorial(
-        linha.id,
-        linha.checksum,
+        {
+          relatorioId: linha.id,
+          checksum: linha.checksum,
+          clienteSlug: linha.cliente_slug,
+          competencia: linha.competencia,
+          versao: linha.versao,
+          /* A view `painel_relatorios_com_correcao` não expõe
+             `checksum_factual_editorial` — ela é anterior à AV1, e ampliá-la
+             seria migration, fora do escopo desta fase. Sem esse campo, a
+             conferência extra de impressão digital divergente não roda AQUI;
+             ela roda no portão que decide, `painel-decisao.ts`, que lê
+             `relatorios` direto. A consequência está registrada no handoff:
+             nesta janela rara a tela pode mostrar "pronta" e a aprovação ainda
+             assim recusar — desconfortável, nunca permissivo. */
+          checksumFactual: null,
+        },
         relatorioBase.snapshot,
         { urlSupabase, chaveDeServico },
       );

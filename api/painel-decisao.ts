@@ -73,19 +73,27 @@ interface LinhaLida extends LinhaDecidida {
 
 interface LinhaParaEstadoEditorial {
   id: string;
+  cliente_slug: string;
+  competencia: string;
+  versao: number;
   checksum: string;
+  /** Nulo em documento anterior à AV1. Nulo é "não medido", nunca "igual". */
+  checksum_factual_editorial: string | null;
   estado: string;
   substituido_por: string | null;
   revogado_em: string | null;
   conteudo: any;
 }
 
+const COLUNAS_PRE_APROVACAO =
+  'id,cliente_slug,competencia,versao,checksum,checksum_factual_editorial,estado,substituido_por,revogado_em,conteudo';
+
 async function conferirProntidaoEditorialParaAprovacao(
   pedido: { id: string; checksumVisto: string },
   config: { urlSupabase: string; chaveDeServico: string },
 ) {
   const resposta = await fetch(
-    `${config.urlSupabase}/rest/v1/relatorios?id=eq.${pedido.id}&select=id,checksum,estado,substituido_por,revogado_em,conteudo&limit=1`,
+    `${config.urlSupabase}/rest/v1/relatorios?id=eq.${pedido.id}&select=${COLUNAS_PRE_APROVACAO}&limit=1`,
     { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } },
   );
   if (!resposta.ok) throw new Error(`leitura_pre_aprovacao_http_${resposta.status}`);
@@ -97,8 +105,14 @@ async function conferirProntidaoEditorialParaAprovacao(
     return { ok: false as const, status: 422, erro: 'conteudo_incompleto', mensagem: 'O conteúdo desta versão está incompleto e não pode ser aprovado.' };
   }
   const resumo = await conferirEstadoEditorial(
-    linha.id,
-    linha.checksum,
+    {
+      relatorioId: linha.id,
+      checksum: linha.checksum,
+      clienteSlug: linha.cliente_slug,
+      competencia: linha.competencia,
+      versao: linha.versao,
+      checksumFactual: linha.checksum_factual_editorial,
+    },
     linha.conteudo,
     config,
   );

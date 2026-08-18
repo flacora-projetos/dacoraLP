@@ -278,12 +278,19 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
   if (url.includes('/rest/v1/relatorios?')) {
     return new Response(JSON.stringify([{
       id: ID,
+      cliente_slug: 'cliente_exemplo',
+      competencia: '2026-07',
+      versao: 3,
       checksum: CHECKSUM,
+      checksum_factual_editorial: null,
       estado: 'gerado',
       substituido_por: null,
       revogado_em: null,
       conteudo: karyneMontada202607,
     }]), { status: 200, headers: { 'content-type': 'application/json' } });
+  }
+  if (url.includes('/rest/v1/relatorio_revisoes_editoriais?')) {
+    return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (url.includes('/rest/v1/relatorio_analise_sugestoes?')) {
     return new Response(JSON.stringify(sugestoesDoBanco.map((item, indice) => ({
