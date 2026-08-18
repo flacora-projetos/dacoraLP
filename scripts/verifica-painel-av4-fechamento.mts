@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import handler from '../api/painel-retencao-editorial.ts';
+import { readdirSync, readFileSync } from 'node:fs';
+import handler from '../api/painel-historico-analises.ts';
 import { traduzirErroDaFabrica } from '../api/_painel-envio-regras.ts';
 
 const ID = '22222222-2222-4222-8222-222222222222';
@@ -15,6 +15,9 @@ process.env.PAINEL_EMAILS_AUTORIZADOS = EMAIL;
 const decisao = readFileSync(new URL('../api/painel-decisao.ts', import.meta.url), 'utf8');
 const retencaoUi = readFileSync(new URL('../src/painel/RetencaoEditorial.tsx', import.meta.url), 'utf8');
 const moldura = readFileSync(new URL('../src/painel/RevisaoMoldura.tsx', import.meta.url), 'utf8');
+const historicoApi = readFileSync(new URL('../api/painel-historico-analises.ts', import.meta.url), 'utf8');
+const funcoesPublicas = readdirSync(new URL('../api/', import.meta.url))
+  .filter((nome) => nome.endsWith('.ts') && !nome.startsWith('_'));
 
 assert.match(decisao, /aprovar_e_fechar_relatorio_editorial/,
   'aprovação do portal precisa usar o RPC transacional AV4');
@@ -26,6 +29,10 @@ assert.match(retencaoUi, /A análise final, o fechamento,[\s\S]*recibos de envio
   'UI precisa explicar o que é preservado antes do descarte');
 assert.match(moldura, /<RetencaoEditorial/,
   'relatório fechado precisa expor a política de retenção na bancada interna');
+assert.match(historicoApi, /modo === 'retencao'[\s\S]*retencaoEditorialHandler/,
+  'retenção AV4 precisa compartilhar a função do histórico em vez de criar a 13ª Vercel Function');
+assert.equal(funcoesPublicas.length, 12,
+  `deployment Hobby precisa permanecer em 12 funções públicas; encontrou ${funcoesPublicas.length}: ${funcoesPublicas.join(', ')}`);
 
 const traducao = traduzirErroDaFabrica('fechamento_editorial_pendente');
 assert.equal(traducao.status, 409);
@@ -86,7 +93,7 @@ async function chamar(method: 'GET' | 'POST', body?: any) {
   const req: any = {
     method,
     headers: { authorization: 'Bearer sessao-de-teste' },
-    query: method === 'GET' ? { id: ID } : {},
+    query: method === 'GET' ? { id: ID, modo: 'retencao' } : {},
     body,
   };
   await handler(req, res);

@@ -1,9 +1,11 @@
 /**
  * AV4 — política de retenção do histórico editorial depois do fechamento final.
  *
- * GET lê apenas o recibo seguro. POST aceita somente a ação destrutiva explícita
- * de descartar histórico; o padrão `arquivar` nasce no fechamento e não exige
- * clique extra. Quem executa vem da sessão, nunca do navegador.
+ * Helper privado despachado por `/api/painel-historico-analises` com
+ * `modo=retencao`; permanece prefixado com `_` para não virar uma Vercel Function
+ * adicional. GET lê apenas o recibo seguro. POST aceita somente a ação destrutiva
+ * explícita de descartar histórico; o padrão `arquivar` nasce no fechamento e
+ * não exige clique extra. Quem executa vem da sessão, nunca do navegador.
  */
 import type { Request, Response } from 'express';
 import { conferirAcesso } from './_painel-autorizacao.js';

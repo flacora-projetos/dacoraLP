@@ -7,6 +7,7 @@
  */
 import type { Request, Response } from 'express';
 import { conferirAcesso } from './_painel-autorizacao.js';
+import retencaoEditorialHandler from './_painel-retencao-editorial.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -68,6 +69,15 @@ function linhaSegura(linha: Record<string, unknown>): RevisaoHistoricaSegura | n
 
 export default async function handler(req: Request, res: Response) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+  // AV4 compartilha esta função privada com o histórico AV3 para manter o
+  // deployment no teto de 12 Vercel Functions do plano Hobby. O contrato fica
+  // explícito pelo `modo=retencao`; POST nesta rota é reservado ao descarte AV4.
+  const modo = typeof req.query?.modo === 'string' ? req.query.modo : '';
+  if (req.method === 'POST' || (req.method === 'GET' && modo === 'retencao')) {
+    return retencaoEditorialHandler(req, res);
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ erro: 'metodo_nao_permitido' });
 
   const acesso = await conferirAcesso(req.headers['authorization']);

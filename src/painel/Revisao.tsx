@@ -375,7 +375,7 @@ export function RevisaoComSessao({
     }
     try {
       const resposta = await fetch(
-        `/api/painel-retencao-editorial?id=${encodeURIComponent(relatorioAtual.id)}`,
+        `/api/painel-historico-analises?modo=retencao&id=${encodeURIComponent(relatorioAtual.id)}`,
         { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } },
       );
       const corpo = await resposta.json().catch(() => null);
@@ -395,7 +395,7 @@ export function RevisaoComSessao({
       return { ok: false, mensagem: 'A sessão expirou nesta aba. Entre novamente e reabra a revisão.' };
     }
     try {
-      const resposta = await fetch('/api/painel-retencao-editorial', {
+      const resposta = await fetch('/api/painel-historico-analises', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${sessaoAtual.access_token}`,
