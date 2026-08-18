@@ -11,6 +11,7 @@ import DecisaoDaRevisao, {
 import EnvioDaRevisao, { type ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 import { useLinkDeVoltaParaFila } from './linkDeVolta';
 import type { ResumoEditorialRA4 } from './estadoEditorial';
+import { HistoricoAnalises, type HistoricoEditorialInterno } from './HistoricoAnalises';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -143,9 +144,11 @@ function FaixaDeRevisao({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao;
   quem?: string;
+  historicoAnalises?: HistoricoEditorialInterno | null;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
@@ -182,6 +185,7 @@ function FaixaDeRevisao({
         <ListaDeSinais sinais={relatorio.sinais} />
       </details>
       <ContextoDaAnalise contexto={relatorio.snapshot.analysisContext} />
+      <HistoricoAnalises historico={historicoAnalises} secoes={relatorio.revisaoEditorial?.secoes} />
       {podeOferecerDecisao ? (
         <DecisaoDaRevisao
           relatorio={{
@@ -224,9 +228,11 @@ export function RevisaoMoldura({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao | null;
   children?: ReactNode;
+  historicoAnalises?: HistoricoEditorialInterno | null;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
@@ -259,6 +265,7 @@ export function RevisaoMoldura({
           aoDecidir={aoDecidir}
           aoCarregarEnvio={aoCarregarEnvio}
           aoSolicitarEnvio={aoSolicitarEnvio}
+          historicoAnalises={historicoAnalises}
         />
         <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>
           {children}

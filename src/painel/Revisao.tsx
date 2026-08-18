@@ -35,6 +35,7 @@ import {
 import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
 import { OPCOES_MODO_ANALISE, type ModoAnaliseUI } from './modoAnalise';
 import { afirmacoesDaIntroducaoRevisada } from './revisaoAnalise';
+import type { HistoricoEditorialInterno } from './HistoricoAnalises';
 
 export function RevisaoApresentada({
   relatorio,
@@ -46,8 +47,10 @@ export function RevisaoApresentada({
   aoAnalisarSecoes,
   modoAnalise,
   aoMudarModoAnalise,
+  historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao | null;
+  historicoAnalises?: HistoricoEditorialInterno | null;
   quem?: string;
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
@@ -124,6 +127,7 @@ export function RevisaoApresentada({
     aoDecidir={aoDecidir}
     aoCarregarEnvio={aoCarregarEnvio}
     aoSolicitarEnvio={aoSolicitarEnvio}
+    historicoAnalises={historicoAnalises}
   ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
     <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} aoAcionar={aoAnalisarSecoes}>
       {documento}
@@ -147,6 +151,8 @@ export function RevisaoComSessao({
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
+  const [tentativaHistorico, setTentativaHistorico] = useState(0);
+  const [historicoAnalises, setHistoricoAnalises] = useState<HistoricoEditorialInterno | null>(null);
   const [modoAnalise, setModoAnalise] = useState<ModoAnaliseUI>('automatico');
   const linkDeVolta = useLinkDeVoltaParaFila();
   const sessaoAtualRef = useRef(sessao);
@@ -189,6 +195,39 @@ export function RevisaoComSessao({
     void carregar();
     return () => controle.abort();
   }, [relatorioId, tentativa, usuarioId]);
+
+  useEffect(() => {
+    const sessaoAtual = sessaoAtualRef.current;
+    if (!usuarioId || !sessaoAtual) return;
+    const controle = new AbortController();
+    setHistoricoAnalises(null);
+    void fetch(`/api/painel-historico-analises?id=${encodeURIComponent(relatorioId)}`, {
+      headers: { Authorization: `Bearer ${sessaoAtual.access_token}` },
+      signal: controle.signal,
+    }).then(async (resposta) => {
+      const corpo = await resposta.json().catch(() => null);
+      if (controle.signal.aborted) return;
+      if (!resposta.ok || corpo?.historico?.disponivel !== true) {
+        setHistoricoAnalises({
+          disponivel: false,
+          total: 0,
+          revisoes: [],
+          mensagem: String(corpo?.mensagem ?? 'O histórico das análises não pôde ser carregado agora.'),
+        });
+        return;
+      }
+      setHistoricoAnalises(corpo.historico as HistoricoEditorialInterno);
+    }).catch((falha) => {
+      if ((falha as Error)?.name === 'AbortError' || controle.signal.aborted) return;
+      setHistoricoAnalises({
+        disponivel: false,
+        total: 0,
+        revisoes: [],
+        mensagem: 'O histórico das análises não pôde ser carregado agora.',
+      });
+    });
+    return () => controle.abort();
+  }, [relatorioId, tentativaHistorico, usuarioId]);
 
   /**
    * Registra a decisão e **recarrega o relatório do servidor**.
@@ -335,6 +374,7 @@ export function RevisaoComSessao({
       : await fetch('/api/painel-analise-introducao', { method: 'POST', headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: relatorioAtual.id, checksum: relatorioAtual.checksum, acao, sugestaoId: sugestao?.id, ...(acao === 'gerar' ? { modo: modoAnalise } : {}), ...(acao === 'editar' ? { texto } : {}) }) });
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'A análise está indisponível agora.'));
+    if (acao === 'aplicar' || acao === 'editar') setTentativaHistorico((valor) => valor + 1);
     return corpo?.sugestao ?? null;
   }, [modoAnalise, relatorio, usuarioId]);
 
@@ -364,6 +404,9 @@ export function RevisaoComSessao({
         });
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'As análises estão indisponíveis agora.'));
+    if (acao === 'aplicar' || acao === 'editar' || acao === 'dispensar') {
+      setTentativaHistorico((valor) => valor + 1);
+    }
     return corpo ?? {};
   }, [modoAnalise, relatorio, usuarioId]);
 
@@ -406,6 +449,7 @@ export function RevisaoComSessao({
       aoAnalisarSecoes={analisarSecoes}
       modoAnalise={modoAnalise}
       aoMudarModoAnalise={setModoAnalise}
+      historicoAnalises={historicoAnalises}
     />
   );
 }

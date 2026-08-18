@@ -21,6 +21,7 @@
     "verifica:decisao": "tsx scripts/verifica-painel-decisao.mts",
     "verifica:ra4": "tsx scripts/verifica-painel-ra4.mts",
     "verifica:av2": "tsx scripts/verifica-painel-av2-prontidao.mts && tsx scripts/verifica-painel-av2-escrita.mts && tsx scripts/verifica-painel-av2-aviso.mts",
+    "verifica:av3": "tsx scripts/verifica-painel-av3-historico.mts",
     "verifica:envio": "tsx scripts/verifica-painel-envio.mts",
     "verifica:publico": "tsx scripts/verifica-relatorio-publico.mts",
     "verifica:funil": "tsx scripts/verifica-relatorio-funil.mts",

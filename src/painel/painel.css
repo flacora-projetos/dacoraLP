@@ -2146,6 +2146,74 @@
 .dc-analise-editorial p { margin: 0; }
 .dc-analise-editorial p + p { margin-top: 0.55rem; }
 
+/* AV3 — histórico editorial interno. Vive recolhido na faixa de revisão; a
+   análise corrente continua no documento, em primeiro plano. */
+.dcp-historico-analises {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--dc-filete);
+  color: var(--dc-cinza);
+  font-size: 0.78rem;
+}
+.dcp-historico-analises > summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  color: var(--dc-tinta);
+}
+.dcp-historico-analises > summary > span { display: grid; gap: 0.1rem; min-width: 0; }
+.dcp-historico-analises > summary strong { font-size: 0.82rem; }
+.dcp-historico-analises > summary small { color: var(--dc-cinza); font-size: 0.7rem; font-weight: 400; line-height: 1.35; }
+.dcp-historico-analises > summary b {
+  flex: none;
+  min-width: 1.55rem;
+  min-height: 1.55rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+.dcp-historico-analises__estado-carregamento,
+.dcp-historico-analises__erro,
+.dcp-historico-analises__vazio { margin: 0.75rem 0 0; line-height: 1.45; }
+.dcp-historico-analises__erro { color: var(--dc-sinal); }
+.dcp-historico-analises__grupos { display: grid; gap: 0.9rem; margin-top: 0.85rem; }
+.dcp-historico-analises__grupo h4 { margin: 0; color: var(--dc-tinta); font-size: 0.78rem; }
+.dcp-historico-analises__grupo ol { list-style: none; margin: 0.45rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.dcp-historico-analises__versao {
+  padding: 0.65rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--dc-canvas) 74%, transparent);
+  overflow-wrap: anywhere;
+}
+.dcp-historico-analises__meta { display: grid; gap: 0.3rem; }
+.dcp-historico-analises__estado {
+  width: fit-content;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 999px;
+  color: var(--dc-tinta);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.dcp-historico-analises__estado--revisao_necessaria { color: var(--dc-sinal); border-color: currentColor; }
+.dcp-historico-analises__snapshot,
+.dcp-historico-analises__mudanca,
+.dcp-historico-analises__sem-analise { margin: 0.45rem 0 0; line-height: 1.45; }
+.dcp-historico-analises__snapshot code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--dc-tinta);
+}
+.dcp-historico-analises__mudanca { color: var(--dc-sinal); }
+.dcp-historico-analises__texto { margin-top: 0.55rem; color: var(--dc-tinta); line-height: 1.5; }
+.dcp-historico-analises__texto p { margin: 0; }
+.dcp-historico-analises__texto p + p { margin-top: 0.4rem; }
+
 @media (max-width: 560px) {
   .dcp-revisao__navegacao--flutuante {
     top: calc(4rem + env(safe-area-inset-top, 0px));
