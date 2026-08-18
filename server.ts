@@ -7,6 +7,7 @@ import painelDecisaoHandler from "./api/painel-decisao";
 import painelAnaliseIntroducaoHandler from "./api/painel-analise-introducao";
 import painelEnvioHandler from "./api/painel-envio";
 import painelFilaHandler from "./api/painel-fila";
+import painelHistoricoAnalisesHandler from "./api/painel-historico-analises";
 import painelRelatorioHandler from "./api/painel-relatorio";
 import painelRelatorioInternoHandler from "./api/painel-relatorio-interno";
 import painelSessaoHandler from "./api/painel-sessao";
@@ -41,6 +42,7 @@ async function startServer() {
   // cairia na Vercel, em vez de virar 404 e mandar o painel investigar rota.
   app.all("/api/painel-sessao", painelSessaoHandler);
   app.all("/api/painel-fila", painelFilaHandler);
+  app.all("/api/painel-historico-analises", painelHistoricoAnalisesHandler);
   app.all("/api/painel-relatorio", painelRelatorioHandler);
   app.all("/api/painel-relatorio-interno", painelRelatorioInternoHandler);
   app.all("/api/painel-decisao", painelDecisaoHandler);
