@@ -282,7 +282,7 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
       competencia: '2026-07',
       versao: 3,
       checksum: CHECKSUM,
-      checksum_factual_editorial: null,
+      checksum_factual_editorial: 'f'.repeat(32),
       estado: 'gerado',
       substituido_por: null,
       revogado_em: null,
@@ -306,7 +306,7 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
       dispensada_em: '2026-08-14T09:00:00Z',
     }))), { status: 200, headers: { 'content-type': 'application/json' } });
   }
-  if (url.includes('/rpc/decidir_relatorio')) {
+  if (url.includes('/rpc/decidir_relatorio') || url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')) {
     return new Response(JSON.stringify([{ relatorio_id: ID, ja_estava_assim: false }]), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (url.includes('/rest/v1/painel_relatorios_com_correcao')) {
@@ -340,7 +340,7 @@ async function chamar(corpo: unknown) {
   assert.equal(saida.status, 409);
   assert.equal(saida.corpo.erro, 'analises_pendentes');
   assert.equal(saida.corpo.gravado, false);
-  assert.equal(chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio')), false, 'payload forjado não pode chegar à decisão');
+  assert.equal(chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio') || item.url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')), false, 'payload forjado não pode chegar à decisão');
 }
 
 {
@@ -348,7 +348,7 @@ async function chamar(corpo: unknown) {
   const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'aprovar' });
   assert.equal(saida.status, 200);
   assert.equal(saida.corpo.gravado, true);
-  assert.equal(chamadas.filter((item) => item.url.includes('/rpc/decidir_relatorio')).length, 1);
+  assert.equal(chamadas.filter((item) => item.url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')).length, 1);
 }
 
 /* A dispensa é lida no servidor, não vem da tela: a mesma pendência que

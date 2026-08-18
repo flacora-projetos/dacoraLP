@@ -165,7 +165,11 @@ export function ecoDaDecisao(
     `versão ${relatorio.versao} · impressão digital ${relatorio.checksum.slice(0, 12)}…`;
 
   if (decisao === 'aprovar') {
-    return `Vou registrar a APROVAÇÃO de ${cabeca}, assinada por ${quem}. Nada foi gravado ainda.`;
+    return (
+      `Vou registrar a APROVAÇÃO FINAL de ${cabeca}, assinada por ${quem}, e fechar esta versão ` +
+      'sobre o snapshot factual atual. O histórico interno fica arquivado por padrão; o envio ao cliente ' +
+      'continua sendo uma ação separada. Nada foi gravado ainda.'
+    );
   }
   const texto = motivo.trim();
   return (
@@ -434,9 +438,9 @@ export default function DecisaoDaRevisao({
               className="dcp-botao dcp-botao--primario"
               onClick={() => void registrar('aprovar')}
               disabled={registrando}
-              aria-label={`Confirmar a aprovação do relatório de ${rotuloDoObjeto}`}
+              aria-label={`Confirmar a aprovação final e o fechamento do relatório de ${rotuloDoObjeto}`}
             >
-              {registrando ? 'Registrando…' : 'Confirmar aprovação'}
+              {registrando ? 'Registrando…' : 'Confirmar aprovação final'}
             </button>
             <button
               type="button"
@@ -483,8 +487,9 @@ export default function DecisaoDaRevisao({
       )}
 
       <p id={idBloqueio} className="dcp-revisao__bloqueio">
-        A decisão carimba a impressão digital deste documento: se ele for gerado de novo, a
-        aprovação deixa de valer. O envio ao cliente só aparece depois do read-back confirmar o GO.
+        A aprovação final carimba este documento e o snapshot factual atual, fecha editorialmente a
+        versão e arquiva o histórico interno por padrão. O envio ao cliente continua separado e só
+        aparece depois do read-back confirmar o fechamento.
       </p>
 
       {confirmando === 'recusar' && (

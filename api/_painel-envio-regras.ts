@@ -275,6 +275,10 @@ const ERROS_DA_FABRICA: Record<string, { status: number; mensagem: string }> = {
     status: 409,
     mensagem: 'A aprovação não vale para esta versão. Nada foi solicitado.',
   },
+  fechamento_editorial_pendente: {
+    status: 409,
+    mensagem: 'Esta versão ainda não possui fechamento editorial final compatível com a aprovação. Nada foi solicitado.',
+  },
   versao_fora_de_circulacao: {
     status: 409,
     mensagem: 'Esta versão foi revogada ou substituída. Abra a versão corrente pela fila.',

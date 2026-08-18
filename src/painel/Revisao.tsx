@@ -36,6 +36,7 @@ import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
 import { OPCOES_MODO_ANALISE, type ModoAnaliseUI } from './modoAnalise';
 import { afirmacoesDaIntroducaoRevisada } from './revisaoAnalise';
 import type { HistoricoEditorialInterno } from './HistoricoAnalises';
+import type { EstadoRetencaoEditorial, ResultadoRetencaoEditorial } from './RetencaoEditorial';
 
 export function RevisaoApresentada({
   relatorio,
@@ -43,6 +44,8 @@ export function RevisaoApresentada({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  aoCarregarRetencao,
+  aoDescartarRetencao,
   aoAnalisarIntroducao,
   aoAnalisarSecoes,
   modoAnalise,
@@ -55,6 +58,8 @@ export function RevisaoApresentada({
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoCarregarRetencao?: () => Promise<ResultadoRetencaoEditorial>;
+  aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
   aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
   aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
   modoAnalise?: ModoAnaliseUI;
@@ -127,6 +132,8 @@ export function RevisaoApresentada({
     aoDecidir={aoDecidir}
     aoCarregarEnvio={aoCarregarEnvio}
     aoSolicitarEnvio={aoSolicitarEnvio}
+    aoCarregarRetencao={aoCarregarRetencao}
+    aoDescartarRetencao={aoDescartarRetencao}
     historicoAnalises={historicoAnalises}
   ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
     <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} aoAcionar={aoAnalisarSecoes}>
@@ -360,6 +367,53 @@ export function RevisaoComSessao({
     }
   }, [relatorio, usuarioId]);
 
+  const carregarRetencao = useCallback(async (): Promise<ResultadoRetencaoEditorial> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id) {
+      return { ok: false, mensagem: 'A sessão expirou nesta aba. Entre novamente e reabra a revisão.' };
+    }
+    try {
+      const resposta = await fetch(
+        `/api/painel-retencao-editorial?id=${encodeURIComponent(relatorioAtual.id)}`,
+        { headers: { Authorization: `Bearer ${sessaoAtual.access_token}` } },
+      );
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || !corpo?.retencao) {
+        return { ok: false, mensagem: String(corpo?.mensagem ?? 'Não foi possível consultar a retenção editorial.') };
+      }
+      return { ok: true, estado: corpo.retencao as EstadoRetencaoEditorial };
+    } catch {
+      return { ok: false, mensagem: 'Não foi possível consultar a retenção editorial agora.' };
+    }
+  }, [relatorio, usuarioId]);
+
+  const descartarRetencao = useCallback(async (confirmacao: string): Promise<ResultadoRetencaoEditorial> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id) {
+      return { ok: false, mensagem: 'A sessão expirou nesta aba. Entre novamente e reabra a revisão.' };
+    }
+    try {
+      const resposta = await fetch('/api/painel-retencao-editorial', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessaoAtual.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: relatorioAtual.id, acao: 'descartar_historico', confirmacao }),
+      });
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || !corpo?.retencao) {
+        return { ok: false, mensagem: String(corpo?.mensagem ?? 'O histórico permanece arquivado.') };
+      }
+      setTentativaHistorico((valor) => valor + 1);
+      return { ok: true, estado: corpo.retencao as EstadoRetencaoEditorial };
+    } catch {
+      return { ok: false, mensagem: 'Não foi possível confirmar o descarte. O histórico permanece arquivado até leitura de volta.' };
+    }
+  }, [relatorio, usuarioId]);
+
   const analisarIntroducao = useCallback(async (
     acao: AcaoDaIntroducao,
     sugestao?: SugestaoDaIntroducao,
@@ -445,6 +499,8 @@ export function RevisaoComSessao({
       aoDecidir={decidir}
       aoCarregarEnvio={carregarEnvio}
       aoSolicitarEnvio={solicitarEnvio}
+      aoCarregarRetencao={carregarRetencao}
+      aoDescartarRetencao={descartarRetencao}
       aoAnalisarIntroducao={analisarIntroducao}
       aoAnalisarSecoes={analisarSecoes}
       modoAnalise={modoAnalise}

@@ -278,7 +278,11 @@ function dublar(usuario: unknown | null, cenario: Cenario = {}) {
     if (url.includes('/rest/v1/relatorios?')) {
       return new Response(JSON.stringify([{
         id: ID,
+        cliente_slug: 'cliente_exemplo',
+        competencia: '2026-07',
+        versao: 3,
         checksum: CHECKSUM,
+        checksum_factual_editorial: 'f'.repeat(32),
         estado: 'gerado',
         substituido_por: null,
         revogado_em: null,
@@ -294,7 +298,7 @@ function dublar(usuario: unknown | null, cenario: Cenario = {}) {
       }]), { status: 200, headers: { 'content-type': 'application/json' } });
     }
 
-    if (url.includes('/rpc/decidir_relatorio')) {
+    if (url.includes('/rpc/decidir_relatorio') || url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')) {
       if (cenario.erroDoBanco) {
         return new Response(
           JSON.stringify({ code: 'P0001', message: cenario.erroDoBanco }),
@@ -423,19 +427,20 @@ for (const corpoTorto of [
   assert.equal(saida.corpo.jaEstavaAssim, false);
   assert.match(saida.cabecalhos['cache-control'], /no-store/);
 
-  const rpc = chamadasAoBanco.find((c) => c.url.includes('/rpc/decidir_relatorio'));
-  assert.ok(rpc, 'a decisão precisa passar pela função do banco');
+  const rpc = chamadasAoBanco.find((c) => c.url.includes('/rpc/aprovar_e_fechar_relatorio_editorial'));
+  assert.ok(rpc, 'a aprovação final precisa passar pela função atômica de aprovação + fechamento');
   assert.equal(rpc.corpo.p_quem, 'pessoa.autorizada@exemplo.com', 'quem decidiu vem da SESSÃO');
   assert.notEqual(rpc.corpo.p_quem, 'invasor@exemplo.com');
-  assert.equal(rpc.corpo.p_checksum_visto, CHECKSUM, 'o checksum da tela viaja como guarda');
-  assert.equal(rpc.corpo.p_motivo, null, 'aprovação não leva motivo ao banco');
+  assert.equal(rpc.corpo.p_checksum_documento_visto, CHECKSUM, 'o checksum da tela viaja como guarda');
+  assert.equal(rpc.corpo.p_checksum_factual_visto, 'f'.repeat(32), 'o snapshot factual conferido no servidor acompanha o fechamento');
+  assert.equal('p_motivo' in rpc.corpo, false, 'aprovação não leva motivo ao banco');
 
   // O endpoint faz UMA escrita e UMA leitura de volta. Nunca um UPDATE solto:
   // a única chamada com corpo é a função do banco, e a tabela só é tocada por
   // um `select` depois.
   const escritas = chamadasAoBanco.filter((c) => c.corpo);
   assert.equal(escritas.length, 1, 'a escrita acontece numa chamada só, dentro da transação');
-  assert.ok(escritas[0].url.includes('/rpc/decidir_relatorio'));
+  assert.ok(escritas[0].url.includes('/rpc/aprovar_e_fechar_relatorio_editorial'));
   const leituras = chamadasAoBanco.filter((c) => !c.corpo);
   assert.equal(leituras.filter((c) => c.url.includes('/rest/v1/relatorios?')).length, 1, 'a aprovação faz um preflight do documento');
   assert.equal(leituras.filter((c) => c.url.includes('/rest/v1/relatorio_analise_sugestoes?')).length, 1, 'a aprovação confere o estado editorial server-side');
@@ -449,7 +454,7 @@ for (const corpoTorto of [
   assert.equal(saida.corpo.relatorio.estado, 'liberado');
   assert.equal(saida.corpo.relatorio.checksum, CHECKSUM);
   assert.ok(!JSON.stringify(saida.corpo).includes('token'), 'a resposta não carrega credencial');
-  assert.match(saida.corpo.eco, /Aprovar: cliente_exemplo · 2026-07 · versão 3/);
+  assert.match(saida.corpo.eco, /Aprovar e fechar: cliente_exemplo · 2026-07 · versão 3/);
 }
 
 /* --- Duas pessoas diferentes gravam aprovadores diferentes ------------ */
@@ -1092,7 +1097,7 @@ const linhas = [
   assert.equal(elemento.querySelector('.dcp-decisao__eco'), null, 'cancelar fecha o eco');
 
   clicar(botaoPor('Aprovar relatório'));
-  clicar(botaoPor('Confirmar aprovação'));
+  clicar(botaoPor('Confirmar aprovação final'));
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(enviados, [{ decisao: 'aprovar' }], 'a aprovação sai sem motivo');
 

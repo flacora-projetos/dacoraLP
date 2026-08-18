@@ -283,7 +283,7 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
       checksum_factual: item.checksumFactual ?? null,
     }))), { status: 200, headers: { 'content-type': 'application/json' } });
   }
-  if (url.includes('/rpc/decidir_relatorio')) {
+  if (url.includes('/rpc/decidir_relatorio') || url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')) {
     return new Response(JSON.stringify([{ relatorio_id: ID, ja_estava_assim: false }]), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (url.includes('/rest/v1/painel_relatorios_com_correcao')) {
@@ -361,7 +361,7 @@ async function aprovar() {
   assert.equal(saida.corpo.erro, 'analises_pendentes');
   assert.equal(saida.corpo.gravado, false);
   assert.equal(
-    chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio')),
+    chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio') || item.url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')),
     false,
     'nada pode ser gravado quando há análise em revisão necessária',
   );
@@ -376,7 +376,7 @@ async function aprovar() {
   const saida = await aprovar();
   assert.equal(saida.status, 502, 'leitura indisponível precisa falhar fechado');
   assert.equal(saida.corpo.gravado, false);
-  assert.equal(chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio')), false);
+  assert.equal(chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio') || item.url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')), false);
   derrubarLeituraDasRevisoes = false;
 }
 

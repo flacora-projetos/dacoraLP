@@ -127,7 +127,16 @@ async function conferirProntidaoEditorialParaAprovacao(
       resumo,
     };
   }
-  return { ok: true as const, resumo };
+  if (!linha.checksum_factual_editorial) {
+    return {
+      ok: false as const,
+      status: 409,
+      erro: 'checksum_factual_indisponivel',
+      mensagem: 'Esta versão ainda não possui a impressão factual exigida para o fechamento final. Atualize os dados antes de aprovar.',
+      resumo,
+    };
+  }
+  return { ok: true as const, resumo, checksumFactual: linha.checksum_factual_editorial };
 }
 
 function corpoDoPedido(req: Request): unknown {
@@ -184,6 +193,7 @@ export default async function handler(req: Request, res: Response) {
   const quem = acesso.email;
 
   try {
+    let checksumFactualParaFechamento: string | null = null;
     if (pedido.decisao === 'aprovar') {
       const prontidao = await conferirProntidaoEditorialParaAprovacao(pedido, {
         urlSupabase,
@@ -197,19 +207,32 @@ export default async function handler(req: Request, res: Response) {
           revisaoEditorial: 'resumo' in prontidao ? prontidao.resumo : undefined,
         });
       }
+      checksumFactualParaFechamento = prontidao.checksumFactual;
     }
 
-    /* 1. A decisão, numa transação do banco. ------------------------------- */
-    const respostaDecisao = await fetch(`${urlSupabase}/rest/v1/rpc/decidir_relatorio`, {
+    /* 1. Decisão final. Aprovar também fecha editorialmente, dentro da MESMA
+       transação do banco; recusar continua usando a RPC P3 existente. ------- */
+    const endpointDaDecisao = pedido.decisao === 'aprovar'
+      ? 'aprovar_e_fechar_relatorio_editorial'
+      : 'decidir_relatorio';
+    const corpoDaDecisao = pedido.decisao === 'aprovar'
+      ? {
+          p_relatorio_id: pedido.id,
+          p_checksum_documento_visto: pedido.checksumVisto,
+          p_checksum_factual_visto: checksumFactualParaFechamento,
+          p_quem: quem,
+        }
+      : {
+          p_relatorio_id: pedido.id,
+          p_decisao: pedido.decisao,
+          p_checksum_visto: pedido.checksumVisto,
+          p_quem: quem,
+          p_motivo: pedido.motivo,
+        };
+    const respostaDecisao = await fetch(`${urlSupabase}/rest/v1/rpc/${endpointDaDecisao}`, {
       method: 'POST',
       headers: cabecalhos,
-      body: JSON.stringify({
-        p_relatorio_id: pedido.id,
-        p_decisao: pedido.decisao,
-        p_checksum_visto: pedido.checksumVisto,
-        p_quem: quem,
-        p_motivo: pedido.decisao === 'recusar' ? pedido.motivo : null,
-      }),
+      body: JSON.stringify(corpoDaDecisao),
     });
 
     if (!respostaDecisao.ok) {

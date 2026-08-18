@@ -176,6 +176,34 @@ const MOTIVOS_DO_BANCO: Record<string, { status: number; mensagem: string }> = {
       'Este relatório mudou desde que você o abriu — existe uma versão mais nova. Nada foi gravado. ' +
       'Volte para a fila, abra a versão atual e decida sobre ela.',
   },
+  checksum_factual_indisponivel: {
+    status: 409,
+    mensagem: 'Esta versão ainda não possui a impressão factual exigida para o fechamento final. Atualize os dados antes de aprovar.',
+  },
+  checksum_factual_divergente: {
+    status: 409,
+    mensagem: 'Os fatos mudaram desde a revisão exibida. Nada foi fechado; recarregue e revise o snapshot atual.',
+  },
+  revisao_necessaria_pendente: {
+    status: 409,
+    mensagem: 'Existe análise marcada como revisão necessária. Revise essa análise no snapshot final antes de aprovar.',
+  },
+  revisao_snapshot_divergente: {
+    status: 409,
+    mensagem: 'A análise corrente está ligada a outro snapshot factual. Revise a análise sobre os dados finais antes de aprovar.',
+  },
+  envio_ja_solicitado: {
+    status: 409,
+    mensagem: 'Já existe uma intenção de envio para esta versão. O fechamento editorial não pode ser alterado por baixo do envio.',
+  },
+  fechamento_conflitante: {
+    status: 409,
+    mensagem: 'Já existe um fechamento editorial ligado a outro snapshot. Nada foi alterado.',
+  },
+  fechamento_nao_aplicado: {
+    status: 502,
+    mensagem: 'A aprovação não conseguiu gerar o recibo editorial final. Nada deve ser tratado como fechado.',
+  },
   versao_fora_de_circulacao: {
     status: 409,
     mensagem:
@@ -356,7 +384,7 @@ export function ecoDaDecisao(entrada: {
     `impressão digital ${impressao}…`;
 
   if (entrada.decisao === 'aprovar') {
-    return `Aprovar: ${cabeca}. Fica registrado como aprovado por ${entrada.quem}.`;
+    return `Aprovar e fechar: ${cabeca}. Fica registrado como aprovação final por ${entrada.quem}, ligada ao snapshot factual atual; o envio continua separado.`;
   }
   return (
     `Recusar: ${cabeca}. Fica registrado como recusado por ${entrada.quem}, ` +

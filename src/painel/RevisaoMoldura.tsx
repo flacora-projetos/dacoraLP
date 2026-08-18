@@ -12,6 +12,7 @@ import EnvioDaRevisao, { type ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 import { useLinkDeVoltaParaFila } from './linkDeVolta';
 import type { ResumoEditorialRA4 } from './estadoEditorial';
 import { HistoricoAnalises, type HistoricoEditorialInterno } from './HistoricoAnalises';
+import RetencaoEditorial, { type ResultadoRetencaoEditorial } from './RetencaoEditorial';
 
 interface SinalDaRevisao {
   tipo: string;
@@ -144,6 +145,8 @@ function FaixaDeRevisao({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  aoCarregarRetencao,
+  aoDescartarRetencao,
   historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao;
@@ -152,15 +155,18 @@ function FaixaDeRevisao({
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoCarregarRetencao?: () => Promise<ResultadoRetencaoEditorial>;
+  aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
 }) {
   const competencia = formatarCompetencia(relatorio.competencia);
   const linkDeVolta = useLinkDeVoltaParaFila();
   const podeOferecerDecisao = Boolean(aoDecidir && relatorio.checksum);
+  const fechadoOuEnviado = relatorio.estado === 'liberado' || relatorio.estado === 'enviado';
   const podeMontarEnvio = Boolean(
-    relatorio.checksum &&
-    (relatorio.estado === 'liberado' || relatorio.estado === 'enviado') &&
-    aoCarregarEnvio &&
-    aoSolicitarEnvio,
+    relatorio.checksum && fechadoOuEnviado && aoCarregarEnvio && aoSolicitarEnvio,
+  );
+  const podeMontarRetencao = Boolean(
+    relatorio.checksum && fechadoOuEnviado && aoCarregarRetencao && aoDescartarRetencao,
   );
 
   return (
@@ -210,6 +216,12 @@ function FaixaDeRevisao({
       ) : (
         <DecisaoDesabilitada />
       )}
+      {podeMontarRetencao && (
+        <RetencaoEditorial
+          aoCarregar={aoCarregarRetencao as () => Promise<ResultadoRetencaoEditorial>}
+          aoDescartar={aoDescartarRetencao as (confirmacao: string) => Promise<ResultadoRetencaoEditorial>}
+        />
+      )}
       {podeMontarEnvio && (
         <EnvioDaRevisao
           aoCarregar={aoCarregarEnvio as () => Promise<ResultadoDoEnvioP5>}
@@ -228,6 +240,8 @@ export function RevisaoMoldura({
   aoDecidir,
   aoCarregarEnvio,
   aoSolicitarEnvio,
+  aoCarregarRetencao,
+  aoDescartarRetencao,
   historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao | null;
@@ -237,6 +251,8 @@ export function RevisaoMoldura({
   aoDecidir?: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
   aoCarregarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
+  aoCarregarRetencao?: () => Promise<ResultadoRetencaoEditorial>;
+  aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
 }) {
   const linkDeVolta = useLinkDeVoltaParaFila();
 
@@ -265,6 +281,8 @@ export function RevisaoMoldura({
           aoDecidir={aoDecidir}
           aoCarregarEnvio={aoCarregarEnvio}
           aoSolicitarEnvio={aoSolicitarEnvio}
+          aoCarregarRetencao={aoCarregarRetencao}
+          aoDescartarRetencao={aoDescartarRetencao}
           historicoAnalises={historicoAnalises}
         />
         <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>
