@@ -571,11 +571,15 @@ const autorizada = {
   assert.equal(resposta.status, 200);
   assert.equal(resposta.corpo.relatorio.conteudoCarregado, true);
   assert.equal(resposta.corpo.relatorio.clienteNome, 'Cliente Exemplo');
-  assert.equal(chamadasAoBanco.length, 3, 'a revisão lê o relatório, as sugestões e as dispensas de seção');
+  assert.equal(chamadasAoBanco.length, 4, 'a revisão lê o relatório, sugestões, dispensas e revisões editoriais AV');
   assert.ok(chamadasAoBanco.some((url) => url.includes('/relatorio_analise_sugestoes?')), 'a RA4 precisa carregar a prontidão editorial');
   assert.ok(
     chamadasAoBanco.some((url) => url.includes('/relatorio_secoes_dispensadas?')),
     'a prontidão precisa considerar as seções revisadas sem análise',
+  );
+  assert.ok(
+    chamadasAoBanco.some((url) => url.includes('/relatorio_revisoes_editoriais?')),
+    'a AV2 precisa considerar a revisão durável pela identidade lógica',
   );
   assert.ok(chamadasAoBanco.every((url) => !url.includes('token')), 'a credencial pública não pode ser consultada na revisão');
   assert.equal(resposta.corpo.relatorio.revisaoEditorial.disponivel, true);

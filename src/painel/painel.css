@@ -2107,6 +2107,17 @@
 .dcp-analises-relatorio__rodape { align-items: center; margin-top: 0.6rem; font-size: 0.82rem; }
 .dcp-analises-relatorio__mensagem { margin-top: 0.7rem !important; color: var(--dc-verde-medio); }
 
+/* AV2 — validade da análise diante da próxima coleta. Informação interna do
+   revisor: discreta, nunca alarme. */
+.dcp-aviso-validade {
+  margin: 0.7rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--dc-cinza);
+}
+.dcp-aviso-validade strong { color: var(--dc-tinta-suave); }
+.dcp-aviso-validade small { display: block; margin-top: 0.15rem; font-size: 0.74rem; }
+
 .dcp-analise-secao { margin-top: 1rem; }
 .dcp-analise-secao__controles {
   padding: 0.85rem;

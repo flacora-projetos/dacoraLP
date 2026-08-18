@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { rotuloDaAuditoria } from './modoAnalise';
+import { AvisoDeValidadeDaAnalise } from './AnalisesSecao';
 
 export type AcaoDaIntroducao = 'carregar' | 'gerar' | 'aplicar' | 'editar' | 'desfazer';
 export interface SugestaoDaIntroducao { id: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
@@ -11,11 +12,14 @@ export function sugestaoDaIntroducaoEstaFechada(sugestao: SugestaoDaIntroducao |
 export function AnaliseIntroducao({
   original,
   podeRevisar,
+  coletadoEm,
   aoAcionar,
   aoMudarTexto,
 }: {
   original: string;
   podeRevisar: boolean;
+  /** Carimbo da coleta que produziu este documento. Ver `AvisoDeValidadeDaAnalise`. */
+  coletadoEm?: string | null;
   aoAcionar: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
   aoMudarTexto: (texto: string | null) => void;
 }) {
@@ -102,6 +106,9 @@ export function AnaliseIntroducao({
           <div><strong>Sugestão</strong>{sugestao.modelo && <small className="dcp-analise-modelo">{rotuloDaAuditoria(sugestao.modelo)}</small>}{editando ? (
             <textarea ref={campoDeEdicao} aria-label="Editar sugestão da introdução" rows={12} value={textoEditado} onChange={(evento) => setTextoEditado(evento.target.value)} />
           ) : <p>{sugestao.texto}</p>}</div>
+          {/* Junto do botão que aplica, e só quando existe algo para aplicar:
+              é o momento em que a validade da análise importa para a decisão. */}
+          <AvisoDeValidadeDaAnalise coletadoEm={coletadoEm} />
           <div className="dcp-analise-introducao__acoes">
             {editando ? <>
               <button type="button" className="dcp-botao dcp-botao--primario" disabled={estado === 'carregando'} onClick={() => void agir('editar', textoEditado)}>Salvar edição</button>

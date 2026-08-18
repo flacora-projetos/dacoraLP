@@ -1,6 +1,32 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { rotuloDaAuditoria } from './modoAnalise';
 import { paragrafosDaAnaliseEditorial } from './analiseEditorial';
+import { formatarCarimbo } from '../reports/format';
+
+/**
+ * O aviso de validade da análise (AV2).
+ *
+ * O documento passou a ser atualizado todo dia pela coleta. Quem escreve uma
+ * análise precisa saber, ANTES de escrever, que ela vale para os fatos desta
+ * coleta — não para sempre. Sem isso, a marca "revisão necessária" aparece
+ * depois como se algo tivesse dado errado, quando é o funcionamento normal.
+ *
+ * ⚠️ A data vem do snapshot (`publicacao.geradoEm`), **nunca do relógio do
+ * navegador**: o que interessa é quando os dados foram coletados, e o relógio
+ * de quem lê não sabe disso. Sem carimbo no snapshot, o aviso sai sem data —
+ * melhor do que uma data inventada.
+ */
+export function AvisoDeValidadeDaAnalise({ coletadoEm }: { coletadoEm?: string | null }) {
+  const carimbo = coletadoEm ? formatarCarimbo(coletadoEm) : '';
+  return (
+    <p className="dcp-aviso-validade">
+      <strong>Esta análise ficará válida apenas até a próxima atualização dos dados.</strong>{' '}
+      Quando uma nova coleta acontecer, os números do relatório serão atualizados normalmente e
+      esta análise será marcada como revisão necessária.
+      {carimbo && <small> Análise válida para dados coletados em {carimbo}.</small>}
+    </p>
+  );
+}
 
 export interface EspacoAnaliticoSeguro { secao: string; blocoId: string; titulo: string; objetivo: string; }
 export interface SugestaoSecao { id: string; secao: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
@@ -41,11 +67,14 @@ function mapaDeSugestoes(sugestoes: SugestaoSecao[]) {
 export function AnalisesSecaoProvider({
   podeRevisar,
   espacos,
+  coletadoEm,
   aoAcionar,
   children,
 }: {
   podeRevisar: boolean;
   espacos: EspacoAnaliticoSeguro[];
+  /** Carimbo da coleta que produziu este documento. Ver `AvisoDeValidadeDaAnalise`. */
+  coletadoEm?: string | null;
   aoAcionar: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
   children: ReactNode;
 }) {
@@ -141,6 +170,10 @@ export function AnalisesSecaoProvider({
             Gerar análises do relatório
           </button>
         </div>
+        {/* Uma vez, aqui, e não repetido em cada seção: o painel já pagou por
+            texto de método repetido antes do primeiro número, e quinze cópias
+            do mesmo aviso viram parede que ninguém lê. */}
+        <AvisoDeValidadeDaAnalise coletadoEm={coletadoEm} />
         <details className="dcp-contexto-mes">
           <summary>
             <span><strong>Contexto do mês</strong><small>Opcional · usado nas próximas sugestões da introdução e das seções</small></span>

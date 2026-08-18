@@ -71,6 +71,19 @@ export function RevisaoApresentada({
   const introducaoOriginal = relatorio?.snapshot.leitura.resumoExecutivo.map((item) => item.texto).join('\n\n') ?? '';
   const espacosAnaliticos = useMemo(() => relatorio ? espacosAnaliticosDoSnapshot(relatorio.snapshot).map(({ secao, blocoId, titulo, objetivo }) => ({ secao, blocoId, titulo, objetivo })) : [], [relatorio]);
   const renderizarAnaliseDaSecao = useCallback((secao: `bloco:${string}`) => <AnaliseDaSecao secao={secao} />, []);
+  /* Referência factual da coleta deste snapshot. `publicacao.geradoEm` diz
+     quando a linha do relatório foi produzida; AV2 precisa dizer quando os
+     DADOS foram consultados. Por isso usamos o `coletadoEm` mais recente das
+     fontes do próprio snapshot e nunca o relógio de quem abre a tela. */
+  const coletadoEm = useMemo(() => {
+    const carimbos = relatorio?.snapshot.fontes
+      ?.map((fonte) => fonte.coletadoEm)
+      .filter((valor): valor is string => typeof valor === 'string' && Number.isFinite(Date.parse(valor)))
+      ?? [];
+    if (carimbos.length === 0) return null;
+    return carimbos.reduce((maisRecente, atual) =>
+      Date.parse(atual) > Date.parse(maisRecente) ? atual : maisRecente);
+  }, [relatorio]);
   const documento = relatorio ? (
     <RelatorioMontado
       snapshot={snapshotDaRevisao ?? relatorio.snapshot}
@@ -84,6 +97,7 @@ export function RevisaoApresentada({
         <AnaliseIntroducao
           original={introducaoOriginal}
           podeRevisar={relatorio.podeDecidir === true}
+          coletadoEm={coletadoEm}
           aoAcionar={aoAnalisarIntroducao}
           aoMudarTexto={setIntroducaoRevisada}
         />
@@ -111,7 +125,7 @@ export function RevisaoApresentada({
     aoCarregarEnvio={aoCarregarEnvio}
     aoSolicitarEnvio={aoSolicitarEnvio}
   ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
-    <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} aoAcionar={aoAnalisarSecoes}>
+    <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} aoAcionar={aoAnalisarSecoes}>
       {documento}
     </AnalisesSecaoProvider>
   ) : documento}</></RevisaoMoldura>;

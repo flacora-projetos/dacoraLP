@@ -17,12 +17,14 @@ import type { SnapshotMontado } from '../src/reports/blocos/tipos.js';
 import {
   resumoEditorialDaRevisao,
   type ResumoEditorialRA4,
+  type RevisaoEditorialVigente,
   type SugestaoEditorialPersistida,
 } from '../src/painel/estadoEditorial.js';
 
 export {
   estadoEditorialDaSugestao,
   estadoEditorialDaSecao,
+  estadoEditorialComRevisaoViva,
   estadoEditorialEstaPronto,
   secoesEditoriaisObrigatorias,
   resumoEditorialDaRevisao,
@@ -31,6 +33,7 @@ export {
 export type {
   EstadoEditorialRA4,
   ResumoEditorialRA4,
+  RevisaoEditorialVigente,
   SecaoEditorialRA4,
   SugestaoEditorialPersistida,
 } from '../src/painel/estadoEditorial.js';
@@ -92,15 +95,81 @@ export async function lerDispensasVigentes(
     }));
 }
 
+const ESTADOS_VIGENTES_AV = "('atual','revisao_necessaria','final')";
+
+/**
+ * A identidade LÓGICA de um documento em revisão.
+ *
+ * `relatorioId`/`checksum` endereçam a linha física — é por eles que as tabelas
+ * legadas são filtradas. `clienteSlug`/`competencia`/`versao` endereçam a
+ * identidade que sobrevive à troca dessa linha, que é como o modelo AV guarda
+ * a revisão humana. Prontidão precisa das duas, porque as duas fontes coexistem
+ * até toda competência ter passado pela ponte pelo menos uma vez.
+ */
+export interface IdentidadeParaProntidao {
+  relatorioId: string;
+  checksum: string;
+  clienteSlug: string;
+  competencia: string;
+  versao: number;
+  /**
+   * `relatorios.checksum_factual_editorial`. Nulo em documento legado, que
+   * nunca passou pela coleta nova — e nulo significa **não medido**, nunca
+   * "os fatos são iguais".
+   */
+  checksumFactual?: string | null;
+}
+
+/**
+ * As revisões editoriais duráveis vigentes desta identidade lógica.
+ *
+ * ⚠️ Mesma disciplina de `lerDispensasVigentes`: falha de leitura **não** vira
+ * lista vazia. Lista vazia aqui significaria "nenhuma seção foi invalidada" —
+ * exatamente a afirmação que não podemos fazer quando a consulta falhou, e a
+ * única que destravaria uma aprovação que precisa continuar travada. O erro
+ * sobe e a prontidão fica indisponível.
+ */
+export async function lerRevisoesEditoriaisVigentes(
+  identidade: Pick<IdentidadeParaProntidao, 'clienteSlug' | 'competencia' | 'versao'>,
+  config: ConfiguracaoEditorial,
+): Promise<RevisaoEditorialVigente[]> {
+  const url = `${config.urlSupabase}/rest/v1/relatorio_revisoes_editoriais`
+    + `?cliente_slug=eq.${encodeURIComponent(identidade.clienteSlug)}`
+    + `&competencia=eq.${encodeURIComponent(identidade.competencia)}`
+    + `&relatorio_versao=eq.${encodeURIComponent(String(identidade.versao))}`
+    + `&estado=in.${encodeURIComponent(ESTADOS_VIGENTES_AV)}`
+    + '&select=secao,estado,tipo_decisao,checksum_factual';
+  const resposta = await fetch(url, { headers: headers(config) });
+  if (!resposta.ok) throw new Error(`leitura_revisoes_editoriais_http_${resposta.status}`);
+  const linhas = await resposta.json() as Array<Record<string, unknown>>;
+  return linhas
+    .filter((linha) =>
+      typeof linha.secao === 'string'
+      && (linha.estado === 'atual' || linha.estado === 'revisao_necessaria' || linha.estado === 'final')
+      && (linha.tipo_decisao === 'analise' || linha.tipo_decisao === 'sem_analise'))
+    .map((linha) => ({
+      secao: String(linha.secao),
+      estado: linha.estado as RevisaoEditorialVigente['estado'],
+      tipoDecisao: linha.tipo_decisao as RevisaoEditorialVigente['tipoDecisao'],
+      checksumFactual: typeof linha.checksum_factual === 'string' ? linha.checksum_factual : null,
+    }));
+}
+
 export async function conferirEstadoEditorial(
-  relatorioId: string,
-  checksum: string,
+  identidade: IdentidadeParaProntidao,
   snapshot: SnapshotMontado,
   config: ConfiguracaoEditorial,
 ): Promise<ResumoEditorialRA4> {
-  const [sugestoes, dispensas] = await Promise.all([
-    lerSugestoesEditoriais(relatorioId, checksum, config),
-    lerDispensasVigentes(relatorioId, checksum, config),
+  const [sugestoes, dispensas, revisoesVivas] = await Promise.all([
+    lerSugestoesEditoriais(identidade.relatorioId, identidade.checksum, config),
+    lerDispensasVigentes(identidade.relatorioId, identidade.checksum, config),
+    lerRevisoesEditoriaisVigentes(identidade, config),
   ]);
-  return resumoEditorialDaRevisao(snapshot, sugestoes, dispensas.map((item) => item.secao));
+  return resumoEditorialDaRevisao(
+    snapshot,
+    sugestoes,
+    dispensas.map((item) => item.secao),
+    revisoesVivas,
+    identidade.checksumFactual ?? null,
+  );
 }

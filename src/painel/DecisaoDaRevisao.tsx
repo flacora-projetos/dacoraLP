@@ -94,6 +94,9 @@ const ROTULOS_ESTADO_EDITORIAL: Record<EstadoEditorialRA4, string> = {
   pronta: 'pronta',
   revisada_sem_analise: 'revisada sem análise',
   inconclusiva: 'inconclusiva revisada',
+  /* Havia análise revisada, e uma coleta nova mudou os fatos embaixo dela. O
+     texto não foi apagado — ele espera alguém reler contra os números novos. */
+  revisao_necessaria: 'dados atualizados — reveja a análise',
   falhou: 'falhou',
 };
 
