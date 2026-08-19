@@ -17,6 +17,7 @@ import type { PlataformaId, Unidade, Valor } from '../snapshot';
 import { formatarParticipacao, textoDoEstadoVazio } from '../format';
 import { PALETA, preenchimentoBarra, type ChartTheme } from './chartTheme';
 import { MolduraGrafico, TexturasSVG, usaLargura, usaMovimentoReduzido } from './primitivas';
+import { ALTURA_DA_LINHA, planejarRotulagem } from './rotulos';
 
 export interface ItemCanal {
   plataforma: PlataformaId;
@@ -95,9 +96,30 @@ export default function ComparacaoEntreCanais({
     })
     .join('. ');
 
-  const linhaAltura = theme.espessuraBarra + 38;
-  const altura = itens.length * linhaAltura + MARGEM.top;
+  const tamanhoRotulo = theme.tamanhoEixo + 0.5;
+  const tamanhoValor = theme.tamanhoEixo + 2.5;
   const larguraPlot = Math.max(largura - MARGEM.left - MARGEM.right, 0);
+
+  const textoDoValor = (d: (typeof dados)[number]) =>
+    d.valor === null ? (d.ausencia ?? '—') : theme.completo(d.valor, unidade);
+
+  /**
+   * Onde o rótulo e o valor de cada barra cabem — uma decisão só, calculada uma
+   * vez, usada tanto para dimensionar o gráfico quanto para desenhar o texto.
+   * Ver `rotulos.ts`: separar essas duas contas foi o que deixou a segunda linha
+   * do rótulo cair em cima do valor.
+   */
+  const plano = planejarRotulagem({
+    itens: dados.map((d) => ({ rotulo: d.rotulo, valor: textoDoValor(d) })),
+    larguraPlot,
+    tamanhoRotulo,
+    tamanhoValor,
+    espacamento: theme.espacamentoEixo,
+  });
+
+  const margem = { ...MARGEM, top: MARGEM.top + plano.alturaExtra };
+  const linhaAltura = theme.espessuraBarra + 38 + plano.alturaExtra;
+  const altura = itens.length * linhaAltura + margem.top;
 
   return (
     <MolduraGrafico
@@ -117,7 +139,7 @@ export default function ComparacaoEntreCanais({
     >
       <div ref={ref} style={{ height: altura }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={dados} layout="vertical" margin={MARGEM} barCategoryGap="34%">
+          <BarChart data={dados} layout="vertical" margin={margem} barCategoryGap="34%">
             <TexturasSVG theme={theme} />
             <XAxis type="number" hide domain={[0, 'dataMax']} />
             <YAxis type="category" dataKey="rotulo" hide />
@@ -141,7 +163,7 @@ export default function ComparacaoEntreCanais({
                   <g>
                     {/* trilho: mostra o espaço total, para a barra ter escala visível */}
                     <rect
-                      x={MARGEM.left}
+                      x={margem.left}
                       y={y}
                       width={larguraPlot}
                       height={height}
@@ -187,37 +209,46 @@ export default function ComparacaoEntreCanais({
                   const i = props.index ?? 0;
                   const item = dados[i];
                   if (!item || !larguraPlot) return null;
-                  const y = Number(props.y ?? 0) - 10;
+                  const linhaDoValor = Number(props.y ?? 0) - 10;
                   const semValor = item.valor === null;
                   const corDoEstado =
                     item.estado === 'falha' ? PALETA.falha : PALETA.dadoAusente;
+                  const textoValor = textoDoValor(item);
+                  const { linhas, deslocamentoDoRotulo } = plano.itens[i];
+                  const topoDoRotulo = linhaDoValor + deslocamentoDoRotulo;
                   return (
                     <g>
                       <text
-                        x={MARGEM.left}
-                        y={y}
+                        x={margem.left}
+                        y={topoDoRotulo}
                         textAnchor="start"
                         fill={theme.corEixo}
                         fontFamily={theme.fonte}
-                        fontSize={theme.tamanhoEixo + 0.5}
+                        fontSize={tamanhoRotulo}
                         fontWeight={500}
                         letterSpacing={`${theme.espacamentoEixo}em`}
                       >
-                        {item.rotulo}
+                        {linhas.map((linha, indice) => (
+                          <tspan
+                            key={linha + indice}
+                            x={margem.left}
+                            dy={indice === 0 ? 0 : ALTURA_DA_LINHA}
+                          >
+                            {linha}
+                          </tspan>
+                        ))}
                       </text>
                       <text
-                        x={MARGEM.left + larguraPlot}
-                        y={y}
+                        x={margem.left + larguraPlot}
+                        y={linhaDoValor}
                         textAnchor="end"
                         fill={semValor ? corDoEstado : theme.corEixoForte}
                         fontFamily={theme.fonte}
-                        fontSize={theme.tamanhoEixo + 2.5}
+                        fontSize={tamanhoValor}
                         fontWeight={semValor ? 500 : 600}
                         fontStyle="normal"
                       >
-                        {semValor
-                          ? (item.ausencia ?? '—')
-                          : theme.completo(item.valor as number, unidade)}
+                        {textoValor}
                       </text>
                     </g>
                   );

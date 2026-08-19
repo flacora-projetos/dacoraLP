@@ -3,7 +3,7 @@
  * visual: o esqueleto é um só, a pele vem de `[data-proposta]` no CSS.
  */
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type {
   Comparativo as ComparativoTipo,
   DirecaoFavoravel,
@@ -76,18 +76,37 @@ export function ValorExibido({
 }) {
   if (valor.estado === 'ok') {
     const zeroMedido = valor.numero === 0;
+    const texto = formatarNumero(valor.numero, unidade);
     return (
-      <span className={className}>
+      /**
+       * `--dc-digitos` é o comprimento real do número já formatado, e é o que
+       * permite o CSS encolher a fonte só quando ela encostaria na borda do
+       * cartão — sem medir nada em tempo de execução e sem `useEffect`. Ver o
+       * bloco "O número grande cabe no próprio cartão" em `report.css`, que
+       * explica por que `vw` era a medida errada e por que a moeda em pt-BR não
+       * quebra linha (o separador é U+00A0).
+       *
+       * O sufixo NÃO entra na conta: ele vive numa fonte bem menor e pode
+       * quebrar para a linha de baixo, então somá-lo encolheria o número por um
+       * aperto que não existe.
+       */
+      <span className={className} style={{ '--dc-digitos': texto.length } as CSSProperties}>
         <span className="dc-numero" data-estado={zeroMedido ? 'zero' : 'medido'}>
-          {formatarNumero(valor.numero, unidade)}
+          {texto}
         </span>
         {sufixo && <span className="dc-kpi__sufixo">{sufixo}</span>}
         {zeroMedido && <span className="dc-estado-medicao">medido</span>}
       </span>
     );
   }
+  /**
+   * Ausência é FRASE, não número — "indisponível", "não confirmado". Deixar o
+   * ajuste por caractere valer aqui encolheria a frase a 1,35rem só porque ela
+   * é comprida. O tamanho desejado vale inteiro, e a frase quebra linha como
+   * qualquer texto.
+   */
   return (
-    <span className={className}>
+    <span className={className} style={{ fontSize: 'var(--dc-tamanho-valor)' } as CSSProperties}>
       <span className="dc-valor--indisponivel" data-estado={valor.estado}>
         {textoDoEstadoVazio(valor)}
       </span>

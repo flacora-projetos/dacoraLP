@@ -123,6 +123,71 @@
   font-feature-settings: 'tnum' 1;
 }
 
+/* ---------- O número grande cabe no próprio cartão ------------------ */
+
+/**
+ * O BUG QUE ISTO CORRIGE, apontado pelo Flávio em 2026-08-19 com dois prints:
+ * "R$ 231.866,54" saindo pela borda do cartão de INVESTIMENTO/RECEITA, e o
+ * mesmo em números do funil. Duas causas somadas, e nenhuma das duas é óbvia:
+ *
+ *  1. **O tamanho da fonte era medido em `vw` — a largura da JANELA — dentro de
+ *     um cartão cuja largura é um TERÇO dela.** Alargar a tela aumenta o número
+ *     e o cartão na mesma proporção, então o defeito não aparece redimensionando
+ *     a janela: ele aparece quando o NÚMERO fica comprido. Um relatório de conta
+ *     grande vaza; o mesmo layout, no cliente pequeno, nunca vazou.
+ *  2. **`Intl.NumberFormat('pt-BR')` separa "R$" do valor com ESPAÇO
+ *     INSEPARÁVEL** (U+00A0, conferido no navegador: charCode 160). "R$ 231.866,54"
+ *     é uma palavra só para o navegador — não quebra em duas linhas, não cede,
+ *     atravessa a borda. Foi por isso que a primeira tentativa de reproduzir o
+ *     defeito com espaço comum FALHOU: com espaço comum o texto quebra e o bug
+ *     desaparece.
+ *
+ * A correção ataca as duas: o tamanho passa a ser medido em `cqi` — a largura do
+ * PRÓPRIO cartão — e é limitado pelo comprimento real do número, que o
+ * componente informa em `--dc-digitos`. Nenhum JavaScript mede nada em tempo de
+ * execução: o número de caracteres é conhecido na hora de formatar.
+ *
+ * `--dc-largura-char` é o pior caso MEDIDO na Red Hat Display, com canvas, em
+ * oito formatos reais da carteira: 0,540 em ("100,0%") contra 0,486 em de uma
+ * moeda de 16 caracteres. O 0,55 tem folga de propósito, e ainda ganha o que o
+ * `letter-spacing` negativo devolve.
+ *
+ * O `min()` é o que impede a correção de virar regressão: número curto continua
+ * exatamente do tamanho de antes, porque `--dc-tamanho-valor` ganha. Só encolhe
+ * quem encostaria na borda. O `max()` põe piso: número absurdo para de encolher
+ * em 1,35rem em vez de virar letra miúda ilegível.
+ */
+.dc-kpi,
+.dc-funil__etapa,
+.dc-confronto__lado {
+  container-type: inline-size;
+}
+
+.dc-kpi__valor,
+.dc-funil__valor,
+.dc-confronto__valor {
+  --dc-digitos: 8;
+  --dc-largura-char: 0.55;
+  font-size: min(
+    var(--dc-tamanho-valor, 2.25rem),
+    max(1.35rem, calc(100cqi / var(--dc-digitos) / var(--dc-largura-char)))
+  );
+}
+
+/**
+ * Navegador sem `container-type` (Safari < 16) nunca chega a resolver `cqi`, e
+ * a declaração inteira acima é descartada — o cartão volta ao tamanho desejado,
+ * que é o comportamento de antes desta correção. Nada quebra; o número grande
+ * volta a poder encostar na borda naquele navegador antigo.
+ */
+@supports not (container-type: inline-size) {
+  .dc-kpi__valor,
+  .dc-funil__valor,
+  .dc-confronto__valor {
+    font-size: var(--dc-tamanho-valor, 2.25rem);
+  }
+}
+
 /* ---------- Topo ---------------------------------------------------- */
 
 .dc-topo {
@@ -471,9 +536,30 @@
   font-weight: 600;
 }
 
+/**
+ * O BUG QUE ISTO CORRIGE, apontado pelo Flávio em 2026-08-19 com o print do
+ * funil da Karyne: "RESPONDERAM A PRIMEIRA PERGUNTA" e "53,8% MAIOR GARGALO"
+ * impressos por cima do cartão vizinho.
+ *
+ * A trilha mínima era 9,5rem (152 px) e a coluna da transição — a seta com a
+ * taxa — come até 5,7rem dela. Sobravam ~3,8rem MENOS o padding do cartão, ou
+ * seja ~53 px de largura útil, para um rótulo em caixa alta com `letter-spacing`
+ * onde uma palavra sozinha ("PRIMEIRA") já mede ~80 px. O texto vazava do
+ * cartão, e vazava para dentro do vizinho.
+ *
+ * O defeito NÃO aparece em funil curto de rótulo curto — que era o caso de todo
+ * cliente até a Karyne ganhar seis etapas nomeadas por frase. Foi o funil mais
+ * rico da carteira que revelou a conta apertada.
+ *
+ * A trilha passa a reservar o espaço da transição EM VEZ de disputá-lo:
+ * 14,5rem = ~5,7rem de transição + ~8,8rem de cartão. Numa página de 880 px
+ * cabem três etapas por linha em vez de cinco espremidas. `min(100%, …)` impede
+ * a trilha de estourar o contêiner em tela estreita, que é o que aconteceria com
+ * `minmax(14.5rem, 1fr)` puro.
+ */
 .dc-funil__etapas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr));
   gap: 0;
   list-style: none;
   margin: 0;
@@ -512,16 +598,24 @@
   font-size: 0.78rem;
   line-height: 1.35;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dc-cinza);
+  /**
+   * A trava de último recurso. A trilha larga já resolve o caso real, mas o
+   * rótulo vem da fábrica e é texto livre: uma etapa nomeada com uma palavra
+   * comprida ("REAGENDAMENTOS") num celular estreito voltaria a vazar. Quebrar
+   * dentro da palavra é feio; escrever por cima do cartão do lado é defeito.
+   */
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .dc-funil__valor {
   margin-top: auto;
   padding-top: 0.45rem;
   font-family: var(--dc-fonte-numero);
-  font-size: clamp(1.7rem, 1.25rem + 1.4vw, 2.25rem);
+  --dc-tamanho-valor: clamp(1.7rem, 1.25rem + 1.4vw, 2.25rem);
   line-height: 1;
   letter-spacing: -0.035em;
   color: var(--dc-tinta);
@@ -530,6 +624,7 @@
 
 .dc-funil__transicao {
   width: clamp(4.5rem, 6vw, 5.7rem);
+  min-width: 0;
   padding-inline: 0.35rem;
   display: flex;
   flex-direction: column;
@@ -559,6 +654,10 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--dc-sinal);
+  /* Duas palavras curtas, mas a coluna é estreita: elas precisam poder
+     empilhar em vez de empurrar a largura da transição. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .dc-funil__transicao[data-gargalo='true'] .dc-funil__seta,
@@ -778,7 +877,7 @@
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.03em;
-  font-size: clamp(2.1rem, 1.5rem + 2.4vw, 2.9rem);
+  --dc-tamanho-valor: clamp(2.1rem, 1.5rem + 2.4vw, 2.9rem);
   color: var(--dc-tinta);
   display: flex;
   align-items: baseline;
@@ -789,7 +888,7 @@
 .dc-report[data-proposta='B'] .dc-kpi__valor {
   font-weight: 300;
   letter-spacing: -0.045em;
-  font-size: clamp(2.4rem, 1.4rem + 3.4vw, 3.4rem);
+  --dc-tamanho-valor: clamp(2.4rem, 1.4rem + 3.4vw, 3.4rem);
 }
 
 .dc-kpi__sufixo {
@@ -1581,7 +1680,7 @@
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.03em;
-  font-size: clamp(2rem, 1.3rem + 2.8vw, 2.85rem);
+  --dc-tamanho-valor: clamp(2rem, 1.3rem + 2.8vw, 2.85rem);
   color: var(--dc-tinta);
   display: flex;
   align-items: baseline;
@@ -2993,7 +3092,7 @@
 }
 
 .dc-report[data-proposta='B'] .dc-kpi__valor {
-  font-size: clamp(2.15rem, 1.5rem + 2.6vw, 3.05rem);
+  --dc-tamanho-valor: clamp(2.15rem, 1.5rem + 2.6vw, 3.05rem);
   font-weight: 450;
 }
 
@@ -3198,7 +3297,7 @@
   }
 
   .dc-report[data-proposta='B'] .dc-kpi__valor {
-    font-size: clamp(1.85rem, 9vw, 2.45rem);
+    --dc-tamanho-valor: clamp(1.85rem, 9vw, 2.45rem);
   }
 
   .dc-comparativo {
