@@ -161,12 +161,13 @@ export default async function handler(req: Request, res: Response) {
     let acoesPorRelatorio = new Map<string, {
       destinatarioNome: string | null;
       podeSolicitarEnvio: boolean;
+      indisponibilidade: string | null;
       envioId: string | null;
       envioEstado: string | null;
     }>();
     try {
       const respostaAcoes = await fetch(
-        `${urlSupabase}/rest/v1/relatorio_p5_portal?competencia=eq.${competencia}&select=relatorio_id,destinatario_nome,pode_solicitar_envio,envio_id,envio_estado`,
+        `${urlSupabase}/rest/v1/relatorio_p5_portal?competencia=eq.${competencia}&select=relatorio_id,destinatario_nome,pode_solicitar_envio,indisponibilidade,envio_id,envio_estado`,
         { headers: cabecalhos },
       );
       if (respostaAcoes.ok) {
@@ -174,6 +175,7 @@ export default async function handler(req: Request, res: Response) {
         acoesPorRelatorio = new Map(linhasAcoes.map((linha) => [linha.relatorio_id, {
           destinatarioNome: linha.destinatario_nome ?? null,
           podeSolicitarEnvio: linha.pode_solicitar_envio === true,
+          indisponibilidade: linha.indisponibilidade ?? null,
           envioId: linha.envio_id ?? null,
           envioEstado: linha.envio_estado ?? null,
         }]));
@@ -191,6 +193,7 @@ export default async function handler(req: Request, res: Response) {
         podeVoltarEdicao: liberadoSemEnvio,
         podeSolicitarEnvio: acao?.podeSolicitarEnvio === true,
         destinatarioNome: acao?.destinatarioNome ?? null,
+        envioIndisponibilidade: acao?.indisponibilidade ?? (item.estado === 'liberado' ? 'p5_indisponivel' : null),
         envioEstado: acao?.envioEstado ?? null,
       };
     });

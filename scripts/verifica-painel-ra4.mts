@@ -438,6 +438,19 @@ async function chamarReabrir(corpo: unknown) {
   assert.equal(saida.corpo.reaberto, false);
 }
 
+{
+  globalThis.fetch = (async (entrada: any) => {
+    const url = String(entrada);
+    if (url.includes('/auth/v1/user')) return new Response(JSON.stringify(usuario), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (url.includes('/rpc/reabrir_relatorio_para_edicao')) return new Response('erro_sql_desconhecido', { status: 400 });
+    throw new Error(`URL não dublada no erro SQL desconhecido: ${url}`);
+  }) as typeof fetch;
+  const saida = await chamarReabrir({ id: ID, checksum: CHECKSUM });
+  assert.equal(saida.status, 502, 'erro SQL sem contrato conhecido não pode parecer conflito recuperável');
+  assert.equal(saida.corpo.erro, 'reabertura_recusada');
+  assert.equal(saida.corpo.reaberto, false);
+}
+
 globalThis.fetch = fetchOriginal;
 
 console.log('verifica-painel-ra4: ok');
