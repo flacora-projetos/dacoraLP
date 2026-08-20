@@ -29,10 +29,10 @@ pública e ocultos na impressão pelo contrato CSS existente.
   de histórico na resposta pública e da regra de impressão do histórico.
 - `npm.cmd run verifica:av4`, `verifica:av3` e `verifica:revisao` — passaram.
 - `npm.cmd run lint` — passou com 0 erros após `npm ci` isolado na worktree.
-- `npm.cmd run build` — passou: Vite, SSR, prerender, casca privada, sitemap e
-  bundle do servidor. O primeiro comando completo foi interrompido pelo limite
-  de execução durante o Vite; a repetição da etapa Vite e das etapas restantes
-  fora do sandbox concluiu verde.
+- A sequência completa do build passou: prebuild, Vite, SSR, prerender, casca
+  privada, sitemap e bundle do servidor. O primeiro `npm.cmd run build` foi
+  interrompido pelo limite de execução durante o Vite; a repetição da etapa
+  Vite e das etapas restantes fora do sandbox concluiu verde.
 - `git diff --check` — passou.
 
 ## Smoke
