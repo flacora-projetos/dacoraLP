@@ -32,7 +32,13 @@ function referenciaDoSnapshot(checksum: string) {
   return checksum.length > 10 ? `${checksum.slice(0, 10)}…` : checksum;
 }
 
-function VersaoDaAnalise({ revisao }: { revisao: RevisaoDoHistorico; key?: string }) {
+/**
+ * Uma versão preservada, do jeito que ela é mostrada em QUALQUER lugar do
+ * painel. Exportada porque o histórico aparece em dois pontos — a faixa de
+ * revisão (relatório inteiro) e a própria seção — e duas cópias divergiriam
+ * no primeiro campo novo, com uma delas escondendo dado do revisor.
+ */
+export function VersaoDaAnalise({ revisao }: { revisao: RevisaoDoHistorico; key?: string }) {
   const revisadaEm = formatarCarimbo(revisao.revisadaEm);
   const coletadoEm = revisao.coletadoEmReferencia ? formatarCarimbo(revisao.coletadoEmReferencia) : '';
   const invalidadaEm = revisao.invalidadaEm ? formatarCarimbo(revisao.invalidadaEm) : '';

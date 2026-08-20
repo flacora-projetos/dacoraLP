@@ -1068,8 +1068,16 @@
   gap: 0.5rem;
   margin: 0.5rem 0 0;
   font-size: 0.78rem;
-  color: var(--dc-cinza);
+  /* Herda a tinta do container em vez de fixar um cinza de fundo claro.
+     Nos blocos esta linha cai no cartão branco; na introdução ela cai
+     DIRETO no cartão verde-escuro (`.dc-destaque`), e ali `--dc-cinza`
+     (#4a5e55) some no fundo — foi assim que o aviso de "revisada sem
+     análise" ficou ilegível na tela do cliente Hannover. Herdar + esmaecer
+     reproduz o cinza de sempre no claro e o `--dc-sobre-verde` no escuro,
+     sem o bloco precisar saber onde foi renderizado. */
+  color: inherit;
 }
+.dcp-analise-dispensa > span { opacity: 0.82; }
 .dcp-analise-dispensa .dcp-botao,
 .dcp-analise-dispensa__acao {
   min-height: 44px;
@@ -2223,4 +2231,41 @@
     padding: 0 0.85rem;
     font-size: 0.8rem;
   }
+}
+
+/* AV3 — histórico da própria seção, ao lado de onde a análise é escrita.
+   A faixa de revisão já mostrava a linha do tempo do relatório inteiro, mas
+   abaixo de 1200px ela vira gaveta de rodapé e o bloco nasce recolhido lá
+   dentro: quem escreve a análise não achava as versões anteriores da seção.
+
+   Vive nos dois fundos (cartão claro dos blocos, cartão verde da introdução),
+   então o painel aberto carrega superfície e tinta PRÓPRIAS — as versões
+   reusam o desenho da faixa, que pressupõe fundo claro. */
+.dcp-historico-secao {
+  flex: 1 0 100%;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: inherit;
+}
+.dcp-historico-secao > summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  opacity: 0.82;
+  touch-action: manipulation;
+}
+.dcp-historico-secao > summary small { font-size: 0.7rem; }
+.dcp-historico-secao[open] > summary { opacity: 1; }
+.dcp-historico-secao__lista {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.5rem;
+  background: var(--dc-superficie);
+  color: var(--dc-tinta);
+  border: 1px solid var(--dc-filete);
+  border-radius: 0.6rem;
 }

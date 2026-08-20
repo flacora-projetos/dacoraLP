@@ -27,6 +27,7 @@ import { AnaliseIntroducao, type AcaoDaIntroducao, type SugestaoDaIntroducao } f
 import {
   AnaliseDaSecao,
   AnalisesSecaoProvider,
+  HistoricoDaSecao,
   DispensaDaSecao,
   type AcaoAnalisesUI,
   type ResultadoAnalisesUI,
@@ -113,6 +114,7 @@ export function RevisaoApresentada({
             também precisa da saída "revisada sem análise". A caneta dela tem
             endpoint próprio; a dispensa é a mesma das seções. */}
         <DispensaDaSecao secao="introducao" titulo="Introdução" />
+        <HistoricoDaSecao secao="introducao" titulo="Introdução" />
       </> : undefined}
       analiseDaSecao={aoAnalisarSecoes && relatorio.podeDecidir ? renderizarAnaliseDaSecao : undefined}
     />
@@ -136,7 +138,7 @@ export function RevisaoApresentada({
     aoDescartarRetencao={aoDescartarRetencao}
     historicoAnalises={historicoAnalises}
   ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
-    <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} aoAcionar={aoAnalisarSecoes}>
+    <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} historico={historicoAnalises} aoAcionar={aoAnalisarSecoes}>
       {documento}
     </AnalisesSecaoProvider>
   ) : documento}</></RevisaoMoldura>;
