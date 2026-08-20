@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link, useSearchParams } from 'react-router-dom';
 import { usarPainelAuth } from './AuthContext';
+import PortalDoDialogo from './PortalDoDialogo';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
 import VisaoGeral, {
   type CampoDeFiltro,
@@ -103,6 +104,7 @@ interface ItemDaFila {
   podeSolicitarEnvio?: boolean;
   destinatarioNome?: string | null;
   envioEstado?: string | null;
+  envioIndisponibilidade?: string | null;
 }
 
 interface RespostaFila {
@@ -417,23 +419,29 @@ function AcoesDoEstadoAprovado({
   item,
   aoVoltarEdicao,
   aoEnviar,
+  acaoEmCurso,
 }: {
   item: ItemDaFila;
   aoVoltarEdicao?: (item: ItemDaFila) => void;
   aoEnviar?: (item: ItemDaFila) => void;
+  acaoEmCurso?: string | null;
 }) {
-  if (!item.podeVoltarEdicao && !item.podeSolicitarEnvio) return null;
+  const emCurso = acaoEmCurso === item.id;
+  if (!item.podeVoltarEdicao && !item.podeSolicitarEnvio && !item.envioIndisponibilidade) return null;
   return (
     <span className="dcp-estado-acoes" aria-label={`Ações do relatório aprovado de ${item.clienteNome}`}>
       {item.podeVoltarEdicao && aoVoltarEdicao && (
-        <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => aoVoltarEdicao(item)}>
-          Voltar para edição
+        <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => aoVoltarEdicao(item)} disabled={emCurso}>
+          {emCurso ? 'Atualizando…' : 'Voltar para edição'}
         </button>
       )}
       {item.podeSolicitarEnvio && aoEnviar && (
-        <button type="button" className="dcp-botao dcp-botao--primario" onClick={() => aoEnviar(item)}>
+        <button type="button" className="dcp-botao dcp-botao--primario" onClick={() => aoEnviar(item)} disabled={emCurso}>
           Enviar
         </button>
+      )}
+      {item.envioIndisponibilidade && (
+        <span className="dcp-estado__apoio" role="status">Envio indisponível: atualize a fila antes de solicitar.</span>
       )}
     </span>
   );
@@ -612,6 +620,9 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
   const [dados, setDados] = useState<RespostaFila | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<{ codigo: string; mensagem: string } | null>(null);
+  const [acaoEmCurso, setAcaoEmCurso] = useState<string | null>(null);
+  const [envioPendente, setEnvioPendente] = useState<ItemDaFila | null>(null);
+  const [erroDaAcao, setErroDaAcao] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const competenciaPedida = searchParams.get('competencia');
   const sessaoAtualRef = useRef(sessao);
@@ -671,36 +682,45 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
 
   async function voltarParaEdicao(item: ItemDaFila) {
     const sessaoAtual = sessaoAtualRef.current;
-    if (!sessaoAtual || !item.checksum) return;
-    if (!window.confirm(`Remover a aprovação de ${item.clienteNome} e voltar este relatório para edição?`)) return;
-    const resposta = await fetch('/api/painel-reabrir-edicao', {
+    if (!sessaoAtual || !item.checksum || acaoEmCurso) return;
+    setAcaoEmCurso(item.id);
+    setErroDaAcao(null);
+    try {
+      const resposta = await fetch('/api/painel-reabrir-edicao', {
       method: 'POST',
       headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: item.id, checksum: item.checksum }),
-    });
-    const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok || corpo?.reaberto !== true) {
-      window.alert(String(corpo?.mensagem ?? 'Não foi possível voltar este relatório para edição.'));
-      return;
+      });
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || corpo?.reaberto !== true) throw new Error(String(corpo?.mensagem ?? 'Não foi possível voltar este relatório para edição.'));
+      await buscar(competenciaPedida);
+    } catch (causa) {
+      setErroDaAcao(causa instanceof Error ? causa.message : 'Não foi possível voltar este relatório para edição.');
+    } finally {
+      setAcaoEmCurso(null);
     }
-    await buscar(competenciaPedida);
   }
 
   async function enviarDaFila(item: ItemDaFila) {
     const sessaoAtual = sessaoAtualRef.current;
-    if (!sessaoAtual || !item.checksum || !item.destinatarioNome) return;
-    if (!window.confirm(`Enviar agora o relatório de ${item.clienteNome} para ${item.destinatarioNome}?`)) return;
-    const resposta = await fetch('/api/painel-envio', {
+    if (!sessaoAtual || !item.checksum || !item.destinatarioNome || acaoEmCurso) return;
+    setAcaoEmCurso(item.id);
+    setErroDaAcao(null);
+    try {
+      const resposta = await fetch('/api/painel-envio', {
       method: 'POST',
       headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: item.id, checksum: item.checksum }),
-    });
-    const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok || corpo?.solicitado !== true) {
-      window.alert(String(corpo?.mensagem ?? 'Não foi possível solicitar o envio.'));
-      return;
+      });
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || corpo?.solicitado !== true) throw new Error(String(corpo?.mensagem ?? 'Não foi possível solicitar o envio.'));
+      setEnvioPendente(null);
+      await buscar(competenciaPedida);
+    } catch (causa) {
+      setErroDaAcao(causa instanceof Error ? causa.message : 'Não foi possível solicitar o envio.');
+    } finally {
+      setAcaoEmCurso(null);
     }
-    await buscar(competenciaPedida);
   }
 
   if (carregando) {
@@ -742,11 +762,28 @@ export function FilaComSessao({ sessao }: { sessao: Session | null }) {
     );
   }
 
-  return <CorpoDaFila
-    dados={dados ?? { competencia: null, competencias: [], itens: [] }}
-    aoVoltarEdicao={(item) => void voltarParaEdicao(item)}
-    aoEnviar={(item) => void enviarDaFila(item)}
-  />;
+  return <>
+    {erroDaAcao && <p className="dcp-decisao__resultado dcp-decisao__resultado--falha" role="alert">{erroDaAcao}</p>}
+    <CorpoDaFila
+      dados={dados ?? { competencia: null, competencias: [], itens: [] }}
+      aoVoltarEdicao={(item) => void voltarParaEdicao(item)}
+      aoEnviar={(item) => { setErroDaAcao(null); setEnvioPendente(item); }}
+    />
+    {envioPendente && (
+      <PortalDoDialogo>
+        <div className="dcp-modal" role="presentation"><div className="dcp-modal__caixa" role="dialog" aria-modal="true" aria-labelledby="fila-envio-titulo">
+          <p className="dcp-eyebrow">Envio ao cliente</p>
+          <h2 id="fila-envio-titulo" className="dcp-modal__titulo">Solicitar envio de {envioPendente.clienteNome}?</h2>
+          <p className="dcp-modal__apoio">Será criada uma única intenção para {envioPendente.destinatarioNome}. Isso não confirma transporte nem entrega.</p>
+          {erroDaAcao && <p className="dcp-decisao__resultado dcp-decisao__resultado--falha" role="alert">{erroDaAcao}</p>}
+          <div className="dcp-modal__acoes">
+            <button type="button" className="dcp-botao dcp-botao--primario" disabled={acaoEmCurso === envioPendente.id} onClick={() => void enviarDaFila(envioPendente)}>{acaoEmCurso === envioPendente.id ? 'Solicitando…' : 'Solicitar envio'}</button>
+            <button type="button" className="dcp-botao dcp-botao--discreto" disabled={acaoEmCurso === envioPendente.id} onClick={() => setEnvioPendente(null)}>Cancelar</button>
+          </div>
+        </div></div>
+      </PortalDoDialogo>
+    )}
+  </>;
 }
 
 /** As dimensões de filtro, na mesma ordem em que aparecem como parâmetro de URL. */
