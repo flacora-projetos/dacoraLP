@@ -9,8 +9,13 @@ plano/handoff canônico indicado nele no repositório `OpenClaw-Dacora`.
 A frente **RA — Revisão Analítica Assistida dos Relatórios Mensais** é a
 prioridade de desenvolvimento do painel. Sua fonte organizacional é
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-RA1–RA3 estão concluídas e publicadas. **A primeira fatia da RA4 está em produção no `main/6b39e6c`.** Ela deriva prontidão editorial no servidor, impede aprovação com análises obrigatórias pendentes e mantém recusa disponível. Aprovação e envio são atos separados: após o GO, a revisão oferece **Enviar agora / Voltar para a fila**; na fila, junto de `aprovado por…`, ficam **Voltar para edição / Enviar**. A migration RA4 está aplicada no Supabase; reabrir exige versão liberada corrente, sem envio e sem qualquer intenção P5, preserva auditoria e volta a mesma versão para `gerado`. O deploy Vercel fechou em `success`; painel responde 200 e APIs privadas decisão/envio/reabertura 401 sem sessão. **RA5: áudio congelado até segunda ordem**; o áudio já existente permanece intacto e não ganha desenvolvimento novo sem GO do PO. A introdução do relatório continua sendo o primeiro e mais importante alvo da caneta mágica;
-C1/C2/C3 são insumo subordinado, não uma publicação independente. Cada fase RA
+**RA1–RA5 estão publicadas; RA4 permanece parcial.** RA5 está em
+`main/2a7dc4e`: página pública/PDF, aprovação e envio exigem o mesmo recibo AV4
+exato. Vercel `success`; smoke autenticado desktop/celular passou sem mutação.
+O primeiro fechamento humano real e o smoke positivo do link/PDF são o gate
+operacional restante porque ainda não há relatório com recibo AV4 publicável;
+depois vem RA6. Áudio continua congelado até novo GO. A introdução segue como
+alvo principal; C1/C2/C3 são insumo, não publicação independente. Cada fase RA
 deve acontecer em sessão própria, na branch/worktree indicada pelo documento.
 
 A RA não pertence a esta conversa nem a um modelo. Codex, Claude Code ou um

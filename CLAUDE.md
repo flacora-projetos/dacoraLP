@@ -6,8 +6,14 @@ também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
 A prioridade atual é a frente **RA — Revisão Analítica Assistida**, organizada
 em `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-RA1–RA3 estão concluídas e publicadas; o refino RA3 de contexto/provider está em produção. **A primeira fatia da RA4 está em produção no `main/6b39e6c` desde 2026-08-14.** Ela calcula prontidão editorial no servidor e bloqueia aprovação com análises obrigatórias pendentes. Aprovar não envia; após o GO, o modal oferece **Enviar agora** ou **Voltar para a fila**. Na fila, junto de `aprovado por…`, ficam **Voltar para edição** e **Enviar**. A migration RA4 de reabertura está aplicada no Supabase; reabrir preserva versão/checksum, audita a aprovação removida e só é permitido antes de qualquer intenção P5; enviado permanece imutável. Produção: Vercel `success`, painel 200 e APIs privadas decisão/envio/reabertura 401 sem sessão. **RA5: áudio congelado até segunda ordem** — o áudio/player existente fica intacto, mas nenhuma nova integração ou geração de áudio entra na RA5 sem novo GO. A introdução continua sendo o alvo principal da caneta mágica; C1/C2/C3 não deve ser
-publicada separadamente. Cada fase roda em sessão própria e registra, em tempo
+**RA1–RA5 estão publicadas; RA4 permanece parcial.** RA5 está em
+`main/2a7dc4e`: página pública/PDF, aprovação e envio exigem o mesmo recibo AV4
+exato. Vercel `success`; painel e revisão passaram em navegador autenticado no
+desktop e 390×844, sem mutação. Como hoje há zero relatórios liberados com
+recibo AV4 publicável, o primeiro fechamento humano real e o smoke positivo do
+link/PDF são o gate operacional restante; depois vem RA6. Áudio continua
+congelado até novo GO. A introdução segue como alvo principal da caneta mágica;
+C1/C2/C3 não é publicação separada. Cada fase roda em sessão própria e registra, em tempo
 real, implementação, teste, commit, push, merge, publicação e validação em
 produção como estados diferentes.
 

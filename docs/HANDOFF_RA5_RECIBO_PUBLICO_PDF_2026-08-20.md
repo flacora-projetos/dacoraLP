@@ -1,51 +1,48 @@
 # HANDOFF — RA5: recibo final na página pública e PDF — 2026-08-20
 
-## Estado
+## Resultado
 
-Implementação em `codex/ra5-recibo-pagina-pdf`, sobre `main/e6b1c49`, sem
-alteração de Supabase remoto, deploy, merge, envio ou áudio.
+RA5 está integrada em `main/2a7dc4e` e publicada pela Vercel com deployment
+`success`. `api/relatorio-publico.ts` só devolve a versão `liberado` cujo
+recibo AV4 coincide exatamente com a identidade, o checksum do documento, o
+checksum factual e o checksum aprovado. Ausência ou divergência devolve o
+mesmo 404 indisponível.
 
-## Contrato entregue
+O token, o recibo e o histórico editorial continuam internos e não entram no
+JSON público. A página usa somente `RelatorioMontado`; o PDF é a impressão
+dessa mesma página, sem fonte paralela. Histórico e controles internos seguem
+fora da página e ocultos na impressão.
 
-`api/relatorio-publico.ts` não libera mais um snapshot somente porque a
-aprovação legada bate com o documento. Antes de montar a resposta pública, lê
-o recibo AV4 `relatorio_fechamentos_editoriais` e exige identidade exata
-(`relatorio_id`, cliente, competência e versão) e os três vínculos exatos:
-
-- `checksum_documento` = `relatorios.checksum`;
-- `checksum_factual` = `relatorios.checksum_factual_editorial`;
-- `aprovado_checksum` = a aprovação persistida da mesma versão.
-
-Ausência, recibo malformado ou qualquer divergência devolve o mesmo 404
-indisponível do link público. O recibo continua interno e não é incluído no
-JSON. A página pública usa somente `RelatorioMontado`; a impressão/PDF vem
-desse mesmo snapshot. Histórico e controles internos seguem fora da página
-pública e ocultos na impressão pelo contrato CSS existente.
+Não houve alteração de schema/Supabase, aprovação, recusa, envio, descarte de
+histórico ou áudio nesta entrega.
 
 ## Provas
 
-- `npm.cmd run verifica:publico` — passou. Inclui negativas para documento,
-  snapshot factual, aprovação, cliente e versão divergentes, além da ausência
-  de histórico na resposta pública e da regra de impressão do histórico.
-- `npm.cmd run verifica:av4`, `verifica:av3` e `verifica:revisao` — passaram.
-- `npm.cmd run lint` — passou com 0 erros após `npm ci` isolado na worktree.
-- A sequência completa do build passou: prebuild, Vite, SSR, prerender, casca
-  privada, sitemap e bundle do servidor. O primeiro `npm.cmd run build` foi
-  interrompido pelo limite de execução durante o Vite; a repetição da etapa
-  Vite e das etapas restantes fora do sandbox concluiu verde.
-- `git diff --check` — passou.
+- `verifica:publico`: passou, incluindo ausência de histórico e negativas de
+  documento, fatos, aprovação, cliente e versão divergentes;
+- `verifica:av4`, `verifica:av3` e `verifica:revisao`: passaram;
+- `lint`: passou com zero erros após `npm ci` isolado na worktree;
+- build completo da branch: Vite, SSR, prerender, casca privada, sitemap e
+  bundle do servidor concluíram verdes;
+- produção: raiz e painel HTTP 200; credencial pública inválida retorna 404 com
+  `no-store` e `no-referrer`;
+- navegador real autenticado: painel e revisão de Hannover Fondue abriram em
+  desktop e 390×844, sem overlay, erro de console ou overflow horizontal. O
+  histórico apareceu recolhido e marcado como interno. Nenhuma ação mutante
+  foi acionada.
 
-## Smoke
+O Playwright isolado não conseguiu reutilizar uma sessão governada. O smoke
+autenticado foi concluído por controle da janela Chrome aberta pelo PO, sem
+inspecionar cookies ou storage.
 
-O navegador isolado não iniciou (`CDP response channel closed`), por isso não
-há alegação de smoke visual/autenticado. O smoke HTTP não mutante da produção
-atual confirmou painel 200 com casca `noindex`, retenção privada 401 sem sessão
-e rota externa com credencial inválida usando `no-store`/`no-referrer`. A branch
-RA5 não foi publicada e esse smoke não prova o código novo.
+## Gate operacional restante
 
-## Próximo gate
+Uma leitura remota somente de contagem encontrou **zero** relatórios que hoje
+estejam simultaneamente `liberado`, com token e recibo AV4 exato. Não existe,
+portanto, link positivo que possa ser testado sem criar uma aprovação humana
+real. Esse estado não foi fabricado.
 
-Revisar, commitar e enviar a branch. Depois da integração da dependência de
-tipagem, rodar `npm run build`; após merge/publicação autorizados, repetir
-smoke público com um link governado e smoke autenticado com storage-state
-governado, sem aprovar, descartar ou enviar.
+No primeiro fechamento real, abrir o link público e imprimir o PDF sem enviar,
+conferindo que ambos mostram o mesmo conteúdo final e nenhum histórico. O
+envio P5 permanece separado. Depois dessa validação operacional, a próxima
+fase técnica da família é RA6.
