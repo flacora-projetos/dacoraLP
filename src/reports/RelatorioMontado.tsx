@@ -32,9 +32,11 @@ interface Props {
   demo?: { rotulo: string; href: string; descricao: string };
   introducaoDaRevisao?: ReactNode;
   analiseDaSecao?: (secao: `bloco:${string}`) => ReactNode;
+  /** Vem apenas da view pública já amarrada ao fechamento AV4. */
+  observacoesPublicas?: Array<{ secao: string; texto: string }>;
 }
 
-export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao }: Props) {
+export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao, observacoesPublicas = [] }: Props) {
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
 
   const secoes: SecaoRelatorio[] = useMemo(() => {
@@ -60,7 +62,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
           titulo: config.titulo,
           apoio: config.apoio,
           nota: config.nota,
-          conteudo: conteudo === null ? null : <>{conteudo}{analiseDaSecao?.(`bloco:${config.id}`)}</>,
+          conteudo: conteudo === null ? null : <>{conteudo}{analiseDaSecao?.(`bloco:${config.id}`)}{observacoesPublicas.filter((observacao) => observacao.secao === `bloco:${config.id}`).map((observacao, indice) => <aside className="dc-observacao-publica" key={`${config.id}-${indice}`}><strong>Observação</strong><p>{observacao.texto}</p></aside>)}</>,
         };
       })
       /**
@@ -79,7 +81,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
       proposta={proposta}
       secoes={secoes}
       demo={demo}
-      introducaoDaRevisao={introducaoDaRevisao}
+      introducaoDaRevisao={<>{introducaoDaRevisao}{observacoesPublicas.filter((observacao) => observacao.secao === 'introducao' || observacao.secao === 'relatorio_inteiro').map((observacao, indice) => <aside className="dc-observacao-publica" key={`${observacao.secao}-${indice}`}><strong>Observação</strong><p>{observacao.texto}</p></aside>)}</>}
     />
   );
 }

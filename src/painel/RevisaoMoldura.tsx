@@ -62,6 +62,7 @@ export interface RelatorioDaRevisao {
     destinoReferencia: string;
   } | null;
   revisaoEditorial?: ResumoEditorialRA4;
+  diffDaRecusa?: { disponivel: boolean; secoes?: Array<{ secao: string; titulo: string; estado: 'alterada' | 'inalterada' | 'nao_comparavel' }> } | null;
 }
 
 function ListaDeSinais({ sinais }: { sinais: SinalDaRevisao[] }) {
@@ -150,6 +151,7 @@ function FaixaDeRevisao({
   aoSolicitarEnvio,
   aoCarregarRetencao,
   aoDescartarRetencao,
+  aoRegistrarObservacao,
   historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao;
@@ -160,6 +162,7 @@ function FaixaDeRevisao({
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoCarregarRetencao?: () => Promise<ResultadoRetencaoEditorial>;
   aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
+  aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
 }) {
   const competencia = formatarCompetencia(relatorio.competencia);
   const linkDeVolta = useLinkDeVoltaParaFila();
@@ -195,6 +198,12 @@ function FaixaDeRevisao({
       </details>
       <ContextoDaAnalise contexto={relatorio.snapshot.analysisContext} />
       <HistoricoAnalises historico={historicoAnalises} secoes={relatorio.revisaoEditorial?.secoes} />
+      {relatorio.diffDaRecusa && (
+        <section className="dcp-revisao__diff" aria-label="Comparação da recusa anterior">
+          <h2>Comparação da recusa anterior</h2>
+          {relatorio.diffDaRecusa.disponivel ? <ul>{relatorio.diffDaRecusa.secoes?.map((secao) => <li key={secao.secao}>{secao.titulo}: {secao.estado === 'alterada' ? 'alterada' : secao.estado === 'inalterada' ? 'não alterada' : 'não foi possível comparar'}</li>)}</ul> : <p>Não foi possível comparar esta versão com a recusa anterior.</p>}
+        </section>
+      )}
       {podeOferecerDecisao ? (
         <DecisaoDaRevisao
           relatorio={{
@@ -212,9 +221,14 @@ function FaixaDeRevisao({
             correcao: relatorio.correcao ?? null,
             notificacaoInterna: relatorio.notificacaoInterna ?? null,
             revisaoEditorial: relatorio.revisaoEditorial,
+            secoesRecusaveis: [
+              { secao: 'introducao', titulo: 'Introdução' },
+              ...relatorio.snapshot.montagem.map((bloco) => ({ secao: `bloco:${bloco.id}`, titulo: bloco.titulo })),
+            ],
           }}
           quem={quem ?? 'você'}
           aoDecidir={aoDecidir as (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>}
+          aoRegistrarObservacao={aoRegistrarObservacao}
         />
       ) : (
         <DecisaoDesabilitada />
@@ -245,6 +259,7 @@ export function RevisaoMoldura({
   aoSolicitarEnvio,
   aoCarregarRetencao,
   aoDescartarRetencao,
+  aoRegistrarObservacao,
   historicoAnalises,
 }: {
   relatorio: RelatorioDaRevisao | null;
@@ -256,6 +271,7 @@ export function RevisaoMoldura({
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoCarregarRetencao?: () => Promise<ResultadoRetencaoEditorial>;
   aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
+  aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
 }) {
   const linkDeVolta = useLinkDeVoltaParaFila();
 
@@ -285,7 +301,8 @@ export function RevisaoMoldura({
           aoCarregarEnvio={aoCarregarEnvio}
           aoSolicitarEnvio={aoSolicitarEnvio}
           aoCarregarRetencao={aoCarregarRetencao}
-          aoDescartarRetencao={aoDescartarRetencao}
+    aoDescartarRetencao={aoDescartarRetencao}
+    aoRegistrarObservacao={aoRegistrarObservacao}
           historicoAnalises={historicoAnalises}
         />
         <article className="dcp-revisao__documento" aria-label={`Relatório de ${relatorio.clienteNome}`}>

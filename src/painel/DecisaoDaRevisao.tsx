@@ -42,6 +42,7 @@ export type EstadoDaNotificacaoInterna =
 export interface PedidoDeDecisao {
   decisao: Decisao;
   motivo?: string;
+  escopoSecoes?: string[];
 }
 
 export interface ResultadoDaDecisao {
@@ -78,6 +79,7 @@ export interface RelatorioDecidivel {
     destinoReferencia: string;
   } | null;
   revisaoEditorial?: ResumoEditorialRA4;
+  secoesRecusaveis?: Array<{ secao: string; titulo: string }>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -244,6 +246,8 @@ function DialogoDeRecusa({
   relatorio,
   quem,
   motivo,
+  escopoSecoes,
+  aoMudarEscopo,
   aoEscrever,
   aoConfirmar,
   aoCancelar,
@@ -252,6 +256,8 @@ function DialogoDeRecusa({
   relatorio: RelatorioDecidivel;
   quem: string;
   motivo: string;
+  escopoSecoes: string[];
+  aoMudarEscopo: (secoes: string[]) => void;
   aoEscrever: (valor: string) => void;
   aoConfirmar: () => void;
   aoCancelar: () => void;
@@ -310,6 +316,13 @@ function DialogoDeRecusa({
             O motivo é obrigatório: ele é o que chega a quem vai regerar o relatório. Escreva o que
             precisa mudar, não uma nota interna.
           </p>
+          <fieldset className="dcp-modal__campo" disabled={registrando}>
+            <legend className="dcp-modal__rotulo">Escopo da correção</legend>
+            <label><input type="checkbox" checked={escopoSecoes[0] === 'relatorio_inteiro'} onChange={(evento) => aoMudarEscopo(evento.target.checked ? ['relatorio_inteiro'] : [])} /> Relatório inteiro</label>
+            {relatorio.secoesRecusaveis?.map((secao) => (
+              <label key={secao.secao}><input type="checkbox" checked={escopoSecoes.includes(secao.secao)} disabled={escopoSecoes[0] === 'relatorio_inteiro'} onChange={(evento) => aoMudarEscopo(evento.target.checked ? [...escopoSecoes.filter(item => item !== 'relatorio_inteiro'), secao.secao] : escopoSecoes.filter(item => item !== secao.secao))} /> {secao.titulo}</label>
+            ))}
+          </fieldset>
           <label className="dcp-modal__rotulo" htmlFor={`${idBase}-motivo`}>
             Motivo da recusa
           </label>
@@ -332,14 +345,14 @@ function DialogoDeRecusa({
                 : `Faltam ${MINIMO_DO_MOTIVO - motivo.trim().length} caracteres para o motivo valer.`}
           </p>
           <p id={`${idBase}-eco`} className="dcp-decisao__eco">
-            {ecoDaDecisao(relatorio, 'recusar', quem, motivo)}
+            {ecoDaDecisao(relatorio, 'recusar', quem, `${motivo} Escopo: ${escopoSecoes.join(', ') || '…'}`)}
           </p>
           <div className="dcp-modal__acoes">
             <button
               type="button"
               className="dcp-botao dcp-botao--sinal"
               onClick={aoConfirmar}
-              disabled={!suficiente || excedeu || registrando}
+              disabled={!suficiente || excedeu || escopoSecoes.length === 0 || registrando}
               aria-label={`Registrar a recusa do relatório de ${relatorio.clienteNome}, ${formatarCompetencia(relatorio.competencia)}`}
             >
               {registrando ? 'Registrando…' : 'Registrar recusa'}
@@ -367,16 +380,21 @@ export default function DecisaoDaRevisao({
   relatorio,
   quem,
   aoDecidir,
+  aoRegistrarObservacao,
 }: {
   relatorio: RelatorioDecidivel;
   /** O e-mail da sessão. Aparece no eco; quem grava usa o do servidor. */
   quem: string;
   aoDecidir: (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>;
+  aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
 }) {
   const [confirmando, setConfirmando] = useState<Decisao | null>(null);
   const [motivo, setMotivo] = useState('');
+  const [escopoSecoes, setEscopoSecoes] = useState<string[]>(['relatorio_inteiro']);
   const [registrando, setRegistrando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoDaDecisao | null>(null);
+  const [secaoDaObservacao, setSecaoDaObservacao] = useState('relatorio_inteiro');
+  const [textoDaObservacao, setTextoDaObservacao] = useState('');
   const botaoAprovar = useRef<HTMLButtonElement | null>(null);
   const botaoRecusar = useRef<HTMLButtonElement | null>(null);
   const idBloqueio = useId();
@@ -388,6 +406,7 @@ export default function DecisaoDaRevisao({
   function fecharDialogo() {
     setConfirmando(null);
     setMotivo('');
+    setEscopoSecoes(['relatorio_inteiro']);
     botaoRecusar.current?.focus();
   }
 
@@ -396,16 +415,31 @@ export default function DecisaoDaRevisao({
     setResultado(null);
     try {
       const saida = await aoDecidir(
-        decisao === 'recusar' ? { decisao, motivo: motivo.trim() } : { decisao },
+        decisao === 'recusar' ? { decisao, motivo: motivo.trim(), escopoSecoes } : { decisao },
       );
       setResultado(saida);
       if (saida.ok) {
         setConfirmando(null);
         setMotivo('');
+        setEscopoSecoes(['relatorio_inteiro']);
       }
     } finally {
       setRegistrando(false);
     }
+  }
+
+  async function registrarObservacao() {
+    if (!aoRegistrarObservacao || !textoDaObservacao.trim()) return;
+    const titulo = relatorio.secoesRecusaveis?.find((item) => item.secao === secaoDaObservacao)?.titulo ?? 'Relatório inteiro';
+    const eco = `Vou registrar uma OBSERVAÇÃO PÚBLICA em “${titulo}” para ${relatorio.clienteNome}: “${textoDaObservacao.trim()}”. Ela só poderá aparecer depois da aprovação e do fechamento editorial AV4 desta mesma versão. Nada foi gravado ainda.`;
+    if (!window.confirm(eco)) return;
+    setRegistrando(true);
+    setResultado(null);
+    try {
+      const saida = await aoRegistrarObservacao(secaoDaObservacao, textoDaObservacao.trim());
+      setResultado(saida);
+      if (saida.ok) setTextoDaObservacao('');
+    } finally { setRegistrando(false); }
   }
 
   /* Já decidido, substituído ou revogado: nada a fazer aqui, e a tela diz o
@@ -440,6 +474,19 @@ export default function DecisaoDaRevisao({
       )}
 
       <EstadoEditorialDaAprovacao resumo={relatorio.revisaoEditorial} />
+      {aoRegistrarObservacao && (
+        <section className="dcp-decisao__observacao-publica">
+          <h2>Observação pública</h2>
+          <p>Este texto não é contexto interno nem análise; só sai na página/PDF após aprovação e fechamento AV4 desta versão.</p>
+          <select value={secaoDaObservacao} onChange={(evento) => setSecaoDaObservacao(evento.target.value)} disabled={registrando}>
+            <option value="relatorio_inteiro">Relatório inteiro</option>
+            <option value="introducao">Introdução</option>
+            {relatorio.secoesRecusaveis?.filter((item) => item.secao.startsWith('bloco:')).map((item) => <option key={item.secao} value={item.secao}>{item.titulo}</option>)}
+          </select>
+          <textarea className="dcp-modal__campo" value={textoDaObservacao} onChange={(evento) => setTextoDaObservacao(evento.target.value)} maxLength={2500} rows={3} disabled={registrando} />
+          <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => void registrarObservacao()} disabled={registrando || !textoDaObservacao.trim()}>{registrando ? 'Registrando…' : 'Confirmar observação pública'}</button>
+        </section>
+      )}
 
       {confirmando === 'aprovar' ? (
         <div className="dcp-decisao__confirmacao">
@@ -505,11 +552,13 @@ export default function DecisaoDaRevisao({
       </p>
 
       {confirmando === 'recusar' && (
-        <DialogoDeRecusa
+      <DialogoDeRecusa
           relatorio={relatorio}
           quem={quem}
-          motivo={motivo}
-          aoEscrever={setMotivo}
+        motivo={motivo}
+        escopoSecoes={escopoSecoes}
+        aoEscrever={setMotivo}
+        aoMudarEscopo={setEscopoSecoes}
           aoConfirmar={() => void registrar('recusar')}
           aoCancelar={fecharDialogo}
           registrando={registrando}

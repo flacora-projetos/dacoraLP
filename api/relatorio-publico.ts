@@ -60,6 +60,11 @@ interface FechamentoEditorial {
   aprovado_checksum: string;
 }
 
+interface ObservacaoPublica {
+  secao: string;
+  texto: string;
+}
+
 function linhaPodeSerPublicada(linha: LinhaPublica) {
   return linha.estado === 'liberado'
     && linha.revogado_em === null
@@ -164,6 +169,20 @@ export default async function handler(req: Request, res: Response) {
       { urlSupabase, chaveDeServico },
     );
 
+    /* A view só libera a anotação quando a própria versão já passou pelo
+       fechamento AV4; esta segunda leitura não aceita autoria, contexto ou
+       histórico interno, mesmo com a chave de serviço. */
+    const respostaObservacoes = await fetch(
+      `${urlSupabase}/rest/v1/relatorio_observacoes_publicas_liberadas?relatorio_id=eq.${encodeURIComponent(linha.id)}` +
+        `&relatorio_checksum=eq.${encodeURIComponent(linha.checksum)}&select=secao,texto`,
+      { headers: { apikey: chaveDeServico, Authorization: `Bearer ${chaveDeServico}` } },
+    );
+    if (!respostaObservacoes.ok) throw new Error(`observacoes HTTP ${respostaObservacoes.status}`);
+    const observacoesPublicas = (await respostaObservacoes.json()) as ObservacaoPublica[];
+    if (!Array.isArray(observacoesPublicas) || observacoesPublicas.some((item) => typeof item?.secao !== 'string' || typeof item?.texto !== 'string')) {
+      throw new Error('observacoes_publicas_invalidas');
+    }
+
     return res.status(200).json({
       relatorio: {
         clienteNome: relatorio.clienteNome,
@@ -171,6 +190,7 @@ export default async function handler(req: Request, res: Response) {
         versao: relatorio.versao,
         conteudoCarregado: true,
         snapshot: relatorio.snapshot,
+        observacoesPublicas,
       },
     });
   } catch (erro) {
