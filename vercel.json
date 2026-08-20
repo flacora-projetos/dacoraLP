@@ -31,6 +31,8 @@
       "continue": true
     },
     { "handle": "filesystem" },
+    { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
+    { "src": "/relatorios/(.*)", "dest": "/app.html" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },
     { "src": "/(.*)", "dest": "/index.html" }

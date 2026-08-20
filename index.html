@@ -54,7 +54,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
 
-    <!-- Preload da imagem LCP (hero) -->
+    <!--hero-preload-->
+    <!-- Preload da imagem LCP (hero) — SÓ das páginas institucionais.
+         Em prioridade alta, esta imagem competia com o código do relatório em
+         toda rota privada, porque todas recebiam este mesmo arquivo. -->
     <link
       rel="preload"
       as="image"
@@ -63,6 +66,7 @@
       imagesizes="100vw"
       fetchpriority="high"
     />
+    <!--/hero-preload-->
 
     <!--jsonld-->
     <script type="application/ld+json">
@@ -187,6 +191,7 @@
     </script>
     <!--/jsonld-->
 
+    <!--analytics-->
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CN7F6YWH42"></script>
     <script>
@@ -210,11 +215,14 @@
     fbq('track', 'PageView');
     </script>
     <!-- End Meta Pixel Code -->
+    <!--/analytics-->
   </head>
   <body>
+    <!--analytics-noscript-->
     <noscript><img height="1" width="1" style="display:none"
     src="https://www.facebook.com/tr?id=1323581326370949&ev=PageView&noscript=1"
     /></noscript>
+    <!--/analytics-noscript-->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
