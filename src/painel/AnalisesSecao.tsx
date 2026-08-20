@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { rotuloDaAuditoria } from './modoAnalise';
 import { paragrafosDaAnaliseEditorial } from './analiseEditorial';
+import { VersaoDaAnalise, type HistoricoEditorialInterno, type RevisaoDoHistorico } from './HistoricoAnalises';
 import { formatarCarimbo } from '../reports/format';
 
 /**
@@ -53,6 +54,8 @@ interface EstadoAnalises {
   espacos: Map<string, EspacoAnaliticoSeguro>;
   sugestoes: Map<string, SugestaoSecao>;
   dispensas: Map<string, DispensaDeSecao>;
+  /** Versões preservadas por seção (AV3). Vazio enquanto o histórico carrega. */
+  historicoPorSecao: Map<string, RevisaoDoHistorico[]>;
   ocupada: boolean;
   mensagem: string;
   agir: (acao: Exclude<AcaoAnalisesUI, 'carregar' | 'salvar_contexto' | 'gerar_todas'>, secao: string, texto?: string) => Promise<void>;
@@ -68,6 +71,7 @@ export function AnalisesSecaoProvider({
   podeRevisar,
   espacos,
   coletadoEm,
+  historico,
   aoAcionar,
   children,
 }: {
@@ -75,6 +79,8 @@ export function AnalisesSecaoProvider({
   espacos: EspacoAnaliticoSeguro[];
   /** Carimbo da coleta que produziu este documento. Ver `AvisoDeValidadeDaAnalise`. */
   coletadoEm?: string | null;
+  /** Linha do tempo editorial AV3, já carregada pela tela de revisão. */
+  historico?: HistoricoEditorialInterno | null;
   aoAcionar: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
   children: ReactNode;
 }) {
@@ -86,6 +92,19 @@ export function AnalisesSecaoProvider({
   const [ocupada, setOcupada] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const espacosMap = useMemo(() => new Map(espacos.map((espaco) => [espaco.secao, espaco])), [espacos]);
+
+  /* AV3 — o histórico chega como uma lista única do relatório inteiro; a
+     seção só precisa da fatia dela. Agrupar aqui evita percorrer a lista uma
+     vez por seção a cada render. */
+  const historicoPorSecao = useMemo(() => {
+    const grupos = new Map<string, RevisaoDoHistorico[]>();
+    for (const revisao of historico?.revisoes ?? []) {
+      const grupo = grupos.get(revisao.secao);
+      if (grupo) grupo.push(revisao);
+      else grupos.set(revisao.secao, [revisao]);
+    }
+    return grupos;
+  }, [historico]);
 
   useEffect(() => {
     if (!podeRevisar) return;
@@ -159,7 +178,7 @@ export function AnalisesSecaoProvider({
 
   if (!podeRevisar) return <>{children}</>;
   return (
-    <ContextoAnalises.Provider value={{ espacos: espacosMap, sugestoes, dispensas, ocupada, mensagem, agir }}>
+    <ContextoAnalises.Provider value={{ espacos: espacosMap, sugestoes, dispensas, historicoPorSecao, ocupada, mensagem, agir }}>
       <aside className="dcp-analises-relatorio" aria-label="Análises assistidas das seções do relatório">
         <div className="dcp-analises-relatorio__cabecalho">
           <div>
@@ -257,6 +276,37 @@ export function DispensaDaSecao({ secao, titulo }: { secao: string; titulo: stri
   );
 }
 
+/**
+ * AV3 — o histórico daquela seção, ao lado de onde a análise é escrita.
+ *
+ * A linha do tempo já existia na faixa de revisão, cobrindo o relatório
+ * inteiro. Só que a faixa vira uma gaveta no rodapé abaixo de 1200px, e o
+ * bloco nasce recolhido dentro dela: na prática, quem escreve a análise não
+ * encontrava as versões anteriores da própria seção. Aqui o histórico fica
+ * onde a decisão acontece.
+ *
+ * Some quando não há versão preservada — seção nova não precisa declarar
+ * ausência de passado. Enquanto o histórico carrega (ou falha), também não
+ * aparece: a faixa é que dá o recado de indisponibilidade, e repeti-lo em
+ * cada seção viraria parede de aviso.
+ */
+export function HistoricoDaSecao({ secao, titulo }: { secao: string; titulo: string }) {
+  const contexto = useContext(ContextoAnalises);
+  const versoes = contexto?.historicoPorSecao.get(secao) ?? [];
+  if (versoes.length === 0) return null;
+  return (
+    <details className="dcp-historico-secao">
+      <summary aria-label={`Histórico das análises de ${titulo}`}>
+        <span>{versoes.length === 1 ? '1 versão no histórico' : `${versoes.length} versões no histórico`}</span>
+        <small>Somente interno</small>
+      </summary>
+      <ol className="dcp-historico-secao__lista">
+        {versoes.map((revisao) => <VersaoDaAnalise key={revisao.chave} revisao={revisao} />)}
+      </ol>
+    </details>
+  );
+}
+
 export function AnaliseDaSecao({ secao }: { secao: string }) {
   const contexto = useContext(ContextoAnalises);
   const espaco = contexto?.espacos.get(secao);
@@ -284,6 +334,7 @@ export function AnaliseDaSecao({ secao }: { secao: string }) {
               ✎ Refinar análise
             </button>
             <DispensaDaSecao secao={secao} titulo={espaco.titulo} />
+            <HistoricoDaSecao secao={secao} titulo={espaco.titulo} />
           </div>
         </div>
         {sugestao && !sugestaoDaSecaoEstaFechada(sugestao) && (

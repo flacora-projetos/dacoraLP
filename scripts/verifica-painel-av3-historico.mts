@@ -4,6 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import handler from '../api/painel-historico-analises.ts';
 import { HistoricoAnalises, type HistoricoEditorialInterno } from '../src/painel/HistoricoAnalises.tsx';
+import { AnalisesSecaoProvider, HistoricoDaSecao } from '../src/painel/AnalisesSecao.tsx';
 
 const ID = '11111111-1111-4111-8111-111111111111';
 const EMAIL = 'revisor@example.com';
@@ -194,6 +195,82 @@ try {
   const prontidao = readFileSync(new URL('../api/_painel-estado-editorial.ts', import.meta.url), 'utf8');
   assert.match(prontidao, /ESTADOS_VIGENTES_AV = "\('atual','revisao_necessaria','final'\)"/);
   assert.doesNotMatch(prontidao, /ESTADOS_VIGENTES_AV[^\n]*historica/);
+
+  /* ------------------------------------------------------------------
+   * AV3 (2026-08-20) — o histórico também vive AO LADO da seção.
+   *
+   * Na faixa de revisão ele já existia, mas abaixo de 1200px a faixa vira
+   * gaveta de rodapé e o bloco nasce recolhido lá dentro: o PO não o
+   * encontrou duas vezes seguidas. O contador por seção põe a linha do
+   * tempo onde a análise é escrita.
+   * ---------------------------------------------------------------- */
+  {
+    const historicoUI: HistoricoEditorialInterno = {
+      disponivel: true,
+      total: revisoes.length,
+      revisoes: revisoes.map((linha) => ({
+        chave: linha.id,
+        secao: linha.secao,
+        checksumFactual: linha.checksum_factual,
+        tipoDecisao: linha.tipo_decisao as 'analise' | 'sem_analise',
+        texto: linha.texto,
+        estado: linha.estado as 'atual' | 'historica',
+        revisadaPor: linha.revisada_por,
+        revisadaEm: linha.revisada_em,
+        coletadoEmReferencia: linha.coletado_em_referencia,
+        invalidadaEm: linha.invalidada_em,
+      })),
+    };
+    const comHistorico = renderToStaticMarkup(createElement(
+      AnalisesSecaoProvider,
+      { podeRevisar: true, espacos: [], historico: historicoUI, aoAcionar: (async () => ({})) as any },
+      createElement(HistoricoDaSecao, { secao: 'introducao', titulo: 'Introdução' }),
+    ));
+    assert.match(comHistorico, /versões no histórico/, 'a seção precisa anunciar quantas versões guarda');
+    assert.match(comHistorico, /Somente interno/, 'o bloco inline precisa repetir que nada disso vai ao cliente');
+    assert.match(comHistorico, /Leitura histórica para o snapshot A\./, 'o texto preservado precisa estar acessível na própria seção');
+
+    // Seção sem versão preservada não declara ausência de passado: some.
+    const semHistorico = renderToStaticMarkup(createElement(
+      AnalisesSecaoProvider,
+      { podeRevisar: true, espacos: [], historico: historicoUI, aoAcionar: (async () => ({})) as any },
+      createElement(HistoricoDaSecao, { secao: 'bloco:secao-que-nunca-teve-analise', titulo: 'Outra' }),
+    ));
+    assert.doesNotMatch(semHistorico, /no histórico/, 'seção nova não pode ganhar um bloco vazio');
+  }
+
+  /* ⚠️ Contrato AV, item (4): o histórico nunca aparece em rota pública, PDF,
+     mensagem de envio ou versão final. `.dcp-historico-secao` e
+     `.dcp-analise-dispensa` nascem FORA de `.dcp-analise-secao__controles`
+     quando a seção é a introdução — sem estarem na regra de impressão, o
+     texto integral das análises internas entraria no PDF do cliente. */
+  {
+    const reportCss = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
+    /* Ler a LISTA DE SELETORES, nunca o trecho inteiro: o comentário acima da
+       regra cita os mesmos nomes, e uma busca por substring passaria verde com
+       a regra vazia — foi o que aconteceu na primeira versão desta trava. */
+    const marca = reportCss.indexOf('não pertence ao PDF do cliente');
+    assert.ok(marca > 0, 'a regra de impressão da revisão precisa existir');
+    const fimDoComentario = reportCss.indexOf('*/', marca) + 2;
+    const abreChave = reportCss.indexOf('{', fimDoComentario);
+    const seletores = reportCss.slice(fimDoComentario, abreChave);
+    const corpo = reportCss.slice(abreChave, reportCss.indexOf('}', abreChave));
+    for (const seletor of ['.dcp-historico-secao', '.dcp-analise-dispensa', '.dcp-revisao__faixa']) {
+      assert.ok(seletores.includes(seletor), `${seletor} precisa sumir na impressão`);
+    }
+    assert.match(corpo, /display:\s*none\s*!important/);
+  }
+
+  /* Contraste: a linha de "revisada sem análise" cai no cartão verde-escuro
+     quando a seção é a introdução. Cinza de fundo claro fixo some ali — foi
+     o defeito relatado no relatório real do Hannover Fondue. */
+  {
+    const painelCss = readFileSync(new URL('../src/painel/painel.css', import.meta.url), 'utf8');
+    const regra = painelCss.slice(painelCss.indexOf('.dcp-analise-dispensa {'));
+    const corpo = regra.slice(0, regra.indexOf('}'));
+    assert.doesNotMatch(corpo, /color:\s*var\(--dc-cinza\)/, 'não fixar cinza de fundo claro: a introdução tem fundo escuro');
+    assert.match(corpo, /color:\s*inherit/, 'a linha precisa herdar a tinta de onde foi renderizada');
+  }
 
   console.log('verifica-painel-av3-historico: ok');
 } finally {

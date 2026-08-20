@@ -3710,12 +3710,19 @@
     display: none !important;
   }
 
-  /* A revisão envolve o documento, mas não pertence ao PDF do cliente. */
+  /* A revisão envolve o documento, mas não pertence ao PDF do cliente.
+     ⚠️ `.dcp-historico-secao` e `.dcp-analise-dispensa` são obrigatórios
+     nesta lista: os dois nascem FORA de `.dcp-analise-secao__controles`
+     quando a seção é a introdução, e o histórico carrega o texto integral
+     das análises internas. Contrato AV, item (4): o histórico nunca aparece
+     em rota pública, PDF, mensagem de envio ou versão final. */
   .dcp-revisao__faixa,
   .dcp-revisao__navegacao,
   .dcp-analises-relatorio,
   .dcp-analise-introducao,
-  .dcp-analise-secao__controles {
+  .dcp-analise-secao__controles,
+  .dcp-analise-dispensa,
+  .dcp-historico-secao {
     display: none !important;
   }
 
