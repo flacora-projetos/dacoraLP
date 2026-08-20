@@ -1419,10 +1419,10 @@ cria na mesma transação:
 2. uma entrada idempotente na outbox interna, que nasce `pendente` e aponta para
    `dacora_semanais.recipients` em vez de copiar um id de grupo.
 
-Os únicos estados da ordem são fatos observáveis: `aguardando_nova_versao` e
-`nova_versao_gerada`. Inserir uma versão posterior do mesmo cliente/competência
-marca a ordem como atendida; isso não afirma que a correção ficou certa, não
-aprova o documento e não envia nada. O painel apenas lê a view privada
+Os estados inicialmente publicados da ordem são fatos observáveis:
+`aguardando_nova_versao` e `nova_versao_gerada`. Inserir uma versão posterior
+do mesmo cliente/competência marca a ordem como atendida; isso não afirma que a
+correção ficou certa, não aprova o documento e não envia nada. O painel apenas lê a view privada
 `painel_relatorios_com_correcao`, exige ordem + outbox no read-back da recusa e
 expõe a pendência na fila/revisão. A edição e a regeneração continuam na
 fábrica/agentes.
@@ -1471,6 +1471,22 @@ deployment de produção `dpl_A2BFqpqWbEJZAfHLt99EziTXLpoR` ficou `READY`. A rot
 respondeu `200` com `noindex` e as duas APIs sem sessão responderam `401`.
 Qualquer mensagem real permanece uma operação governada posterior, não um
 efeito automático desta publicação.
+
+### 14.2 Circuito da correção em branch — 20/08/2026
+
+O acabamento P4/RA4 está implementado em branches da fábrica e do portal, mas
+**não foi integrado, migrado no Supabase nem publicado**. A migration da fábrica
+passa a expor `em_processamento` e `falhou`, reserva concorrente com recibo
+exato e associa a ordem também à nova versão. O portal lê esses fatos e deixa
+claro: aguardando correção, correção em processamento, correção que exige
+atenção ou nova versão disponível para revisão humana. Esta última continua
+`gerado`: nunca é aprovada, fechada editorialmente ou enviada automaticamente.
+O painel não inventa diff; ele só apresenta o vínculo determinístico existente.
+
+Regressões locais de decisão, fila e revisão, além do build completo, passaram.
+O próximo gate é aplicar a migration da fábrica com read-back antes de publicar
+este portal; ativar o executor, reiniciar runtime, recusar/aprovar ou enviar um
+relatório continuam decisões separadas. Handoff: `OpenClaw-Dacora/docs/HANDOFF_CIRCUITO_RECUSA_RELATORIOS_2026-08-20.md`.
 
 ## 15. Intenção de envio ao cliente (P5B)
 

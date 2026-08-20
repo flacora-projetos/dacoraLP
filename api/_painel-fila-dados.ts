@@ -39,6 +39,12 @@ export type EstadoDaNotificacaoInterna =
   | 'incerto'
   | 'falhou';
 
+export type EstadoDaCorrecao =
+  | 'aguardando_nova_versao'
+  | 'em_processamento'
+  | 'nova_versao_gerada'
+  | 'falhou';
+
 /* ------------------------------------------------------------------ */
 /* O que chega do banco                                                */
 /* ------------------------------------------------------------------ */
@@ -63,10 +69,13 @@ export interface LinhaDoBanco {
   recusado_em?: string | null;
   recusa_motivo?: string | null;
   correcao_ordem_id?: string | null;
-  correcao_estado?: 'aguardando_nova_versao' | 'nova_versao_gerada' | null;
+  correcao_estado?: EstadoDaCorrecao | null;
   correcao_solicitado_em?: string | null;
+  correcao_iniciado_em?: string | null;
+  correcao_erro_codigo?: string | null;
   correcao_nova_versao_relatorio_id?: string | null;
   correcao_nova_versao?: number | null;
+  correcao_eh_nova_versao?: boolean | null;
   notificacao_interna_id?: string | null;
   notificacao_interna_estado?: EstadoDaNotificacaoInterna | null;
   notificacao_destino_referencia?: string | null;
@@ -163,10 +172,13 @@ export interface ItemDaFila {
   recusaMotivo: string | null;
   correcao: {
     id: string;
-    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    estado: EstadoDaCorrecao;
     solicitadoEm: string;
+    iniciadoEm: string | null;
+    erroCodigo: string | null;
     novaVersaoRelatorioId: string | null;
     novaVersao: number | null;
+    ehNovaVersao: boolean;
   } | null;
   notificacaoInterna: {
     id: string;
@@ -504,8 +516,11 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
             id: linha.correcao_ordem_id,
             estado: linha.correcao_estado,
             solicitadoEm: linha.correcao_solicitado_em,
+            iniciadoEm: linha.correcao_iniciado_em ?? null,
+            erroCodigo: linha.correcao_erro_codigo ?? null,
             novaVersaoRelatorioId: linha.correcao_nova_versao_relatorio_id ?? null,
             novaVersao: linha.correcao_nova_versao ?? null,
+            ehNovaVersao: linha.correcao_eh_nova_versao === true,
           }
         : null,
     notificacaoInterna:

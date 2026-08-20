@@ -671,6 +671,46 @@ globalThis.fetch = fetchOriginal;
   assert.match(String(jaRecusadoComOrdem), /Ordem de correção: aguardando uma versão nova/);
   assert.match(String(jaRecusadoComOrdem), /painel não enviou WhatsApp/);
 
+  const recusadoEmProcessamento = textoDoJaDecidido({
+    ...relatorio,
+    estado: 'recusado',
+    podeDecidir: false,
+    recusadoPor: 'fernanda@exemplo.com',
+    recusadoEm: '2026-08-11T13:00:00Z',
+    recusaMotivo: MOTIVO,
+    correcao: {
+      id: 'ordem-1', estado: 'em_processamento', solicitadoEm: '2026-08-11T13:00:00Z',
+      iniciadoEm: '2026-08-11T13:01:00Z', erroCodigo: null, novaVersaoRelatorioId: null, novaVersao: null,
+    },
+  });
+  assert.match(String(recusadoEmProcessamento), /fábrica está processando a ordem de correção/);
+
+  const recusadoComFalha = textoDoJaDecidido({
+    ...relatorio,
+    estado: 'recusado',
+    podeDecidir: false,
+    recusadoPor: 'fernanda@exemplo.com',
+    recusadoEm: '2026-08-11T13:00:00Z',
+    recusaMotivo: MOTIVO,
+    correcao: {
+      id: 'ordem-1', estado: 'falhou', solicitadoEm: '2026-08-11T13:00:00Z',
+      iniciadoEm: '2026-08-11T13:01:00Z', erroCodigo: 'report_correction_no_content_change', novaVersaoRelatorioId: null, novaVersao: null,
+    },
+  });
+  assert.match(String(recusadoComFalha), /report_correction_no_content_change/);
+  assert.match(String(recusadoComFalha), /exige revisão humana/);
+
+  const novaVersaoParaRevisao = textoDoJaDecidido({
+    ...relatorio,
+    estado: 'gerado',
+    correcao: {
+      id: 'ordem-1', estado: 'nova_versao_gerada', solicitadoEm: '2026-08-11T13:00:00Z',
+      iniciadoEm: '2026-08-11T13:01:00Z', erroCodigo: null, novaVersaoRelatorioId: 'relatorio-4', novaVersao: 4, ehNovaVersao: true,
+    },
+  });
+  assert.match(String(novaVersaoParaRevisao), /voltou para revisão humana/);
+  assert.match(String(novaVersaoParaRevisao), /não foi aprovada, fechada nem enviada automaticamente/);
+
   const textosPorEstado = {
     pendente: /pendente na fila/,
     reservado: /em processamento/,
@@ -903,6 +943,19 @@ const linhas = [
   assert.equal(item.estado, 'recusado');
   assert.equal(item.recusadoPor, 'fernanda@exemplo.com');
   assert.equal(item.recusaMotivo, MOTIVO);
+
+  const novaVersao = montarItem({
+    ...linhas[0],
+    correcao_ordem_id: 'ordem-nova',
+    correcao_estado: 'nova_versao_gerada',
+    correcao_solicitado_em: '2026-08-11T13:00:00Z',
+    correcao_iniciado_em: '2026-08-11T13:01:00Z',
+    correcao_nova_versao_relatorio_id: linhas[0].id,
+    correcao_nova_versao: 3,
+    correcao_eh_nova_versao: true,
+  } as any);
+  assert.equal(novaVersao.correcao?.ehNovaVersao, true);
+  assert.equal(novaVersao.correcao?.estado, 'nova_versao_gerada');
 
   for (const estado of ['pendente', 'reservado', 'enviando', 'enviado', 'incerto', 'falhou'] as const) {
     const itemComEstado = montarItem({

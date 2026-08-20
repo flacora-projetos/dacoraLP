@@ -6,14 +6,18 @@ também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
 A prioridade atual é a frente **RA — Revisão Analítica Assistida**, organizada
 em `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-**RA1–RA5 estão publicadas; RA4 permanece parcial.** RA5 está em
+**RA1–RA5 estão publicadas; RA4 permanece parcial.** O acabamento do circuito
+de recusa está em branch, ainda sem migration/publicação: a fila explica
+aguardando, processamento, falha e a nova versão que volta para revisão humana,
+sem aprovação, fechamento ou envio automático. RA5 está em
 `main/2a7dc4e`: página pública/PDF, aprovação e envio exigem o mesmo recibo AV4
 exato. Vercel `success`; painel e revisão passaram em navegador autenticado no
 desktop e 390×844, sem mutação. Como hoje há zero relatórios liberados com
 recibo AV4 publicável, o primeiro fechamento humano real e o smoke positivo do
-link/PDF são o gate operacional restante; depois vem RA6. Áudio continua
-congelado até novo GO. A introdução segue como alvo principal da caneta mágica;
-C1/C2/C3 não é publicação separada. Cada fase roda em sessão própria e registra, em tempo
+link/PDF são o gate operacional restante depois de integrar fábrica, migration
+e portal; só então vem RA6. Áudio continua congelado até novo GO. A introdução
+segue como alvo principal da caneta mágica; C1/C2/C3 não é publicação separada.
+Cada fase roda em sessão própria e registra, em tempo
 real, implementação, teste, commit, push, merge, publicação e validação em
 produção como estados diferentes.
 
