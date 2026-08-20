@@ -80,10 +80,13 @@ interface ItemDaFila {
   recusaMotivo?: string | null;
   correcao?: {
     id: string;
-    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    estado: 'aguardando_nova_versao' | 'em_processamento' | 'nova_versao_gerada' | 'falhou';
     solicitadoEm: string;
+    iniciadoEm?: string | null;
+    erroCodigo?: string | null;
     novaVersaoRelatorioId: string | null;
     novaVersao: number | null;
+    ehNovaVersao?: boolean;
   } | null;
   notificacaoInterna?: {
     id: string;
@@ -204,6 +207,9 @@ function primeiroNome(nome: string | null): string {
 function textoDoEstado(item: ItemDaFila): string {
   switch (item.estado) {
     case 'gerado':
+      if (item.correcao?.ehNovaVersao && item.correcao.estado === 'nova_versao_gerada') {
+        return 'nova versão · aguardando revisão humana';
+      }
       return 'aguardando revisão';
     case 'liberado': {
       const quem = primeiroNome(item.aprovadoPor);
@@ -222,6 +228,12 @@ function textoDoEstado(item: ItemDaFila): string {
           : 'recusado';
       if (item.correcao?.estado === 'aguardando_nova_versao') {
         return `aguardando nova versão · ${decisao}`;
+      }
+      if (item.correcao?.estado === 'em_processamento') {
+        return `correção em processamento · ${decisao}`;
+      }
+      if (item.correcao?.estado === 'falhou') {
+        return `correção precisa de atenção · ${decisao}`;
       }
       if (item.correcao?.estado === 'nova_versao_gerada') {
         return `nova versão gerada · ${decisao}`;
@@ -248,13 +260,20 @@ function textoDoEstado(item: ItemDaFila): string {
  * em vez de exigir abrir o relatório.
  */
 function detalheDoEstado(item: ItemDaFila): string | undefined {
-  if (item.estado !== 'recusado') return undefined;
+  if (item.estado !== 'recusado' && !(item.estado === 'gerado' && item.correcao?.ehNovaVersao)) return undefined;
+  if (item.estado === 'gerado' && item.correcao?.ehNovaVersao) {
+    return `Esta é a versão ${item.correcao.novaVersao ?? 'nova'} gerada para atender uma recusa anterior. Ela voltou para revisão humana e não foi aprovada, fechada nem enviada automaticamente.`;
+  }
   const motivo = (item.recusaMotivo ?? '').trim();
   const partes = [
     motivo ? `Motivo registrado: ${motivo}` : 'Recusado sem motivo legível no registro.',
   ];
   if (item.correcao?.estado === 'aguardando_nova_versao') {
     partes.push('Ordem de correção pendente: a fábrica precisa gerar uma versão nova.');
+  } else if (item.correcao?.estado === 'em_processamento') {
+    partes.push('A fábrica está processando a correção; nenhuma aprovação ou envio foi acionado.');
+  } else if (item.correcao?.estado === 'falhou') {
+    partes.push(`A correção parou antes de gerar nova versão${item.correcao.erroCodigo ? ` (${item.correcao.erroCodigo})` : ''}; exige revisão humana.`);
   } else if (item.correcao?.estado === 'nova_versao_gerada') {
     partes.push(`Ordem de correção atendida pela versão ${item.correcao.novaVersao ?? 'nova'}.`);
   }

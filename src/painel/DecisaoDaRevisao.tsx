@@ -64,10 +64,13 @@ export interface RelatorioDecidivel {
   recusaMotivo: string | null;
   correcao?: {
     id: string;
-    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    estado: 'aguardando_nova_versao' | 'em_processamento' | 'nova_versao_gerada' | 'falhou';
     solicitadoEm: string;
+    iniciadoEm?: string | null;
+    erroCodigo?: string | null;
     novaVersaoRelatorioId: string | null;
     novaVersao: number | null;
+    ehNovaVersao?: boolean;
   } | null;
   notificacaoInterna?: {
     id: string;
@@ -205,10 +208,19 @@ export function textoDoJaDecidido(relatorio: RelatorioDecidivel): string | null 
         : '';
       return `${base} Ordem de correção: aguardando uma versão nova da fábrica.${aviso}`;
     }
+    if (relatorio.correcao?.estado === 'em_processamento') {
+      return `${base} A fábrica está processando a ordem de correção; esta versão continua recusada.`;
+    }
+    if (relatorio.correcao?.estado === 'falhou') {
+      return `${base} A correção parou antes de gerar uma versão nova${relatorio.correcao.erroCodigo ? ` (${relatorio.correcao.erroCodigo})` : ''}; exige revisão humana.`;
+    }
     if (relatorio.correcao?.estado === 'nova_versao_gerada') {
       return `${base} A ordem de correção foi atendida pela versão ${relatorio.correcao.novaVersao ?? 'nova'}.`;
     }
     return `${base} A correção é gerar uma versão nova na fábrica.`;
+  }
+  if (relatorio.estado === 'gerado' && relatorio.correcao?.ehNovaVersao && relatorio.correcao.estado === 'nova_versao_gerada') {
+    return `Esta versão foi gerada para atender uma recusa anterior e voltou para revisão humana. Ela não foi aprovada, fechada nem enviada automaticamente.`;
   }
   if (relatorio.estado === 'substituido') {
     return 'Esta versão foi substituída por uma mais nova. A decisão acontece na versão corrente, que está na fila.';

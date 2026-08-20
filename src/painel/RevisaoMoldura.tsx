@@ -48,10 +48,13 @@ export interface RelatorioDaRevisao {
   recusaMotivo?: string | null;
   correcao?: {
     id: string;
-    estado: 'aguardando_nova_versao' | 'nova_versao_gerada';
+    estado: 'aguardando_nova_versao' | 'em_processamento' | 'nova_versao_gerada' | 'falhou';
     solicitadoEm: string;
+    iniciadoEm?: string | null;
+    erroCodigo?: string | null;
     novaVersaoRelatorioId: string | null;
     novaVersao: number | null;
+    ehNovaVersao?: boolean;
   } | null;
   notificacaoInterna?: {
     id: string;

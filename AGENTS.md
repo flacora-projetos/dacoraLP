@@ -9,14 +9,18 @@ plano/handoff canônico indicado nele no repositório `OpenClaw-Dacora`.
 A frente **RA — Revisão Analítica Assistida dos Relatórios Mensais** é a
 prioridade de desenvolvimento do painel. Sua fonte organizacional é
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
-**RA1–RA5 estão publicadas; RA4 permanece parcial.** RA5 está em
+**RA1–RA5 estão publicadas; RA4 permanece parcial.** O acabamento do circuito
+de recusa está em branch, ainda sem migration/publicação: fila e revisão passam
+a explicar aguardando, processamento, falha e a nova versão que volta para
+revisão humana, sem aprovação, fechamento ou envio automático. RA5 está em
 `main/2a7dc4e`: página pública/PDF, aprovação e envio exigem o mesmo recibo AV4
 exato. Vercel `success`; smoke autenticado desktop/celular passou sem mutação.
 O primeiro fechamento humano real e o smoke positivo do link/PDF são o gate
 operacional restante porque ainda não há relatório com recibo AV4 publicável;
-depois vem RA6. Áudio continua congelado até novo GO. A introdução segue como
-alvo principal; C1/C2/C3 são insumo, não publicação independente. Cada fase RA
-deve acontecer em sessão própria, na branch/worktree indicada pelo documento.
+depois de integrar fábrica, migration e portal vem RA6. Áudio continua
+congelado até novo GO. A introdução segue como alvo principal; C1/C2/C3 são
+insumo, não publicação independente. Cada fase RA deve acontecer em sessão
+própria, na branch/worktree indicada pelo documento.
 
 A RA não pertence a esta conversa nem a um modelo. Codex, Claude Code ou um
 GPT customizado podem assumir uma fase compatível, mas Git, plano, estado e
