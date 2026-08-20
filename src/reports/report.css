@@ -2027,6 +2027,15 @@
   border-left: 2px solid var(--dc-filete-forte);
 }
 
+.dc-observacao-publica {
+  margin: 1.25rem 0;
+  padding: .85rem 1rem;
+  border-left: 3px solid var(--dc-cor-destaque, #2e6f65);
+  background: color-mix(in srgb, var(--dc-cor-destaque, #2e6f65) 7%, white);
+}
+
+.dc-observacao-publica p { margin: .35rem 0 0; white-space: pre-wrap; }
+
 .dc-fonte[data-situacao='erro'] .dc-fonte__observacoes li,
 .dc-fonte[data-situacao='indisponivel'] .dc-fonte__observacoes li {
   border-left-color: var(--dc-sinal);

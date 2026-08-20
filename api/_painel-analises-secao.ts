@@ -9,6 +9,7 @@ const SECAO_VALIDA = /^bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/;
 const ACOES = new Set([
   'salvar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer',
   'dispensar', 'reverter_dispensa',
+  'registrar_observacao_publica',
 ]);
 const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 
@@ -22,7 +23,7 @@ const ACOES_DE_DISPENSA = new Set(['dispensar', 'reverter_dispensa']);
 
 export type AcaoAnaliseSecao =
   | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
-  | 'dispensar' | 'reverter_dispensa';
+  | 'dispensar' | 'reverter_dispensa' | 'registrar_observacao_publica';
 export interface PedidoAnaliseSecao {
   id: string;
   checksum: string;
@@ -57,6 +58,12 @@ export function lerPedidoAnaliseSecao(bruto: unknown):
   }
   if (ACOES_DE_DISPENSA.has(acao) && !SECAO_DISPENSAVEL.test(secao ?? '')) {
     return { ok: false, erro: 'secao_invalida', mensagem: 'Esta seção não faz parte da revisão obrigatória.' };
+  }
+  if (acao === 'registrar_observacao_publica' && !/^(relatorio_inteiro|introducao|bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119})$/.test(secao ?? '')) {
+    return { ok: false, erro: 'secao_invalida', mensagem: 'Escolha uma seção canônica para a observação pública.' };
+  }
+  if (acao === 'registrar_observacao_publica' && (texto ?? '').length > 2500) {
+    return { ok: false, erro: 'texto_longo', mensagem: 'A observação pública passou de 2.500 caracteres.' };
   }
   if (['aplicar', 'editar', 'desfazer'].includes(acao) && !UUID_VALIDO.test(sugestaoId ?? '')) {
     return { ok: false, erro: 'sugestao_invalida', mensagem: 'A sugestão não está vinculada a esta revisão.' };

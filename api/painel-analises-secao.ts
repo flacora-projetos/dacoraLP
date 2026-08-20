@@ -104,6 +104,37 @@ export default async function handler(req: Request, res: Response) {
     const linhaValida = validarLinhaParaAnalise(relatorio, pedido.checksum);
     if (!linhaValida.ok) return res.status(linhaValida.status).json(linhaValida);
     const espacos = espacosAnaliticosDoSnapshot(relatorio.conteudo);
+    if (pedido.acao === 'registrar_observacao_publica') {
+      const secoesCanonicas = new Set([
+        'relatorio_inteiro',
+        'introducao',
+        ...(Array.isArray(relatorio.conteudo?.montagem) ? relatorio.conteudo.montagem.map((bloco: any) => `bloco:${bloco?.id}`) : []),
+      ]);
+      if (!pedido.secao || !secoesCanonicas.has(pedido.secao)) {
+        return res.status(422).json({ erro: 'secao_invalida', mensagem: 'A seção escolhida não pertence a esta versão do relatório.' });
+      }
+      const rpc = await fetch(`${config.urlSupabase}/rest/v1/rpc/registrar_observacao_publica`, {
+        method: 'POST',
+        headers: { ...headers(config), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p_relatorio_id: pedido.id,
+          p_checksum_visto: pedido.checksum,
+          p_secao: pedido.secao,
+          p_texto: pedido.texto ?? '',
+          p_por: acesso.email,
+        }),
+      });
+      if (!rpc.ok) {
+        const falha = await falhaDaRpc(rpc);
+        return res.status(falha.status).json({ erro: falha.erro, mensagem: falha.mensagem });
+      }
+      const [observacao] = await rpc.json();
+      if (!observacao || observacao.secao_registrada !== pedido.secao) {
+        return res.status(409).json({ erro: 'observacao_nao_confirmada', mensagem: 'A observação não voltou confirmada. Reabra a revisão antes de tentar de novo.' });
+      }
+      console.log(`[painel-analises-secao] observacao_publica · ${pedido.id} · ${pedido.secao} · por ${acesso.email}`);
+      return res.status(200).json({ observacaoPublica: { secao: observacao.secao_registrada, texto: observacao.texto_registrado ?? null, ativa: observacao.ativa === true } });
+    }
     const dispensavel = pedido.acao === 'dispensar' || pedido.acao === 'reverter_dispensa';
     const espaco = pedido.secao ? espacos.find((item) => item.secao === pedido.secao) : null;
     /* A dispensa vale para toda seção obrigatória, e a introdução é obrigatória

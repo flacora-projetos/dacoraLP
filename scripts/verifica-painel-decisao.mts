@@ -102,6 +102,10 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
     motivo: 'x'.repeat(MINIMO_DO_MOTIVO),
   });
   assert.equal(noLimite.ok, true);
+  const escopada = lerPedido({ id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: 'correção por seção', escopoSecoes: ['introducao', 'bloco:meta'] });
+  assert.equal(escopada.ok, true);
+  if (escopada.ok) assert.deepEqual(escopada.pedido.escopoSecoes, ['introducao', 'bloco:meta']);
+  assert.equal(lerPedido({ id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: 'correção por seção', escopoSecoes: ['relatorio_inteiro', 'bloco:meta'] }).ok, false);
 
   // Quem decidiu NUNCA vem do navegador.
   const comIdentidadeForjada: any = lerPedido({
@@ -190,6 +194,7 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
     notificacao_interna_id: 'notificacao-1',
     notificacao_interna_estado: 'pendente' as const,
     notificacao_destino_referencia: 'dacora_semanais.recipients',
+    correcao_escopo_secoes: ['relatorio_inteiro'],
   };
   assert.equal(conferirLeituraDeVolta(recusada, pedidoRecusar, quem).ok, true);
   assert.equal(
@@ -565,6 +570,7 @@ for (const corpoTorto of [
         notificacao_interna_id: 'notificacao-1',
         notificacao_interna_estado: 'pendente',
         notificacao_destino_referencia: 'dacora_semanais.recipients',
+        correcao_escopo_secoes: ['relatorio_inteiro'],
       }),
     },
   });
@@ -574,8 +580,10 @@ for (const corpoTorto of [
   assert.equal(saida.corpo.relatorio.recusaMotivo, MOTIVO);
 
   const rpc = chamadasAoBanco.find((c) => c.url.includes('/rpc/'))!;
+  assert.ok(rpc.url.includes('decidir_relatorio_com_escopo'));
   assert.equal(rpc.corpo.p_decisao, 'recusar');
   assert.equal(rpc.corpo.p_motivo, MOTIVO, 'o motivo chega aparado ao banco');
+  assert.deepEqual(rpc.corpo.p_escopo_secoes, ['relatorio_inteiro']);
 }
 
 /* --- Sem chave de serviço, falha alto — nunca cai para a chave pública -- */
@@ -1215,7 +1223,7 @@ const linhas = [
   });
   clicar(botaoPor('Registrar recusa'));
   await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.deepEqual(enviados, [{ decisao: 'recusar', motivo: MOTIVO }]);
+  assert.deepEqual(enviados, [{ decisao: 'recusar', motivo: MOTIVO, escopoSecoes: ['relatorio_inteiro'] }]);
 
   flushSync(() => raiz.unmount());
   dom.window.close();

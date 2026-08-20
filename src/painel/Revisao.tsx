@@ -47,6 +47,7 @@ export function RevisaoApresentada({
   aoSolicitarEnvio,
   aoCarregarRetencao,
   aoDescartarRetencao,
+  aoRegistrarObservacao,
   aoAnalisarIntroducao,
   aoAnalisarSecoes,
   modoAnalise,
@@ -61,6 +62,7 @@ export function RevisaoApresentada({
   aoSolicitarEnvio?: () => Promise<ResultadoDoEnvioP5>;
   aoCarregarRetencao?: () => Promise<ResultadoRetencaoEditorial>;
   aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
+  aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
   aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
   aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
   modoAnalise?: ModoAnaliseUI;
@@ -136,6 +138,7 @@ export function RevisaoApresentada({
     aoSolicitarEnvio={aoSolicitarEnvio}
     aoCarregarRetencao={aoCarregarRetencao}
     aoDescartarRetencao={aoDescartarRetencao}
+    aoRegistrarObservacao={aoRegistrarObservacao}
     historicoAnalises={historicoAnalises}
   ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
     <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} historico={historicoAnalises} aoAcionar={aoAnalisarSecoes}>
@@ -267,7 +270,9 @@ export function RevisaoComSessao({
           // O checksum que ESTA tela mostrou. Se o documento mudou no banco, o
           // servidor recusa em vez de carimbar algo que ninguém leu.
           checksum: relatorio.checksum,
-          ...(pedido.decisao === 'recusar' ? { motivo: pedido.motivo ?? '' } : {}),
+          ...(pedido.decisao === 'recusar'
+            ? { motivo: pedido.motivo ?? '', escopoSecoes: pedido.escopoSecoes ?? ['relatorio_inteiro'] }
+            : {}),
         }),
       });
       const corpo = await resposta.json().catch(() => null);
@@ -296,6 +301,23 @@ export function RevisaoComSessao({
       };
     }
   }
+
+  const registrarObservacao = useCallback(async (secao: string, texto: string): Promise<ResultadoDaDecisao> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    if (!sessaoAtual || !relatorio?.id || !relatorio.checksum) return { ok: false, mensagem: 'A sessão expirou nesta aba. Nada foi gravado.' };
+    try {
+      const resposta = await fetch('/api/painel-analises-secao', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${sessaoAtual.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: relatorio.id, checksum: relatorio.checksum, acao: 'registrar_observacao_publica', secao, texto }),
+      });
+      const corpo = await resposta.json().catch(() => null);
+      if (!resposta.ok || corpo?.observacaoPublica?.secao !== secao) return { ok: false, mensagem: String(corpo?.mensagem ?? 'A observação não foi confirmada. Nada foi exibido publicamente.') };
+      return { ok: true, mensagem: 'Observação pública registrada nesta versão. Ela continua invisível até a aprovação e o fechamento AV4.' };
+    } catch {
+      return { ok: false, mensagem: 'Não foi possível registrar a observação agora. Nada foi confirmado.' };
+    }
+  }, [relatorio, usuarioId]);
 
   const carregarEnvio = useCallback(async (): Promise<ResultadoDoEnvioP5> => {
     const sessaoAtual = sessaoAtualRef.current;
@@ -503,6 +525,7 @@ export function RevisaoComSessao({
       aoSolicitarEnvio={solicitarEnvio}
       aoCarregarRetencao={carregarRetencao}
       aoDescartarRetencao={descartarRetencao}
+      aoRegistrarObservacao={registrarObservacao}
       aoAnalisarIntroducao={analisarIntroducao}
       aoAnalisarSecoes={analisarSecoes}
       modoAnalise={modoAnalise}

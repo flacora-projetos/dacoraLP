@@ -11,6 +11,7 @@ import { montarItem, type LinhaDoBanco } from './_painel-fila-dados.js';
 import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
 import { resolverAudiosPrivados } from './_audios-relatorio.js';
 import { conferirEstadoEditorial, resumoEditorialIndisponivel } from './_painel-estado-editorial.js';
+import { compararSecoesRecusadas } from './_painel-diff-secoes.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -36,6 +37,7 @@ const COLUNAS = [
   'correcao_nova_versao_relatorio_id',
   'correcao_nova_versao',
   'correcao_eh_nova_versao',
+  'correcao_escopo_secoes',
   'notificacao_interna_id',
   'notificacao_interna_estado',
   'notificacao_destino_referencia',
@@ -50,6 +52,25 @@ interface LinhaDoRelatorio extends LinhaDoBanco {
   checksum: string;
   aprovado_checksum: string | null;
   revogado_em?: string | null;
+}
+
+async function diffDaRecusa(linha: LinhaDoRelatorio, config: { urlSupabase: string; chaveDeServico: string }) {
+  if (!linha.correcao_eh_nova_versao || !linha.correcao_ordem_id) return null;
+  try {
+    const cabecalhos = { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` };
+    const ordemResposta = await fetch(`${config.urlSupabase}/rest/v1/relatorio_ordens_correcao?id=eq.${encodeURIComponent(linha.correcao_ordem_id)}&select=relatorio_id,escopo_secoes&limit=1`, { headers: cabecalhos });
+    if (!ordemResposta.ok) return { disponivel: false as const };
+    const [ordem] = await ordemResposta.json() as Array<{ relatorio_id?: string; escopo_secoes?: string[] }>;
+    if (!ordem?.relatorio_id || !Array.isArray(ordem.escopo_secoes)) return { disponivel: false as const };
+    const anteriorResposta = await fetch(`${config.urlSupabase}/rest/v1/relatorios?id=eq.${encodeURIComponent(ordem.relatorio_id)}&select=conteudo&limit=1`, { headers: cabecalhos });
+    if (!anteriorResposta.ok) return { disponivel: false as const };
+    const [anterior] = await anteriorResposta.json() as Array<{ conteudo?: unknown }>;
+    const secoes = ordem.escopo_secoes[0] === 'relatorio_inteiro'
+      ? ['introducao', ...(Array.isArray((linha.conteudo as any)?.montagem) ? (linha.conteudo as any).montagem.map((bloco: any) => `bloco:${bloco.id}`) : [])]
+      : ordem.escopo_secoes;
+    const secoesComparadas = compararSecoesRecusadas(anterior?.conteudo, linha.conteudo, secoes);
+    return secoesComparadas ? { disponivel: true as const, secoes: secoesComparadas } : { disponivel: false as const };
+  } catch { return { disponivel: false as const }; }
 }
 
 export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
@@ -196,7 +217,7 @@ export default async function handler(req: Request, res: Response) {
       );
     }
 
-    const relatorio = { ...relatorioBase, revisaoEditorial };
+    const relatorio = { ...relatorioBase, revisaoEditorial, diffDaRecusa: await diffDaRecusa(linha, { urlSupabase, chaveDeServico }) };
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,
       { clienteSlug: linha.cliente_slug, competencia: linha.competencia },

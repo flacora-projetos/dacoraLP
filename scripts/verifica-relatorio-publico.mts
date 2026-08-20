@@ -58,12 +58,12 @@ function resposta() {
   } as any;
 }
 
-async function chamar(token: string, linhas: any[], fechamentos: any[], metodo = 'GET', sufixo = '') {
+async function chamar(token: string, linhas: any[], fechamentos: any[], metodo = 'GET', sufixo = '', observacoes: any[] = []) {
   const urlsConsultadas: string[] = [];
   globalThis.fetch = (async (entrada: any) => {
     const url = String(entrada);
     urlsConsultadas.push(url);
-    const corpo = url.includes('/relatorio_fechamentos_editoriais?') ? fechamentos : linhas;
+    const corpo = url.includes('/relatorio_fechamentos_editoriais?') ? fechamentos : url.includes('/relatorio_observacoes_publicas_liberadas?') ? observacoes : linhas;
     return new Response(JSON.stringify(corpo), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -109,6 +109,7 @@ try {
   assert.ok(ok.urlsConsultadas[0].includes('estado=eq.liberado'));
   assert.ok(ok.urlsConsultadas[1].includes('/relatorio_fechamentos_editoriais?'));
   assert.ok(ok.urlsConsultadas[1].includes(`relatorio_id=eq.${linha.id}`));
+  assert.ok(ok.urlsConsultadas.some((url) => url.includes('/relatorio_observacoes_publicas_liberadas?')));
   assert.ok(!JSON.stringify(ok.body).includes(TOKEN), 'a credencial nunca pode voltar no JSON');
   assert.ok(!JSON.stringify(ok.body).includes('historico'), 'histórico interno não pode entrar na rota pública');
   assert.equal(ok.headers.get('cache-control')?.includes('no-store'), true);

@@ -10,6 +10,7 @@ interface RelatorioExterno {
   versao: number;
   conteudoCarregado: true;
   snapshot: SnapshotMontado;
+  observacoesPublicas?: Array<{ secao: string; texto: string }>;
 }
 
 export function RelatorioPublicoApresentado({ relatorio }: { relatorio: RelatorioExterno }) {
@@ -22,6 +23,7 @@ export function RelatorioPublicoApresentado({ relatorio }: { relatorio: Relatori
         rotulo: formatarCompetencia(relatorio.competencia),
         publicada: true,
       }]}
+      observacoesPublicas={relatorio.observacoesPublicas ?? []}
     />
   );
 }

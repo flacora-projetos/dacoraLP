@@ -56,6 +56,7 @@ const COLUNAS_DA_LEITURA = [
   'correcao_ordem_id',
   'correcao_estado',
   'correcao_solicitado_em',
+  'correcao_escopo_secoes',
   'notificacao_interna_id',
   'notificacao_interna_estado',
   'notificacao_destino_referencia',
@@ -211,10 +212,10 @@ export default async function handler(req: Request, res: Response) {
     }
 
     /* 1. Decisão final. Aprovar também fecha editorialmente, dentro da MESMA
-       transação do banco; recusar continua usando a RPC P3 existente. ------- */
+       transação do banco; a recusa escopada preserva o circuito P3/P4. ------- */
     const endpointDaDecisao = pedido.decisao === 'aprovar'
       ? 'aprovar_e_fechar_relatorio_editorial'
-      : 'decidir_relatorio';
+      : 'decidir_relatorio_com_escopo';
     const corpoDaDecisao = pedido.decisao === 'aprovar'
       ? {
           p_relatorio_id: pedido.id,
@@ -228,6 +229,7 @@ export default async function handler(req: Request, res: Response) {
           p_checksum_visto: pedido.checksumVisto,
           p_quem: quem,
           p_motivo: pedido.motivo,
+          p_escopo_secoes: pedido.escopoSecoes,
         };
     const respostaDecisao = await fetch(`${urlSupabase}/rest/v1/rpc/${endpointDaDecisao}`, {
       method: 'POST',
@@ -287,6 +289,7 @@ export default async function handler(req: Request, res: Response) {
       checksum: linha.checksum,
       quem,
       motivo: pedido.motivo,
+      escopoSecoes: pedido.escopoSecoes,
     });
     // Sem token, sem conteúdo e sem o motivo inteiro: o log diz o que foi
     // decidido e por quem, não republica o documento.
@@ -313,6 +316,7 @@ export default async function handler(req: Request, res: Response) {
               id: linha.correcao_ordem_id,
               estado: linha.correcao_estado,
               solicitadoEm: linha.correcao_solicitado_em,
+              escopoSecoes: linha.correcao_escopo_secoes ?? ['relatorio_inteiro'],
             }
           : null,
         notificacaoInterna: linha.notificacao_interna_id

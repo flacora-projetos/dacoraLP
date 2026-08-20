@@ -64,6 +64,8 @@ export interface PedidoDeDecisao {
   checksumVisto: string;
   /** Já aparado. Vazio quando a decisão é aprovar. */
   motivo: string;
+  /** Escopo canônico da recusa; o banco confere contra o snapshot persistido. */
+  escopoSecoes?: string[];
 }
 
 export type LeituraDoPedido =
@@ -72,6 +74,15 @@ export type LeituraDoPedido =
 
 function texto(valor: unknown): string {
   return typeof valor === 'string' ? valor.trim() : '';
+}
+
+function lerEscopo(valor: unknown): string[] | null {
+  if (!Array.isArray(valor) || valor.length === 0 || valor.length > 100) return null;
+  const secoes = valor.map(texto);
+  if (secoes.some((secao) => !secao || !/^(relatorio_inteiro|introducao|bloco:[a-zA-Z0-9_-]+)$/.test(secao))) return null;
+  if (new Set(secoes).size !== secoes.length) return null;
+  if (secoes.includes('relatorio_inteiro') && secoes.length !== 1) return null;
+  return secoes;
 }
 
 /**
@@ -122,8 +133,18 @@ export function lerPedido(corpo: unknown): LeituraDoPedido {
   }
 
   const motivo = texto(bruto.motivo);
+  const escopoSecoes = decisao === 'recusar'
+    ? lerEscopo(bruto.escopoSecoes ?? ['relatorio_inteiro'])
+    : [];
 
   if (decisao === 'recusar') {
+    if (!escopoSecoes) {
+      return {
+        ok: false,
+        erro: 'escopo_invalido',
+        mensagem: 'Escolha o relatório inteiro ou uma ou mais seções canônicas antes de recusar.',
+      };
+    }
     if (motivo.length < MINIMO_DO_MOTIVO) {
       return {
         ok: false,
@@ -150,7 +171,16 @@ export function lerPedido(corpo: unknown): LeituraDoPedido {
     };
   }
 
-  return { ok: true, pedido: { id, decisao, checksumVisto, motivo: decisao === 'recusar' ? motivo : '' } };
+  return {
+    ok: true,
+    pedido: {
+      id,
+      decisao,
+      checksumVisto,
+      motivo: decisao === 'recusar' ? motivo : '',
+      escopoSecoes: escopoSecoes ?? [],
+    },
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -247,6 +277,10 @@ const MOTIVOS_DO_BANCO: Record<string, { status: number; mensagem: string }> = {
     status: 500,
     mensagem: 'O servidor não conseguiu identificar quem está decidindo. Entre de novo no painel.',
   },
+  escopo_recusa_invalido: {
+    status: 422,
+    mensagem: 'O escopo escolhido não pertence a esta versão do relatório. Recarregue a revisão antes de recusar.',
+  },
 };
 
 export interface RecusaTraduzida {
@@ -297,6 +331,7 @@ export interface LinhaDecidida {
   notificacao_interna_id?: string | null;
   notificacao_interna_estado?: EstadoDaNotificacaoInterna | null;
   notificacao_destino_referencia?: string | null;
+  correcao_escopo_secoes?: string[] | null;
 }
 
 /**
@@ -354,6 +389,13 @@ export function conferirLeituraDeVolta(
   if (linha.notificacao_destino_referencia !== 'dacora_semanais.recipients') {
     return { ok: false, motivo: 'o aviso interno não aponta para o destinatário canônico' };
   }
+  if (
+    !Array.isArray(linha.correcao_escopo_secoes) ||
+    linha.correcao_escopo_secoes.length !== (pedido.escopoSecoes ?? ['relatorio_inteiro']).length ||
+    linha.correcao_escopo_secoes.some((secao, indice) => secao !== (pedido.escopoSecoes ?? ['relatorio_inteiro'])[indice])
+  ) {
+    return { ok: false, motivo: 'o escopo gravado não é o que foi confirmado' };
+  }
   return { ok: true };
 }
 
@@ -377,6 +419,7 @@ export function ecoDaDecisao(entrada: {
   checksum: string;
   quem: string;
   motivo?: string;
+  escopoSecoes?: string[];
 }): string {
   const impressao = entrada.checksum.slice(0, 12);
   const cabeca =
@@ -389,6 +432,7 @@ export function ecoDaDecisao(entrada: {
   return (
     `Recusar: ${cabeca}. Fica registrado como recusado por ${entrada.quem}, ` +
     `com o motivo: "${(entrada.motivo ?? '').trim()}". ` +
+    `Escopo: ${(entrada.escopoSecoes ?? ['relatorio_inteiro']).join(', ')}. ` +
     'Uma ordem de correção aguarda nova versão; o aviso interno fica pendente na fila de saída.'
   );
 }
