@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "prebuild": "npm run lint && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento",
-    "build": "vite build && npm run build:ssr && npm run prerender && npm run sitemap && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && npm run build:ssr && npm run prerender && npm run verifica:casca && npm run sitemap && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr --emptyOutDir",
     "prerender": "node scripts/prerender.mjs",
     "sitemap": "node scripts/gen-sitemap.mjs",
@@ -31,7 +31,8 @@
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",
     "start": "node dist/server.cjs",
-    "verifica:vazamento": "tsx scripts/verifica-relatorio-vazamento-visual.mts"
+    "verifica:vazamento": "tsx scripts/verifica-relatorio-vazamento-visual.mts",
+    "verifica:casca": "node scripts/verifica-casca-privada.mjs"
   },
   "dependencies": {
     "@fontsource/source-serif-4": "^5.3.0",

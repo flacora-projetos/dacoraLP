@@ -1556,3 +1556,23 @@ integrar o `prebuild`: ⚠️ **daqui em diante um erro de tipo bloqueia a publi
 Vercel**. As quatro worktrees AV antigas do portal também foram removidas.
 Detalhe, medição e o que ficou de fora:
 [`HANDOFF_TYPECHECK_VERDE_2026-08-20.md`](HANDOFF_TYPECHECK_VERDE_2026-08-20.md).
+
+---
+
+## 11. Rotas privadas deixaram de receber a home (2026-08-20)
+
+Abrir o painel ou o relatório de um cliente entregava **24 KB da home
+institucional** antes do app — daí o flash. Junto vinham o `<title>` de venda,
+o preload em prioridade alta da imagem do banner (competindo com o código do
+relatório) e o **Google Analytics + Pixel do Facebook disparando `PageView` na
+página privada do cliente**.
+
+O build passa a emitir `dist/app.html`, uma casca de 2 KB sem home, sem
+rastreador e sem preload de marketing; `vercel.json` manda
+`/painel-de-relatorios(/.*)?` e `/relatorios/(.*)` para ela. A home e as duas
+páginas institucionais não mudaram.
+
+Regressão em `scripts/verifica-casca-privada.mjs`, dentro do `build`, sobre o
+artefato construído — com a metade negativa que exige a home **continuar**
+pré-renderizada e com rastreadores. Detalhe:
+[`HANDOFF_CASCA_PRIVADA_2026-08-20.md`](HANDOFF_CASCA_PRIVADA_2026-08-20.md).
