@@ -137,7 +137,18 @@ export default function EvolucaoNoTempo({ serie, theme, controles }: Props) {
             tickLine={false}
             minTickGap={26}
             interval="preserveStartEnd"
-            tick={(props) => <TickEixo {...props} theme={theme} formatar={rotuloDia} />}
+            /* As props do Recharts NÃO são espalhadas cruas: o pacote tipa `x`/`y`
+               como `string | number` e carrega dezenas de campos que a primitiva
+               não conhece. Passamos só o que `TickEixo` declara. */
+            tick={({ x, y, payload }) => (
+              <TickEixo
+                x={Number(x)}
+                y={Number(y)}
+                payload={payload}
+                theme={theme}
+                formatar={rotuloDia}
+              />
+            )}
           />
 
           <YAxis
@@ -145,9 +156,11 @@ export default function EvolucaoNoTempo({ serie, theme, controles }: Props) {
             axisLine={false}
             tickLine={false}
             tickCount={5}
-            tick={(props) => (
+            tick={({ x, y, payload }) => (
               <TickEixo
-                {...props}
+                x={Number(x)}
+                y={Number(y)}
+                payload={payload}
                 theme={theme}
                 ancora="end"
                 deslocamentoY={4}
@@ -158,9 +171,11 @@ export default function EvolucaoNoTempo({ serie, theme, controles }: Props) {
 
           <Tooltip
             cursor={{ stroke: PALETA.sage, strokeWidth: 1, strokeDasharray: '3 4' }}
-            content={(props) => (
+            content={({ active, label, payload }) => (
               <TooltipRelatorio
-                {...props}
+                active={active}
+                label={label}
+                payload={payload}
                 theme={theme}
                 unidade={serie.unidade}
                 rotulos={rotulos}

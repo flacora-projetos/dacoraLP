@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion, type Variants } from 'motion/react';
 import { CheckCircle2, Instagram, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -51,12 +51,12 @@ const trackEvent = (eventName: string) => {
   }
 };
 
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,

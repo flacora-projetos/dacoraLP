@@ -117,20 +117,42 @@ export function TickEixo({
 /* ------------------------------------------------------------------ */
 
 export interface ItemTooltip {
-  dataKey?: string | number;
+  /* O Recharts admite `dataKey` como função acessora. Aqui ela nunca serve de
+     chave — `String(fn)` viraria o código-fonte da função dentro do tooltip —,
+     então a forma de função é declarada e descartada em `chaveDoItem`. */
+  dataKey?: string | number | ((obj: never) => unknown);
   name?: string | number;
-  value?: number | string | null;
+  /* O Recharts admite um ARRAY em `value` (séries de faixa). `Number([1,2])` é
+     NaN, então a forma de array é declarada e tratada como ausência de valor em
+     `valorDoItem` — ausência nunca vira número. */
+  value?: number | string | readonly (string | number)[] | null;
   color?: string;
 }
 
 interface TooltipProps {
   active?: boolean;
   label?: string | number;
-  payload?: ItemTooltip[];
+  /* `readonly` porque é o que o Recharts entrega e porque este componente só
+     lê a lista — nunca a ordena nem a altera no lugar. */
+  payload?: readonly ItemTooltip[];
   theme: ChartTheme;
   unidade: Unidade;
   rotulos: Record<string, string>;
   formatarRotulo?: (label: string | number) => string;
+}
+
+/** Valor numérico do item, ou `null` quando não há um número único a mostrar. */
+function valorDoItem(item: ItemTooltip): number | null {
+  if (item.value === null || item.value === undefined) return null;
+  if (Array.isArray(item.value)) return null;
+  const numero = Number(item.value);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+/** Chave textual do item, ignorando `dataKey` em forma de função. */
+function chaveDoItem(item: ItemTooltip): string {
+  const bruto = typeof item.dataKey === 'function' ? undefined : item.dataKey;
+  return String(bruto ?? item.name ?? '');
 }
 
 export function TooltipRelatorio({
@@ -149,15 +171,15 @@ export function TooltipRelatorio({
       <p className="dc-tooltip__titulo">{titulo}</p>
       <ul className="dc-tooltip__lista">
         {payload.map((item) => {
-          const chave = String(item.dataKey ?? item.name ?? '');
+          const chave = chaveDoItem(item);
           const estilo = theme.series[chave as PlataformaId];
-          const temValor = item.value !== null && item.value !== undefined;
+          const valor = valorDoItem(item);
           return (
             <li key={chave} className="dc-tooltip__item">
               <MarcaSerie cor={estilo?.cor ?? theme.corEixo} tracejado={estilo?.tracejado} />
               <span className="dc-tooltip__rotulo">{rotulos[chave] ?? chave}</span>
               <span className="dc-tooltip__valor">
-                {temValor ? theme.completo(Number(item.value), unidade) : 'sem dado'}
+                {valor === null ? 'sem dado' : theme.completo(valor, unidade)}
               </span>
             </li>
           );

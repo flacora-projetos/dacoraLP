@@ -40,6 +40,7 @@ import DecisaoDaRevisao, {
   ecoDaDecisao as ecoDaTela,
   textoDaNotificacaoInterna,
   textoDoJaDecidido,
+  type RelatorioDecidivel,
 } from '../src/painel/DecisaoDaRevisao.tsx';
 
 const ID = '22222222-2222-4222-8222-222222222222';
@@ -701,7 +702,7 @@ function desenharDecisao(relatorio: any, comCanal: boolean) {
   );
 }
 
-const decidivel = {
+const decidivel: RelatorioDecidivel = {
   clienteNome: 'Cliente Exemplo',
   competencia: '2026-07',
   versao: 3,

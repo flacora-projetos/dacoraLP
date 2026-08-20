@@ -3,18 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from 'motion/react';
+import { motion, type Variants } from 'motion/react';
 import { CheckCircle2, Instagram } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const CONTACT_LINK = 'https://wa.me/556296242626?text=Quero+melhorar+a+estrat%C3%A9gia+da+minha+empresa';
 
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
