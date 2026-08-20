@@ -1545,3 +1545,14 @@ registrado aqui para outra sessão levar:
 > ligado e aberto** (`disable_signup: false`). Não abre buraco no painel — o
 > código recusa quem não entrou pelo Google —, mas é uma porta sem uso num
 > projeto que só devia aceitar Google. Vale desligar (passo E da seção 3).
+
+---
+
+**Verificador de tipos verde e ligado à publicação (2026-08-20, branch `fix/typecheck-verde`, aguardando GO).**
+Faltava `@types/react`/`@types/react-dom` no projeto — sem eles o `tsc` rodava cego e as
+"seis falhas TypeScript herdadas" citadas várias vezes acima eram sintoma da ausência, não
+código errado. Com os tipos instalados o `lint` foi para **0 erros**, e o `lint` passou a
+integrar o `prebuild`: ⚠️ **daqui em diante um erro de tipo bloqueia a publicação na
+Vercel**. As quatro worktrees AV antigas do portal também foram removidas.
+Detalhe, medição e o que ficou de fora:
+[`HANDOFF_TYPECHECK_VERDE_2026-08-20.md`](HANDOFF_TYPECHECK_VERDE_2026-08-20.md).

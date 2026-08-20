@@ -221,21 +221,25 @@ try {
         invalidadaEm: linha.invalidada_em,
       })),
     };
-    const comHistorico = renderToStaticMarkup(createElement(
-      AnalisesSecaoProvider,
-      { podeRevisar: true, espacos: [], historico: historicoUI, aoAcionar: (async () => ({})) as any },
-      createElement(HistoricoDaSecao, { secao: 'introducao', titulo: 'Introdução' }),
-    ));
+    const comHistorico = renderToStaticMarkup(createElement(AnalisesSecaoProvider, {
+      podeRevisar: true,
+      espacos: [],
+      historico: historicoUI,
+      aoAcionar: async () => ({}),
+      children: createElement(HistoricoDaSecao, { secao: 'introducao', titulo: 'Introdução' }),
+    }));
     assert.match(comHistorico, /versões no histórico/, 'a seção precisa anunciar quantas versões guarda');
     assert.match(comHistorico, /Somente interno/, 'o bloco inline precisa repetir que nada disso vai ao cliente');
     assert.match(comHistorico, /Leitura histórica para o snapshot A\./, 'o texto preservado precisa estar acessível na própria seção');
 
     // Seção sem versão preservada não declara ausência de passado: some.
-    const semHistorico = renderToStaticMarkup(createElement(
-      AnalisesSecaoProvider,
-      { podeRevisar: true, espacos: [], historico: historicoUI, aoAcionar: (async () => ({})) as any },
-      createElement(HistoricoDaSecao, { secao: 'bloco:secao-que-nunca-teve-analise', titulo: 'Outra' }),
-    ));
+    const semHistorico = renderToStaticMarkup(createElement(AnalisesSecaoProvider, {
+      podeRevisar: true,
+      espacos: [],
+      historico: historicoUI,
+      aoAcionar: async () => ({}),
+      children: createElement(HistoricoDaSecao, { secao: 'bloco:secao-que-nunca-teve-analise', titulo: 'Outra' }),
+    }));
     assert.doesNotMatch(semHistorico, /no histórico/, 'seção nova não pode ganhar um bloco vazio');
   }
 
