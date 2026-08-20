@@ -2,8 +2,8 @@
  * `GET /api/relatorio-publico?token=<credencial>` — leitura externa sem login.
  *
  * O token é tratado como credencial: só é aceito no servidor, nunca é
- * devolvido no JSON e só abre uma versão liberada, não revogada e cujo GO
- * continua amarrado ao checksum persistido.
+ * devolvido no JSON e só abre a versão final cujo recibo AV4 amarra o
+ * documento, o snapshot factual e a aprovação persistida.
  */
 import type { Request, Response } from 'express';
 import { montarRelatorioParaRevisao } from './painel-relatorio.js';
@@ -20,6 +20,7 @@ const COLUNAS = [
   'estado',
   'gerado_em',
   'checksum',
+  'checksum_factual_editorial',
   'aprovado_por',
   'aprovado_em',
   'aprovado_checksum',
@@ -38,6 +39,7 @@ interface LinhaPublica {
   estado: string;
   gerado_em: string;
   checksum: string;
+  checksum_factual_editorial: string | null;
   aprovado_por: string | null;
   aprovado_em: string | null;
   aprovado_checksum: string | null;
@@ -48,13 +50,35 @@ interface LinhaPublica {
   conteudo: object;
 }
 
+interface FechamentoEditorial {
+  relatorio_id: string;
+  cliente_slug: string;
+  competencia: string;
+  relatorio_versao: number;
+  checksum_documento: string;
+  checksum_factual: string;
+  aprovado_checksum: string;
+}
+
 function linhaPodeSerPublicada(linha: LinhaPublica) {
   return linha.estado === 'liberado'
     && linha.revogado_em === null
     && linha.substituido_por === null
     && Boolean(linha.aprovado_por)
     && Boolean(linha.aprovado_em)
-    && linha.aprovado_checksum === linha.checksum;
+    && linha.aprovado_checksum === linha.checksum
+    && Boolean(linha.checksum_factual_editorial);
+}
+
+function fechamentoConfere(linha: LinhaPublica, fechamento: FechamentoEditorial | undefined) {
+  return Boolean(fechamento)
+    && fechamento.relatorio_id === linha.id
+    && fechamento.cliente_slug === linha.cliente_slug
+    && fechamento.competencia === linha.competencia
+    && fechamento.relatorio_versao === linha.versao
+    && fechamento.checksum_documento === linha.checksum
+    && fechamento.checksum_factual === linha.checksum_factual_editorial
+    && fechamento.aprovado_checksum === linha.aprovado_checksum;
 }
 
 function indisponivel(res: Response) {
@@ -107,6 +131,20 @@ export default async function handler(req: Request, res: Response) {
 
     const [linha] = (await resposta.json()) as LinhaPublica[];
     if (!linha || !linhaPodeSerPublicada(linha)) return indisponivel(res);
+
+    const respostaFechamento = await fetch(
+      `${urlSupabase}/rest/v1/relatorio_fechamentos_editoriais?relatorio_id=eq.${encodeURIComponent(linha.id)}` +
+        '&select=relatorio_id,cliente_slug,competencia,relatorio_versao,checksum_documento,checksum_factual,aprovado_checksum&limit=1',
+      {
+        headers: {
+          apikey: chaveDeServico,
+          Authorization: `Bearer ${chaveDeServico}`,
+        },
+      },
+    );
+    if (!respostaFechamento.ok) throw new Error(`fechamento HTTP ${respostaFechamento.status}`);
+    const [fechamento] = (await respostaFechamento.json()) as FechamentoEditorial[];
+    if (!fechamentoConfere(linha, fechamento)) return indisponivel(res);
 
     const relatorio = montarRelatorioParaRevisao(linha as any);
     if (!relatorio) return indisponivel(res);

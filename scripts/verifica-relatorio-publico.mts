@@ -14,6 +14,7 @@ const linha: any = {
   estado: 'liberado',
   gerado_em: '2026-08-01T10:00:00Z',
   checksum,
+  checksum_factual_editorial: 'checksum-factual-final',
   aprovado_por: 'Flávio Corá',
   aprovado_em: '2026-08-09T10:00:00Z',
   aprovado_checksum: checksum,
@@ -26,6 +27,16 @@ const linha: any = {
 linha.conteudo.identidade.clienteSlug = linha.cliente_slug;
 linha.conteudo.identidade.competencia = linha.competencia;
 linha.conteudo.dados.audios = {};
+
+const fechamento = {
+  relatorio_id: linha.id,
+  cliente_slug: linha.cliente_slug,
+  competencia: linha.competencia,
+  relatorio_versao: linha.versao,
+  checksum_documento: linha.checksum,
+  checksum_factual: linha.checksum_factual_editorial,
+  aprovado_checksum: linha.aprovado_checksum,
+};
 
 const fetchOriginal = globalThis.fetch;
 const envOriginal = {
@@ -47,11 +58,13 @@ function resposta() {
   } as any;
 }
 
-async function chamar(token: string, linhas: any[], metodo = 'GET', sufixo = '') {
-  let urlConsultada = '';
+async function chamar(token: string, linhas: any[], fechamentos: any[], metodo = 'GET', sufixo = '') {
+  const urlsConsultadas: string[] = [];
   globalThis.fetch = (async (entrada: any) => {
-    urlConsultada = String(entrada);
-    return new Response(JSON.stringify(linhas), {
+    const url = String(entrada);
+    urlsConsultadas.push(url);
+    const corpo = url.includes('/relatorio_fechamentos_editoriais?') ? fechamentos : linhas;
+    return new Response(JSON.stringify(corpo), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
@@ -61,7 +74,7 @@ async function chamar(token: string, linhas: any[], metodo = 'GET', sufixo = '')
     method: metodo,
     url: `/api/relatorio-publico?token=${encodeURIComponent(token)}${sufixo}`,
   } as any, res);
-  return { ...res.ler(), urlConsultada };
+  return { ...res.ler(), urlsConsultadas };
 }
 
 try {
@@ -87,14 +100,17 @@ try {
     assert.equal(assinatura.signedUrl, 'https://projeto.supabase.co/storage/v1/object/sign/relatorios-audios/cliente/2026-07/v1/audio.ogg?token=teste');
   }
 
-  const ok = await chamar(TOKEN, [linha]);
+  const ok = await chamar(TOKEN, [linha], [fechamento]);
   assert.equal(ok.status, 200);
   assert.equal(ok.body.relatorio.snapshot.publicacao.checksum, checksum);
   assert.equal(ok.body.relatorio.id, undefined, 'UUID interno não precisa sair na rota externa');
   assert.equal(ok.body.relatorio.sinais, undefined, 'sinais da bancada não pertencem ao cliente');
-  assert.ok(ok.urlConsultada.includes(`token=eq.${TOKEN}`));
-  assert.ok(ok.urlConsultada.includes('estado=eq.liberado'));
+  assert.ok(ok.urlsConsultadas[0].includes(`token=eq.${TOKEN}`));
+  assert.ok(ok.urlsConsultadas[0].includes('estado=eq.liberado'));
+  assert.ok(ok.urlsConsultadas[1].includes('/relatorio_fechamentos_editoriais?'));
+  assert.ok(ok.urlsConsultadas[1].includes(`relatorio_id=eq.${linha.id}`));
   assert.ok(!JSON.stringify(ok.body).includes(TOKEN), 'a credencial nunca pode voltar no JSON');
+  assert.ok(!JSON.stringify(ok.body).includes('historico'), 'histórico interno não pode entrar na rota pública');
   assert.equal(ok.headers.get('cache-control')?.includes('no-store'), true);
   assert.equal(ok.headers.get('referrer-policy'), 'no-referrer');
 
@@ -105,19 +121,30 @@ try {
     { aprovado_checksum: 'outro-checksum' },
     { aprovado_por: null },
   ]) {
-    const recusado = await chamar(TOKEN, [{ ...linha, ...mutacao }]);
+    const recusado = await chamar(TOKEN, [{ ...linha, ...mutacao }], [fechamento]);
     assert.equal(recusado.status, 404, `precisava recusar ${JSON.stringify(mutacao)}`);
   }
 
-  const invalido = await chamar('curto', [linha]);
+  for (const mutacao of [
+    { checksum_documento: 'checksum-de-outro-documento' },
+    { checksum_factual: 'checksum-factual-antigo' },
+    { aprovado_checksum: 'checksum-de-outra-aprovacao' },
+    { relatorio_versao: 2 },
+    { cliente_slug: 'outro-cliente' },
+  ]) {
+    const recusado = await chamar(TOKEN, [linha], [{ ...fechamento, ...mutacao }]);
+    assert.equal(recusado.status, 404, `precisava recusar recibo divergente ${JSON.stringify(mutacao)}`);
+  }
+
+  const invalido = await chamar('curto', [linha], [fechamento]);
   assert.equal(invalido.status, 404);
-  assert.equal(invalido.urlConsultada, '', 'token inválido não pode consultar o banco');
+  assert.equal(invalido.urlsConsultadas.length, 0, 'token inválido não pode consultar o banco');
 
-  const duplicado = await chamar(TOKEN, [linha], 'GET', `&token=${TOKEN}`);
+  const duplicado = await chamar(TOKEN, [linha], [fechamento], 'GET', `&token=${TOKEN}`);
   assert.equal(duplicado.status, 404, 'dois tokens na URL precisam falhar fechado');
-  assert.equal(duplicado.urlConsultada, '', 'token ambiguo nao pode consultar o banco');
+  assert.equal(duplicado.urlsConsultadas.length, 0, 'token ambiguo nao pode consultar o banco');
 
-  const metodo = await chamar(TOKEN, [linha], 'POST');
+  const metodo = await chamar(TOKEN, [linha], [fechamento], 'POST');
   assert.equal(metodo.status, 405);
 
   const pagina = readFileSync(new URL('../src/pages/RelatorioPublico.tsx', import.meta.url), 'utf8');
@@ -125,6 +152,9 @@ try {
   assert.ok(!pagina.includes('<RevisaoMoldura'));
   assert.ok(!pagina.includes('Aprovar relatório'));
   assert.ok(!pagina.includes('Recusar com motivo'));
+
+  const css = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
+  assert.match(css, /\.dcp-historico-secao\s*\{\s*display: none !important;/);
 
   console.log('verifica-relatorio-publico: OK');
 } finally {
