@@ -17,3 +17,73 @@
 .dch-proximas span { flex: 0 0 auto; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--dc-tinta); }
 .dch-proximas p { margin: 0; text-align: right; }
 @media (max-width: 700px) { .dch-conexao { grid-template-columns: 1fr; } .dch-proximas { display: block; } .dch-proximas p { margin-top: .6rem; text-align: left; } }
+
+/* ---- PWI1: navegação, lista e criador ---- */
+
+.dch-nav { display: flex; gap: .35rem; width: min(100%, 1180px); margin-inline: auto; padding: .6rem clamp(1rem, 4vw, 2.5rem) 0; }
+.dch-nav__item { display: inline-flex; align-items: center; min-height: 44px; padding-inline: .9rem; border-bottom: 2px solid transparent; color: var(--dc-cinza); font-size: .9rem; font-weight: 600; text-decoration: none; touch-action: manipulation; }
+/* Ativo é marcado por cor, peso e régua ao mesmo tempo: cor sozinha não serve. */
+.dch-nav__item--ativo { color: var(--dc-verde); font-weight: 700; border-bottom-color: var(--dc-verde); }
+
+.dch-lista__topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+.dch-lista h1, .dch-criador h1 { margin: .5rem 0 0; max-width: 14ch; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 500; letter-spacing: -.055em; line-height: 1; color: var(--dc-tinta); }
+.dch-lista .dcp-secao, .dch-criador + .dch-conexao { margin-top: clamp(1.5rem, 4vw, 2.5rem); }
+/*
+ * O container fica sempre montado (role=status), mesmo com a lista vazia, para
+ * leitores de tela que só vigiam nós já presentes. Vazio, ele não pode abrir
+ * espaço visual: :empty zera a margem que o <p> interno traria.
+ */
+.dch-aviso-local { color: var(--dc-cinza); font-size: .82rem; line-height: 1.5; }
+.dch-aviso-local p { margin: 1.4rem 0 0; }
+.dch-aviso-local:empty { margin: 0; }
+.dch-cartoes { margin: 1rem 0 0; padding: 0; list-style: none; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.dch-cartao { margin: 0; }
+
+.dch-criador__cabecalho { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+.dch-criador__grade { margin-top: clamp(1.5rem, 4vw, 2.5rem); display: grid; grid-template-columns: minmax(150px, .5fr) minmax(0, 1.6fr) minmax(240px, .9fr); gap: clamp(1.25rem, 3vw, 2.5rem); align-items: start; }
+
+.dch-esteira { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .25rem; }
+.dch-esteira__item { display: flex; align-items: center; gap: .7rem; width: 100%; min-height: 44px; padding: .4rem .7rem; border: 0; border-left: 2px solid var(--dc-filete); border-radius: 0; background: none; color: var(--dc-cinza); font: inherit; font-size: .88rem; text-align: left; cursor: pointer; touch-action: manipulation; }
+.dch-esteira__item--ativa { border-left-color: var(--dc-verde); color: var(--dc-tinta); font-weight: 700; }
+.dch-esteira__numero { color: var(--dch-azul); font-size: .7rem; font-weight: 700; letter-spacing: .14em; }
+
+.dch-formulario h2 { margin: 0 0 .3rem; font-size: clamp(1.2rem, 2.4vw, 1.6rem); font-weight: 500; letter-spacing: -.03em; }
+.dch-formulario__apoio { margin: 0 0 1.2rem; max-width: 56ch; color: var(--dc-cinza); font-size: .88rem; line-height: 1.55; }
+.dch-campo { display: block; margin-top: 1rem; }
+.dch-campo > span { display: block; margin-bottom: .35rem; font-size: .8rem; font-weight: 700; letter-spacing: .04em; color: var(--dc-tinta); }
+.dch-campo select { width: 100%; min-height: 44px; padding: .5rem .7rem; border: 1px solid var(--dc-filete-forte); border-radius: var(--dc-raio-pequeno, 6px); background: var(--dc-superficie); color: var(--dc-tinta); font: inherit; touch-action: manipulation; }
+.dch-fieldset { margin: 1rem 0 0; padding: 0; border: 0; }
+.dch-fieldset legend { padding: 0; margin-bottom: .35rem; font-size: .8rem; font-weight: 700; letter-spacing: .04em; color: var(--dc-tinta); }
+.dch-opcoes { display: grid; gap: .15rem; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.dch-opcao { display: flex; align-items: center; gap: .55rem; min-height: 44px; font-size: .9rem; color: var(--dc-tinta); cursor: pointer; touch-action: manipulation; }
+.dch-opcao input { width: 18px; height: 18px; accent-color: var(--dc-verde); }
+
+.dch-revisao { margin: 0; display: grid; gap: .1rem; }
+.dch-revisao > div { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--dc-filete); }
+.dch-revisao dt { color: var(--dc-cinza); font-size: .84rem; }
+.dch-revisao dd { margin: 0; font-size: .9rem; font-weight: 600; text-align: right; color: var(--dc-tinta); font-variant-numeric: tabular-nums; }
+
+.dch-resumo { padding: 1.1rem 1.2rem; border: 1px solid var(--dc-filete-forte); border-radius: var(--dc-raio, 10px); background: var(--dc-superficie); position: sticky; top: 1rem; }
+.dch-resumo__titulo { margin: 0 0 .7rem; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dc-tinta); }
+.dch-resumo__linha { margin: .3rem 0; font-size: .85rem; line-height: 1.45; color: var(--dc-cinza); }
+.dch-resumo__linha strong { color: var(--dc-tinta); font-weight: 600; }
+.dch-resumo__estado { min-height: 3rem; margin: .9rem 0; }
+.dch-resumo__ok { margin: 0; color: var(--dc-verde-medio); font-size: .85rem; font-weight: 600; }
+.dch-impedimentos { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+.dch-impedimentos .dcp-erro { font-size: .82rem; line-height: 1.45; }
+.dch-resumo__acoes { display: flex; gap: .5rem; flex-wrap: wrap; }
+.dch-resumo__acoes .dcp-botao { flex: 1 1 auto; min-height: 44px; }
+.dch-resumo__nota { margin: .7rem 0 0; color: var(--dc-cinza); font-size: .76rem; line-height: 1.4; }
+
+/*
+ * Em telas estreitas o criador vira uma coisa de cada vez: esteira em fila
+ * rolável no topo, formulário inteiro, resumo por último. O resumo deixa de
+ * ser sticky porque, colado, ele come metade da tela do celular.
+ */
+@media (max-width: 900px) {
+  .dch-criador__grade { grid-template-columns: 1fr; }
+  .dch-esteira { flex-direction: row; overflow-x: auto; gap: .5rem; padding-bottom: .25rem; }
+  .dch-esteira__item { width: auto; flex: 0 0 auto; border-left: 0; border-bottom: 2px solid var(--dc-filete); }
+  .dch-esteira__item--ativa { border-left: 0; border-bottom-color: var(--dc-verde); }
+  .dch-resumo { position: static; }
+}
