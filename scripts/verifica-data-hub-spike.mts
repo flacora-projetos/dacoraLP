@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { executarSpikeDataHub } from '../api/_data-hub-spike.ts';
 import { atenderPainelSessao } from '../api/painel-sessao.ts';
 
@@ -92,5 +93,15 @@ globalThis.fetch = async () => new Response(JSON.stringify({
   assert.doesNotMatch(JSON.stringify(captura.corpo), /contato@|token/i);
 }
 globalThis.fetch = fetchOriginal;
+
+const app = fs.readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const pagina = fs.readFileSync(new URL('../src/pages/DataHub.tsx', import.meta.url), 'utf8');
+assert.match(app, /path="\/data-hub"/);
+assert.match(app, /lazy\(\(\) => import\('\.\/pages\/DataHub'\)\)/);
+assert.match(pagina, /<PainelAuthProvider>[\s\S]*<Portao>[\s\S]*<DataHubInicio \/>/);
+assert.match(pagina, /fetch\('\/api\/data-hub-spike'/);
+assert.match(pagina, /Authorization: `Bearer \$\{sessao\.access_token\}`/);
+assert.match(pagina, /body: '\{\}'/);
+assert.doesNotMatch(pagina, /body:[^\n]*(requestId|actor|audience)/);
 
 console.log('OK — PWI0 local: sessão antes do downstream, WIF injetável, IAM ID token, audiência exata e envelope sanitizado');
