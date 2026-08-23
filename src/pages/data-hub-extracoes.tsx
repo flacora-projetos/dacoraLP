@@ -302,6 +302,20 @@ export function CriadorDeExtracao({
                   ))}
                 </select>
               </label>
+              {rascunho.granularidade === 'personalizada' ? (
+                <label className="dch-campo" htmlFor="granularidade-dias">
+                  <span>Dias por linha</span>
+                  <input
+                    id="granularidade-dias"
+                    type="number"
+                    min="1"
+                    max="90"
+                    step="1"
+                    value={rascunho.granularidadeDias}
+                    onChange={(evento) => setRascunho((atual) => ({ ...atual, granularidadeDias: Number(evento.target.value) }))}
+                  />
+                </label>
+              ) : null}
             </>
           ) : null}
 
@@ -392,7 +406,7 @@ export function CriadorDeExtracao({
                       entityLevel: rascunho.nivel === 'campanha' ? 'campaign' : rascunho.nivel === 'conjunto' ? 'adset' : rascunho.nivel === 'anuncio' ? 'ad' : 'campaign',
                       entityIds: [], breakdowns: breakdown?.valores ?? [], fields: rascunho.campos,
                       filters: [], sort: null, attributionRequested: null, requestFingerprint: null,
-                      periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : 'month' },
+                      periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
                     },
                   })
                 }

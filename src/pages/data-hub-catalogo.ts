@@ -35,7 +35,7 @@ export type Breakdown = {
   readonly valores?: readonly string[];
 };
 
-export type Granularidade = 'diaria' | 'semanal' | 'mensal';
+export type Granularidade = 'diaria' | 'semanal' | 'mensal' | 'periodo-inteiro' | 'personalizada';
 
 export type Periodo = {
   readonly id: string;
@@ -95,6 +95,7 @@ export type Rascunho = {
   breakdownId: string;
   periodoId: string;
   granularidade: Granularidade;
+  granularidadeDias: number;
 };
 
 export type Template = {
@@ -133,7 +134,7 @@ function nivelDaApi(value: unknown): NivelEntidade | null {
 const NOMES: Record<string, string> = {
   spend: 'Investimento', impressions: 'Impressões', clicks: 'Cliques', reach: 'Alcance', frequency: 'Frequência',
   ctr: 'CTR', cpc: 'CPC', cpm: 'CPM', campaign: 'Campanha', adset: 'Conjunto', ad: 'Anúncio', account: 'Conta',
-  day: 'Diária', week: 'Semanal', month: 'Mensal', age: 'Idade', gender: 'Gênero', region: 'Região',
+  day: 'Diária', week: 'Semanal', month: 'Mensal', all_days: 'Período inteiro', custom: 'Personalizada', age: 'Idade', gender: 'Gênero', region: 'Região',
   publisher_platform: 'Plataforma', platform_position: 'Posicionamento', impression_device: 'Dispositivo',
 };
 
@@ -157,14 +158,15 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
   const breakdowns: Breakdown[] = [{ id: 'nenhum', nome: 'Sem breakdown', valores: [], niveisCompativeis: ['conta', 'campanha', 'conjunto', 'anuncio'] }];
   for (const [id, niveis] of selecoes) if (id) breakdowns.push({ id, valores: id.split('+'), nome: id.split('+').map((value) => NOMES[value] ?? value).join(' e '), niveisCompativeis: [...niveis] });
   const contas = lista<any>(raw.accounts ?? raw.contas).map((item) => ({ id: String(item.id ?? item.accountId ?? ''), nome: String(item.name ?? item.nome ?? item.id ?? ''), disponivel: typeof item.isQueryable === 'boolean' ? item.isQueryable : null })).filter((item) => item.id && item.nome);
-  const niveis = lista<any>(raw.entityLevels ?? raw.niveis ?? ['campaign', 'adset', 'ad']).map((item) => {
+  const niveisPublicados = raw.entityLevels ?? raw.niveis ?? [...new Set(templates.flatMap((item) => item.niveisCompativeis.map((nivel) => nivel === 'conta' ? 'account' : nivel === 'campanha' ? 'campaign' : nivel === 'conjunto' ? 'adset' : 'ad')))];
+  const niveis = lista<any>(niveisPublicados).map((item) => {
     const id = typeof item === 'string' ? item : item.id;
     const nivel = nivelDaApi(id); return { id: nivel as NivelEntidade, nome: NOMES[id] ?? (typeof item === 'string' ? item : item.name ?? id) };
   }).filter((item) => ['conta', 'campanha', 'conjunto', 'anuncio'].includes(item.id));
   const granularidades = lista<any>(raw.granularities ?? raw.granularidade).map((item) => {
     const id = typeof item === 'string' ? item : item.id;
-    return { id: (id === 'day' ? 'diaria' : id === 'week' ? 'semanal' : id === 'month' ? 'mensal' : id) as Granularidade, nome: NOMES[id] ?? (typeof item === 'string' ? id : item.name ?? id), dias: id === 'day' ? 1 : id === 'week' ? 7 : 30 };
-  }).filter((item) => ['diaria', 'semanal', 'mensal'].includes(item.id));
+    return { id: (id === 'day' ? 'diaria' : id === 'week' ? 'semanal' : id === 'month' ? 'mensal' : id === 'all_days' ? 'periodo-inteiro' : id === 'custom' ? 'personalizada' : id) as Granularidade, nome: NOMES[id] ?? (typeof item === 'string' ? id : item.name ?? id), dias: id === 'day' ? 1 : id === 'week' ? 7 : id === 'custom' ? 14 : id === 'all_days' ? 0 : 30 };
+  }).filter((item) => ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada'].includes(item.id));
   const periodosRemotos = lista<any>(raw.periods ?? raw.periodos).map((item) => ({ id: String(item.id ?? item.key ?? ''), nome: String(item.name ?? item.nome ?? item.id ?? ''), dias: Number(item.days ?? item.dias ?? 0) })).filter((item) => item.id && item.nome && item.dias > 0);
   const periodos = periodosRemotos.length ? periodosRemotos : [...PERIODOS];
   return { contas, niveis, campos, breakdowns, periodos, granularidades, templates };
@@ -178,6 +180,7 @@ export const RASCUNHO_INICIAL: Rascunho = {
   breakdownId: 'nenhum',
   periodoId: 'ultimos-7',
   granularidade: 'diaria',
+  granularidadeDias: 14,
 };
 
 export type Impedimento = { readonly campo: string; readonly mensagem: string };
@@ -217,7 +220,10 @@ export function impedimentos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_P
 
   const periodo = catalogo.periodos.find((item) => item.id === rascunho.periodoId);
   const granularidade = catalogo.granularidades.find((item) => item.id === rascunho.granularidade);
-  if (periodo && granularidade && granularidade.dias > periodo.dias) {
+  const diasDoBalde = rascunho.granularidade === 'personalizada' ? rascunho.granularidadeDias : granularidade?.dias ?? 0;
+  if (rascunho.granularidade === 'personalizada' && (!Number.isInteger(rascunho.granularidadeDias) || rascunho.granularidadeDias < 1 || rascunho.granularidadeDias > 90)) {
+    lista.push({ campo: 'granularidade', mensagem: 'Escolha um intervalo personalizado entre 1 e 90 dias.' });
+  } else if (periodo && granularidade && diasDoBalde > periodo.dias) {
     lista.push({
       campo: 'granularidade',
       mensagem: `Granularidade ${granularidade.nome.toLowerCase()} não cabe em ${periodo.nome.toLowerCase()}. Amplie o período ou use uma granularidade menor.`,

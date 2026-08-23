@@ -32,17 +32,22 @@ const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
   const real = normalizarCatalogo({ data: {
     accounts: [{ id: 'acct-from-backend', name: 'Conta autorizada', isQueryable: true }, { id: 'acct-unknown', name: 'Conta sem sondagem', isQueryable: null }],
     fields: [{ key: 'spend', classification: 'additive' }, { key: 'reach', classification: 'non_additive' }],
-    breakdowns: ['age', 'gender'], granularities: ['day', 'week'],
-    templates: [{ key: 'meta_campaign_daily', entityLevels: ['campaign'], breakdownSelections: [[], ['age', 'gender']] }],
+    breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
+    templates: [
+      { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]] },
+      { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]] },
+      { key: 'meta_demographics', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] },
+    ],
   } });
   assert.equal(real.contas[0].id, 'acct-from-backend');
   assert.equal(real.contas[0].disponivel, true);
   assert.equal(real.contas[1].disponivel, null, 'null não pode virar true nem zero');
   assert.equal(real.campos[0].natureza, 'aditiva');
   assert.equal(real.campos[1].natureza, 'nao-aditiva');
-  assert.deepEqual(real.niveis.map(({ id }) => id), ['campanha', 'conjunto', 'anuncio']);
+  assert.deepEqual(real.niveis.map(({ id }) => id), ['conta', 'campanha', 'conjunto', 'anuncio']);
   assert.deepEqual(real.breakdowns.find(({ id }) => id === 'age+gender')?.valores, ['age', 'gender']);
-  assert.deepEqual(real.templates[0].niveisCompativeis, ['campanha']);
+  assert.deepEqual(real.templates[0].niveisCompativeis, ['conta', 'campanha']);
+  assert.deepEqual(real.granularidades.map(({ id }) => id), ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada']);
   assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
 }
 
