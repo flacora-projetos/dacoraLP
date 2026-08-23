@@ -99,6 +99,20 @@ Implementar a PWI0 do Dácora Data Hub no portal: contrato e spike local do cana
 
 Validações executadas: `npm run verifica:data-hub-spike`, `npm run lint`, `npm run verifica:painel`, `npm run verifica:av4`, `git diff --check` e `npm run build`; todas aprovadas. O build gerou a casca privada e confirmou o roteamento de `/data-hub` sem rastreadores.
 
+## Checkpoint remoto — 2026-08-23
+
+- PR portal `#8` mesclado em `main/edaf47f` com checks Vercel aprovados.
+- O merge produziu deployment Production `Ready`; depois da configuração WIF, novas publicações explícitas foram feitas para carregar as variáveis:
+  - Preview `dacora-34nnvjiqn-flavio-coras-projects.vercel.app`, `Ready`;
+  - Production `dacora-6qqt5mm2m-flavio-coras-projects.vercel.app`, `Ready`, com aliases do projeto.
+- Seis variáveis não secretas do canal foram configuradas separadamente para Preview e Production: project number, pool, provider, service account, Cloud Run audience e endpoint. Nenhuma chave JSON ou bearer foi criado ou copiado.
+- O projeto local foi vinculado pelo CLI da Vercel; `.vercel/` foi adicionado ao `.gitignore` e deve permanecer fora do Git.
+- Smoke sem sessão em Preview e em `www.dacora.com.br/api/data-hub-spike`: HTTP `401`, código `sem_sessao`, `Cache-Control: no-store`; portanto o helper WIF não é alcançado sem autenticação.
+- Inspeção de `/data-hub` em Preview confirmou casca privada sem conteúdo institucional; como a UI não pertence à PWI0, o router registra `No routes matched location /data-hub` e a tela fica vazia. Isso é pendência explícita da Fase 6, não regressão silenciosa.
+- O smoke autenticado não foi concluído: o navegador isolado não tinha sessão e a única aba conectada do Chrome era a conversa do usuário; ela não foi reutilizada nem inspecionada. Não houve acesso a cookie, localStorage ou token.
+
+Próximo passo único: o usuário abre `https://www.dacora.com.br/painel-de-relatorios` no Chrome conectado, confirma que está autenticado com um e-mail allowlisted e avisa. O agente então executa uma chamada sintética ao endpoint, lê a resposta pública, confirma uma claim em `portal_replay_claims` pelo request ID e repete o mesmo ID no backend para provar `409`, sem criar schedule ou escrever dados analíticos.
+
 ## Próximos passos exatos
 
 1. Integrar os commits locais de backend e portal separadamente, preservando os estados remoto/produção distintos.
