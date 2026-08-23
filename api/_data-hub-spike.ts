@@ -20,6 +20,12 @@ export interface DependenciasDataHub {
   requestId?: () => string;
 }
 
+export interface RequisicaoDataHub {
+  endpoint: string;
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  body?: unknown;
+}
+
 function urlHttps(nome: string, valor: string | undefined): string {
   if (!valor) throw new Error(`${nome}_ausente`);
   const url = new URL(valor);
@@ -27,7 +33,7 @@ function urlHttps(nome: string, valor: string | undefined): string {
   return url.toString().replace(/\/$/, '');
 }
 
-function configuracao(): ConfiguracaoDataHub {
+export function configuracaoDataHub(): ConfiguracaoDataHub {
   const projectNumber = process.env.DATA_HUB_GCP_PROJECT_NUMBER?.trim();
   const pool = process.env.DATA_HUB_WIF_POOL?.trim();
   const provider = process.env.DATA_HUB_WIF_PROVIDER?.trim();
@@ -77,7 +83,20 @@ export async function executarSpikeDataHub(
   ator: { email: string },
   dependencias: DependenciasDataHub = {},
 ) {
-  const config = configuracao();
+  const config = configuracaoDataHub();
+  return executarRequisicaoDataHub({ endpoint: config.endpoint, method: 'POST', body: { schemaVersion: '1.0.0' } }, ator, dependencias);
+}
+
+/** Canal único portal → WIF → ID token → Cloud Run. Os modos de produto
+ * reutilizam esta cadeia sem receber credenciais nem identidade do browser. */
+export async function executarRequisicaoDataHub(
+  requisicao: RequisicaoDataHub,
+  ator: { email: string },
+  dependencias: DependenciasDataHub = {},
+) {
+  const config = configuracaoDataHub();
+  const endpoint = urlHttps('DATA_HUB_ENDPOINT', requisicao.endpoint);
+  if (!endpoint.startsWith(`${config.cloudRunAudience}/internal/v1/portal/`)) throw new Error('DATA_HUB_ENDPOINT_invalido');
   const requestId = (dependencias.requestId ?? randomUUID)();
   const obterOidc = dependencias.obterOidcVercel ?? getVercelOidcToken;
   const trocar = dependencias.trocarPorAccessToken ?? accessTokenGoogle;
@@ -95,10 +114,10 @@ export async function executarSpikeDataHub(
   if (!iam.ok) throw new Error(`iam_generate_id_token_${iam.status}`);
   const idToken = (await iam.json() as { token?: unknown }).token;
   if (typeof idToken !== 'string' || !idToken) throw new Error('iam_sem_id_token');
-  const backend = await chamar(config.endpoint, {
-    method: 'POST',
+  const backend = await chamar(endpoint, {
+    method: requisicao.method,
     headers: { ...JSON_HEADERS, authorization: `Bearer ${idToken}`, 'x-request-id': requestId },
-    body: JSON.stringify({ schemaVersion: '1.0.0' }),
+    ...(requisicao.method === 'GET' ? {} : { body: JSON.stringify(requisicao.body ?? {}) }),
   });
   let corpo: unknown = null;
   try { corpo = await backend.json(); } catch { corpo = null; }

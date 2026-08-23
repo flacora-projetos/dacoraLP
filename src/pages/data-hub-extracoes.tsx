@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BREAKDOWNS,
-  CAMPOS,
-  CONTAS,
-  GRANULARIDADES,
-  NIVEIS,
-  PERIODOS,
   RASCUNHO_INICIAL,
+  CATALOGO_PADRAO,
+  type Catalogo,
   avisoDeVolume,
   impedimentos,
   naturezaDosCamposEscolhidos,
@@ -22,11 +18,9 @@ import {
  */
 
 /*
- * Extração criada nesta fase existe só na memória desta aba. A PWI1 não toca
- * em backend remoto, então a tela precisa dizer isso na cara do usuário: uma
- * lista que parece salva e some no F5 é pior do que uma lista vazia.
+ * A lista é preenchida pelo Data Hub e o criador envia a configuração ao BFF.
  */
-export type ExtracaoLocal = { id: string; nome: string; resumo: string };
+export type ExtracaoLocal = { id: string; nome: string; resumo: string; revision?: number; definition?: Record<string, unknown> };
 
 const ETAPAS = ['Origem', 'Campos', 'Período', 'Revisão'] as const;
 
@@ -53,17 +47,14 @@ export function ListaDeExtracoes({ extracoes, aoCriar }: { extracoes: readonly E
         <button type="button" className="dcp-botao dcp-botao--primario" onClick={aoCriar}>Criar extração</button>
       </div>
 
-      {/*
-       * O aviso de rascunho local precisa estar sempre montado, mesmo com a
-       * lista vazia: muitos leitores de tela só vigiam containers de status já
-       * presentes na página e ignoram um nó "role=status" que nasce junto com
+      {/* O status precisa estar sempre montado: leitores de tela vigiam containers já
+       * presentes na página e podem ignorar um nó "role=status" que nasce junto com
        * o texto. Container vazio não ocupa espaço (ver .dch-aviso-local:empty).
        */}
       <div className="dch-aviso-local" role="status">
         {extracoes.length > 0 ? (
           <p>
-            Rascunhos desta fase existem só nesta aba e somem ao recarregar a página. Salvar no servidor chega na
-            próxima etapa.
+            Extrações salvas permanecem disponíveis neste Data Hub.
           </p>
         ) : null}
       </div>
@@ -98,9 +89,10 @@ export function CriadorDeExtracao({
   aoCancelar,
   aoConcluir,
   rascunhoInicial,
+  catalogo = CATALOGO_PADRAO,
 }: {
   aoCancelar: () => void;
-  aoConcluir: (extracao: ExtracaoLocal) => void;
+  aoConcluir: (extracao: ExtracaoLocal) => void | Promise<void>;
   /**
    * Só existe para o script de casca poder renderizar o formulário já com uma
    * combinação válida: renderToStaticMarkup não simula eventos, então não há
@@ -109,21 +101,23 @@ export function CriadorDeExtracao({
    * RASCUNHO_INICIAL.
    */
   rascunhoInicial?: Rascunho;
+  catalogo?: Catalogo;
 }) {
   const [etapa, setEtapa] = useState(0);
   const [rascunho, setRascunho] = useState<Rascunho>(rascunhoInicial ?? RASCUNHO_INICIAL);
 
-  const problemas = useMemo(() => impedimentos(rascunho), [rascunho]);
-  const aviso = useMemo(() => avisoDeVolume(rascunho), [rascunho]);
-  const naturezas = useMemo(() => naturezaDosCamposEscolhidos(rascunho), [rascunho]);
-  const conta = CONTAS.find((item) => item.id === rascunho.contaId);
-  const periodo = PERIODOS.find((item) => item.id === rascunho.periodoId);
-  const breakdown = BREAKDOWNS.find((item) => item.id === rascunho.breakdownId);
-  const nivel = NIVEIS.find((item) => item.id === rascunho.nivel);
-  const granularidade = GRANULARIDADES.find((item) => item.id === rascunho.granularidade);
+  const problemas = useMemo(() => impedimentos(rascunho, catalogo), [rascunho, catalogo]);
+  const aviso = useMemo(() => avisoDeVolume(rascunho, catalogo), [rascunho, catalogo]);
+  const naturezas = useMemo(() => naturezaDosCamposEscolhidos(rascunho, catalogo), [rascunho, catalogo]);
+  const conta = catalogo.contas.find((item) => item.id === rascunho.contaId);
+  const periodo = catalogo.periodos.find((item) => item.id === rascunho.periodoId);
+  const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId);
+  const nivel = catalogo.niveis.find((item) => item.id === rascunho.nivel);
+  const granularidade = catalogo.granularidades.find((item) => item.id === rascunho.granularidade);
   const naoAditivos = naturezas.filter((campo) => campo.natureza !== 'aditiva');
 
   const impedimentoConta = problemas.find((problema) => problema.campo === 'conta');
+  const impedimentoTemplate = problemas.find((problema) => problema.campo === 'template');
   const impedimentoCampos = problemas.find((problema) => problema.campo === 'campos');
   const impedimentoBreakdown = problemas.find((problema) => problema.campo === 'breakdown');
   const impedimentoGranularidade = problemas.find((problema) => problema.campo === 'granularidade');
@@ -191,7 +185,7 @@ export function CriadorDeExtracao({
             <>
               <h2 ref={tituloEtapaRef} tabIndex={-1}>Origem dos dados</h2>
               <p className="dch-formulario__apoio">
-                Contas de demonstração. O catálogo real chega quando o portal passar a ler o Data Hub.
+                Contas e capacidades fornecidas pelo Data Hub.
               </p>
               <label className="dch-campo" htmlFor="conta">
                 <span>Conta</span>
@@ -203,9 +197,22 @@ export function CriadorDeExtracao({
                   onChange={(evento) => setRascunho((atual) => ({ ...atual, contaId: evento.target.value }))}
                 >
                   <option value="">Escolha uma conta</option>
-                  {CONTAS.map((item) => (
-                    <option key={item.id} value={item.id}>{item.nome}</option>
+                  {catalogo.contas.map((item) => (
+                    <option key={item.id} value={item.id} disabled={item.disponivel !== true}>{item.nome}{item.disponivel !== true ? ' — indisponível' : ''}</option>
                   ))}
+                </select>
+              </label>
+              <label className="dch-campo" htmlFor="template">
+                <span>Modelo</span>
+                <select
+                  id="template"
+                  aria-invalid={impedimentoTemplate ? 'true' : undefined}
+                  aria-describedby={impedimentoTemplate ? 'dch-impedimento-template' : undefined}
+                  value={rascunho.templateId}
+                  onChange={(evento) => setRascunho((atual) => ({ ...atual, templateId: evento.target.value }))}
+                >
+                  <option value="">Escolha um modelo</option>
+                  {catalogo.templates.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
                 </select>
               </label>
               <label className="dch-campo" htmlFor="nivel">
@@ -215,7 +222,7 @@ export function CriadorDeExtracao({
                   value={rascunho.nivel}
                   onChange={(evento) => setRascunho((atual) => ({ ...atual, nivel: evento.target.value as NivelEntidade }))}
                 >
-                  {NIVEIS.map((item) => (
+                  {catalogo.niveis.map((item) => (
                     <option key={item.id} value={item.id}>{item.nome}</option>
                   ))}
                 </select>
@@ -233,7 +240,7 @@ export function CriadorDeExtracao({
               >
                 <legend>Campos</legend>
                 <div className="dch-opcoes">
-                  {CAMPOS.map((campo) => (
+                  {catalogo.campos.map((campo) => (
                     <label key={campo.id} className="dch-opcao">
                       <input
                         type="checkbox"
@@ -254,7 +261,7 @@ export function CriadorDeExtracao({
                   value={rascunho.breakdownId}
                   onChange={(evento) => setRascunho((atual) => ({ ...atual, breakdownId: evento.target.value }))}
                 >
-                  {BREAKDOWNS.map((item) => (
+                  {catalogo.breakdowns.map((item) => (
                     <option key={item.id} value={item.id}>{item.nome}</option>
                   ))}
                 </select>
@@ -276,7 +283,7 @@ export function CriadorDeExtracao({
                   value={rascunho.periodoId}
                   onChange={(evento) => setRascunho((atual) => ({ ...atual, periodoId: evento.target.value }))}
                 >
-                  {PERIODOS.map((item) => (
+                  {catalogo.periodos.map((item) => (
                     <option key={item.id} value={item.id}>{item.nome}</option>
                   ))}
                 </select>
@@ -290,7 +297,7 @@ export function CriadorDeExtracao({
                   value={rascunho.granularidade}
                   onChange={(evento) => setRascunho((atual) => ({ ...atual, granularidade: evento.target.value as Granularidade }))}
                 >
-                  {GRANULARIDADES.map((item) => (
+                  {catalogo.granularidades.map((item) => (
                     <option key={item.id} value={item.id}>{item.nome}</option>
                   ))}
                 </select>
@@ -379,14 +386,22 @@ export function CriadorDeExtracao({
                     id: `local-${Date.now()}`,
                     nome: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(),
                     resumo: `${rascunho.campos.length} campos · ${periodo?.nome ?? ''} · ${granularidade?.nome ?? ''} · ${breakdown?.nome ?? ''}`,
+                    definition: {
+                      schemaVersion: '1.0.0', name: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(), provider: 'meta_official',
+                      sourceAccountId: rascunho.contaId, template: rascunho.templateId,
+                      entityLevel: rascunho.nivel === 'campanha' ? 'campaign' : rascunho.nivel === 'conjunto' ? 'adset' : rascunho.nivel === 'anuncio' ? 'ad' : 'campaign',
+                      entityIds: [], breakdowns: breakdown?.valores ?? [], fields: rascunho.campos,
+                      filters: [], sort: null, attributionRequested: null, requestFingerprint: null,
+                      periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : 'month' },
+                    },
                   })
                 }
               >
-                Concluir rascunho
+                Salvar extração
               </button>
             )}
           </div>
-          <p className="dch-resumo__nota">Nada é salvo no servidor nesta fase.</p>
+          <p className="dch-resumo__nota">A configuração será salva no Data Hub ao concluir.</p>
         </aside>
       </div>
     </section>

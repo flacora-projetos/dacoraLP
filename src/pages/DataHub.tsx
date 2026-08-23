@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type ExtracaoLocal } from './data-hub-extracoes';
+import { CATALOGO_PADRAO, normalizarCatalogo, type Catalogo } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
 
@@ -33,7 +34,50 @@ function DataHubInicio() {
   const [estado, setEstado] = useState<EstadoConexao>({ tipo: 'inicial' });
   const [vista, setVista] = useState<'lista' | 'criador'>('lista');
   const [extracoes, setExtracoes] = useState<readonly ExtracaoLocal[]>([]);
+  const [catalogo, setCatalogo] = useState<Catalogo>(CATALOGO_PADRAO);
+  const [carregando, setCarregando] = useState(true);
+  const [erroDados, setErroDados] = useState<string | null>(null);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
+
+  async function chamarDataHub(path: string, init: RequestInit = {}) {
+    if (!sessao?.access_token) throw new Error('sessao_indisponivel');
+    const resposta = await fetch(`/api/data-hub${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${sessao.access_token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    });
+    const corpo = await resposta.json().catch(() => null);
+    if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.'));
+    return corpo;
+  }
+
+  useEffect(() => {
+    if (!sessao?.access_token) return;
+    let ativo = true;
+    setCarregando(true);
+    setErroDados(null);
+    Promise.all([chamarDataHub('/catalog'), chamarDataHub('/extractions')])
+      .then(([catalogoRemoto, extracoesRemotas]) => {
+        if (!ativo) return;
+        setCatalogo(normalizarCatalogo(catalogoRemoto));
+        const items = extracoesRemotas?.data?.items ?? [];
+        setExtracoes(items.map((item: any) => ({
+          id: String(item.extractionId ?? item.id), revision: Number(item.revision ?? 1),
+          nome: String(item.name ?? item.nome ?? item.extractionId), resumo: `${(item.fields ?? []).length} campos · ${item.periodContract?.dataPeriod?.type ?? 'período'} · ${item.periodContract?.outputGranularity ?? ''}`,
+          definition: item,
+        })));
+      })
+      .catch((error) => { if (ativo) setErroDados(error instanceof Error ? error.message : 'Não foi possível carregar o Data Hub.'); })
+      .finally(() => { if (ativo) setCarregando(false); });
+    return () => { ativo = false; };
+  }, [sessao?.access_token]);
+
+  async function salvarExtracao(extracao: ExtracaoLocal) {
+    const definition = extracao.definition ?? {};
+    const salvo = await chamarDataHub('/extractions', { method: 'POST', body: JSON.stringify({ extraction: definition }) });
+    const item = salvo?.data;
+    setExtracoes((atuais) => [...atuais, { ...extracao, id: String(item.extractionId ?? extracao.id), revision: Number(item.revision ?? 1), definition: item }]);
+  }
 
   async function testarConexao() {
     if (!sessao?.access_token) {
@@ -83,17 +127,24 @@ function DataHubInicio() {
       </nav>
 
       <main className="dch-corpo">
-        {vista === 'lista' ? (
+        {carregando ? <p className="dch-status" role="status">Carregando catálogo e extrações…</p> : erroDados ? <p className="dch-status dch-status--erro" role="alert">{erroDados}</p> : vista === 'lista' ? (
           <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')} />
         ) : (
           <CriadorDeExtracao
+            catalogo={catalogo}
             aoCancelar={() => setVista('lista')}
-            aoConcluir={(extracao) => {
-              setExtracoes((atuais) => [...atuais, extracao]);
-              setVista('lista');
+            aoConcluir={async (extracao) => {
+              setErroSalvar(null);
+              try {
+                await salvarExtracao(extracao);
+                setVista('lista');
+              } catch (error) {
+                setErroSalvar(error instanceof Error ? error.message : 'Não foi possível salvar a extração.');
+              }
             }}
           />
         )}
+        {erroSalvar ? <p className="dch-status dch-status--erro" role="alert">{erroSalvar}</p> : null}
 
         <section className="dch-conexao" aria-labelledby="conexao-titulo">
           <div>
@@ -101,7 +152,7 @@ function DataHubInicio() {
             <h2 id="conexao-titulo">Canal privado</h2>
             <p>
               Sua sessão autoriza o portal. Credenciais curtas conectam o servidor ao ambiente privado do Data Hub.
-              Este teste não consulta contas, não cria planilhas e não agenda atualizações.
+              O catálogo e suas extrações são lidos e salvos no Data Hub; este diagnóstico separado não cria planilhas nem agendas.
             </p>
           </div>
           <div className="dch-acao">
