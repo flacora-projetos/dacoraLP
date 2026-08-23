@@ -1632,5 +1632,15 @@ Regressão em `scripts/verifica-painel-data-hub-casca.mts`
 mais render de HTML real da lista vazia, da lista com rascunho e do criador —
 incluindo a checagem de que a fase **não** acrescentou nenhuma chamada de rede.
 
-Pendente: conferência visual com sessão allowlisted, em desktop e celular. A
-tela fica atrás do portão, então essa parte não pode ser feita por agente.
+Uma auditoria de acessibilidade sobre a tela nova encontrou um defeito e três
+riscos, todos corrigidos antes do merge: o foco do teclado se perdia ao alternar
+entre lista e criador — quem navega por Tab voltava ao topo da página —, a troca
+de etapa não era anunciada, o aviso de rascunho local nascia junto com o próprio
+`role="status"` (nó recém-inserido que vários leitores de tela não anunciam), e
+as mensagens de impedimento viviam só no resumo lateral, sem ligação com o campo
+que as causou. Agora cada `<select>` com problema recebe `aria-invalid` e aponta,
+via `aria-describedby`, para a mensagem no resumo — dita uma vez só, não duas.
+
+O PO validou a tela no Preview da Vercel em 2026-08-23, com a ressalva explícita
+de que o teste que vale para ele é com **contas reais**, na fase do catálogo real.
+Esta validação libera a frente para seguir; não é aprovação final da tela.
