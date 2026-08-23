@@ -97,7 +97,7 @@ const indiceCoringa = rotas.findIndex((rota) => rota.src === '/(.*)' && rota.des
 exigir(indiceFilesystem >= 0, 'vercel.json perdeu o handle de filesystem.');
 exigir(indiceCoringa >= 0, 'vercel.json perdeu a regra final para /index.html.');
 
-for (const alvo of ['/painel-de-relatorios(/.*)?', '/relatorios/(.*)']) {
+for (const alvo of ['/painel-de-relatorios(/.*)?', '/data-hub(/.*)?', '/relatorios/(.*)']) {
   const indice = rotas.findIndex((rota) => rota.src === alvo && rota.dest === '/app.html');
   exigir(indice >= 0, `vercel.json precisa mandar "${alvo}" para /app.html, senão a rota volta a receber a home inteira.`);
   if (indice >= 0) {

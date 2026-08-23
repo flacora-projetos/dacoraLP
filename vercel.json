@@ -1,5 +1,6 @@
 {
   "routes": [
+    { "src": "/api/data-hub-spike", "dest": "/api/painel-sessao?modo=data-hub-spike" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     {
       "src": "/img/(.*)",
@@ -30,8 +31,18 @@
       "headers": { "X-Robots-Tag": "noindex, nofollow, noarchive" },
       "continue": true
     },
+    {
+      "src": "/data-hub(/.*)?",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        "Referrer-Policy": "no-referrer",
+        "Cache-Control": "private, no-store, no-cache, must-revalidate"
+      },
+      "continue": true
+    },
     { "handle": "filesystem" },
     { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
+    { "src": "/data-hub(/.*)?", "dest": "/app.html" },
     { "src": "/relatorios/(.*)", "dest": "/app.html" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },

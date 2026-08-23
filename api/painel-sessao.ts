@@ -31,8 +31,13 @@ import {
   // O TypeScript resolve `.js` para o arquivo `.ts` ao lado, então isto
   // compila e continua sendo o mesmo módulo compartilhado.
 } from './_painel-autorizacao.js';
+import { executarSpikeDataHub } from './_data-hub-spike.js';
 
-export default async function handler(req: Request, res: Response) {
+export async function atenderPainelSessao(
+  req: Request,
+  res: Response,
+  dependencias: { spike?: typeof executarSpikeDataHub } = {},
+) {
   // Resposta de autorização nunca pode ser guardada por cache intermediário.
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
@@ -45,5 +50,23 @@ export default async function handler(req: Request, res: Response) {
     return res.status(acesso.status).json(acesso.corpo);
   }
 
+  if (req.method === 'POST' && req.query?.modo === 'data-hub-spike') {
+    if (req.body != null && (typeof req.body !== 'object' || Array.isArray(req.body) || Object.keys(req.body).length > 0)) {
+      return res.status(400).json({ erro: 'payload_invalido', mensagem: 'Este teste não aceita dados enviados pelo navegador.' });
+    }
+    try {
+      const resultado = await (dependencias.spike ?? executarSpikeDataHub)({ email: acesso.email });
+      console.info(`[data-hub] Spike concluído para ${acesso.email}; requestId=${resultado.audit.requestId}.`);
+      return res.status(resultado.status).json(resultado.corpo);
+    } catch (erro) {
+      console.error('[data-hub] Falha no spike:', erro instanceof Error ? erro.message : 'erro_desconhecido');
+      return res.status(502).json({ erro: 'data_hub_indisponivel', mensagem: 'Não foi possível validar o canal com o Data Hub.' });
+    }
+  }
+
   return res.status(200).json({ autorizado: true, email: acesso.email, nome: acesso.nome });
+}
+
+export default async function handler(req: Request, res: Response) {
+  return atenderPainelSessao(req, res);
 }
