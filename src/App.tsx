@@ -29,6 +29,7 @@ const RelatorioDemoZenun = lazy(() => import('./pages/RelatorioDemoZenun'));
  * pelo mesmo motivo das rotas de relatório.
  */
 const PainelRelatorios = lazy(() => import('./pages/PainelRelatorios'));
+const DataHub = lazy(() => import('./pages/DataHub'));
 const RelatorioPublico = lazy(() => import('./pages/RelatorioPublico'));
 
 /**
@@ -107,6 +108,14 @@ export default function App() {
         element={
           <Suspense fallback={<CarregandoRelatorio />}>
             <RelatorioDemoZenun />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/data-hub"
+        element={
+          <Suspense fallback={<CarregandoPainel />}>
+            <DataHub />
           </Suspense>
         }
       />

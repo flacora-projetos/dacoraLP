@@ -113,6 +113,20 @@ Validações executadas: `npm run verifica:data-hub-spike`, `npm run lint`, `npm
 
 Próximo passo único: o usuário abre `https://www.dacora.com.br/painel-de-relatorios` no Chrome conectado, confirma que está autenticado com um e-mail allowlisted e avisa. O agente então executa uma chamada sintética ao endpoint, lê a resposta pública, confirma uma claim em `portal_replay_claims` pelo request ID e repete o mesmo ID no backend para provar `409`, sem criar schedule ou escrever dados analíticos.
 
+### Retomada do smoke autenticado — 2026-08-23
+
+O usuário abriu o painel no Chrome e a sessão allowlisted `flacora@gmail.com` foi confirmada visualmente, sem leitura de cookies, `localStorage` ou token. Como a PWI0 não possuía UI para disparar o endpoint e o agente não deve extrair a credencial do navegador, foi iniciada a branch `feat/data-hub-connection-screen` para criar a primeira tela mínima de `/data-hub`:
+
+- reutiliza exatamente `PainelAuthProvider` e `Portao`;
+- envia o bearer Supabase diretamente do frontend para o BFF do mesmo portal;
+- body permanece `{}`; request ID, ator, WIF e audience continuam server-side;
+- exibe somente sucesso/request ID ou erro sanitizado;
+- deixa explícito que o teste não consulta contas, não cria planilha e não agenda atualização.
+
+Atividade delegada `data_hub_ui_test_inventory`: revisão read-only confirmou o padrão de proteção, rewrite agregado, casca privada e os testes estruturais mínimos. A implementação foi feita e revisada pelo agente principal; o subagente não alterou arquivos.
+
+Próximo gate: validar a nova tela localmente, integrar/publicar, pedir confirmação imediatamente antes do clique que transmitirá a sessão ao endpoint e então fazer o read-back Firestore.
+
 ## Próximos passos exatos
 
 1. Integrar os commits locais de backend e portal separadamente, preservando os estados remoto/produção distintos.
