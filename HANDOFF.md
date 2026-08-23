@@ -55,7 +55,37 @@ Implementar a PWI0 do Dácora Data Hub no portal: contrato e spike local do cana
 
 ## Registro de subagentes
 
-Ainda não houve subagente da PWI0 neste checkpoint. Cada delegação deve registrar aqui: nome, escopo, arquivos inspecionados/alterados, achados, validação, o que foi incorporado e o que foi rejeitado pelo agente principal.
+### `pwi0_portal_inventory` — concluído, somente leitura
+
+- Escopo: autorização, padrões de API/teste, casca privada e teto de funções.
+- Achados incorporados: reutilizar `conferirAcesso`; import relativo `.js`; dublar apenas `fetch`; `Cache-Control: no-store`; incluir `/data-hub` na casca privada; rodar `verifica:av4` para preservar o teto.
+- Achado crítico: já existem 12 funções públicas e a 13ª falhou em deploy anteriormente. Criar literalmente `api/data-hub-spike.ts` quebraria a proteção atual.
+- Decisão principal: manter a URL pública `/api/data-hub-spike`, mas reescrevê-la para um modo explícito da função `painel-sessao`, com lógica isolada em helper `_data-hub-spike.ts`. Assim o contrato externo é preservado sem criar a 13ª função.
+- Nenhum arquivo foi alterado pelo subagente.
+
+### `pwi0_wif_research` — concluído, somente leitura
+
+- Escopo: documentação oficial Vercel e Google sobre OIDC → STS/WIF → IAM Credentials → Cloud Run.
+- Achados incorporados: token runtime vem de `@vercel/oidc`; STS usa `PROJECT_NUMBER` e audience completa do provider; `generateIdToken` usa `projects/-/serviceAccounts/...`; audiência final é a URL `run.app`; Preview e Production precisam identidades/condições separadas.
+- Dependências candidatas: `@vercel/oidc` e `google-auth-library` 7.0.2+, sempre server-side. A versão será fixada pelo lockfile antes do teste.
+- Limite confirmado: o exemplo Vercel gera access token para APIs Google, mas o spike ainda precisa provar explicitamente `generateIdToken` e a aceitação pelo Cloud Run.
+- Nenhuma chamada externa mutante foi feita.
+
+### `pwi0_backend_inventory` — concluído, somente leitura
+
+- Escopo: rota sintética, OIDC por rota, replay, CORS e encaixe sem efeitos analíticos.
+- Achados incorporados: nova rota `POST /internal/v1/portal/pwi0`; policy OIDC `portal`; ator somente dos claims; `X-Request-Id`; payload `{}` ou `{schemaVersion:"1.0.0"}`; digest canônico; replay store injetável; envelope estável; nenhum acesso a BigQuery, Firestore, Tasks ou Saldos.
+- Ajuste da revisão principal: chamadas BFF servidor-servidor sem `Origin` serão aceitas. `Origin` presente e desconhecida será recusada; preflight só responderá a origens configuradas. Exigir `Origin` do BFF seria confiar num header sintetizado e desnecessário. OIDC continua obrigatório em todas as chamadas efetivas.
+- Store em memória será somente de teste; Preview deve falhar fechado até existir store persistente com read-back.
+- Nenhum arquivo foi alterado pelo subagente.
+
+## Decisões fechadas antes da implementação
+
+1. Dois commits/branches separados por repositório; backend primeiro, portal depois.
+2. Nenhum provisionamento, Preview ou deploy enquanto o gate local não estiver verde e documentado.
+3. Portal mantém 12 funções: rewrite exato `/api/data-hub-spike` → modo PWI0 de `painel-sessao`.
+4. O helper WIF será puro/injetável nos testes; nenhum token real será obtido no gate local.
+5. Backend não terá store de replay de produção nesta etapa; ausência dele fora de teste responde `503 replay_store_unavailable`.
 
 ## Próximos passos exatos
 
