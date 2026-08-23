@@ -32,16 +32,20 @@ import {
   // compila e continua sendo o mesmo módulo compartilhado.
 } from './_painel-autorizacao.js';
 import { executarSpikeDataHub } from './_data-hub-spike.js';
+import { atenderDataHub, type DependenciasDataHubPortal } from './_data-hub.js';
 
 export async function atenderPainelSessao(
   req: Request,
   res: Response,
-  dependencias: { spike?: typeof executarSpikeDataHub } = {},
+  dependencias: { spike?: typeof executarSpikeDataHub; dataHub?: DependenciasDataHubPortal } = {},
 ) {
   // Resposta de autorização nunca pode ser guardada por cache intermediário.
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
-  if (req.method !== 'GET' && req.method !== 'POST') {
+  const dataHubMode = req.query?.modo === 'data-hub';
+  if (dataHubMode
+    ? !['GET', 'POST', 'PATCH', 'DELETE'].includes(req.method)
+    : req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ erro: 'metodo_nao_permitido' });
   }
 
@@ -62,6 +66,13 @@ export async function atenderPainelSessao(
       console.error('[data-hub] Falha no spike:', erro instanceof Error ? erro.message : 'erro_desconhecido');
       return res.status(502).json({ erro: 'data_hub_indisponivel', mensagem: 'Não foi possível validar o canal com o Data Hub.' });
     }
+  }
+
+  if (req.query?.modo === 'data-hub') {
+    if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'PATCH' && req.method !== 'DELETE') {
+      return res.status(405).json({ erro: 'metodo_nao_permitido' });
+    }
+    return atenderDataHub(req, res, { email: acesso.email }, dependencias.dataHub);
   }
 
   return res.status(200).json({ autorizado: true, email: acesso.email, nome: acesso.nome });

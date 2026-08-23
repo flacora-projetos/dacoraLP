@@ -16,9 +16,9 @@ import { CriadorDeExtracao, ListaDeExtracoes } from '../src/pages/data-hub-extra
 import {
   BREAKDOWNS,
   CAMPOS,
-  CATALOGO_E_DEMONSTRATIVO,
   CONTAS,
   RASCUNHO_INICIAL,
+  normalizarCatalogo,
   avisoDeVolume,
   impedimentos,
   naturezaDosCamposEscolhidos,
@@ -27,13 +27,28 @@ import {
 
 const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
 
-/* O catálogo desta fase é declaradamente de demonstração. Se alguém ligar o
- * catálogo real sem remover a marca, a tela continuaria mentindo ao usuário. */
+/* A PWI2 recebe o envelope efetivo do BFF e preserva IDs e compatibilidades. */
 {
-  assert.equal(CATALOGO_E_DEMONSTRATIVO, true, 'o catálogo da PWI1 precisa se declarar demonstrativo');
-  for (const conta of CONTAS) {
-    assert.match(conta.nome, /demonstração/i, 'conta de catálogo precisa se identificar como demonstração');
-  }
+  const real = normalizarCatalogo({ data: {
+    accounts: [{ id: 'acct-from-backend', name: 'Conta autorizada', isQueryable: true }, { id: 'acct-unknown', name: 'Conta sem sondagem', isQueryable: null }],
+    fields: [{ key: 'spend', classification: 'additive' }, { key: 'reach', classification: 'non_additive' }],
+    breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
+    templates: [
+      { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]] },
+      { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]] },
+      { key: 'meta_demographics', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] },
+    ],
+  } });
+  assert.equal(real.contas[0].id, 'acct-from-backend');
+  assert.equal(real.contas[0].disponivel, true);
+  assert.equal(real.contas[1].disponivel, null, 'null não pode virar true nem zero');
+  assert.equal(real.campos[0].natureza, 'aditiva');
+  assert.equal(real.campos[1].natureza, 'nao-aditiva');
+  assert.deepEqual(real.niveis.map(({ id }) => id), ['conta', 'campanha', 'conjunto', 'anuncio']);
+  assert.deepEqual(real.breakdowns.find(({ id }) => id === 'age+gender')?.valores, ['age', 'gender']);
+  assert.deepEqual(real.templates[0].niveisCompativeis, ['conta', 'campanha']);
+  assert.deepEqual(real.granularidades.map(({ id }) => id), ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada']);
+  assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
 }
 
 /* Sem conta escolhida não se monta consulta, e a mensagem diz o que fazer. */
@@ -104,16 +119,18 @@ assert.match(componentes, /aria-label="Etapas da criação"/);
 assert.match(componentes, /aria-live="polite"/, 'o resumo precisa anunciar mudanças de validação');
 
 /* A tela precisa dizer que nada é salvo no servidor nesta fase. */
-assert.match(componentes, /Nada é salvo no servidor nesta fase/);
+assert.match(componentes, /configuração será salva no Data Hub/);
+assert.match(componentes, /if \(salvando\) return/);
+assert.match(componentes, /Salvando…/);
 
-/* A PWI1 não pode ligar a tela em backend remoto: o único fetch continua sendo
- * o diagnóstico de canal da PWI0, com corpo vazio. */
+/* O diagnóstico PWI0 continua separado; PWI2 usa o BFF agregado para catálogo/CRUD. */
 const fetches = pagina.match(/fetch\(/g) ?? [];
-assert.equal(fetches.length, 1, 'a PWI1 não pode acrescentar chamada de rede');
+assert.ok(fetches.length >= 2, 'PWI2 precisa consultar o catálogo e as extrações');
 assert.match(pagina, /fetch\('\/api\/data-hub-spike'/);
+assert.match(pagina, /fetch\(`\/api\/data-hub\$\{path\}`/);
 
 const catalogo = fs.readFileSync(new URL('../src/pages/data-hub-catalogo.ts', import.meta.url), 'utf8');
-assert.doesNotMatch(catalogo, /act_\d|\b\d{10,}\b/, 'nenhum ID de conta real pode entrar no catálogo');
+assert.doesNotMatch(catalogo, /act_\d|\b\d{10,}\b/, 'nenhum ID de conta real pode entrar no catálogo fonte');
 
 const estilo = fs.readFileSync(new URL('../src/pages/data-hub.css', import.meta.url), 'utf8');
 /* Alvo de toque e colapso em telas estreitas são requisito, não enfeite. */
@@ -143,7 +160,7 @@ function html(no: unknown) {
       aoCriar: () => {},
     }),
   );
-  assert.match(marcado, /somem ao recarregar/i, 'a lista precisa avisar que o rascunho é local');
+  assert.match(marcado, /Extrações salvas permanecem disponíveis neste Data Hub/i, 'a lista precisa indicar persistência no Data Hub');
 }
 
 /* O criador abre na primeira etapa, com a conta ainda por escolher: o resumo

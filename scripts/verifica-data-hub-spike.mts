@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { executarSpikeDataHub } from '../api/_data-hub-spike.ts';
 import { atenderPainelSessao } from '../api/painel-sessao.ts';
+import { atenderDataHub } from '../api/_data-hub.ts';
 
 Object.assign(process.env, {
   DATA_HUB_GCP_PROJECT_NUMBER: '123456789',
@@ -93,6 +94,34 @@ globalThis.fetch = async () => new Response(JSON.stringify({
   assert.doesNotMatch(JSON.stringify(captura.corpo), /contato@|token/i);
 }
 globalThis.fetch = fetchOriginal;
+
+// PWI2: o BFF agregado mantém a cadeia server-side e não expõe owner/token.
+{
+  const chamadasCrud: any[] = [];
+  const captura = { status: 0, corpo: null as any };
+  const res: any = {
+    setHeader() { return res; },
+    status(status: number) { captura.status = status; return res; },
+    json(corpo: any) { captura.corpo = corpo; return res; },
+  };
+  const executarFake = async (request: any) => {
+    chamadasCrud.push(request);
+    return { status: 200, corpo: { items: [], owner: 'must-not-be-browser' }, audit: { requestId: 'r', actorEmail: 'contato@nandacora.com.br' } };
+  };
+  await atenderDataHub({ method: 'GET', url: '/api/data-hub/catalog', query: { path: '/catalog' }, body: null } as any, res, { email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.equal(captura.status, 200);
+  assert.equal(chamadasCrud[0].method, 'GET');
+  assert.match(chamadasCrud[0].endpoint, /\/internal\/v1\/portal\/catalog$/);
+  const extractionId = '6b1f0e91-a456-4d6b-9a1f-4a0ec621c09d';
+  await atenderDataHub({ method: 'PATCH', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 1, name: 'x' } } as any, res, { email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.equal(chamadasCrud[1].method, 'PATCH');
+  assert.match(chamadasCrud[1].endpoint, new RegExp(`/extractions/${extractionId}$`));
+  assert.deepEqual(chamadasCrud[1].body, { revision: 1, name: 'x' });
+  await atenderDataHub({ method: 'DELETE', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 2 } } as any, res, { email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.equal(chamadasCrud[2].method, 'DELETE');
+  assert.deepEqual(chamadasCrud[2].body, { revision: 2 });
+  assert.doesNotMatch(JSON.stringify(captura.corpo), /access_token|authorization|Bearer/i);
+}
 
 const app = fs.readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const pagina = fs.readFileSync(new URL('../src/pages/DataHub.tsx', import.meta.url), 'utf8');
