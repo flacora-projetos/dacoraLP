@@ -407,7 +407,7 @@ export function CriadorDeExtracao({
                     definition: {
                       schemaVersion: '1.0.0', name: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(), provider: 'meta_official',
                       sourceAccountId: rascunho.contaId, template: rascunho.templateId,
-                      entityLevel: rascunho.nivel === 'campanha' ? 'campaign' : rascunho.nivel === 'conjunto' ? 'adset' : rascunho.nivel === 'anuncio' ? 'ad' : 'campaign',
+                      entityLevel: rascunho.nivel === 'conta' ? 'account' : rascunho.nivel === 'campanha' ? 'campaign' : rascunho.nivel === 'conjunto' ? 'adset' : 'ad',
                       entityIds: [], breakdowns: breakdown?.valores ?? [], fields: rascunho.campos,
                       filters: [], sort: null, attributionRequested: null, requestFingerprint: null,
                       periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
