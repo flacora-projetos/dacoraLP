@@ -157,4 +157,81 @@ function html(no: unknown) {
   assert.match(marcado, /<label[^>]*for="conta"|for="conta"/, 'todo controle precisa de label real');
 }
 
-console.log('OK — PWI1 local: catálogo controlado, recusa com motivo, aviso sem bloqueio, lista vazia explicada e casca sem backend remoto');
+/* ---- Correções de acessibilidade da auditoria ---- */
+
+/* Defeito: trocar de vista (lista <-> criador) desmonta quem tinha o foco. O
+ * título da vista que acabou de aparecer precisa aceitar foco programático
+ * (tabindex="-1") para o código poder movê-lo para lá. */
+{
+  const marcadoLista = html(createElement(ListaDeExtracoes, { extracoes: [], aoCriar: () => {} }));
+  assert.match(
+    marcadoLista,
+    /<h1 id="lista-titulo" tabindex="-1">/,
+    'o título da lista precisa aceitar foco programático (tabindex=-1) para a troca de vista poder movê-lo para lá',
+  );
+
+  const marcadoCriador = html(createElement(CriadorDeExtracao, { aoCancelar: () => {}, aoConcluir: () => {} }));
+  assert.match(
+    marcadoCriador,
+    /<h1 id="criador-titulo" tabindex="-1">/,
+    'o título do criador precisa aceitar foco programático (tabindex=-1) para a troca de vista poder movê-lo para lá',
+  );
+}
+
+/* Risco: trocar de etapa na esteira (ou Voltar/Avançar) troca todo o conteúdo
+ * do formulário sem anunciar nada. O <h2> da etapa precisa aceitar foco
+ * programático pelo mesmo motivo do <h1> acima. */
+{
+  const marcado = html(createElement(CriadorDeExtracao, { aoCancelar: () => {}, aoConcluir: () => {} }));
+  assert.match(
+    marcado,
+    /<h2 tabindex="-1">Origem dos dados<\/h2>/,
+    'o título da etapa corrente precisa aceitar foco programático (tabindex=-1)',
+  );
+}
+
+/* Risco: o aviso de rascunho local só nascia quando a lista tinha itens, e
+ * vários leitores de tela não anunciam um nó role=status recém-inserido — só
+ * vigiam containers já presentes. O container precisa existir mesmo vazio. */
+{
+  const marcado = html(createElement(ListaDeExtracoes, { extracoes: [], aoCriar: () => {} }));
+  assert.match(
+    marcado,
+    /<div class="dch-aviso-local" role="status"><\/div>/,
+    'o container de status do aviso de rascunho local precisa estar montado mesmo com a lista vazia',
+  );
+}
+
+/* Risco: os impedimentos só apareciam no resumo lateral, longe dos <select>.
+ * Cada controle precisa se anunciar inválido e apontar, via aria-describedby,
+ * para um id que exista de verdade no HTML — não basta o atributo existir. */
+{
+  const semConta = html(createElement(CriadorDeExtracao, { aoCancelar: () => {}, aoConcluir: () => {} }));
+  const selectConta = semConta.match(/<select id="conta"[^>]*>/);
+  assert.ok(selectConta, 'o select de conta precisa existir na etapa inicial');
+  assert.match(
+    selectConta[0],
+    /aria-invalid="true"/,
+    'sem conta escolhida o select de conta precisa se anunciar inválido',
+  );
+  const describedBy = selectConta[0].match(/aria-describedby="([^"]+)"/);
+  assert.ok(describedBy, 'o select de conta precisa apontar, via aria-describedby, para a mensagem do impedimento');
+  assert.match(
+    semConta,
+    new RegExp(`id="${describedBy[1]}"`),
+    'o id referenciado por aria-describedby precisa existir de verdade no HTML renderizado, não só o atributo',
+  );
+
+  const comExtracaoValida = html(
+    createElement(CriadorDeExtracao, { aoCancelar: () => {}, aoConcluir: () => {}, rascunhoInicial: base }),
+  );
+  const selectContaValido = comExtracaoValida.match(/<select id="conta"[^>]*>/);
+  assert.ok(selectContaValido, 'o select de conta precisa existir com a extração válida também');
+  assert.doesNotMatch(
+    selectContaValido[0],
+    /aria-invalid="true"/,
+    'com a extração válida o select de conta não pode se anunciar inválido',
+  );
+}
+
+console.log('OK — PWI1 local: catálogo controlado, recusa com motivo, aviso sem bloqueio, lista vazia explicada, casca sem backend remoto e correções de acessibilidade da auditoria');

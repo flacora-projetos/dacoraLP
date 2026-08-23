@@ -28,7 +28,14 @@
 .dch-lista__topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
 .dch-lista h1, .dch-criador h1 { margin: .5rem 0 0; max-width: 14ch; font-size: clamp(2.1rem, 5vw, 3.6rem); font-weight: 500; letter-spacing: -.055em; line-height: 1; color: var(--dc-tinta); }
 .dch-lista .dcp-secao, .dch-criador + .dch-conexao { margin-top: clamp(1.5rem, 4vw, 2.5rem); }
-.dch-aviso-local { margin: 1.4rem 0 0; color: var(--dc-cinza); font-size: .82rem; line-height: 1.5; }
+/*
+ * O container fica sempre montado (role=status), mesmo com a lista vazia, para
+ * leitores de tela que só vigiam nós já presentes. Vazio, ele não pode abrir
+ * espaço visual: :empty zera a margem que o <p> interno traria.
+ */
+.dch-aviso-local { color: var(--dc-cinza); font-size: .82rem; line-height: 1.5; }
+.dch-aviso-local p { margin: 1.4rem 0 0; }
+.dch-aviso-local:empty { margin: 0; }
 .dch-cartoes { margin: 1rem 0 0; padding: 0; list-style: none; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .dch-cartao { margin: 0; }
 
