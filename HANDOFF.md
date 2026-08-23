@@ -85,17 +85,28 @@ Implementar a PWI0 do Dácora Data Hub no portal: contrato e spike local do cana
 2. Nenhum provisionamento, Preview ou deploy enquanto o gate local não estiver verde e documentado.
 3. Portal mantém 12 funções: rewrite exato `/api/data-hub-spike` → modo PWI0 de `painel-sessao`.
 4. O helper WIF será puro/injetável nos testes; nenhum token real será obtido no gate local.
-5. Backend não terá store de replay de produção nesta etapa; ausência dele fora de teste responde `503 replay_store_unavailable`.
+5. Backend agora possui store transacional de replay na coleção isolada `portal_replay_claims`; sua efetividade externa ainda exige deploy, principal OIDC configurado e read-back em Preview.
+
+## Checkpoint de implementação local — 2026-08-23
+
+- Dependências oficiais adicionadas: `@vercel/oidc` e `google-auth-library`; lockfile atualizado. O alerta transitivo de `nanoid` foi corrigido para `3.3.18` e `npm audit --audit-level=high` retornou zero vulnerabilidades.
+- `api/_data-hub-spike.ts` implementa Vercel OIDC → STS/WIF → IAM Credentials `generateIdToken` → Cloud Run, sempre server-side, com request ID UUID gerado no servidor e resposta sanitizada.
+- `api/painel-sessao.ts` ganhou modo isolado `data-hub-spike`, mantendo o contrato normal de sessão e validando sessão/allowlist antes do helper.
+- `vercel.json` preserva o teto de 12 funções: `/api/data-hub-spike` reescreve para `painel-sessao`; `/data-hub` usa a casca privada, `noindex`, `no-referrer` e `no-store`.
+- `scripts/verifica-data-hub-spike.mts` prova localmente zero downstream sem sessão, rejeição de payload forjado, usuário allowlisted, cadeia de tokens injetável, audience exata e ausência de token/ator na resposta.
+- `scripts/verifica-casca-privada.mjs` agora inclui `/data-hub` na regressão estrutural.
+- Nenhum token real foi obtido, nenhum IAM/WIF foi criado, nenhuma variável externa foi alterada e nenhum Preview/deploy foi executado.
+
+Validações executadas: `npm run verifica:data-hub-spike`, `npm run lint`, `npm run verifica:painel`, `npm run verifica:av4`, `git diff --check` e `npm run build`; todas aprovadas. O build gerou a casca privada e confirmou o roteamento de `/data-hub` sem rastreadores.
 
 ## Próximos passos exatos
 
-1. Delegar inventários read-only e delimitados: padrão de API/autorização/testes do portal; opções de WIF/OIDC compatíveis com Vercel; contrato mínimo do endpoint/replay no Data Hub.
-2. Revisar os inventários no agente principal e fechar a arquitetura local sem provisionar recursos.
-3. Implementar primeiro o endpoint sintético e testes no Data Hub em branch própria.
-4. Implementar helper server-side e BFF agregado no portal, com testes de sessão, allowlist, payload, ausência de efeitos e sanitização.
-5. Incluir `/data-hub` na regressão da casca privada sem criar UI conectada.
-6. Rodar testes focados, typecheck e build dos dois repositórios.
-7. Atualizar este arquivo após cada bloco e antes de qualquer troca de branch, commit, push, Preview ou deploy.
+1. Integrar os commits locais de backend e portal separadamente, preservando os estados remoto/produção distintos.
+2. Fazer inventário read-only do IAM/WIF atual com conta e projeto explícitos.
+3. Criar somente os vínculos mínimos ausentes: provider condicionado ao projeto/ambiente Vercel, service account invocadora e permissão de geração de ID token.
+4. Configurar variáveis somente em Preview e publicar Preview.
+5. Executar smoke autenticado com read-back da claim Firestore e replay `409`; confirmar que o Cloud Run permaneceu privado.
+6. Só depois decidir merge/produção; nenhuma UI conectada entra na PWI0.
 
 ## Gates externos ainda fechados
 
