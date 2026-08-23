@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
+import { CriadorDeExtracao, ListaDeExtracoes, type ExtracaoLocal } from './data-hub-extracoes';
 import '../painel/painel.css';
 import './data-hub.css';
 
@@ -10,6 +12,7 @@ type EstadoConexao =
   | { tipo: 'testando' }
   | { tipo: 'ok'; requestId: string }
   | { tipo: 'erro'; mensagem: string; requestId?: string };
+
 
 export default function DataHub() {
   usaPaginaPrivada('Data Hub | Dácora');
@@ -28,6 +31,8 @@ export default function DataHub() {
 function DataHubInicio() {
   const { sessao, autorizacao, usuario, sair } = usarPainelAuth();
   const [estado, setEstado] = useState<EstadoConexao>({ tipo: 'inicial' });
+  const [vista, setVista] = useState<'lista' | 'criador'>('lista');
+  const [extracoes, setExtracoes] = useState<readonly ExtracaoLocal[]>([]);
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
 
   async function testarConexao() {
@@ -72,21 +77,32 @@ function DataHubInicio() {
         </div>
       </header>
 
+      <nav className="dch-nav" aria-label="Seções do painel">
+        <Link className="dch-nav__item" to="/painel-de-relatorios">Relatórios</Link>
+        <span className="dch-nav__item dch-nav__item--ativo" aria-current="page">Data Hub</span>
+      </nav>
+
       <main className="dch-corpo">
-        <section className="dch-intro" aria-labelledby="data-hub-titulo">
-          <p className="dcp-eyebrow">Fundação do produto</p>
-          <h1 id="data-hub-titulo">Dados de marketing, sob controle.</h1>
-          <p>
-            A conexão segura entre este portal e o Data Hub está pronta para validação. Este teste não consulta contas,
-            não cria planilhas e não agenda atualizações.
-          </p>
-        </section>
+        {vista === 'lista' ? (
+          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')} />
+        ) : (
+          <CriadorDeExtracao
+            aoCancelar={() => setVista('lista')}
+            aoConcluir={(extracao) => {
+              setExtracoes((atuais) => [...atuais, extracao]);
+              setVista('lista');
+            }}
+          />
+        )}
 
         <section className="dch-conexao" aria-labelledby="conexao-titulo">
           <div>
-            <span className="dch-etapa">01</span>
+            <span className="dch-etapa">Diagnóstico</span>
             <h2 id="conexao-titulo">Canal privado</h2>
-            <p>Sua sessão autoriza o portal. Credenciais curtas conectam o servidor ao ambiente privado do Data Hub.</p>
+            <p>
+              Sua sessão autoriza o portal. Credenciais curtas conectam o servidor ao ambiente privado do Data Hub.
+              Este teste não consulta contas, não cria planilhas e não agenda atualizações.
+            </p>
           </div>
           <div className="dch-acao">
             <button
@@ -100,11 +116,6 @@ function DataHubInicio() {
             <EstadoDaConexao estado={estado} />
           </div>
         </section>
-
-        <div className="dch-proximas" aria-label="Próximas etapas">
-          <span>Depois desta validação</span>
-          <p>Contas e campos → período e granularidade → destino no Google Sheets → agendamento.</p>
-        </div>
       </main>
     </>
   );

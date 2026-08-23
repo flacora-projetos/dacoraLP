@@ -15,6 +15,7 @@
     "lint": "tsc --noEmit",
     "verifica:painel": "tsx scripts/verifica-painel-autorizacao.mts",
     "verifica:data-hub-spike": "tsx scripts/verifica-data-hub-spike.mts",
+    "verifica:data-hub-casca": "tsx scripts/verifica-painel-data-hub-casca.mts",
     "verifica:fila": "tsx scripts/verifica-painel-fila.mts",
     "verifica:visao-geral": "tsx scripts/verifica-painel-visao-geral.mts",
     "verifica:revisao": "tsx scripts/verifica-painel-revisao.mts",
