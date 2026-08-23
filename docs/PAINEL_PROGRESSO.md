@@ -1598,3 +1598,39 @@ Regressão em `scripts/verifica-casca-privada.mjs`, dentro do `build`, sobre o
 artefato construído — com a metade negativa que exige a home **continuar**
 pré-renderizada e com rastreadores. Detalhe:
 [`HANDOFF_CASCA_PRIVADA_2026-08-20.md`](HANDOFF_CASCA_PRIVADA_2026-08-20.md).
+
+---
+
+## 12. Data Hub ganhou casca e criador local (2026-08-23)
+
+A rota `/data-hub` deixou de ser só o teste de canal e passou a ter a forma do
+produto: navegação entre **Relatórios** e **Data Hub**, lista de extrações com
+estado vazio que explica a causa, e um criador em esteira de quatro etapas —
+origem, campos, período e revisão — com resumo persistente ao lado.
+
+Nada disso fala com backend remoto. O catálogo é controlado, vive em
+`src/pages/data-hub-catalogo.ts` e se declara demonstrativo; nenhum nome ou ID
+real de cliente entra ali. Um rascunho concluído existe só na memória da aba, e
+a tela diz isso com todas as letras — lista que parece salva e some no F5 é pior
+do que lista vazia.
+
+As regras de produto ficaram no catálogo, não espalhadas na tela: combinação
+impossível é recusada com o motivo e a saída ("breakdown demográfico não existe
+no nível conta, use Campanha, Conjunto ou Anúncio"), **sem trocar a escolha do
+usuário por baixo**; consulta de volume alto recebe aviso com recomendação, mas
+não é bloqueada, porque a decisão é de quem opera; e a natureza dos campos
+sobrevive até a revisão, avisando que alcance, frequência e métricas calculadas
+não se somam entre linhas.
+
+Os componentes de apresentação ficam em `src/pages/data-hub-extracoes.tsx`,
+separados da página, para poderem ser renderizados em teste sem carregar CSS nem
+contexto de sessão. `DataHub.tsx` continua dona do provedor de autenticação, do
+portão e do diagnóstico de canal.
+
+Regressão em `scripts/verifica-painel-data-hub-casca.mts`
+(`npm run verifica:data-hub-casca`): asserções puras sobre as regras do catálogo
+mais render de HTML real da lista vazia, da lista com rascunho e do criador —
+incluindo a checagem de que a fase **não** acrescentou nenhuma chamada de rede.
+
+Pendente: conferência visual com sessão allowlisted, em desktop e celular. A
+tela fica atrás do portão, então essa parte não pode ser feita por agente.
