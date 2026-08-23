@@ -120,6 +120,8 @@ assert.match(componentes, /aria-live="polite"/, 'o resumo precisa anunciar mudan
 
 /* A tela precisa dizer que nada é salvo no servidor nesta fase. */
 assert.match(componentes, /configuração será salva no Data Hub/);
+assert.match(componentes, /if \(salvando\) return/);
+assert.match(componentes, /Salvando…/);
 
 /* O diagnóstico PWI0 continua separado; PWI2 usa o BFF agregado para catálogo/CRUD. */
 const fetches = pagina.match(/fetch\(/g) ?? [];

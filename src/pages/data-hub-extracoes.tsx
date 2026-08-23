@@ -103,6 +103,7 @@ export function CriadorDeExtracao({
   rascunhoInicial?: Rascunho;
   catalogo?: Catalogo;
 }) {
+  const [salvando, setSalvando] = useState(false);
   const [etapa, setEtapa] = useState(0);
   const [rascunho, setRascunho] = useState<Rascunho>(rascunhoInicial ?? RASCUNHO_INICIAL);
 
@@ -377,7 +378,7 @@ export function CriadorDeExtracao({
             <button
               type="button"
               className="dcp-botao dcp-botao--discreto"
-              disabled={etapa === 0}
+              disabled={etapa === 0 || salvando}
               onClick={() => setEtapa((atual) => Math.max(0, atual - 1))}
             >
               Voltar
@@ -394,9 +395,12 @@ export function CriadorDeExtracao({
               <button
                 type="button"
                 className="dcp-botao dcp-botao--primario"
-                disabled={problemas.length > 0}
-                onClick={() =>
-                  aoConcluir({
+                disabled={problemas.length > 0 || salvando}
+                onClick={async () => {
+                  if (salvando) return;
+                  setSalvando(true);
+                  try {
+                    await aoConcluir({
                     id: `local-${Date.now()}`,
                     nome: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(),
                     resumo: `${rascunho.campos.length} campos · ${periodo?.nome ?? ''} · ${granularidade?.nome ?? ''} · ${breakdown?.nome ?? ''}`,
@@ -408,10 +412,13 @@ export function CriadorDeExtracao({
                       filters: [], sort: null, attributionRequested: null, requestFingerprint: null,
                       periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
                     },
-                  })
-                }
+                    });
+                  } finally {
+                    setSalvando(false);
+                  }
+                }}
               >
-                Salvar extração
+                {salvando ? 'Salvando…' : 'Salvar extração'}
               </button>
             )}
           </div>
