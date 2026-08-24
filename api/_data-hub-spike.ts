@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { getVercelOidcToken } from '@vercel/oidc';
 import { IdentityPoolClient } from 'google-auth-library';
 
@@ -26,6 +26,18 @@ export interface RequisicaoDataHub {
   endpoint: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
+  intentId?: string;
+}
+
+function requestIdDaIntencao(intentId: string, actorId: string, endpoint: string): string {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(intentId)) {
+    throw new Error('DATA_HUB_INTENT_ID_invalido');
+  }
+  const digest = createHash('sha256').update(`data-hub-run\0${actorId}\0${endpoint}\0${intentId}`, 'utf8').digest();
+  digest[6] = (digest[6] & 0x0f) | 0x50;
+  digest[8] = (digest[8] & 0x3f) | 0x80;
+  const hex = digest.subarray(0, 16).toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function atorConfiavel(ator: { id: string; email: string }): { id: string; email: string } {
@@ -114,11 +126,13 @@ export async function executarRequisicaoDataHub(
   const config = configuracaoDataHub();
   const endpoint = urlHttps('DATA_HUB_ENDPOINT', requisicao.endpoint);
   if (!endpoint.startsWith(`${config.cloudRunAudience}/internal/v1/portal/`)) throw new Error('DATA_HUB_ENDPOINT_invalido');
-  const requestId = (dependencias.requestId ?? randomUUID)();
   const obterOidc = dependencias.obterOidcVercel ?? getVercelOidcToken;
   const trocar = dependencias.trocarPorAccessToken ?? accessTokenGoogle;
   const chamar = dependencias.fetch ?? fetch;
   const actor = atorConfiavel(ator);
+  const requestId = requisicao.intentId == null
+    ? (dependencias.requestId ?? randomUUID)()
+    : requestIdDaIntencao(requisicao.intentId, actor.id, endpoint);
   const oidc = await obterOidc();
   const accessToken = await trocar(oidc, config);
   const iam = await chamar(

@@ -22,6 +22,12 @@ import {
  */
 export type ExtracaoLocal = { id: string; nome: string; resumo: string; revision?: number; definition?: Record<string, unknown> };
 
+export type EstadoExecucao =
+  | { tipo: 'inicial' }
+  | { tipo: 'executando' }
+  | { tipo: 'aceito' }
+  | { tipo: 'erro'; mensagem: string };
+
 export type DestinoGoogleSheets = {
   provider: 'google_sheets';
   spreadsheetId: string;
@@ -34,8 +40,21 @@ export type DestinoGoogleSheets = {
 
 const ETAPAS = ['Origem', 'Campos', 'Período', 'Destino', 'Revisão'] as const;
 
-export function ListaDeExtracoes({ extracoes, aoCriar }: { extracoes: readonly ExtracaoLocal[]; aoCriar: () => void }) {
+export function ListaDeExtracoes({ extracoes, aoCriar, googlePronto = false, execucoes = {}, aoExecutar = async () => {} }: {
+  extracoes: readonly ExtracaoLocal[];
+  aoCriar: () => void;
+  googlePronto?: boolean;
+  execucoes?: Readonly<Record<string, EstadoExecucao>>;
+  aoExecutar?: (extracao: ExtracaoLocal) => void | Promise<void>;
+}) {
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
+  const cliquesEmVoo = useRef(new Set<string>());
+
+  async function executarUmaVez(extracao: ExtracaoLocal) {
+    if (cliquesEmVoo.current.has(extracao.id)) return;
+    cliquesEmVoo.current.add(extracao.id);
+    try { await aoExecutar(extracao); } finally { cliquesEmVoo.current.delete(extracao.id); }
+  }
 
   /*
    * A lista e o criador se alternam por desmontagem: quando o criador some e a
@@ -83,12 +102,39 @@ export function ListaDeExtracoes({ extracoes, aoCriar }: { extracoes: readonly E
         </div>
       ) : (
         <ul className="dch-cartoes">
-          {extracoes.map((extracao) => (
-            <li key={extracao.id} className="dcp-secao dch-cartao">
+          {extracoes.map((extracao) => {
+            const destination = extracao.definition?.destination as DestinoGoogleSheets | undefined;
+            const destinoConfirmado = destination?.provider === 'google_sheets' && destination.writeMode === 'replace'
+              && typeof destination.spreadsheetId === 'string' && destination.spreadsheetId.length > 0
+              && Number.isInteger(destination.sheetId) && typeof destination.sheetTitle === 'string'
+              && destination.sheetTitle.length > 0 && destination.startCell === 'A1';
+            const append = destination?.provider === 'google_sheets' && destination.writeMode === 'append';
+            const execucao = execucoes[extracao.id] ?? { tipo: 'inicial' as const };
+            const executando = execucao.tipo === 'executando';
+            const aceita = execucao.tipo === 'aceito';
+            return <li key={extracao.id} className="dcp-secao dch-cartao">
               <h2 className="dcp-secao__titulo">{extracao.nome}</h2>
               <p className="dcp-secao__apoio">{extracao.resumo}</p>
-            </li>
-          ))}
+              <div className="dch-cartao__acoes">
+                <button type="button" className="dcp-botao dcp-botao--primario"
+                  disabled={!googlePronto || !destinoConfirmado || executando || aceita}
+                  aria-describedby={`execucao-ajuda-${extracao.id} execucao-status-${extracao.id}`}
+                  onClick={() => void executarUmaVez(extracao)}>
+                  {executando ? 'Executando…' : aceita ? 'Execução aceita' : 'Executar agora'}
+                </button>
+                <p id={`execucao-ajuda-${extracao.id}`} className="dcp-secao__apoio">
+                  {append ? 'O modo acrescentar ainda não está disponível para execução automática.'
+                    : !destinoConfirmado ? 'Confirme uma planilha no modo substituir antes de executar.'
+                      : !googlePronto ? 'Conecte sua conta Google para executar esta extração.' : null}
+                </p>
+                <div id={`execucao-status-${extracao.id}`} className="dch-status" aria-live="polite">
+                  {execucao.tipo === 'executando' ? 'Preparando a atualização da planilha…'
+                    : execucao.tipo === 'aceito' ? 'Execução aceita. A planilha será atualizada em segundo plano.'
+                      : execucao.tipo === 'erro' ? <span className="dch-status--erro" role="alert">{execucao.mensagem}</span> : null}
+                </div>
+              </div>
+            </li>;
+          })}
         </ul>
       )}
     </section>

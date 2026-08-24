@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
-import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type ExtracaoLocal } from './data-hub-extracoes';
+import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
+import { validarAceiteExecucao } from './data-hub-execucao';
 import { CATALOGO_PADRAO, normalizarCatalogo, type Catalogo } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
@@ -47,10 +48,13 @@ function DataHubInicio() {
   const [erroDados, setErroDados] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [google, setGoogle] = useState<EstadoGoogle>({ tipo: 'carregando' });
+  const [execucoes, setExecucoes] = useState<Readonly<Record<string, EstadoExecucao>>>({});
+  const intencoesExecucao = useRef(new Map<string, string>());
+  const execucoesEmVoo = useRef(new Set<string>());
   const callbackGoogleTratado = useRef(false);
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
 
-  async function chamarDataHub(path: string, init: RequestInit = {}) {
+  async function requisitarDataHub(path: string, init: RequestInit = {}) {
     if (!sessao?.access_token) throw new Error('sessao_indisponivel');
     const resposta = await fetch(`/api/data-hub${path}`, {
       ...init,
@@ -58,7 +62,11 @@ function DataHubInicio() {
     });
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.'));
-    return corpo;
+    return { status: resposta.status, corpo };
+  }
+
+  async function chamarDataHub(path: string, init: RequestInit = {}) {
+    return (await requisitarDataHub(path, init)).corpo;
   }
 
   useEffect(() => {
@@ -87,6 +95,26 @@ function DataHubInicio() {
     const salvo = await chamarDataHub('/extractions', { method: 'POST', body: JSON.stringify({ extraction: definition }) });
     const item = salvo?.data;
     setExtracoes((atuais) => [...atuais, { ...extracao, id: String(item.extractionId ?? extracao.id), revision: Number(item.revision ?? 1), definition: item }]);
+  }
+
+  async function executarExtracao(extracao: ExtracaoLocal) {
+    if (execucoesEmVoo.current.has(extracao.id) || ['executando', 'aceito'].includes(execucoes[extracao.id]?.tipo ?? '')) return;
+    execucoesEmVoo.current.add(extracao.id);
+    const intentId = intencoesExecucao.current.get(extracao.id) ?? crypto.randomUUID();
+    intencoesExecucao.current.set(extracao.id, intentId);
+    setExecucoes((atuais) => ({ ...atuais, [extracao.id]: { tipo: 'executando' } }));
+    try {
+      const resposta = await requisitarDataHub(`/extractions/${encodeURIComponent(extracao.id)}/run`, {
+        method: 'POST', body: '{}', headers: { 'X-Data-Hub-Intent': intentId },
+      });
+      validarAceiteExecucao(resposta.status, resposta.corpo);
+      setExecucoes((atuais) => ({ ...atuais, [extracao.id]: { tipo: 'aceito' } }));
+    } catch (error) {
+      setExecucoes((atuais) => ({ ...atuais, [extracao.id]: { tipo: 'erro',
+        mensagem: error instanceof Error ? error.message : 'Não foi possível iniciar a execução.' } }));
+    } finally {
+      execucoesEmVoo.current.delete(extracao.id);
+    }
   }
 
   function destinoDaResposta(resposta: any): DestinoGoogleSheets {
@@ -228,7 +256,8 @@ function DataHubInicio() {
 
       <main className="dch-corpo">
         {carregando ? <p className="dch-status" role="status">Carregando catálogo e extrações…</p> : erroDados ? <p className="dch-status dch-status--erro" role="alert">{erroDados}</p> : vista === 'lista' ? (
-          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')} />
+          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')}
+            googlePronto={google.tipo === 'conectado'} execucoes={execucoes} aoExecutar={executarExtracao} />
         ) : (
           <CriadorDeExtracao
             catalogo={catalogo}

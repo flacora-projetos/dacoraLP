@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { executarSpikeDataHub } from '../api/_data-hub-spike.ts';
+import { executarRequisicaoDataHub, executarSpikeDataHub } from '../api/_data-hub-spike.ts';
 import { atenderPainelSessao } from '../api/painel-sessao.ts';
 import { atenderDataHub } from '../api/_data-hub.ts';
 
@@ -122,23 +122,56 @@ globalThis.fetch = fetchOriginal;
   assert.match(chamadasCrud[1].endpoint, new RegExp(`/extractions/${extractionId}$`));
   assert.deepEqual(chamadasCrud[1].body, { revision: 1, name: 'x' });
   await atenderDataHub({ method: 'DELETE', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 2 } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  const intentId = 'c49c52ce-44ea-4a8d-8490-bc7017f2cc64';
+  await atenderDataHub({ method: 'POST', url: `/api/data-hub/extractions/${extractionId}/run`, query: { path: `/extractions/${extractionId}/run` },
+    headers: { 'x-data-hub-intent': intentId }, body: { exportKey: 'forjado' } } as any,
+  res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.match(chamadasCrud[3].endpoint, new RegExp(`/extractions/${extractionId}/run$`));
+  assert.deepEqual(chamadasCrud[3].body, {}, 'BFF deve descartar qualquer payload do browser ao executar');
+  assert.equal(chamadasCrud[3].intentId, intentId);
+  await atenderDataHub({ method: 'POST', url: `/api/data-hub/extractions/${extractionId}/run`,
+    query: { path: `/extractions/${extractionId}/run` }, headers: { 'x-data-hub-intent': 'arbitraria' }, body: {} } as any,
+  res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.equal(captura.status, 400);
+  assert.equal(chamadasCrud.length, 4, 'intenção inválida deve parar antes do canal WIF');
   assert.equal(chamadasCrud[2].method, 'DELETE');
   assert.deepEqual(chamadasCrud[2].body, { revision: 2 });
   await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/connect', query: { path: '/google/connect' }, body: { ownerId: 'forged' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
-  assert.equal(chamadasCrud[3].method, 'POST');
-  assert.match(chamadasCrud[3].endpoint, /\/internal\/v1\/portal\/google\/connect$/);
-  assert.deepEqual(chamadasCrud[3].body, {});
+  assert.equal(chamadasCrud[4].method, 'POST');
+  assert.match(chamadasCrud[4].endpoint, /\/internal\/v1\/portal\/google\/connect$/);
+  assert.deepEqual(chamadasCrud[4].body, {});
   await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/callback', query: { path: '/google/callback' }, body: { code: 'c', state: 's' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
-  assert.deepEqual(chamadasCrud[4].body, { code: 'c', state: 's' });
+  assert.deepEqual(chamadasCrud[5].body, { code: 'c', state: 's' });
   await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/spreadsheets', query: { path: '/google/spreadsheets' }, body: { title: 'Nova' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
-  assert.match(chamadasCrud[5].endpoint, /\/internal\/v1\/portal\/google\/spreadsheets$/);
-  assert.deepEqual(chamadasCrud[5].body, { title: 'Nova' });
+  assert.match(chamadasCrud[6].endpoint, /\/internal\/v1\/portal\/google\/spreadsheets$/);
+  assert.deepEqual(chamadasCrud[6].body, { title: 'Nova' });
   await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/spreadsheets/resolve', query: { path: '/google/spreadsheets/resolve' }, body: { spreadsheetId: 'sheet-id' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
-  assert.match(chamadasCrud[6].endpoint, /\/google\/spreadsheets\/resolve$/);
+  assert.match(chamadasCrud[7].endpoint, /\/google\/spreadsheets\/resolve$/);
   await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/picker/session', query: { path: '/google/picker/session' }, body: { forged: true } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
-  assert.match(chamadasCrud[7].endpoint, /\/google\/picker\/session$/);
-  assert.deepEqual(chamadasCrud[7].body, {}, 'sessão Picker não aceita payload do browser');
+  assert.match(chamadasCrud[8].endpoint, /\/google\/picker\/session$/);
+  assert.deepEqual(chamadasCrud[8].body, {}, 'sessão Picker não aceita payload do browser');
   assert.doesNotMatch(JSON.stringify(captura.corpo), /access_token|authorization|Bearer/i);
+}
+
+// A intenção do clique vira chave server-side ligada ao ator e endpoint; retry não cria outra ocorrência.
+{
+  const downstream: string[] = [];
+  const dependencias = {
+    obterOidcVercel: async () => 'oidc', trocarPorAccessToken: async () => 'access',
+    fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('iamcredentials')) return new Response(JSON.stringify({ token: 'id-token' }), { status: 200 });
+      downstream.push((init?.headers as Record<string, string>)['x-request-id']);
+      return new Response(JSON.stringify({ data: { status: 'accepted', occurrenceId: 'occurrence' }, requestId: downstream.at(-1) }), { status: 202 });
+    }) as typeof fetch,
+  };
+  const request = { endpoint: 'https://dacora-data-hub.example.run.app/internal/v1/portal/extractions/6b1f0e91-a456-4d6b-9a1f-4a0ec621c09d/run',
+    method: 'POST' as const, body: {}, intentId: 'c49c52ce-44ea-4a8d-8490-bc7017f2cc64' };
+  await executarRequisicaoDataHub(request, { id: actorId, email: 'contato@nandacora.com.br' }, dependencias);
+  await executarRequisicaoDataHub(request, { id: actorId, email: 'contato@nandacora.com.br' }, dependencias);
+  assert.equal(downstream[0], downstream[1], 'retry da mesma intenção precisa manter requestId');
+  assert.match(downstream[0], /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  await assert.rejects(() => executarRequisicaoDataHub({ ...request, intentId: 'forjado' },
+    { id: actorId, email: 'contato@nandacora.com.br' }, dependencias), /INTENT_ID_invalido/);
 }
 
 const app = fs.readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
@@ -150,6 +183,8 @@ assert.match(pagina, /<PainelAuthProvider>[\s\S]*<Portao>[\s\S]*<DataHubInicio \
 assert.match(pagina, /fetch\('\/api\/data-hub-spike'/);
 assert.match(pagina, /Authorization: `Bearer \$\{sessao\.access_token\}`/);
 assert.match(pagina, /body: '\{\}'/);
+assert.match(pagina, /execucoesEmVoo\.current\.has/);
+assert.match(pagina, /validarAceiteExecucao\(resposta\.status, resposta\.corpo\)/);
 assert.doesNotMatch(pagina, /body:[^\n]*(requestId|actor|audience)/);
 assert.match(pagina, /Conectar Google Drive/);
 assert.match(pagina, /\/google\/callback/);
