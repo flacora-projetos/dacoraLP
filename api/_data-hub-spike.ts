@@ -3,6 +3,8 @@ import { getVercelOidcToken } from '@vercel/oidc';
 import { IdentityPoolClient } from 'google-auth-library';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
+const PORTAL_ACTOR_HEADER = 'x-portal-actor-email';
+const PORTAL_ACTOR_SUB_HEADER = 'x-portal-actor-sub';
 
 type FetchLike = typeof fetch;
 
@@ -24,6 +26,18 @@ export interface RequisicaoDataHub {
   endpoint: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
+}
+
+function atorConfiavel(ator: { id: string; email: string }): { id: string; email: string } {
+  const email = ator?.email?.trim().toLowerCase();
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('DATA_HUB_ACTOR_EMAIL_invalido');
+  }
+  const id = ator?.id?.trim().toLowerCase();
+  if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)) {
+    throw new Error('DATA_HUB_ACTOR_ID_invalido');
+  }
+  return { id, email };
 }
 
 function urlHttps(nome: string, valor: string | undefined): string {
@@ -69,18 +83,21 @@ async function accessTokenGoogle(oidc: string, config: ConfiguracaoDataHub): Pro
 function respostaSegura(status: number, corpo: unknown, requestId: string) {
   if (status >= 200 && status < 300) return { status, corpo };
   const codigo = (corpo as any)?.error?.code;
+  const mensagem = (corpo as any)?.error?.message;
   return {
     status: status >= 400 && status < 500 ? status : 502,
     corpo: {
       erro: typeof codigo === 'string' ? codigo : 'data_hub_indisponivel',
-      mensagem: 'Não foi possível validar o canal com o Data Hub.',
+      mensagem: typeof mensagem === 'string' && mensagem.length <= 300
+        ? mensagem
+        : 'Não foi possível validar o canal com o Data Hub.',
       requestId,
     },
   };
 }
 
 export async function executarSpikeDataHub(
-  ator: { email: string },
+  ator: { id: string; email: string },
   dependencias: DependenciasDataHub = {},
 ) {
   const config = configuracaoDataHub();
@@ -91,7 +108,7 @@ export async function executarSpikeDataHub(
  * reutilizam esta cadeia sem receber credenciais nem identidade do browser. */
 export async function executarRequisicaoDataHub(
   requisicao: RequisicaoDataHub,
-  ator: { email: string },
+  ator: { id: string; email: string },
   dependencias: DependenciasDataHub = {},
 ) {
   const config = configuracaoDataHub();
@@ -101,6 +118,7 @@ export async function executarRequisicaoDataHub(
   const obterOidc = dependencias.obterOidcVercel ?? getVercelOidcToken;
   const trocar = dependencias.trocarPorAccessToken ?? accessTokenGoogle;
   const chamar = dependencias.fetch ?? fetch;
+  const actor = atorConfiavel(ator);
   const oidc = await obterOidc();
   const accessToken = await trocar(oidc, config);
   const iam = await chamar(
@@ -116,11 +134,17 @@ export async function executarRequisicaoDataHub(
   if (typeof idToken !== 'string' || !idToken) throw new Error('iam_sem_id_token');
   const backend = await chamar(endpoint, {
     method: requisicao.method,
-    headers: { ...JSON_HEADERS, authorization: `Bearer ${idToken}`, 'x-request-id': requestId },
+    headers: {
+      ...JSON_HEADERS,
+      authorization: `Bearer ${idToken}`,
+      'x-request-id': requestId,
+      [PORTAL_ACTOR_HEADER]: actor.email,
+      [PORTAL_ACTOR_SUB_HEADER]: actor.id,
+    },
     ...(requisicao.method === 'GET' ? {} : { body: JSON.stringify(requisicao.body ?? {}) }),
   });
   let corpo: unknown = null;
   try { corpo = await backend.json(); } catch { corpo = null; }
   const resultado = respostaSegura(backend.status, corpo, requestId);
-  return { ...resultado, audit: { requestId, actorEmail: ator.email } };
+  return { ...resultado, audit: { requestId, actorEmail: actor.email } };
 }

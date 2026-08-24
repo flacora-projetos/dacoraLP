@@ -14,6 +14,7 @@ Object.assign(process.env, {
 });
 
 const chamadas: Array<{ url: string; init?: RequestInit }> = [];
+const actorId = '9d97d3f1-25cb-4bfd-91e8-37d336cfa74b';
 const fetchFake: typeof fetch = async (input, init) => {
   const url = String(input);
   chamadas.push({ url, init });
@@ -22,7 +23,7 @@ const fetchFake: typeof fetch = async (input, init) => {
 };
 
 const resultado = await executarSpikeDataHub(
-  { email: 'contato@nandacora.com.br' },
+  { id: actorId, email: 'contato@nandacora.com.br' },
   {
     obterOidcVercel: async () => 'oidc-vercel-curto',
     trocarPorAccessToken: async (oidc, config) => {
@@ -44,6 +45,8 @@ assert.deepEqual(JSON.parse(String(chamadas[0].init?.body)), {
 });
 assert.equal((chamadas[1].init?.headers as Record<string, string>).authorization, 'Bearer id-token-curto');
 assert.equal((chamadas[1].init?.headers as Record<string, string>)['x-request-id'], 'request-id-123456');
+assert.equal((chamadas[1].init?.headers as Record<string, string>)['x-portal-actor-email'], 'contato@nandacora.com.br');
+assert.equal((chamadas[1].init?.headers as Record<string, string>)['x-portal-actor-sub'], actorId);
 assert.deepEqual(JSON.parse(String(chamadas[1].init?.body)), { schemaVersion: '1.0.0' });
 assert.doesNotMatch(JSON.stringify(resultado.corpo), /token|contato@/i);
 
@@ -77,6 +80,7 @@ globalThis.fetch = async () => new Response('{}', { status: 401 });
 }
 
 globalThis.fetch = async () => new Response(JSON.stringify({
+  id: actorId,
   email: 'contato@nandacora.com.br',
   app_metadata: { provider: 'google' },
 }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -108,29 +112,38 @@ globalThis.fetch = fetchOriginal;
     chamadasCrud.push(request);
     return { status: 200, corpo: { items: [], owner: 'must-not-be-browser' }, audit: { requestId: 'r', actorEmail: 'contato@nandacora.com.br' } };
   };
-  await atenderDataHub({ method: 'GET', url: '/api/data-hub/catalog', query: { path: '/catalog' }, body: null } as any, res, { email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  await atenderDataHub({ method: 'GET', url: '/api/data-hub/catalog', query: { path: '/catalog' }, body: null } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
   assert.equal(captura.status, 200);
   assert.equal(chamadasCrud[0].method, 'GET');
   assert.match(chamadasCrud[0].endpoint, /\/internal\/v1\/portal\/catalog$/);
   const extractionId = '6b1f0e91-a456-4d6b-9a1f-4a0ec621c09d';
-  await atenderDataHub({ method: 'PATCH', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 1, name: 'x' } } as any, res, { email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  await atenderDataHub({ method: 'PATCH', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 1, name: 'x' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
   assert.equal(chamadasCrud[1].method, 'PATCH');
   assert.match(chamadasCrud[1].endpoint, new RegExp(`/extractions/${extractionId}$`));
   assert.deepEqual(chamadasCrud[1].body, { revision: 1, name: 'x' });
-  await atenderDataHub({ method: 'DELETE', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 2 } } as any, res, { email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  await atenderDataHub({ method: 'DELETE', url: `/api/data-hub/extractions/${extractionId}`, query: { path: `/extractions/${extractionId}` }, body: { revision: 2 } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
   assert.equal(chamadasCrud[2].method, 'DELETE');
   assert.deepEqual(chamadasCrud[2].body, { revision: 2 });
+  await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/connect', query: { path: '/google/connect' }, body: { ownerId: 'forged' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.equal(chamadasCrud[3].method, 'POST');
+  assert.match(chamadasCrud[3].endpoint, /\/internal\/v1\/portal\/google\/connect$/);
+  assert.deepEqual(chamadasCrud[3].body, {});
+  await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/callback', query: { path: '/google/callback' }, body: { code: 'c', state: 's' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.deepEqual(chamadasCrud[4].body, { code: 'c', state: 's' });
   assert.doesNotMatch(JSON.stringify(captura.corpo), /access_token|authorization|Bearer/i);
 }
 
 const app = fs.readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const pagina = fs.readFileSync(new URL('../src/pages/DataHub.tsx', import.meta.url), 'utf8');
 assert.match(app, /path="\/data-hub"/);
+assert.match(app, /path="\/data-hub\/google\/callback"/);
 assert.match(app, /lazy\(\(\) => import\('\.\/pages\/DataHub'\)\)/);
 assert.match(pagina, /<PainelAuthProvider>[\s\S]*<Portao>[\s\S]*<DataHubInicio \/>/);
 assert.match(pagina, /fetch\('\/api\/data-hub-spike'/);
 assert.match(pagina, /Authorization: `Bearer \$\{sessao\.access_token\}`/);
 assert.match(pagina, /body: '\{\}'/);
 assert.doesNotMatch(pagina, /body:[^\n]*(requestId|actor|audience)/);
+assert.match(pagina, /Conectar Google Drive/);
+assert.match(pagina, /\/google\/callback/);
 
 console.log('OK — PWI0 local: sessão antes do downstream, WIF injetável, IAM ID token, audiência exata e envelope sanitizado');
