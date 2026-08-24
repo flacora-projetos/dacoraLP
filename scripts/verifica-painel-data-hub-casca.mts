@@ -19,16 +19,24 @@ import { validarAceiteExecucao } from '../src/pages/data-hub-execucao.ts';
 import {
   BREAKDOWNS,
   CAMPOS,
+  CATALOGO_PADRAO,
   CONTAS,
   RASCUNHO_INICIAL,
   normalizarCatalogo,
   avisoDeVolume,
   impedimentos,
+  filtrarCampos,
+  aplicarPreset,
+  sanearCamposDoCatalogo,
   naturezaDosCamposEscolhidos,
   type Rascunho,
 } from '../src/pages/data-hub-catalogo.ts';
 
 const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
+assert.deepEqual(filtrarCampos([
+  { id: 'reach', nome: 'Alcance', natureza: 'nao-aditiva', descricao: 'Pessoas únicas' },
+  { id: 'spend', nome: 'Investimento', natureza: 'aditiva', descricao: 'Valor gasto' },
+], 'unicas').map((campo) => campo.id), ['reach'], 'busca deve considerar descrição e ignorar acentos');
 
 {
   const hash = 'a'.repeat(64);
@@ -46,11 +54,13 @@ const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
 {
   const real = normalizarCatalogo({ data: {
     accounts: [{ id: 'acct-from-backend', name: 'Conta autorizada', isQueryable: true }, { id: 'acct-unknown', name: 'Conta sem sondagem', isQueryable: null }],
-    fields: [{ key: 'spend', classification: 'additive' }, { key: 'reach', classification: 'non_additive' }],
+    fields: [{ key: 'spend', classification: 'additive', description: 'Valor investido', example: 'R$ 120,00' }, { key: 'reach', classification: 'non_additive' }],
+    creativeFields: [{ key: 'thumbnail_url', name: 'Miniatura', description: 'URL da imagem de prévia' }],
     breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
     templates: [
       { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]] },
-      { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]] },
+      { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]], fields: ['spend', 'reach'], creativeFields: [] },
+      { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[]], fields: ['spend'], creativeFields: ['thumbnail_url'] },
       { key: 'meta_demographics', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] },
     ],
   } });
@@ -59,11 +69,34 @@ const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
   assert.equal(real.contas[1].disponivel, null, 'null não pode virar true nem zero');
   assert.equal(real.campos[0].natureza, 'aditiva');
   assert.equal(real.campos[1].natureza, 'nao-aditiva');
+  assert.equal(real.campos[0].descricao, 'Valor investido');
+  assert.equal(real.campos[0].exemplo, 'R$ 120,00');
+  assert.equal(real.creativeFields?.[0].id, 'thumbnail_url');
   assert.deepEqual(real.niveis.map(({ id }) => id), ['conta', 'campanha', 'conjunto', 'anuncio']);
   assert.deepEqual(real.breakdowns.find(({ id }) => id === 'age+gender')?.valores, ['age', 'gender']);
   assert.deepEqual(real.templates[0].niveisCompativeis, ['conta', 'campanha']);
+  assert.deepEqual(real.templates[1].campos, ['spend', 'reach']);
+  const preset = aplicarPreset({ ...base, nivel: 'anuncio' }, 'meta_creative_performance', real);
+  assert.deepEqual(preset.campos, ['spend']);
+  assert.deepEqual(preset.creativeFields, ['thumbnail_url']);
+  const legado = sanearCamposDoCatalogo({ ...preset, campos: ['spend', 'campo_antigo'], creativeFields: ['thumbnail_url', 'url_antiga'] }, real);
+  assert.deepEqual(legado.rascunho.campos, ['spend']);
+  assert.deepEqual(legado.rascunho.creativeFields, ['thumbnail_url']);
+  assert.deepEqual(legado.removidos, ['campo_antigo', 'url_antiga']);
   assert.deepEqual(real.granularidades.map(({ id }) => id), ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada']);
   assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
+}
+
+/* Criativos falham cedo fora do nível aceito, antes de chegar ao backend. */
+{
+  const catalogoCriativo = normalizarCatalogo({ data: { accounts: [], fields: [{ key: 'spend' }],
+    creativeFields: [{ key: 'thumbnail_url' }], granularities: ['day'], templates: [
+      { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[]], fields: ['spend'], creativeFields: ['thumbnail_url'] },
+    ] } });
+  const invalido = impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'campanha' }, catalogoCriativo);
+  assert.ok(invalido.some((item) => item.campo === 'criativos' && /Anúncio/.test(item.mensagem)));
+  assert.equal(impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'anuncio' }, catalogoCriativo)
+    .some((item) => item.campo === 'criativos'), false);
 }
 
 /* Sem conta escolhida não se monta consulta, e a mensagem diz o que fazer. */
@@ -157,11 +190,18 @@ assert.match(componentes, /aria-live="polite"/);
 assert.doesNotMatch(componentes, />[^<]*exportKey[^<]*</, 'a UI não pode expor exportKey técnica');
 assert.match(
   componentes,
-  /setErroDestino\(null\);\s*setDestino\(null\);\s*try \{/,
-  'uma nova tentativa precisa invalidar o destino anterior antes da chamada remota',
+  /setErroDestino\(null\);\s*if \(modo === 'criar'\) setDestino\(null\);\s*try \{/,
+  'create invalida o destino, mas edit preserva o atual até confirmar o candidato',
 );
-const edicoesDestino = componentes.match(/setDestino\(null\);\s*setErroDestino\(null\);/g) ?? [];
-assert.ok(edicoesDestino.length >= 2, 'editar título ou referência precisa invalidar a confirmação anterior');
+assert.match(componentes, /Buscar campos/);
+assert.match(componentes, /Sua seleção/);
+assert.match(componentes, /Remover \$\{campo\.nome\}/);
+assert.match(componentes, /creativeFields == null \? \{\} : \{ creativeFields: rascunho\.creativeFields \}/);
+assert.match(componentes, /\.\.\.\(definicaoInicial \?\? \{\}\)/, 'edição deve preservar propriedades fora do formulário');
+assert.doesNotMatch(componentes, /entityIds: \[\][\s\S]*filters: \[\]/, 'edição não pode zerar filtros e IDs silenciosamente');
+assert.match(componentes, /Completar configuração/);
+assert.match(pagina, /method: atual \? 'PATCH' : 'POST'/);
+assert.match(pagina, /revision: atual\.revision/);
 
 const picker = fs.readFileSync(new URL('../src/pages/data-hub-google-picker.ts', import.meta.url), 'utf8');
 assert.match(picker, /application\/vnd\.google-apps\.spreadsheet/, 'Picker precisa aceitar somente Google Sheets');
@@ -224,6 +264,38 @@ function html(no: unknown) {
   Object.assign(globalThis, { window: previousWindow, document: previousDocument });
 }
 
+/* Completar destino numa edição não apaga filtros, IDs, agenda ou período absoluto. */
+{
+  const dom = new JSDOM('<div id="root"></div>', { url: 'https://portal.example.test/data-hub' });
+  const previousWindow = globalThis.window; const previousDocument = globalThis.document;
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
+  const destination = { provider: 'google_sheets' as const, spreadsheetId: '1234567890abcdefghijklmnop',
+    spreadsheetName: 'Relatório', sheetId: 0, sheetTitle: 'Fonte', startCell: 'A1' as const, writeMode: 'replace' as const };
+  const periodContract = { version: '1.0.0', executionFrequency: { unit: 'day', value: 1 }, timezone: 'UTC',
+    runAtLocal: '08:00', dataPeriod: { type: 'absolute', start: '2026-08-01', end: '2026-08-02' }, outputGranularity: 'day' };
+  const original = { schemaVersion: '1.2.0', entityIds: ['ad-1'], filters: [{ field: 'status', value: 'ACTIVE' }],
+    sort: { field: 'spend' }, attributionRequested: ['7d_click'], requestFingerprint: 'preservar', periodContract, destination };
+  let salva: any = null;
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  await act(async () => root.render(createElement(CriadorDeExtracao, { modo: 'editar', catalogo: CATALOGO_PADRAO,
+    rascunhoInicial: base, destinoInicial: destination, definicaoInicial: original, aoCancelar: () => {},
+    aoConcluir: (extracao) => { salva = extracao.definition; } })));
+  for (let passo = 0; passo < 4; passo += 1) {
+    const avancar = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Avançar') as HTMLButtonElement;
+    await act(async () => avancar.click());
+  }
+  const salvar = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Salvar alterações') as HTMLButtonElement;
+  await act(async () => salvar.click());
+  assert.deepEqual(salva.entityIds, original.entityIds);
+  assert.deepEqual(salva.filters, original.filters);
+  assert.deepEqual(salva.sort, original.sort);
+  assert.deepEqual(salva.attributionRequested, original.attributionRequested);
+  assert.equal(salva.requestFingerprint, 'preservar');
+  assert.deepEqual(salva.periodContract, periodContract);
+  await act(async () => root.unmount());
+  Object.assign(globalThis, { window: previousWindow, document: previousDocument });
+}
+
 /* Execução manual só fica disponível com destino replace confirmado e Google pronto. */
 {
   const definition = { destination: { provider: 'google_sheets', spreadsheetId: '1234567890abcdefghijklmnop',
@@ -254,6 +326,11 @@ function html(no: unknown) {
     aoCriar: () => {}, googlePronto: false }));
   assert.match(desconectado, /disabled/);
   assert.match(desconectado, /Conecte sua conta Google/i);
+
+  const legado = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'legacy', nome: 'Legada', resumo: 'sem destino', definition: {} }],
+    aoCriar: () => {}, googlePronto: true }));
+  assert.match(legado, /Completar configuração/);
+  assert.match(legado, /disabled/);
 }
 
 /* O criador abre na primeira etapa, com a conta ainda por escolher: o resumo
