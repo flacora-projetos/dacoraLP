@@ -6,7 +6,7 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
-import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, type Catalogo, type Granularidade, type NivelEntidade, type Rascunho } from './data-hub-catalogo';
+import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type NivelEntidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
 
@@ -113,11 +113,20 @@ function DataHubInicio() {
     const granularidade = (output === 'week' ? 'semanal' : output === 'month' ? 'mensal' : output === 'all_days'
       ? 'periodo-inteiro' : typeof output === 'string' && output.startsWith('custom_') ? 'personalizada' : 'diaria') as Granularidade;
     const dias = Number(item.periodContract?.dataPeriod?.value ?? 7);
-    return { ...RASCUNHO_INICIAL, contaId: String(item.sourceAccountId ?? ''), templateId: String(item.template ?? ''),
+    return sanearCamposDoCatalogo({ ...RASCUNHO_INICIAL, contaId: String(item.sourceAccountId ?? ''), templateId: String(item.template ?? ''),
       nivel: nivel as NivelEntidade, campos: Array.isArray(item.fields) ? item.fields.map(String) : [],
       creativeFields: Array.isArray(item.creativeFields) ? item.creativeFields.map(String) : [], breakdownId,
       periodoId: catalogo.periodos.find((periodo) => periodo.dias === dias)?.id ?? RASCUNHO_INICIAL.periodoId,
-      granularidade, granularidadeDias: granularidade === 'personalizada' ? Number(String(output).slice(7)) : 14 };
+      granularidade, granularidadeDias: granularidade === 'personalizada' ? Number(String(output).slice(7)) : 14 }, catalogo).rascunho;
+  }
+
+  function avisoLegado(extracao: ExtracaoLocal): string | null {
+    const item: any = extracao.definition ?? {};
+    const saneado = sanearCamposDoCatalogo({ ...RASCUNHO_INICIAL,
+      campos: Array.isArray(item.fields) ? item.fields.map(String) : [],
+      creativeFields: Array.isArray(item.creativeFields) ? item.creativeFields.map(String) : [] }, catalogo);
+    return saneado.removidos.length > 0
+      ? `${saneado.removidos.length} campo(s) antigo(s) não existem mais no catálogo e foram removidos. Revise a seleção antes de salvar.` : null;
   }
 
   function destinoDaExtracao(extracao: ExtracaoLocal): DestinoGoogleSheets | null {
@@ -295,6 +304,8 @@ function DataHubInicio() {
             modo={edicao ? 'editar' : 'criar'}
             rascunhoInicial={edicao ? rascunhoDaExtracao(edicao) : undefined}
             destinoInicial={edicao ? destinoDaExtracao(edicao) : null}
+            definicaoInicial={edicao?.definition}
+            avisoCamposLegados={edicao ? avisoLegado(edicao) : null}
             aoCriarPlanilha={criarPlanilha}
             aoResolverPlanilha={resolverPlanilha}
             aoEscolherNoDrive={escolherNoDrive}

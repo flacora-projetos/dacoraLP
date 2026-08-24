@@ -107,6 +107,8 @@ export type Template = {
   readonly nome: string;
   readonly niveisCompativeis: readonly NivelEntidade[];
   readonly breakdownsCompativeis: readonly string[];
+  readonly campos?: readonly string[];
+  readonly creativeFields?: readonly string[];
 };
 export type Catalogo = {
   readonly contas: readonly Conta[];
@@ -160,7 +162,9 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
   const templates = lista<any>(raw.templates).map((item) => {
     const niveisCompativeis = lista<any>(item.entityLevels).map(nivelDaApi).filter(Boolean) as NivelEntidade[];
     const breakdownsCompativeis = lista<any[]>(item.breakdownSelections).map((selection) => selection.join('+'));
-    return { id: String(item.id ?? item.key ?? item), nome: String(item.name ?? item.nome ?? item.id ?? item.key ?? item), niveisCompativeis, breakdownsCompativeis };
+    return { id: String(item.id ?? item.key ?? item), nome: String(item.name ?? item.nome ?? item.id ?? item.key ?? item), niveisCompativeis, breakdownsCompativeis,
+      campos: Object.hasOwn(item, 'fields') ? lista<string>(item.fields).map(String) : undefined,
+      creativeFields: Object.hasOwn(item, 'creativeFields') ? lista<string>(item.creativeFields).map(String) : undefined };
   }).filter((item) => item.id && item.nome) as Template[];
   const selecoes = new Map<string, Set<NivelEntidade>>();
   for (const template of templates) for (const selection of template.breakdownsCompativeis) {
@@ -212,6 +216,25 @@ export function impedimentos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_P
 
   if (rascunho.campos.length === 0) {
     lista.push({ campo: 'campos', mensagem: 'Escolha ao menos um campo para trazer.' });
+  }
+
+  if (rascunho.creativeFields.length > 0) {
+    const perfilCriativo = catalogo.templates.find((item) => item.id === 'meta_creative_performance');
+    if (rascunho.nivel !== 'anuncio') {
+      lista.push({ campo: 'criativos', mensagem: 'Campos de criativo exigem o nível Anúncio. Troque o nível ou remova esses campos.' });
+    } else if (perfilCriativo && rascunho.breakdownId !== 'nenhum' && !perfilCriativo.breakdownsCompativeis.includes(rascunho.breakdownId)) {
+      lista.push({ campo: 'criativos', mensagem: 'Este breakdown não é compatível com campos de criativo. Use uma opção aceita pelo perfil de criativos ou remova esses campos.' });
+    }
+  }
+
+  const preset = rascunho.templateId ? catalogo.templates.find((item) => item.id === rascunho.templateId) : null;
+  if (rascunho.templateId && !preset) {
+    lista.push({ campo: 'template', mensagem: 'O preset salvo não existe mais no catálogo. Escolha outro ou monte a seleção manualmente.' });
+  } else if (preset && rascunho.creativeFields.length === 0 && !preset.niveisCompativeis.includes(rascunho.nivel)) {
+    lista.push({ campo: 'template', mensagem: 'Este preset não atende ao nível escolhido. Troque o nível, escolha outro preset ou monte manualmente.' });
+  } else if (preset && rascunho.creativeFields.length === 0 && rascunho.breakdownId !== 'nenhum'
+    && !preset.breakdownsCompativeis.includes(rascunho.breakdownId)) {
+    lista.push({ campo: 'template', mensagem: 'Este preset não atende ao breakdown escolhido. Troque o recorte, escolha outro preset ou monte manualmente.' });
   }
 
   const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId);
@@ -266,4 +289,24 @@ export function filtrarCampos(campos: readonly Campo[], busca: string): readonly
   if (!termo) return campos;
   return campos.filter((campo) => `${campo.nome} ${campo.descricao ?? ''}`.normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(termo));
+}
+
+export function aplicarPreset(rascunho: Rascunho, templateId: string, catalogo: Catalogo): Rascunho {
+  if (!templateId) return { ...rascunho, templateId: '' };
+  const template = catalogo.templates.find((item) => item.id === templateId);
+  if (!template) return { ...rascunho, templateId };
+  const camposPublicados = new Set(catalogo.campos.map((campo) => campo.id));
+  const criativosPublicados = new Set((catalogo.creativeFields ?? []).map((campo) => campo.id));
+  return { ...rascunho, templateId,
+    ...(template.campos == null ? {} : { campos: template.campos.filter((campo) => camposPublicados.has(campo)) }),
+    ...(template.creativeFields == null ? {} : { creativeFields: template.creativeFields.filter((campo) => criativosPublicados.has(campo)) }),
+  };
+}
+
+export function sanearCamposDoCatalogo(rascunho: Rascunho, catalogo: Catalogo): { rascunho: Rascunho; removidos: readonly string[] } {
+  const campos = new Set(catalogo.campos.map((campo) => campo.id));
+  const criativos = new Set((catalogo.creativeFields ?? []).map((campo) => campo.id));
+  const removidos = [...rascunho.campos.filter((campo) => !campos.has(campo)), ...rascunho.creativeFields.filter((campo) => !criativos.has(campo))];
+  return { rascunho: { ...rascunho, campos: rascunho.campos.filter((campo) => campos.has(campo)),
+    creativeFields: rascunho.creativeFields.filter((campo) => criativos.has(campo)) }, removidos };
 }

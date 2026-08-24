@@ -19,12 +19,15 @@ import { validarAceiteExecucao } from '../src/pages/data-hub-execucao.ts';
 import {
   BREAKDOWNS,
   CAMPOS,
+  CATALOGO_PADRAO,
   CONTAS,
   RASCUNHO_INICIAL,
   normalizarCatalogo,
   avisoDeVolume,
   impedimentos,
   filtrarCampos,
+  aplicarPreset,
+  sanearCamposDoCatalogo,
   naturezaDosCamposEscolhidos,
   type Rascunho,
 } from '../src/pages/data-hub-catalogo.ts';
@@ -56,7 +59,8 @@ assert.deepEqual(filtrarCampos([
     breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
     templates: [
       { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]] },
-      { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]] },
+      { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]], fields: ['spend', 'reach'], creativeFields: [] },
+      { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[]], fields: ['spend'], creativeFields: ['thumbnail_url'] },
       { key: 'meta_demographics', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] },
     ],
   } });
@@ -71,8 +75,28 @@ assert.deepEqual(filtrarCampos([
   assert.deepEqual(real.niveis.map(({ id }) => id), ['conta', 'campanha', 'conjunto', 'anuncio']);
   assert.deepEqual(real.breakdowns.find(({ id }) => id === 'age+gender')?.valores, ['age', 'gender']);
   assert.deepEqual(real.templates[0].niveisCompativeis, ['conta', 'campanha']);
+  assert.deepEqual(real.templates[1].campos, ['spend', 'reach']);
+  const preset = aplicarPreset({ ...base, nivel: 'anuncio' }, 'meta_creative_performance', real);
+  assert.deepEqual(preset.campos, ['spend']);
+  assert.deepEqual(preset.creativeFields, ['thumbnail_url']);
+  const legado = sanearCamposDoCatalogo({ ...preset, campos: ['spend', 'campo_antigo'], creativeFields: ['thumbnail_url', 'url_antiga'] }, real);
+  assert.deepEqual(legado.rascunho.campos, ['spend']);
+  assert.deepEqual(legado.rascunho.creativeFields, ['thumbnail_url']);
+  assert.deepEqual(legado.removidos, ['campo_antigo', 'url_antiga']);
   assert.deepEqual(real.granularidades.map(({ id }) => id), ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada']);
   assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
+}
+
+/* Criativos falham cedo fora do nível aceito, antes de chegar ao backend. */
+{
+  const catalogoCriativo = normalizarCatalogo({ data: { accounts: [], fields: [{ key: 'spend' }],
+    creativeFields: [{ key: 'thumbnail_url' }], granularities: ['day'], templates: [
+      { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[]], fields: ['spend'], creativeFields: ['thumbnail_url'] },
+    ] } });
+  const invalido = impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'campanha' }, catalogoCriativo);
+  assert.ok(invalido.some((item) => item.campo === 'criativos' && /Anúncio/.test(item.mensagem)));
+  assert.equal(impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'anuncio' }, catalogoCriativo)
+    .some((item) => item.campo === 'criativos'), false);
 }
 
 /* Sem conta escolhida não se monta consulta, e a mensagem diz o que fazer. */
@@ -173,6 +197,8 @@ assert.match(componentes, /Buscar campos/);
 assert.match(componentes, /Sua seleção/);
 assert.match(componentes, /Remover \$\{campo\.nome\}/);
 assert.match(componentes, /creativeFields == null \? \{\} : \{ creativeFields: rascunho\.creativeFields \}/);
+assert.match(componentes, /\.\.\.\(definicaoInicial \?\? \{\}\)/, 'edição deve preservar propriedades fora do formulário');
+assert.doesNotMatch(componentes, /entityIds: \[\][\s\S]*filters: \[\]/, 'edição não pode zerar filtros e IDs silenciosamente');
 assert.match(componentes, /Completar configuração/);
 assert.match(pagina, /method: atual \? 'PATCH' : 'POST'/);
 assert.match(pagina, /revision: atual\.revision/);
@@ -234,6 +260,38 @@ function html(no: unknown) {
   await act(async () => { botao.click(); botao.click(); await Promise.resolve(); });
   assert.equal(chamadas, 1, 'double-click não pode disparar duas execuções');
   liberar(); await act(async () => { await pendente; });
+  await act(async () => root.unmount());
+  Object.assign(globalThis, { window: previousWindow, document: previousDocument });
+}
+
+/* Completar destino numa edição não apaga filtros, IDs, agenda ou período absoluto. */
+{
+  const dom = new JSDOM('<div id="root"></div>', { url: 'https://portal.example.test/data-hub' });
+  const previousWindow = globalThis.window; const previousDocument = globalThis.document;
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
+  const destination = { provider: 'google_sheets' as const, spreadsheetId: '1234567890abcdefghijklmnop',
+    spreadsheetName: 'Relatório', sheetId: 0, sheetTitle: 'Fonte', startCell: 'A1' as const, writeMode: 'replace' as const };
+  const periodContract = { version: '1.0.0', executionFrequency: { unit: 'day', value: 1 }, timezone: 'UTC',
+    runAtLocal: '08:00', dataPeriod: { type: 'absolute', start: '2026-08-01', end: '2026-08-02' }, outputGranularity: 'day' };
+  const original = { schemaVersion: '1.2.0', entityIds: ['ad-1'], filters: [{ field: 'status', value: 'ACTIVE' }],
+    sort: { field: 'spend' }, attributionRequested: ['7d_click'], requestFingerprint: 'preservar', periodContract, destination };
+  let salva: any = null;
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  await act(async () => root.render(createElement(CriadorDeExtracao, { modo: 'editar', catalogo: CATALOGO_PADRAO,
+    rascunhoInicial: base, destinoInicial: destination, definicaoInicial: original, aoCancelar: () => {},
+    aoConcluir: (extracao) => { salva = extracao.definition; } })));
+  for (let passo = 0; passo < 4; passo += 1) {
+    const avancar = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Avançar') as HTMLButtonElement;
+    await act(async () => avancar.click());
+  }
+  const salvar = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Salvar alterações') as HTMLButtonElement;
+  await act(async () => salvar.click());
+  assert.deepEqual(salva.entityIds, original.entityIds);
+  assert.deepEqual(salva.filters, original.filters);
+  assert.deepEqual(salva.sort, original.sort);
+  assert.deepEqual(salva.attributionRequested, original.attributionRequested);
+  assert.equal(salva.requestFingerprint, 'preservar');
+  assert.deepEqual(salva.periodContract, periodContract);
   await act(async () => root.unmount());
   Object.assign(globalThis, { window: previousWindow, document: previousDocument });
 }
