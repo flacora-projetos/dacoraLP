@@ -27,6 +27,7 @@ import {
   impedimentos,
   filtrarCampos,
   aplicarPreset,
+  campoDisponivelNaCombinacao,
   sanearCamposDoCatalogo,
   naturezaDosCamposEscolhidos,
   type Rascunho,
@@ -54,11 +55,19 @@ assert.deepEqual(filtrarCampos([
 {
   const real = normalizarCatalogo({ data: {
     accounts: [{ id: 'acct-from-backend', name: 'Conta autorizada', isQueryable: true }, { id: 'acct-unknown', name: 'Conta sem sondagem', isQueryable: null }],
-    fields: [{ key: 'spend', classification: 'additive', description: 'Valor investido', example: 'R$ 120,00' }, { key: 'reach', classification: 'non_additive' }],
+    fields: [{ key: 'spend', classification: 'additive', description: 'Valor investido', example: 'R$ 120,00' }, { key: 'reach', classification: 'non_additive' },
+      { key: 'conversions', label: 'Conversões', classification: 'attribution_sensitive', aggregation: 'attribution_sensitive', availability: {
+        combinations: [{ entityLevels: ['campaign'], breakdownSelections: [[]] },
+          { entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] }],
+      } },
+      { key: 'instagram_profile_visits', label: 'Visitas ao perfil do Instagram', aggregation: 'attribution_sensitive', availability: {
+        combinations: [{ entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] }],
+      } }],
     creativeFields: [{ key: 'thumbnail_url', name: 'Miniatura', description: 'URL da imagem de prévia' }],
     breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
     templates: [
-      { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]] },
+      { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]],
+        fields: ['spend', 'conversions', 'instagram_profile_visits'], creativeFields: [] },
       { key: 'meta_adset_ad_daily', entityLevels: ['adset', 'ad'], breakdownSelections: [[]], fields: ['spend', 'reach'], creativeFields: [] },
       { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[]], fields: ['spend'], creativeFields: ['thumbnail_url'] },
       { key: 'meta_demographics', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] },
@@ -69,6 +78,18 @@ assert.deepEqual(filtrarCampos([
   assert.equal(real.contas[1].disponivel, null, 'null não pode virar true nem zero');
   assert.equal(real.campos[0].natureza, 'aditiva');
   assert.equal(real.campos[1].natureza, 'nao-aditiva');
+  assert.equal(real.campos[2].natureza, 'sensivel-atribuicao', 'atribuição sensível não pode virar aditiva');
+  assert.equal(real.campos[3].natureza, 'sensivel-atribuicao', 'aggregation também preserva a natureza quando classification faltar');
+  assert.equal(real.campos[2].nome, 'Conversões');
+  assert.equal(real.campos[3].nome, 'Visitas ao perfil do Instagram');
+  assert.equal(campoDisponivelNaCombinacao(real.campos[2], { ...base, nivel: 'campanha', breakdownId: 'nenhum' }, real), true);
+  assert.equal(campoDisponivelNaCombinacao(real.campos[3], { ...base, nivel: 'campanha', breakdownId: 'nenhum' }, real), false);
+  assert.equal(campoDisponivelNaCombinacao(real.campos[3], { ...base, nivel: 'campanha', breakdownId: 'age+gender' }, real), true);
+  assert.ok(impedimentos({ ...base, campos: ['instagram_profile_visits'], nivel: 'campanha', breakdownId: 'nenhum' }, real)
+    .some((item) => item.campo === 'campos' && /Visitas ao perfil do Instagram/.test(item.mensagem)));
+  assert.equal(campoDisponivelNaCombinacao(real.campos[0], { ...base, nivel: 'conta' }, real), true, 'catálogo 1.2 sem availability continua compatível');
+  assert.deepEqual(aplicarPreset({ ...base, nivel: 'campanha', breakdownId: 'nenhum' }, 'meta_campaign_daily', real).campos,
+    ['spend', 'conversions'], 'preset 1.3 não deve selecionar uma métrica incompatível e se autobloquear');
   assert.equal(real.campos[0].descricao, 'Valor investido');
   assert.equal(real.campos[0].exemplo, 'R$ 120,00');
   assert.equal(real.creativeFields?.[0].id, 'thumbnail_url');
@@ -292,6 +313,28 @@ function html(no: unknown) {
   assert.deepEqual(salva.attributionRequested, original.attributionRequested);
   assert.equal(salva.requestFingerprint, 'preservar');
   assert.deepEqual(salva.periodContract, periodContract);
+  await act(async () => root.unmount());
+  Object.assign(globalThis, { window: previousWindow, document: previousDocument });
+}
+
+/* A etapa de campos explica atribuição sensível e a incompatibilidade vigente. */
+{
+  const catalogoSensivel = normalizarCatalogo({ data: { accounts: [{ id: 'acct', name: 'Conta' }],
+    fields: [{ key: 'instagram_profile_visits', label: 'Visitas ao perfil do Instagram', classification: 'attribution_sensitive',
+      availability: { combinations: [{ entityLevels: ['campaign'], breakdownSelections: [['age', 'gender']] }] } }],
+    granularities: ['day'], templates: [{ key: 'meta_campaign_daily', entityLevels: ['campaign'], breakdownSelections: [[]],
+      fields: ['instagram_profile_visits'], creativeFields: [] }] } });
+  const dom = new JSDOM('<div id="root"></div>', { url: 'https://portal.example.test/data-hub' });
+  const previousWindow = globalThis.window; const previousDocument = globalThis.document;
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  await act(async () => root.render(createElement(CriadorDeExtracao, { catalogo: catalogoSensivel,
+    rascunhoInicial: { ...base, contaId: 'acct', campos: ['instagram_profile_visits'] }, aoCancelar: () => {}, aoConcluir: () => {} })));
+  const avancar = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Avançar') as HTMLButtonElement;
+  await act(async () => avancar.click());
+  assert.match(dom.window.document.body.textContent ?? '', /Depende da janela e do momento de atribuição da Meta/);
+  assert.match(dom.window.document.body.textContent ?? '', /Indisponível no nível e breakdown atuais/);
+  assert.match(dom.window.document.body.textContent ?? '', /Troque o nível ou breakdown, ou remova a métrica/);
   await act(async () => root.unmount());
   Object.assign(globalThis, { window: previousWindow, document: previousDocument });
 }
