@@ -169,7 +169,7 @@ globalThis.fetch = fetchOriginal;
   await executarRequisicaoDataHub(request, { id: actorId, email: 'contato@nandacora.com.br' }, dependencias);
   await executarRequisicaoDataHub(request, { id: actorId, email: 'contato@nandacora.com.br' }, dependencias);
   assert.equal(downstream[0], downstream[1], 'retry da mesma intenção precisa manter requestId');
-  assert.match(downstream[0], /^[0-9a-f]{64}$/);
+  assert.match(downstream[0], /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   await assert.rejects(() => executarRequisicaoDataHub({ ...request, intentId: 'forjado' },
     { id: actorId, email: 'contato@nandacora.com.br' }, dependencias), /INTENT_ID_invalido/);
 }

@@ -33,7 +33,11 @@ function requestIdDaIntencao(intentId: string, actorId: string, endpoint: string
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(intentId)) {
     throw new Error('DATA_HUB_INTENT_ID_invalido');
   }
-  return createHash('sha256').update(`data-hub-run\0${actorId}\0${endpoint}\0${intentId}`, 'utf8').digest('hex');
+  const digest = createHash('sha256').update(`data-hub-run\0${actorId}\0${endpoint}\0${intentId}`, 'utf8').digest();
+  digest[6] = (digest[6] & 0x0f) | 0x50;
+  digest[8] = (digest[8] & 0x3f) | 0x80;
+  const hex = digest.subarray(0, 16).toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function atorConfiavel(ator: { id: string; email: string }): { id: string; email: string } {

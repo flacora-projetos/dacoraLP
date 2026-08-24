@@ -32,10 +32,12 @@ const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
 
 {
   const hash = 'a'.repeat(64);
+  const requestId = '5ad667de-d988-5d2d-8e60-f953ea1521a4';
   assert.deepEqual(validarAceiteExecucao(202, { data: { status: 'accepted', occurrenceId: hash,
-    exportKey: hash, workUnits: 2 }, requestId: hash }), { occurrenceId: hash, requestId: hash });
+    exportKey: hash, workUnits: 2 }, requestId }), { occurrenceId: hash, requestId });
   for (const [status, body] of [[200, { data: { status: 'accepted' } }], [202, {}],
-    [202, { data: { status: 'accepted', occurrenceId: 'curta', exportKey: hash, workUnits: 2 }, requestId: hash }]]) {
+    [202, { data: { status: 'accepted', occurrenceId: 'curta', exportKey: hash, workUnits: 2 }, requestId }],
+    [202, { data: { status: 'accepted', occurrenceId: hash, exportKey: hash, workUnits: 2 }, requestId: hash }]]) {
     assert.throws(() => validarAceiteExecucao(status as number, body), /não confirmou/);
   }
 }
