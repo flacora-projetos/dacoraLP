@@ -48,6 +48,13 @@ export function ListaDeExtracoes({ extracoes, aoCriar, googlePronto = false, exe
   aoExecutar?: (extracao: ExtracaoLocal) => void | Promise<void>;
 }) {
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
+  const cliquesEmVoo = useRef(new Set<string>());
+
+  async function executarUmaVez(extracao: ExtracaoLocal) {
+    if (cliquesEmVoo.current.has(extracao.id)) return;
+    cliquesEmVoo.current.add(extracao.id);
+    try { await aoExecutar(extracao); } finally { cliquesEmVoo.current.delete(extracao.id); }
+  }
 
   /*
    * A lista e o criador se alternam por desmontagem: quando o criador some e a
@@ -104,15 +111,16 @@ export function ListaDeExtracoes({ extracoes, aoCriar, googlePronto = false, exe
             const append = destination?.provider === 'google_sheets' && destination.writeMode === 'append';
             const execucao = execucoes[extracao.id] ?? { tipo: 'inicial' as const };
             const executando = execucao.tipo === 'executando';
+            const aceita = execucao.tipo === 'aceito';
             return <li key={extracao.id} className="dcp-secao dch-cartao">
               <h2 className="dcp-secao__titulo">{extracao.nome}</h2>
               <p className="dcp-secao__apoio">{extracao.resumo}</p>
               <div className="dch-cartao__acoes">
                 <button type="button" className="dcp-botao dcp-botao--primario"
-                  disabled={!googlePronto || !destinoConfirmado || executando}
+                  disabled={!googlePronto || !destinoConfirmado || executando || aceita}
                   aria-describedby={`execucao-ajuda-${extracao.id} execucao-status-${extracao.id}`}
-                  onClick={() => void aoExecutar(extracao)}>
-                  {executando ? 'Executando…' : 'Executar agora'}
+                  onClick={() => void executarUmaVez(extracao)}>
+                  {executando ? 'Executando…' : aceita ? 'Execução aceita' : 'Executar agora'}
                 </button>
                 <p id={`execucao-ajuda-${extracao.id}`} className="dcp-secao__apoio">
                   {append ? 'O modo acrescentar ainda não está disponível para execução automática.'

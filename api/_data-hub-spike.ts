@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { getVercelOidcToken } from '@vercel/oidc';
 import { IdentityPoolClient } from 'google-auth-library';
 
@@ -26,6 +26,14 @@ export interface RequisicaoDataHub {
   endpoint: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
+  intentId?: string;
+}
+
+function requestIdDaIntencao(intentId: string, actorId: string, endpoint: string): string {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(intentId)) {
+    throw new Error('DATA_HUB_INTENT_ID_invalido');
+  }
+  return createHash('sha256').update(`data-hub-run\0${actorId}\0${endpoint}\0${intentId}`, 'utf8').digest('hex');
 }
 
 function atorConfiavel(ator: { id: string; email: string }): { id: string; email: string } {
@@ -114,11 +122,13 @@ export async function executarRequisicaoDataHub(
   const config = configuracaoDataHub();
   const endpoint = urlHttps('DATA_HUB_ENDPOINT', requisicao.endpoint);
   if (!endpoint.startsWith(`${config.cloudRunAudience}/internal/v1/portal/`)) throw new Error('DATA_HUB_ENDPOINT_invalido');
-  const requestId = (dependencias.requestId ?? randomUUID)();
   const obterOidc = dependencias.obterOidcVercel ?? getVercelOidcToken;
   const trocar = dependencias.trocarPorAccessToken ?? accessTokenGoogle;
   const chamar = dependencias.fetch ?? fetch;
   const actor = atorConfiavel(ator);
+  const requestId = requisicao.intentId == null
+    ? (dependencias.requestId ?? randomUUID)()
+    : requestIdDaIntencao(requisicao.intentId, actor.id, endpoint);
   const oidc = await obterOidc();
   const accessToken = await trocar(oidc, config);
   const iam = await chamar(

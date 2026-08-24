@@ -57,7 +57,11 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   if (runMatch) {
     if (method !== 'POST') return { error: 'metodo_nao_permitido' };
     const id = encodeURIComponent(runMatch[1]);
-    return { operation: 'run', request: { endpoint: `${base}/extractions/${id}/run`, method: 'POST', body: {} } };
+    const intent = req.headers['x-data-hub-intent'];
+    if (typeof intent !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(intent)) {
+      return { error: 'intencao_invalida' };
+    }
+    return { operation: 'run', request: { endpoint: `${base}/extractions/${id}/run`, method: 'POST', body: {}, intentId: intent } };
   }
   const match = path.match(/^\/extractions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
   if (!match) return { error: 'rota_data_hub_invalida' };

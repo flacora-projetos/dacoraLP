@@ -9,10 +9,13 @@
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createElement } from 'react';
+import { act, createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
+import { JSDOM } from 'jsdom';
 import { CriadorDeExtracao, ListaDeExtracoes } from '../src/pages/data-hub-extracoes.tsx';
+import { validarAceiteExecucao } from '../src/pages/data-hub-execucao.ts';
 import {
   BREAKDOWNS,
   CAMPOS,
@@ -26,6 +29,16 @@ import {
 } from '../src/pages/data-hub-catalogo.ts';
 
 const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
+
+{
+  const hash = 'a'.repeat(64);
+  assert.deepEqual(validarAceiteExecucao(202, { data: { status: 'accepted', occurrenceId: hash,
+    exportKey: hash, workUnits: 2 }, requestId: hash }), { occurrenceId: hash, requestId: hash });
+  for (const [status, body] of [[200, { data: { status: 'accepted' } }], [202, {}],
+    [202, { data: { status: 'accepted', occurrenceId: 'curta', exportKey: hash, workUnits: 2 }, requestId: hash }]]) {
+    assert.throws(() => validarAceiteExecucao(status as number, body), /não confirmou/);
+  }
+}
 
 /* A PWI2 recebe o envelope efetivo do BFF e preserva IDs e compatibilidades. */
 {
@@ -187,14 +200,35 @@ function html(no: unknown) {
   assert.match(marcado, /Extrações salvas permanecem disponíveis neste Data Hub/i, 'a lista precisa indicar persistência no Data Hub');
 }
 
+/* Dois eventos antes do rerender representam uma ação: a trava vive no handler, não só no disabled visual. */
+{
+  const dom = new JSDOM('<div id="root"></div>', { url: 'https://portal.example.test/data-hub' });
+  const previousWindow = globalThis.window; const previousDocument = globalThis.document;
+  Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
+  let chamadas = 0; let liberar!: () => void;
+  const pendente = new Promise<void>((resolve) => { liberar = resolve; });
+  const definition = { destination: { provider: 'google_sheets', spreadsheetId: '1234567890abcdefghijklmnop',
+    spreadsheetName: 'Relatório', sheetId: 0, sheetTitle: 'Fonte', startCell: 'A1', writeMode: 'replace' } };
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  await act(async () => root.render(createElement(ListaDeExtracoes, {
+    extracoes: [{ id: 'extract-click', nome: 'Fonte', resumo: '1 campo', definition }], aoCriar: () => {}, googlePronto: true,
+    aoExecutar: async () => { chamadas += 1; await pendente; },
+  })));
+  const botao = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Executar agora') as HTMLButtonElement;
+  await act(async () => { botao.click(); botao.click(); await Promise.resolve(); });
+  assert.equal(chamadas, 1, 'double-click não pode disparar duas execuções');
+  liberar(); await act(async () => { await pendente; });
+  await act(async () => root.unmount());
+  Object.assign(globalThis, { window: previousWindow, document: previousDocument });
+}
+
 /* Execução manual só fica disponível com destino replace confirmado e Google pronto. */
 {
   const definition = { destination: { provider: 'google_sheets', spreadsheetId: '1234567890abcdefghijklmnop',
     spreadsheetName: 'Relatório', sheetId: 0, sheetTitle: 'Fonte', startCell: 'A1', writeMode: 'replace' } };
   const pronto = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-1', nome: 'Fonte', resumo: '1 campo', definition }],
     aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'aceito' } }, aoExecutar: () => {} }));
-  assert.match(pronto, /<button[^>]*>Executar agora<\/button>/);
-  assert.doesNotMatch(pronto.match(/<button[^>]*>Executar agora<\/button>/)?.[0] ?? '', /disabled/);
+  assert.match(pronto, /<button[^>]*disabled=""[^>]*>Execução aceita<\/button>/);
   assert.match(pronto, /Execução aceita\. A planilha será atualizada em segundo plano/);
   const executando = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-1', nome: 'Fonte', resumo: '1 campo', definition }],
     aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'executando' } } }));
@@ -204,6 +238,10 @@ function html(no: unknown) {
     aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'erro', mensagem: 'Falha segura.' } } }));
   assert.match(erro, /role="alert">Falha segura\./);
   assert.match(erro, /aria-live="polite"/);
+
+  const inicial = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-1', nome: 'Fonte', resumo: '1 campo', definition }],
+    aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'inicial' } }, aoExecutar: () => {} }));
+  assert.doesNotMatch(inicial.match(/<button[^>]*>Executar agora<\/button>/)?.[0] ?? '', /disabled/);
 
   const append = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-2', nome: 'Append', resumo: '1 campo',
     definition: { destination: { ...definition.destination, writeMode: 'append' } } }], aoCriar: () => {}, googlePronto: true }));
