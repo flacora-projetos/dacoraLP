@@ -132,6 +132,16 @@ assert.match(pagina, /fetch\(`\/api\/data-hub\$\{path\}`/);
 assert.match(pagina, /Conectar Google Drive/);
 assert.match(pagina, /\/google\/status/);
 assert.match(pagina, /\/google\/callback/);
+assert.match(componentes, /\['Origem', 'Campos', 'Período', 'Destino', 'Revisão'\]/);
+assert.match(componentes, /Criar e usar/);
+assert.match(componentes, /Escolher no Google Drive/);
+assert.match(componentes, /destination: destino/);
+assert.match(componentes, /disabled=\{problemas\.length > 0 \|\| !destino \|\| salvando\}/);
+
+const picker = fs.readFileSync(new URL('../src/pages/data-hub-google-picker.ts', import.meta.url), 'utf8');
+assert.match(picker, /application\/vnd\.google-apps\.spreadsheet/, 'Picker precisa aceitar somente Google Sheets');
+assert.match(picker, /VITE_DATA_HUB_GOOGLE_PICKER_API_KEY/);
+assert.match(picker, /VITE_DATA_HUB_GOOGLE_PICKER_APP_ID/);
 
 const catalogo = fs.readFileSync(new URL('../src/pages/data-hub-catalogo.ts', import.meta.url), 'utf8');
 assert.doesNotMatch(catalogo, /act_\d|\b\d{10,}\b/, 'nenhum ID de conta real pode entrar no catálogo fonte');

@@ -130,6 +130,14 @@ globalThis.fetch = fetchOriginal;
   assert.deepEqual(chamadasCrud[3].body, {});
   await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/callback', query: { path: '/google/callback' }, body: { code: 'c', state: 's' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
   assert.deepEqual(chamadasCrud[4].body, { code: 'c', state: 's' });
+  await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/spreadsheets', query: { path: '/google/spreadsheets' }, body: { title: 'Nova' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.match(chamadasCrud[5].endpoint, /\/internal\/v1\/portal\/google\/spreadsheets$/);
+  assert.deepEqual(chamadasCrud[5].body, { title: 'Nova' });
+  await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/spreadsheets/resolve', query: { path: '/google/spreadsheets/resolve' }, body: { spreadsheetId: 'sheet-id' } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.match(chamadasCrud[6].endpoint, /\/google\/spreadsheets\/resolve$/);
+  await atenderDataHub({ method: 'POST', url: '/api/data-hub/google/picker/session', query: { path: '/google/picker/session' }, body: { forged: true } } as any, res, { id: actorId, email: 'contato@nandacora.com.br' }, { executar: executarFake });
+  assert.match(chamadasCrud[7].endpoint, /\/google\/picker\/session$/);
+  assert.deepEqual(chamadasCrud[7].body, {}, 'sessão Picker não aceita payload do browser');
   assert.doesNotMatch(JSON.stringify(captura.corpo), /access_token|authorization|Bearer/i);
 }
 
@@ -145,5 +153,7 @@ assert.match(pagina, /body: '\{\}'/);
 assert.doesNotMatch(pagina, /body:[^\n]*(requestId|actor|audience)/);
 assert.match(pagina, /Conectar Google Drive/);
 assert.match(pagina, /\/google\/callback/);
+assert.match(pagina, /\/google\/spreadsheets\/resolve/);
+assert.match(pagina, /\/google\/picker\/session/);
 
 console.log('OK — PWI0 local: sessão antes do downstream, WIF injetável, IAM ID token, audiência exata e envelope sanitizado');

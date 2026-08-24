@@ -22,7 +22,17 @@ import {
  */
 export type ExtracaoLocal = { id: string; nome: string; resumo: string; revision?: number; definition?: Record<string, unknown> };
 
-const ETAPAS = ['Origem', 'Campos', 'Período', 'Revisão'] as const;
+export type DestinoGoogleSheets = {
+  provider: 'google_sheets';
+  spreadsheetId: string;
+  spreadsheetName: string;
+  sheetId: number;
+  sheetTitle: string;
+  startCell: 'A1';
+  writeMode: 'append' | 'replace';
+};
+
+const ETAPAS = ['Origem', 'Campos', 'Período', 'Destino', 'Revisão'] as const;
 
 export function ListaDeExtracoes({ extracoes, aoCriar }: { extracoes: readonly ExtracaoLocal[]; aoCriar: () => void }) {
   const tituloRef = useRef<HTMLHeadingElement | null>(null);
@@ -90,6 +100,9 @@ export function CriadorDeExtracao({
   aoConcluir,
   rascunhoInicial,
   catalogo = CATALOGO_PADRAO,
+  aoCriarPlanilha = async () => { throw new Error('Criação de planilha indisponível.'); },
+  aoResolverPlanilha = async () => { throw new Error('Seleção de planilha indisponível.'); },
+  aoEscolherNoDrive = async () => { throw new Error('Google Drive indisponível.'); },
 }: {
   aoCancelar: () => void;
   aoConcluir: (extracao: ExtracaoLocal) => void | Promise<void>;
@@ -102,10 +115,18 @@ export function CriadorDeExtracao({
    */
   rascunhoInicial?: Rascunho;
   catalogo?: Catalogo;
+  aoCriarPlanilha?: (title: string) => Promise<DestinoGoogleSheets>;
+  aoResolverPlanilha?: (valor: string) => Promise<DestinoGoogleSheets>;
+  aoEscolherNoDrive?: () => Promise<DestinoGoogleSheets | null>;
 }) {
   const [salvando, setSalvando] = useState(false);
   const [etapa, setEtapa] = useState(0);
   const [rascunho, setRascunho] = useState<Rascunho>(rascunhoInicial ?? RASCUNHO_INICIAL);
+  const [destino, setDestino] = useState<DestinoGoogleSheets | null>(null);
+  const [tituloPlanilha, setTituloPlanilha] = useState('Extração Dácora Data Hub');
+  const [referenciaPlanilha, setReferenciaPlanilha] = useState('');
+  const [destinoOcupado, setDestinoOcupado] = useState<'criar' | 'resolver' | 'drive' | null>(null);
+  const [erroDestino, setErroDestino] = useState<string | null>(null);
 
   const problemas = useMemo(() => impedimentos(rascunho, catalogo), [rascunho, catalogo]);
   const aviso = useMemo(() => avisoDeVolume(rascunho, catalogo), [rascunho, catalogo]);
@@ -152,6 +173,24 @@ export function CriadorDeExtracao({
       ...atual,
       campos: atual.campos.includes(id) ? atual.campos.filter((campo) => campo !== id) : [...atual.campos, id],
     }));
+  }
+
+  async function definirDestino(acao: 'criar' | 'resolver' | 'drive') {
+    if (destinoOcupado) return;
+    setDestinoOcupado(acao);
+    setErroDestino(null);
+    try {
+      const escolhido = acao === 'criar'
+        ? await aoCriarPlanilha(tituloPlanilha.trim())
+        : acao === 'resolver'
+          ? await aoResolverPlanilha(referenciaPlanilha.trim())
+          : await aoEscolherNoDrive();
+      if (escolhido) setDestino(escolhido);
+    } catch (error) {
+      setErroDestino(error instanceof Error ? error.message : 'Não foi possível confirmar a planilha.');
+    } finally {
+      setDestinoOcupado(null);
+    }
   }
 
   return (
@@ -322,6 +361,53 @@ export function CriadorDeExtracao({
 
           {etapa === 3 ? (
             <>
+              <h2 ref={tituloEtapaRef} tabIndex={-1}>Destino no Google Sheets</h2>
+              <p className="dch-formulario__apoio">Crie uma planilha nova, cole o link de uma existente ou escolha um arquivo no Google Drive.</p>
+
+              <div className="dch-destino-opcoes">
+                <div className="dch-destino-opcao">
+                  <h3>Criar uma planilha</h3>
+                  <label className="dch-campo" htmlFor="titulo-planilha"><span>Nome da planilha</span>
+                    <input id="titulo-planilha" value={tituloPlanilha} onChange={(evento) => setTituloPlanilha(evento.target.value)} />
+                  </label>
+                  <button type="button" className="dcp-botao dcp-botao--primario" disabled={!tituloPlanilha.trim() || destinoOcupado !== null} onClick={() => void definirDestino('criar')}>
+                    {destinoOcupado === 'criar' ? 'Criando…' : 'Criar e usar'}
+                  </button>
+                </div>
+
+                <div className="dch-destino-opcao">
+                  <h3>Usar uma planilha existente</h3>
+                  <label className="dch-campo" htmlFor="referencia-planilha"><span>Link ou ID da planilha</span>
+                    <input id="referencia-planilha" value={referenciaPlanilha} onChange={(evento) => setReferenciaPlanilha(evento.target.value)} placeholder="Cole o link do Google Sheets" />
+                  </label>
+                  <button type="button" className="dcp-botao dcp-botao--discreto" disabled={!referenciaPlanilha.trim() || destinoOcupado !== null} onClick={() => void definirDestino('resolver')}>
+                    {destinoOcupado === 'resolver' ? 'Confirmando…' : 'Confirmar planilha'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="dch-destino-drive">
+                <p>Ou procure entre as planilhas que o Google permite ao Data Hub acessar.</p>
+                <button type="button" className="dcp-botao dcp-botao--discreto" disabled={destinoOcupado !== null} onClick={() => void definirDestino('drive')}>
+                  {destinoOcupado === 'drive' ? 'Abrindo Drive…' : 'Escolher no Google Drive'}
+                </button>
+              </div>
+
+              <div className="dch-destino-estado" aria-live="polite">
+                {erroDestino ? <p className="dcp-erro" role="alert">{erroDestino}</p> : null}
+                {destino ? (
+                  <div className="dch-destino-confirmado">
+                    <span>Destino confirmado</span>
+                    <strong>{destino.spreadsheetName}</strong>
+                    <small>Aba: {destino.sheetTitle}</small>
+                  </div>
+                ) : <p>Nenhuma planilha confirmada.</p>}
+              </div>
+            </>
+          ) : null}
+
+          {etapa === 4 ? (
+            <>
               <h2 ref={tituloEtapaRef} tabIndex={-1}>Revisão</h2>
               <dl className="dch-revisao">
                 <div><dt>Conta</dt><dd>{conta?.nome ?? 'Não escolhida'}</dd></div>
@@ -330,6 +416,8 @@ export function CriadorDeExtracao({
                 <div><dt>Breakdown</dt><dd>{breakdown?.nome ?? '—'}</dd></div>
                 <div><dt>Período</dt><dd>{periodo?.nome ?? '—'}</dd></div>
                 <div><dt>Granularidade</dt><dd>{granularidade?.nome ?? '—'}</dd></div>
+                <div><dt>Planilha</dt><dd>{destino?.spreadsheetName ?? 'Não escolhida'}</dd></div>
+                <div><dt>Aba</dt><dd>{destino?.sheetTitle ?? '—'}</dd></div>
               </dl>
               {naoAditivos.length > 0 ? (
                 <p className="dcp-nota">
@@ -349,6 +437,7 @@ export function CriadorDeExtracao({
           <p className="dch-resumo__linha"><strong>Campos:</strong> {rascunho.campos.length}</p>
           <p className="dch-resumo__linha"><strong>Período:</strong> {periodo?.nome ?? '—'}</p>
           <p className="dch-resumo__linha"><strong>Granularidade:</strong> {granularidade?.nome ?? '—'}</p>
+          <p className="dch-resumo__linha"><strong>Destino:</strong> {destino ? `${destino.spreadsheetName} · ${destino.sheetTitle}` : 'não escolhido'}</p>
 
           <div className="dch-resumo__estado" aria-live="polite">
             {problemas.length > 0 ? (
@@ -369,7 +458,7 @@ export function CriadorDeExtracao({
                 ))}
               </ul>
             ) : (
-              <p className="dch-resumo__ok">Combinação válida.</p>
+              <p className="dch-resumo__ok">{destino ? 'Combinação e destino válidos.' : 'Combinação válida. Falta escolher o destino.'}</p>
             )}
             {aviso ? <p className="dcp-nota">{aviso}</p> : null}
           </div>
@@ -395,7 +484,7 @@ export function CriadorDeExtracao({
               <button
                 type="button"
                 className="dcp-botao dcp-botao--primario"
-                disabled={problemas.length > 0 || salvando}
+                disabled={problemas.length > 0 || !destino || salvando}
                 onClick={async () => {
                   if (salvando) return;
                   setSalvando(true);
@@ -411,6 +500,7 @@ export function CriadorDeExtracao({
                       entityIds: [], breakdowns: breakdown?.valores ?? [], fields: rascunho.campos,
                       filters: [], sort: null, attributionRequested: null, requestFingerprint: null,
                       periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
+                      destination: destino,
                     },
                     });
                   } finally {
