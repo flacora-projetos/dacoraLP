@@ -137,6 +137,13 @@ assert.match(componentes, /Criar e usar/);
 assert.match(componentes, /Escolher no Google Drive/);
 assert.match(componentes, /destination: destino/);
 assert.match(componentes, /disabled=\{problemas\.length > 0 \|\| !destino \|\| salvando\}/);
+assert.match(
+  componentes,
+  /setErroDestino\(null\);\s*setDestino\(null\);\s*try \{/,
+  'uma nova tentativa precisa invalidar o destino anterior antes da chamada remota',
+);
+const edicoesDestino = componentes.match(/setDestino\(null\);\s*setErroDestino\(null\);/g) ?? [];
+assert.ok(edicoesDestino.length >= 2, 'editar título ou referência precisa invalidar a confirmação anterior');
 
 const picker = fs.readFileSync(new URL('../src/pages/data-hub-google-picker.ts', import.meta.url), 'utf8');
 assert.match(picker, /application\/vnd\.google-apps\.spreadsheet/, 'Picker precisa aceitar somente Google Sheets');

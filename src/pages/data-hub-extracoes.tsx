@@ -179,6 +179,7 @@ export function CriadorDeExtracao({
     if (destinoOcupado) return;
     setDestinoOcupado(acao);
     setErroDestino(null);
+    setDestino(null);
     try {
       const escolhido = acao === 'criar'
         ? await aoCriarPlanilha(tituloPlanilha.trim())
@@ -368,7 +369,11 @@ export function CriadorDeExtracao({
                 <div className="dch-destino-opcao">
                   <h3>Criar uma planilha</h3>
                   <label className="dch-campo" htmlFor="titulo-planilha"><span>Nome da planilha</span>
-                    <input id="titulo-planilha" value={tituloPlanilha} onChange={(evento) => setTituloPlanilha(evento.target.value)} />
+                    <input id="titulo-planilha" value={tituloPlanilha} onChange={(evento) => {
+                      setTituloPlanilha(evento.target.value);
+                      setDestino(null);
+                      setErroDestino(null);
+                    }} />
                   </label>
                   <button type="button" className="dcp-botao dcp-botao--primario" disabled={!tituloPlanilha.trim() || destinoOcupado !== null} onClick={() => void definirDestino('criar')}>
                     {destinoOcupado === 'criar' ? 'Criando…' : 'Criar e usar'}
@@ -378,7 +383,11 @@ export function CriadorDeExtracao({
                 <div className="dch-destino-opcao">
                   <h3>Usar uma planilha existente</h3>
                   <label className="dch-campo" htmlFor="referencia-planilha"><span>Link ou ID da planilha</span>
-                    <input id="referencia-planilha" value={referenciaPlanilha} onChange={(evento) => setReferenciaPlanilha(evento.target.value)} placeholder="Cole o link do Google Sheets" />
+                    <input id="referencia-planilha" value={referenciaPlanilha} onChange={(evento) => {
+                      setReferenciaPlanilha(evento.target.value);
+                      setDestino(null);
+                      setErroDestino(null);
+                    }} placeholder="Cole o link do Google Sheets" />
                   </label>
                   <button type="button" className="dcp-botao dcp-botao--discreto" disabled={!referenciaPlanilha.trim() || destinoOcupado !== null} onClick={() => void definirDestino('resolver')}>
                     {destinoOcupado === 'resolver' ? 'Confirmando…' : 'Confirmar planilha'}
