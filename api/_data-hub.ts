@@ -5,7 +5,7 @@ import {
   type RequisicaoDataHub,
 } from './_data-hub-spike.js';
 
-type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
+type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'run' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
 
 function jsonBody(req: Request): unknown {
   return req.body == null ? {} : req.body;
@@ -52,6 +52,12 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   }
   if (path === '/google/picker/session' && method === 'POST') {
     return { operation: 'google-picker-session', request: { endpoint: `${base}/google/picker/session`, method: 'POST', body: {} } };
+  }
+  const runMatch = path.match(/^\/extractions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/run$/i);
+  if (runMatch) {
+    if (method !== 'POST') return { error: 'metodo_nao_permitido' };
+    const id = encodeURIComponent(runMatch[1]);
+    return { operation: 'run', request: { endpoint: `${base}/extractions/${id}/run`, method: 'POST', body: {} } };
   }
   const match = path.match(/^\/extractions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
   if (!match) return { error: 'rota_data_hub_invalida' };

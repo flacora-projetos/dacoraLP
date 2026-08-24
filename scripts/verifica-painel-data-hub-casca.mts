@@ -137,6 +137,9 @@ assert.match(componentes, /Criar e usar/);
 assert.match(componentes, /Escolher no Google Drive/);
 assert.match(componentes, /destination: destino/);
 assert.match(componentes, /disabled=\{problemas\.length > 0 \|\| !destino \|\| salvando\}/);
+assert.match(componentes, /Executar agora/);
+assert.match(componentes, /aria-live="polite"/);
+assert.doesNotMatch(componentes, />[^<]*exportKey[^<]*</, 'a UI não pode expor exportKey técnica');
 assert.match(
   componentes,
   /setErroDestino\(null\);\s*setDestino\(null\);\s*try \{/,
@@ -182,6 +185,35 @@ function html(no: unknown) {
     }),
   );
   assert.match(marcado, /Extrações salvas permanecem disponíveis neste Data Hub/i, 'a lista precisa indicar persistência no Data Hub');
+}
+
+/* Execução manual só fica disponível com destino replace confirmado e Google pronto. */
+{
+  const definition = { destination: { provider: 'google_sheets', spreadsheetId: '1234567890abcdefghijklmnop',
+    spreadsheetName: 'Relatório', sheetId: 0, sheetTitle: 'Fonte', startCell: 'A1', writeMode: 'replace' } };
+  const pronto = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-1', nome: 'Fonte', resumo: '1 campo', definition }],
+    aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'aceito' } }, aoExecutar: () => {} }));
+  assert.match(pronto, /<button[^>]*>Executar agora<\/button>/);
+  assert.doesNotMatch(pronto.match(/<button[^>]*>Executar agora<\/button>/)?.[0] ?? '', /disabled/);
+  assert.match(pronto, /Execução aceita\. A planilha será atualizada em segundo plano/);
+  const executando = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-1', nome: 'Fonte', resumo: '1 campo', definition }],
+    aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'executando' } } }));
+  assert.match(executando, /Executando…/);
+  assert.match(executando, /Preparando a atualização da planilha…/);
+  const erro = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-1', nome: 'Fonte', resumo: '1 campo', definition }],
+    aoCriar: () => {}, googlePronto: true, execucoes: { 'extract-1': { tipo: 'erro', mensagem: 'Falha segura.' } } }));
+  assert.match(erro, /role="alert">Falha segura\./);
+  assert.match(erro, /aria-live="polite"/);
+
+  const append = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-2', nome: 'Append', resumo: '1 campo',
+    definition: { destination: { ...definition.destination, writeMode: 'append' } } }], aoCriar: () => {}, googlePronto: true }));
+  assert.match(append, /disabled/);
+  assert.match(append, /modo acrescentar ainda não está disponível/i);
+
+  const desconectado = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'extract-3', nome: 'Sem Google', resumo: '1 campo', definition }],
+    aoCriar: () => {}, googlePronto: false }));
+  assert.match(desconectado, /disabled/);
+  assert.match(desconectado, /Conecte sua conta Google/i);
 }
 
 /* O criador abre na primeira etapa, com a conta ainda por escolher: o resumo

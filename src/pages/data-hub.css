@@ -102,3 +102,14 @@
   .dch-destino-opcoes { grid-template-columns: 1fr; }
   .dch-destino-drive { align-items: stretch; flex-direction: column; }
 }
+.dch-cartao__acoes {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.dch-cartao__acoes .dch-status,
+.dch-cartao__acoes .dcp-secao__apoio {
+  margin: 0;
+}

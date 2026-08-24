@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
-import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type ExtracaoLocal } from './data-hub-extracoes';
+import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { CATALOGO_PADRAO, normalizarCatalogo, type Catalogo } from './data-hub-catalogo';
 import '../painel/painel.css';
@@ -47,6 +47,7 @@ function DataHubInicio() {
   const [erroDados, setErroDados] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [google, setGoogle] = useState<EstadoGoogle>({ tipo: 'carregando' });
+  const [execucoes, setExecucoes] = useState<Readonly<Record<string, EstadoExecucao>>>({});
   const callbackGoogleTratado = useRef(false);
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
 
@@ -87,6 +88,18 @@ function DataHubInicio() {
     const salvo = await chamarDataHub('/extractions', { method: 'POST', body: JSON.stringify({ extraction: definition }) });
     const item = salvo?.data;
     setExtracoes((atuais) => [...atuais, { ...extracao, id: String(item.extractionId ?? extracao.id), revision: Number(item.revision ?? 1), definition: item }]);
+  }
+
+  async function executarExtracao(extracao: ExtracaoLocal) {
+    if (execucoes[extracao.id]?.tipo === 'executando') return;
+    setExecucoes((atuais) => ({ ...atuais, [extracao.id]: { tipo: 'executando' } }));
+    try {
+      await chamarDataHub(`/extractions/${encodeURIComponent(extracao.id)}/run`, { method: 'POST', body: '{}' });
+      setExecucoes((atuais) => ({ ...atuais, [extracao.id]: { tipo: 'aceito' } }));
+    } catch (error) {
+      setExecucoes((atuais) => ({ ...atuais, [extracao.id]: { tipo: 'erro',
+        mensagem: error instanceof Error ? error.message : 'Não foi possível iniciar a execução.' } }));
+    }
   }
 
   function destinoDaResposta(resposta: any): DestinoGoogleSheets {
@@ -228,7 +241,8 @@ function DataHubInicio() {
 
       <main className="dch-corpo">
         {carregando ? <p className="dch-status" role="status">Carregando catálogo e extrações…</p> : erroDados ? <p className="dch-status dch-status--erro" role="alert">{erroDados}</p> : vista === 'lista' ? (
-          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')} />
+          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')}
+            googlePronto={google.tipo === 'conectado'} execucoes={execucoes} aoExecutar={executarExtracao} />
         ) : (
           <CriadorDeExtracao
             catalogo={catalogo}
