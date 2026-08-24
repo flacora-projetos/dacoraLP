@@ -20,6 +20,9 @@ export type Conta = {
 export type Campo = {
   readonly id: string;
   readonly nome: string;
+  readonly descricao?: string;
+  readonly exemplo?: string;
+  readonly categoria?: string;
   /*
    * Classificação que o HANDOFF do Data Hub exige carregar até o fim: somar
    * alcance de dois dias não dá o alcance do período, e CTR não se soma nunca.
@@ -92,6 +95,7 @@ export type Rascunho = {
   templateId: string;
   nivel: NivelEntidade;
   campos: readonly string[];
+  creativeFields: readonly string[];
   breakdownId: string;
   periodoId: string;
   granularidade: Granularidade;
@@ -108,6 +112,7 @@ export type Catalogo = {
   readonly contas: readonly Conta[];
   readonly niveis: readonly { id: NivelEntidade; nome: string }[];
   readonly campos: readonly Campo[];
+  readonly creativeFields?: readonly Campo[];
   readonly breakdowns: readonly Breakdown[];
   readonly periodos: readonly Periodo[];
   readonly granularidades: readonly { id: Granularidade; nome: string; dias: number }[];
@@ -118,6 +123,7 @@ export const CATALOGO_PADRAO: Catalogo = {
   contas: CONTAS,
   niveis: NIVEIS,
   campos: CAMPOS,
+  creativeFields: [],
   breakdowns: BREAKDOWNS,
   periodos: PERIODOS,
   granularidades: GRANULARIDADES,
@@ -141,10 +147,16 @@ const NOMES: Record<string, string> = {
 /** Converte somente o envelope público do backend em opções de tela. */
 export function normalizarCatalogo(payload: unknown): Catalogo {
   const raw: any = (payload as any)?.data ?? (payload as any)?.catalog ?? payload ?? {};
-  const campos = lista<any>(raw.fields ?? raw.campos).map((item) => ({
+  const normalizarCampo = (item: any): Campo => ({
     id: String(item.id ?? item.key ?? ''), nome: String(item.name ?? item.nome ?? item.label ?? NOMES[item.key] ?? item.id ?? item.key ?? ''),
+    descricao: typeof item.description === 'string' ? item.description : undefined,
+    exemplo: typeof item.example === 'string' ? item.example : undefined,
+    categoria: typeof item.category === 'string' ? item.category : undefined,
     natureza: item.natureza ?? (item.classification === 'non_additive' ? 'nao-aditiva' : item.classification === 'calculated' ? 'calculada' : 'aditiva'),
-  })).filter((item) => item.id && item.nome) as Campo[];
+  });
+  const campos = lista<any>(raw.fields ?? raw.campos).map(normalizarCampo).filter((item) => item.id && item.nome) as Campo[];
+  const creativeFields = Object.hasOwn(raw, 'creativeFields')
+    ? lista<any>(raw.creativeFields).map(normalizarCampo).filter((item) => item.id && item.nome) as Campo[] : undefined;
   const templates = lista<any>(raw.templates).map((item) => {
     const niveisCompativeis = lista<any>(item.entityLevels).map(nivelDaApi).filter(Boolean) as NivelEntidade[];
     const breakdownsCompativeis = lista<any[]>(item.breakdownSelections).map((selection) => selection.join('+'));
@@ -169,7 +181,7 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
   }).filter((item) => ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada'].includes(item.id));
   const periodosRemotos = lista<any>(raw.periods ?? raw.periodos).map((item) => ({ id: String(item.id ?? item.key ?? ''), nome: String(item.name ?? item.nome ?? item.id ?? ''), dias: Number(item.days ?? item.dias ?? 0) })).filter((item) => item.id && item.nome && item.dias > 0);
   const periodos = periodosRemotos.length ? periodosRemotos : [...PERIODOS];
-  return { contas, niveis, campos, breakdowns, periodos, granularidades, templates };
+  return { contas, niveis, campos, creativeFields, breakdowns, periodos, granularidades, templates };
 }
 
 export const RASCUNHO_INICIAL: Rascunho = {
@@ -177,6 +189,7 @@ export const RASCUNHO_INICIAL: Rascunho = {
   templateId: '',
   nivel: 'campanha',
   campos: ['spend', 'impressions', 'clicks'],
+  creativeFields: [],
   breakdownId: 'nenhum',
   periodoId: 'ultimos-7',
   granularidade: 'diaria',
@@ -196,11 +209,6 @@ export function impedimentos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_P
   if (!rascunho.contaId) {
     lista.push({ campo: 'conta', mensagem: 'Escolha a conta de origem.' });
   }
-
-  const template = catalogo.templates.find((item) => item.id === rascunho.templateId);
-  if (catalogo.templates.length && !template) lista.push({ campo: 'template', mensagem: 'Escolha um modelo de extração.' });
-  if (template && !template.niveisCompativeis.includes(rascunho.nivel)) lista.push({ campo: 'template', mensagem: 'O modelo escolhido não atende a este nível.' });
-  if (template && rascunho.breakdownId !== 'nenhum' && !template.breakdownsCompativeis.includes(rascunho.breakdownId)) lista.push({ campo: 'breakdown', mensagem: 'O breakdown escolhido não é aceito por este modelo.' });
 
   if (rascunho.campos.length === 0) {
     lista.push({ campo: 'campos', mensagem: 'Escolha ao menos um campo para trazer.' });
@@ -251,4 +259,11 @@ export function avisoDeVolume(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_
 
 export function naturezaDosCamposEscolhidos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_PADRAO): readonly Campo[] {
   return catalogo.campos.filter((campo) => rascunho.campos.includes(campo.id));
+}
+
+export function filtrarCampos(campos: readonly Campo[], busca: string): readonly Campo[] {
+  const termo = busca.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (!termo) return campos;
+  return campos.filter((campo) => `${campo.nome} ${campo.descricao ?? ''}`.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(termo));
 }

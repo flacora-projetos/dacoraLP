@@ -24,11 +24,16 @@ import {
   normalizarCatalogo,
   avisoDeVolume,
   impedimentos,
+  filtrarCampos,
   naturezaDosCamposEscolhidos,
   type Rascunho,
 } from '../src/pages/data-hub-catalogo.ts';
 
 const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
+assert.deepEqual(filtrarCampos([
+  { id: 'reach', nome: 'Alcance', natureza: 'nao-aditiva', descricao: 'Pessoas únicas' },
+  { id: 'spend', nome: 'Investimento', natureza: 'aditiva', descricao: 'Valor gasto' },
+], 'unicas').map((campo) => campo.id), ['reach'], 'busca deve considerar descrição e ignorar acentos');
 
 {
   const hash = 'a'.repeat(64);
@@ -46,7 +51,8 @@ const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
 {
   const real = normalizarCatalogo({ data: {
     accounts: [{ id: 'acct-from-backend', name: 'Conta autorizada', isQueryable: true }, { id: 'acct-unknown', name: 'Conta sem sondagem', isQueryable: null }],
-    fields: [{ key: 'spend', classification: 'additive' }, { key: 'reach', classification: 'non_additive' }],
+    fields: [{ key: 'spend', classification: 'additive', description: 'Valor investido', example: 'R$ 120,00' }, { key: 'reach', classification: 'non_additive' }],
+    creativeFields: [{ key: 'thumbnail_url', name: 'Miniatura', description: 'URL da imagem de prévia' }],
     breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
     templates: [
       { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]] },
@@ -59,6 +65,9 @@ const base: Rascunho = { ...RASCUNHO_INICIAL, contaId: CONTAS[0].id };
   assert.equal(real.contas[1].disponivel, null, 'null não pode virar true nem zero');
   assert.equal(real.campos[0].natureza, 'aditiva');
   assert.equal(real.campos[1].natureza, 'nao-aditiva');
+  assert.equal(real.campos[0].descricao, 'Valor investido');
+  assert.equal(real.campos[0].exemplo, 'R$ 120,00');
+  assert.equal(real.creativeFields?.[0].id, 'thumbnail_url');
   assert.deepEqual(real.niveis.map(({ id }) => id), ['conta', 'campanha', 'conjunto', 'anuncio']);
   assert.deepEqual(real.breakdowns.find(({ id }) => id === 'age+gender')?.valores, ['age', 'gender']);
   assert.deepEqual(real.templates[0].niveisCompativeis, ['conta', 'campanha']);
@@ -157,11 +166,16 @@ assert.match(componentes, /aria-live="polite"/);
 assert.doesNotMatch(componentes, />[^<]*exportKey[^<]*</, 'a UI não pode expor exportKey técnica');
 assert.match(
   componentes,
-  /setErroDestino\(null\);\s*setDestino\(null\);\s*try \{/,
-  'uma nova tentativa precisa invalidar o destino anterior antes da chamada remota',
+  /setErroDestino\(null\);\s*if \(modo === 'criar'\) setDestino\(null\);\s*try \{/,
+  'create invalida o destino, mas edit preserva o atual até confirmar o candidato',
 );
-const edicoesDestino = componentes.match(/setDestino\(null\);\s*setErroDestino\(null\);/g) ?? [];
-assert.ok(edicoesDestino.length >= 2, 'editar título ou referência precisa invalidar a confirmação anterior');
+assert.match(componentes, /Buscar campos/);
+assert.match(componentes, /Sua seleção/);
+assert.match(componentes, /Remover \$\{campo\.nome\}/);
+assert.match(componentes, /creativeFields == null \? \{\} : \{ creativeFields: rascunho\.creativeFields \}/);
+assert.match(componentes, /Completar configuração/);
+assert.match(pagina, /method: atual \? 'PATCH' : 'POST'/);
+assert.match(pagina, /revision: atual\.revision/);
 
 const picker = fs.readFileSync(new URL('../src/pages/data-hub-google-picker.ts', import.meta.url), 'utf8');
 assert.match(picker, /application\/vnd\.google-apps\.spreadsheet/, 'Picker precisa aceitar somente Google Sheets');
@@ -254,6 +268,11 @@ function html(no: unknown) {
     aoCriar: () => {}, googlePronto: false }));
   assert.match(desconectado, /disabled/);
   assert.match(desconectado, /Conecte sua conta Google/i);
+
+  const legado = html(createElement(ListaDeExtracoes, { extracoes: [{ id: 'legacy', nome: 'Legada', resumo: 'sem destino', definition: {} }],
+    aoCriar: () => {}, googlePronto: true }));
+  assert.match(legado, /Completar configuração/);
+  assert.match(legado, /disabled/);
 }
 
 /* O criador abre na primeira etapa, com a conta ainda por escolher: o resumo

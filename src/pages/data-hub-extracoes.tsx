@@ -6,6 +6,7 @@ import {
   avisoDeVolume,
   impedimentos,
   naturezaDosCamposEscolhidos,
+  filtrarCampos,
   type Granularidade,
   type NivelEntidade,
   type Rascunho,
@@ -40,9 +41,10 @@ export type DestinoGoogleSheets = {
 
 const ETAPAS = ['Origem', 'Campos', 'Período', 'Destino', 'Revisão'] as const;
 
-export function ListaDeExtracoes({ extracoes, aoCriar, googlePronto = false, execucoes = {}, aoExecutar = async () => {} }: {
+export function ListaDeExtracoes({ extracoes, aoCriar, aoEditar = () => {}, googlePronto = false, execucoes = {}, aoExecutar = async () => {} }: {
   extracoes: readonly ExtracaoLocal[];
   aoCriar: () => void;
+  aoEditar?: (extracao: ExtracaoLocal) => void;
   googlePronto?: boolean;
   execucoes?: Readonly<Record<string, EstadoExecucao>>;
   aoExecutar?: (extracao: ExtracaoLocal) => void | Promise<void>;
@@ -116,6 +118,9 @@ export function ListaDeExtracoes({ extracoes, aoCriar, googlePronto = false, exe
               <h2 className="dcp-secao__titulo">{extracao.nome}</h2>
               <p className="dcp-secao__apoio">{extracao.resumo}</p>
               <div className="dch-cartao__acoes">
+                <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => aoEditar(extracao)}>
+                  {destinoConfirmado ? 'Editar' : 'Completar configuração'}
+                </button>
                 <button type="button" className="dcp-botao dcp-botao--primario"
                   disabled={!googlePronto || !destinoConfirmado || executando || aceita}
                   aria-describedby={`execucao-ajuda-${extracao.id} execucao-status-${extracao.id}`}
@@ -145,6 +150,8 @@ export function CriadorDeExtracao({
   aoCancelar,
   aoConcluir,
   rascunhoInicial,
+  destinoInicial = null,
+  modo = 'criar',
   catalogo = CATALOGO_PADRAO,
   aoCriarPlanilha = async () => { throw new Error('Criação de planilha indisponível.'); },
   aoResolverPlanilha = async () => { throw new Error('Seleção de planilha indisponível.'); },
@@ -160,6 +167,8 @@ export function CriadorDeExtracao({
    * RASCUNHO_INICIAL.
    */
   rascunhoInicial?: Rascunho;
+  destinoInicial?: DestinoGoogleSheets | null;
+  modo?: 'criar' | 'editar';
   catalogo?: Catalogo;
   aoCriarPlanilha?: (title: string) => Promise<DestinoGoogleSheets>;
   aoResolverPlanilha?: (valor: string) => Promise<DestinoGoogleSheets>;
@@ -168,7 +177,8 @@ export function CriadorDeExtracao({
   const [salvando, setSalvando] = useState(false);
   const [etapa, setEtapa] = useState(0);
   const [rascunho, setRascunho] = useState<Rascunho>(rascunhoInicial ?? RASCUNHO_INICIAL);
-  const [destino, setDestino] = useState<DestinoGoogleSheets | null>(null);
+  const [destino, setDestino] = useState<DestinoGoogleSheets | null>(destinoInicial);
+  const [buscaCampos, setBuscaCampos] = useState('');
   const [tituloPlanilha, setTituloPlanilha] = useState('Extração Dácora Data Hub');
   const [referenciaPlanilha, setReferenciaPlanilha] = useState('');
   const [destinoOcupado, setDestinoOcupado] = useState<'criar' | 'resolver' | 'drive' | null>(null);
@@ -185,7 +195,6 @@ export function CriadorDeExtracao({
   const naoAditivos = naturezas.filter((campo) => campo.natureza !== 'aditiva');
 
   const impedimentoConta = problemas.find((problema) => problema.campo === 'conta');
-  const impedimentoTemplate = problemas.find((problema) => problema.campo === 'template');
   const impedimentoCampos = problemas.find((problema) => problema.campo === 'campos');
   const impedimentoBreakdown = problemas.find((problema) => problema.campo === 'breakdown');
   const impedimentoGranularidade = problemas.find((problema) => problema.campo === 'granularidade');
@@ -221,11 +230,25 @@ export function CriadorDeExtracao({
     }));
   }
 
+  function alternarCriativo(id: string) {
+    setRascunho((atual) => ({ ...atual, creativeFields: atual.creativeFields.includes(id)
+      ? atual.creativeFields.filter((campo) => campo !== id) : [...atual.creativeFields, id] }));
+  }
+
+  const metricasVisiveis = filtrarCampos(catalogo.campos, buscaCampos);
+  const criativosVisiveis = filtrarCampos(catalogo.creativeFields ?? [], buscaCampos);
+  const camposSelecionados = catalogo.campos.filter((campo) => rascunho.campos.includes(campo.id));
+  const criativosSelecionados = (catalogo.creativeFields ?? []).filter((campo) => rascunho.creativeFields.includes(campo.id));
+  const dimensoesSistema = ['Data', ...(rascunho.nivel === 'conta' ? ['Conta'] : rascunho.nivel === 'campanha'
+    ? ['Campanha'] : rascunho.nivel === 'conjunto' ? ['Campanha', 'Conjunto'] : ['Campanha', 'Conjunto', 'Anúncio'])];
+  const templateEfetivo = rascunho.templateId || catalogo.templates.find((item) => item.niveisCompativeis.includes(rascunho.nivel)
+    && (rascunho.breakdownId === 'nenhum' || item.breakdownsCompativeis.includes(rascunho.breakdownId)))?.id || '';
+
   async function definirDestino(acao: 'criar' | 'resolver' | 'drive') {
     if (destinoOcupado) return;
     setDestinoOcupado(acao);
     setErroDestino(null);
-    setDestino(null);
+    if (modo === 'criar') setDestino(null);
     try {
       const escolhido = acao === 'criar'
         ? await aoCriarPlanilha(tituloPlanilha.trim())
@@ -290,15 +313,13 @@ export function CriadorDeExtracao({
                 </select>
               </label>
               <label className="dch-campo" htmlFor="template">
-                <span>Modelo</span>
+                <span>Preset opcional</span>
                 <select
                   id="template"
-                  aria-invalid={impedimentoTemplate ? 'true' : undefined}
-                  aria-describedby={impedimentoTemplate ? 'dch-impedimento-template' : undefined}
                   value={rascunho.templateId}
                   onChange={(evento) => setRascunho((atual) => ({ ...atual, templateId: evento.target.value }))}
                 >
-                  <option value="">Escolha um modelo</option>
+                  <option value="">Montar seleção manualmente</option>
                   {catalogo.templates.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
                 </select>
               </label>
@@ -319,26 +340,44 @@ export function CriadorDeExtracao({
 
           {etapa === 1 ? (
             <>
-              <h2 ref={tituloEtapaRef} tabIndex={-1}>Campos e recorte</h2>
-              <fieldset
-                className="dch-fieldset"
-                aria-invalid={impedimentoCampos ? 'true' : undefined}
-                aria-describedby={impedimentoCampos ? 'dch-impedimento-campos' : undefined}
-              >
-                <legend>Campos</legend>
-                <div className="dch-opcoes">
-                  {catalogo.campos.map((campo) => (
-                    <label key={campo.id} className="dch-opcao">
-                      <input
-                        type="checkbox"
-                        checked={rascunho.campos.includes(campo.id)}
-                        onChange={() => alternarCampo(campo.id)}
-                      />
-                      <span>{campo.nome}</span>
-                    </label>
-                  ))}
+              <h2 ref={tituloEtapaRef} tabIndex={-1}>Dimensões e métricas</h2>
+              <p className="dch-formulario__apoio">Escolha o detalhe das linhas e os valores que entrarão na planilha.</p>
+              <label className="dch-campo" htmlFor="busca-campos"><span>Buscar campos</span>
+                <input id="busca-campos" type="search" value={buscaCampos} onChange={(evento) => setBuscaCampos(evento.target.value)}
+                  placeholder="Busque por nome ou descrição" />
+              </label>
+              <div className="dch-seletor-campos">
+                <div className="dch-seletor-campos__lista" role="group" aria-label="Campos disponíveis">
+                  <h3>Dimensões do sistema</h3>
+                  {dimensoesSistema.map((dimensao) => <p key={dimensao} className="dch-campo-info"><strong>{dimensao}</strong>
+                    <span>{dimensao === 'Data' ? `Intervalo ${granularidade?.nome?.toLowerCase() ?? 'temporal'} de cada linha.` : 'Identidade publicada pelo nível escolhido.'}</span></p>)}
+                  <h3>Métricas</h3>
+                  <div className="dch-seletor-campos__rolagem" aria-invalid={impedimentoCampos ? 'true' : undefined}
+                    aria-describedby={impedimentoCampos ? 'dch-impedimento-campos' : undefined}>
+                    {metricasVisiveis.map((campo) => <label key={campo.id} className="dch-opcao dch-opcao--detalhada">
+                      <input type="checkbox" checked={rascunho.campos.includes(campo.id)} onChange={() => alternarCampo(campo.id)} />
+                      <span><strong>{campo.nome}</strong>{campo.descricao ? <small>{campo.descricao}</small> : null}
+                        {campo.exemplo ? <small>Exemplo: {campo.exemplo}</small> : null}</span>
+                    </label>)}
+                    {metricasVisiveis.length === 0 ? <p>Nenhuma métrica encontrada.</p> : null}
+                  </div>
+                  {(catalogo.creativeFields ?? []).length > 0 ? <><h3>Criativo</h3>
+                    <div className="dch-seletor-campos__rolagem">{criativosVisiveis.map((campo) => <label key={campo.id} className="dch-opcao dch-opcao--detalhada">
+                      <input type="checkbox" checked={rascunho.creativeFields.includes(campo.id)} onChange={() => alternarCriativo(campo.id)} />
+                      <span><strong>{campo.nome}</strong>{campo.descricao ? <small>{campo.descricao}</small> : null}</span>
+                    </label>)}</div></> : null}
                 </div>
-              </fieldset>
+                <aside className="dch-seletor-campos__selecao" aria-label="Campos selecionados">
+                  <h3>Sua seleção <span>{dimensoesSistema.length + (rascunho.breakdownId === 'nenhum' ? 0 : 1) + rascunho.campos.length + rascunho.creativeFields.length}</span></h3>
+                  <button type="button" className="dcp-botao dcp-botao--discreto" disabled={rascunho.campos.length + rascunho.creativeFields.length === 0}
+                    onClick={() => setRascunho((atual) => ({ ...atual, campos: [], creativeFields: [] }))}>Limpar opcionais</button>
+                  <div className="dch-chips">{dimensoesSistema.map((dimensao) => <span key={dimensao} className="dch-chip dch-chip--fixo">{dimensao}</span>)}
+                    {rascunho.breakdownId !== 'nenhum' ? <span className="dch-chip">{breakdown?.nome}</span> : null}
+                    {camposSelecionados.map((campo) => <button key={campo.id} type="button" className="dch-chip" aria-label={`Remover ${campo.nome}`} onClick={() => alternarCampo(campo.id)}>{campo.nome} ×</button>)}
+                    {criativosSelecionados.map((campo) => <button key={campo.id} type="button" className="dch-chip" aria-label={`Remover ${campo.nome}`} onClick={() => alternarCriativo(campo.id)}>{campo.nome} ×</button>)}
+                  </div>
+                </aside>
+              </div>
               <label className="dch-campo" htmlFor="breakdown">
                 <span>Breakdown</span>
                 <select
@@ -417,7 +456,7 @@ export function CriadorDeExtracao({
                   <label className="dch-campo" htmlFor="titulo-planilha"><span>Nome da planilha</span>
                     <input id="titulo-planilha" value={tituloPlanilha} onChange={(evento) => {
                       setTituloPlanilha(evento.target.value);
-                      setDestino(null);
+                      if (modo === 'criar') setDestino(null);
                       setErroDestino(null);
                     }} />
                   </label>
@@ -431,7 +470,7 @@ export function CriadorDeExtracao({
                   <label className="dch-campo" htmlFor="referencia-planilha"><span>Link ou ID da planilha</span>
                     <input id="referencia-planilha" value={referenciaPlanilha} onChange={(evento) => {
                       setReferenciaPlanilha(evento.target.value);
-                      setDestino(null);
+                      if (modo === 'criar') setDestino(null);
                       setErroDestino(null);
                     }} placeholder="Cole o link do Google Sheets" />
                   </label>
@@ -550,9 +589,10 @@ export function CriadorDeExtracao({
                     resumo: `${rascunho.campos.length} campos · ${periodo?.nome ?? ''} · ${granularidade?.nome ?? ''} · ${breakdown?.nome ?? ''}`,
                     definition: {
                       schemaVersion: '1.0.0', name: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(), provider: 'meta_official',
-                      sourceAccountId: rascunho.contaId, template: rascunho.templateId,
+                      sourceAccountId: rascunho.contaId, template: templateEfetivo,
                       entityLevel: rascunho.nivel === 'conta' ? 'account' : rascunho.nivel === 'campanha' ? 'campaign' : rascunho.nivel === 'conjunto' ? 'adset' : 'ad',
                       entityIds: [], breakdowns: breakdown?.valores ?? [], fields: rascunho.campos,
+                      ...(catalogo.creativeFields == null ? {} : { creativeFields: rascunho.creativeFields }),
                       filters: [], sort: null, attributionRequested: null, requestFingerprint: null,
                       periodContract: { version: '1.0.0', executionFrequency: { unit: 'disabled' }, timezone: 'America/Sao_Paulo', runAtLocal: null, dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
                       destination: destino,
@@ -563,7 +603,7 @@ export function CriadorDeExtracao({
                   }
                 }}
               >
-                {salvando ? 'Salvando…' : 'Salvar extração'}
+                {salvando ? 'Salvando…' : modo === 'editar' ? 'Salvar alterações' : 'Salvar extração'}
               </button>
             )}
           </div>

@@ -6,7 +6,7 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
-import { CATALOGO_PADRAO, normalizarCatalogo, type Catalogo } from './data-hub-catalogo';
+import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, type Catalogo, type Granularidade, type NivelEntidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
 
@@ -42,6 +42,7 @@ function DataHubInicio() {
   const { sessao, autorizacao, usuario, sair } = usarPainelAuth();
   const [estado, setEstado] = useState<EstadoConexao>({ tipo: 'inicial' });
   const [vista, setVista] = useState<'lista' | 'criador'>('lista');
+  const [edicao, setEdicao] = useState<ExtracaoLocal | null>(null);
   const [extracoes, setExtracoes] = useState<readonly ExtracaoLocal[]>([]);
   const [catalogo, setCatalogo] = useState<Catalogo>(CATALOGO_PADRAO);
   const [carregando, setCarregando] = useState(true);
@@ -90,11 +91,40 @@ function DataHubInicio() {
     return () => { ativo = false; };
   }, [sessao?.access_token]);
 
-  async function salvarExtracao(extracao: ExtracaoLocal) {
+  async function salvarExtracao(extracao: ExtracaoLocal, atual: ExtracaoLocal | null) {
     const definition = extracao.definition ?? {};
-    const salvo = await chamarDataHub('/extractions', { method: 'POST', body: JSON.stringify({ extraction: definition }) });
+    const salvo = await chamarDataHub(atual ? `/extractions/${encodeURIComponent(atual.id)}` : '/extractions', {
+      method: atual ? 'PATCH' : 'POST', body: JSON.stringify(atual
+        ? { revision: atual.revision, extraction: definition } : { extraction: definition }),
+    });
     const item = salvo?.data;
-    setExtracoes((atuais) => [...atuais, { ...extracao, id: String(item.extractionId ?? extracao.id), revision: Number(item.revision ?? 1), definition: item }]);
+    const normalizada = { ...extracao, id: String(item.extractionId ?? atual?.id ?? extracao.id),
+      revision: Number(item.revision ?? 1), definition: item };
+    setExtracoes((atuais) => atual ? atuais.map((registro) => registro.id === atual.id ? normalizada : registro) : [...atuais, normalizada]);
+  }
+
+  function rascunhoDaExtracao(extracao: ExtracaoLocal): Rascunho {
+    const item: any = extracao.definition ?? {};
+    const breakdownValues = Array.isArray(item.breakdowns) ? item.breakdowns : [];
+    const breakdownId = catalogo.breakdowns.find((opcao) => JSON.stringify(opcao.valores ?? []) === JSON.stringify(breakdownValues))?.id ?? 'nenhum';
+    const nivel = item.entityLevel === 'account' ? 'conta' : item.entityLevel === 'adset' ? 'conjunto'
+      : item.entityLevel === 'ad' ? 'anuncio' : 'campanha';
+    const output = item.periodContract?.outputGranularity;
+    const granularidade = (output === 'week' ? 'semanal' : output === 'month' ? 'mensal' : output === 'all_days'
+      ? 'periodo-inteiro' : typeof output === 'string' && output.startsWith('custom_') ? 'personalizada' : 'diaria') as Granularidade;
+    const dias = Number(item.periodContract?.dataPeriod?.value ?? 7);
+    return { ...RASCUNHO_INICIAL, contaId: String(item.sourceAccountId ?? ''), templateId: String(item.template ?? ''),
+      nivel: nivel as NivelEntidade, campos: Array.isArray(item.fields) ? item.fields.map(String) : [],
+      creativeFields: Array.isArray(item.creativeFields) ? item.creativeFields.map(String) : [], breakdownId,
+      periodoId: catalogo.periodos.find((periodo) => periodo.dias === dias)?.id ?? RASCUNHO_INICIAL.periodoId,
+      granularidade, granularidadeDias: granularidade === 'personalizada' ? Number(String(output).slice(7)) : 14 };
+  }
+
+  function destinoDaExtracao(extracao: ExtracaoLocal): DestinoGoogleSheets | null {
+    const value: any = extracao.definition?.destination;
+    return value?.provider === 'google_sheets' && typeof value.spreadsheetId === 'string' && Number.isInteger(value.sheetId)
+      && typeof value.spreadsheetName === 'string' && typeof value.sheetTitle === 'string' && value.startCell === 'A1'
+      && ['append', 'replace'].includes(value.writeMode) ? value as DestinoGoogleSheets : null;
   }
 
   async function executarExtracao(extracao: ExtracaoLocal) {
@@ -256,19 +286,24 @@ function DataHubInicio() {
 
       <main className="dch-corpo">
         {carregando ? <p className="dch-status" role="status">Carregando catálogo e extrações…</p> : erroDados ? <p className="dch-status dch-status--erro" role="alert">{erroDados}</p> : vista === 'lista' ? (
-          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => setVista('criador')}
+          <ListaDeExtracoes extracoes={extracoes} aoCriar={() => { setEdicao(null); setVista('criador'); }}
+            aoEditar={(extracao) => { setEdicao(extracao); setVista('criador'); }}
             googlePronto={google.tipo === 'conectado'} execucoes={execucoes} aoExecutar={executarExtracao} />
         ) : (
           <CriadorDeExtracao
             catalogo={catalogo}
+            modo={edicao ? 'editar' : 'criar'}
+            rascunhoInicial={edicao ? rascunhoDaExtracao(edicao) : undefined}
+            destinoInicial={edicao ? destinoDaExtracao(edicao) : null}
             aoCriarPlanilha={criarPlanilha}
             aoResolverPlanilha={resolverPlanilha}
             aoEscolherNoDrive={escolherNoDrive}
-            aoCancelar={() => setVista('lista')}
+            aoCancelar={() => { setEdicao(null); setVista('lista'); }}
             aoConcluir={async (extracao) => {
               setErroSalvar(null);
               try {
-                await salvarExtracao(extracao);
+                await salvarExtracao(extracao, edicao);
+                setEdicao(null);
                 setVista('lista');
               } catch (error) {
                 setErroSalvar(error instanceof Error ? error.message : 'Não foi possível salvar a extração.');

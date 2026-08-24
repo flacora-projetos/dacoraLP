@@ -84,6 +84,20 @@
 .dch-resumo__ok { margin: 0; color: var(--dc-verde-medio); font-size: .85rem; font-weight: 600; }
 .dch-impedimentos { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
 .dch-impedimentos .dcp-erro { font-size: .82rem; line-height: 1.45; }
+.dch-seletor-campos { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(15rem, .65fr); gap: 1rem; align-items: start; }
+.dch-seletor-campos__lista, .dch-seletor-campos__selecao { border: 1px solid rgba(20, 49, 45, .15); border-radius: 14px; padding: 1rem; background: #fff; }
+.dch-seletor-campos__lista h3, .dch-seletor-campos__selecao h3 { margin: .8rem 0 .55rem; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; }
+.dch-seletor-campos__rolagem { max-height: 18rem; overflow-y: auto; display: grid; gap: .35rem; padding-right: .25rem; }
+.dch-opcao--detalhada { align-items: flex-start; }
+.dch-opcao--detalhada span { display: grid; gap: .15rem; }
+.dch-opcao--detalhada small, .dch-campo-info span { color: var(--dcp-texto-suave, #60706d); line-height: 1.35; }
+.dch-campo-info { display: grid; gap: .12rem; margin: .35rem 0; padding: .55rem .7rem; border-radius: 10px; background: rgba(30, 92, 80, .06); }
+.dch-seletor-campos__selecao { position: sticky; top: 1rem; }
+.dch-seletor-campos__selecao h3 { display: flex; justify-content: space-between; }
+.dch-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+.dch-chip { border: 1px solid rgba(23, 107, 82, .28); border-radius: 999px; padding: .4rem .65rem; background: rgba(23, 107, 82, .07); color: inherit; font: inherit; font-size: .78rem; }
+button.dch-chip { cursor: pointer; }
+.dch-chip--fixo { border-style: dashed; }
 .dch-resumo__acoes { display: flex; gap: .5rem; flex-wrap: wrap; }
 .dch-resumo__acoes .dcp-botao { flex: 1 1 auto; min-height: 44px; }
 .dch-resumo__nota { margin: .7rem 0 0; color: var(--dc-cinza); font-size: .76rem; line-height: 1.4; }
@@ -94,6 +108,8 @@
  * ser sticky porque, colado, ele come metade da tela do celular.
  */
 @media (max-width: 900px) {
+  .dch-seletor-campos { grid-template-columns: 1fr; }
+  .dch-seletor-campos__selecao { position: static; }
   .dch-criador__grade { grid-template-columns: 1fr; }
   .dch-esteira { flex-direction: row; overflow-x: auto; gap: .5rem; padding-bottom: .25rem; }
   .dch-esteira__item { width: auto; flex: 0 0 auto; border-left: 0; border-bottom: 2px solid var(--dc-filete); }
