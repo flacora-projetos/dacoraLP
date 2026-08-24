@@ -8,6 +8,7 @@ import {
   naturezaDosCamposEscolhidos,
   filtrarCampos,
   aplicarPreset,
+  campoDisponivelNaCombinacao,
   type Granularidade,
   type NivelEntidade,
   type Rascunho,
@@ -198,7 +199,8 @@ export function CriadorDeExtracao({
   const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId);
   const nivel = catalogo.niveis.find((item) => item.id === rascunho.nivel);
   const granularidade = catalogo.granularidades.find((item) => item.id === rascunho.granularidade);
-  const naoAditivos = naturezas.filter((campo) => campo.natureza !== 'aditiva');
+  const sensiveisAtribuicao = naturezas.filter((campo) => campo.natureza === 'sensivel-atribuicao');
+  const naoAditivos = naturezas.filter((campo) => campo.natureza !== 'aditiva' && campo.natureza !== 'sensivel-atribuicao');
 
   const impedimentoConta = problemas.find((problema) => problema.campo === 'conta');
   const impedimentoTemplate = problemas.find((problema) => problema.campo === 'template');
@@ -370,6 +372,8 @@ export function CriadorDeExtracao({
                     {metricasVisiveis.map((campo) => <label key={campo.id} className="dch-opcao dch-opcao--detalhada">
                       <input type="checkbox" checked={rascunho.campos.includes(campo.id)} onChange={() => alternarCampo(campo.id)} />
                       <span><strong>{campo.nome}</strong>{campo.descricao ? <small>{campo.descricao}</small> : null}
+                        {campo.natureza === 'sensivel-atribuicao' ? <small>Depende da janela e do momento de atribuição da Meta; não deve ser somada como uma métrica comum.</small> : null}
+                        {!campoDisponivelNaCombinacao(campo, rascunho, catalogo) ? <small>Indisponível no nível e breakdown atuais.</small> : null}
                         {campo.exemplo ? <small>Exemplo: {campo.exemplo}</small> : null}</span>
                     </label>)}
                     {metricasVisiveis.length === 0 ? <p>Nenhuma métrica encontrada.</p> : null}
@@ -532,6 +536,12 @@ export function CriadorDeExtracao({
                   Estes campos não podem ser somados entre linhas: {naoAditivos.map((campo) => campo.nome).join(', ')}.
                   Investimento, impressões e cliques somam; alcance, frequência e métricas calculadas precisam ser
                   lidos por linha.
+                </p>
+              ) : null}
+              {sensiveisAtribuicao.length > 0 ? (
+                <p className="dcp-nota">
+                  Estas métricas dependem da janela e do momento de atribuição retornados pela Meta: {sensiveisAtribuicao.map((campo) => campo.nome).join(', ')}.
+                  Elas não são aditivas e precisam ser interpretadas no recorte consultado.
                 </p>
               ) : null}
             </>

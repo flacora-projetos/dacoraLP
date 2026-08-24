@@ -28,7 +28,13 @@ export type Campo = {
    * alcance de dois dias não dá o alcance do período, e CTR não se soma nunca.
    * A tela precisa dizer isso antes de o número existir, não depois.
    */
-  readonly natureza: 'aditiva' | 'calculada' | 'nao-aditiva';
+  readonly natureza: 'aditiva' | 'calculada' | 'nao-aditiva' | 'sensivel-atribuicao';
+  readonly disponibilidade?: {
+    readonly combinacoes: readonly {
+      readonly niveis: readonly NivelEntidade[];
+      readonly breakdowns: readonly (readonly string[])[];
+    }[];
+  };
 };
 
 export type Breakdown = {
@@ -142,6 +148,7 @@ function nivelDaApi(value: unknown): NivelEntidade | null {
 const NOMES: Record<string, string> = {
   spend: 'Investimento', impressions: 'Impressões', clicks: 'Cliques', reach: 'Alcance', frequency: 'Frequência',
   ctr: 'CTR', cpc: 'CPC', cpm: 'CPM', campaign: 'Campanha', adset: 'Conjunto', ad: 'Anúncio', account: 'Conta',
+  conversions: 'Conversões', instagram_profile_visits: 'Visitas ao perfil do Instagram',
   day: 'Diária', week: 'Semanal', month: 'Mensal', all_days: 'Período inteiro', custom: 'Personalizada', age: 'Idade', gender: 'Gênero', region: 'Região',
   publisher_platform: 'Plataforma', platform_position: 'Posicionamento', impression_device: 'Dispositivo',
 };
@@ -154,7 +161,14 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
     descricao: typeof item.description === 'string' ? item.description : undefined,
     exemplo: typeof item.example === 'string' ? item.example : undefined,
     categoria: typeof item.category === 'string' ? item.category : undefined,
-    natureza: item.natureza ?? (item.classification === 'non_additive' ? 'nao-aditiva' : item.classification === 'calculated' ? 'calculada' : 'aditiva'),
+    natureza: item.natureza ?? ([item.classification, item.aggregation].includes('attribution_sensitive') ? 'sensivel-atribuicao'
+      : item.classification === 'non_additive' ? 'nao-aditiva' : item.classification === 'calculated' ? 'calculada' : 'aditiva'),
+    disponibilidade: item.availability && typeof item.availability === 'object' ? {
+      combinacoes: lista<any>(item.availability.combinations).map((combination) => ({
+        niveis: lista<any>(combination?.entityLevels).map(nivelDaApi).filter(Boolean) as NivelEntidade[],
+        breakdowns: lista<any[]>(combination?.breakdownSelections).map((selection) => lista<string>(selection).map(String)),
+      })),
+    } : undefined,
   });
   const campos = lista<any>(raw.fields ?? raw.campos).map(normalizarCampo).filter((item) => item.id && item.nome) as Campo[];
   const creativeFields = Object.hasOwn(raw, 'creativeFields')
@@ -216,6 +230,14 @@ export function impedimentos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_P
 
   if (rascunho.campos.length === 0) {
     lista.push({ campo: 'campos', mensagem: 'Escolha ao menos um campo para trazer.' });
+  }
+
+  const camposIndisponiveis = catalogo.campos.filter((campo) => rascunho.campos.includes(campo.id)
+    && !campoDisponivelNaCombinacao(campo, rascunho, catalogo));
+  if (camposIndisponiveis.length > 0) {
+    const nivel = catalogo.niveis.find((item) => item.id === rascunho.nivel)?.nome ?? rascunho.nivel;
+    const recorte = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId)?.nome ?? rascunho.breakdownId;
+    lista.push({ campo: 'campos', mensagem: `As métricas ${camposIndisponiveis.map((campo) => campo.nome).join(', ')} não estão disponíveis para ${nivel} com ${recorte}. Troque o nível ou breakdown, ou remova a métrica.` });
   }
 
   if (rascunho.creativeFields.length > 0) {
@@ -284,6 +306,17 @@ export function naturezaDosCamposEscolhidos(rascunho: Rascunho, catalogo: Catalo
   return catalogo.campos.filter((campo) => rascunho.campos.includes(campo.id));
 }
 
+function mesmaSelecao(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((item) => b.includes(item));
+}
+
+export function campoDisponivelNaCombinacao(campo: Campo, rascunho: Rascunho, catalogo: Catalogo): boolean {
+  if (campo.disponibilidade == null) return true;
+  const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId)?.valores ?? [];
+  return campo.disponibilidade.combinacoes.some((combination) => combination.niveis.includes(rascunho.nivel)
+    && combination.breakdowns.some((selection) => mesmaSelecao(selection, breakdown)));
+}
+
 export function filtrarCampos(campos: readonly Campo[], busca: string): readonly Campo[] {
   const termo = busca.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (!termo) return campos;
@@ -295,7 +328,7 @@ export function aplicarPreset(rascunho: Rascunho, templateId: string, catalogo: 
   if (!templateId) return { ...rascunho, templateId: '' };
   const template = catalogo.templates.find((item) => item.id === templateId);
   if (!template) return { ...rascunho, templateId };
-  const camposPublicados = new Set(catalogo.campos.map((campo) => campo.id));
+  const camposPublicados = new Set(catalogo.campos.filter((campo) => campoDisponivelNaCombinacao(campo, rascunho, catalogo)).map((campo) => campo.id));
   const criativosPublicados = new Set((catalogo.creativeFields ?? []).map((campo) => campo.id));
   return { ...rascunho, templateId,
     ...(template.campos == null ? {} : { campos: template.campos.filter((campo) => camposPublicados.has(campo)) }),
