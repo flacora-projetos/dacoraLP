@@ -51,7 +51,7 @@
 .dch-formulario__apoio { margin: 0 0 1.2rem; max-width: 56ch; color: var(--dc-cinza); font-size: .88rem; line-height: 1.55; }
 .dch-campo { display: block; margin-top: 1rem; }
 .dch-campo > span { display: block; margin-bottom: .35rem; font-size: .8rem; font-weight: 700; letter-spacing: .04em; color: var(--dc-tinta); }
-.dch-campo select { width: 100%; min-height: 44px; padding: .5rem .7rem; border: 1px solid var(--dc-filete-forte); border-radius: var(--dc-raio-pequeno, 6px); background: var(--dc-superficie); color: var(--dc-tinta); font: inherit; touch-action: manipulation; }
+.dch-campo select, .dch-campo input { width: 100%; min-height: 44px; padding: .5rem .7rem; border: 1px solid var(--dc-filete-forte); border-radius: var(--dc-raio-pequeno, 6px); background: var(--dc-superficie); color: var(--dc-tinta); font: inherit; touch-action: manipulation; box-sizing: border-box; }
 .dch-fieldset { margin: 1rem 0 0; padding: 0; border: 0; }
 .dch-fieldset legend { padding: 0; margin-bottom: .35rem; font-size: .8rem; font-weight: 700; letter-spacing: .04em; color: var(--dc-tinta); }
 .dch-opcoes { display: grid; gap: .15rem; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
@@ -62,6 +62,19 @@
 .dch-revisao > div { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--dc-filete); }
 .dch-revisao dt { color: var(--dc-cinza); font-size: .84rem; }
 .dch-revisao dd { margin: 0; font-size: .9rem; font-weight: 600; text-align: right; color: var(--dc-tinta); font-variant-numeric: tabular-nums; }
+
+.dch-destino-opcoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.dch-destino-opcao { padding: 1rem; border: 1px solid var(--dc-filete); background: var(--dc-superficie); }
+.dch-destino-opcao h3 { margin: 0; font-size: .95rem; font-weight: 650; color: var(--dc-tinta); }
+.dch-destino-opcao .dcp-botao { margin-top: .8rem; min-height: 44px; }
+.dch-destino-drive { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .8rem; padding: .9rem 0; border-block: 1px solid var(--dc-filete); }
+.dch-destino-drive p, .dch-destino-estado > p { margin: 0; color: var(--dc-cinza); font-size: .84rem; line-height: 1.45; }
+.dch-destino-drive .dcp-botao { flex: 0 0 auto; min-height: 44px; }
+.dch-destino-estado { min-height: 4rem; margin-top: .9rem; }
+.dch-destino-confirmado { display: grid; gap: .2rem; padding: .8rem 1rem; border-left: 3px solid var(--dc-verde); background: color-mix(in srgb, var(--dc-verde) 6%, var(--dc-superficie)); }
+.dch-destino-confirmado span { color: var(--dc-verde-medio); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.dch-destino-confirmado strong { color: var(--dc-tinta); font-size: .95rem; overflow-wrap: anywhere; }
+.dch-destino-confirmado small { color: var(--dc-cinza); }
 
 .dch-resumo { padding: 1.1rem 1.2rem; border: 1px solid var(--dc-filete-forte); border-radius: var(--dc-raio, 10px); background: var(--dc-superficie); position: sticky; top: 1rem; }
 .dch-resumo__titulo { margin: 0 0 .7rem; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dc-tinta); }
@@ -86,4 +99,6 @@
   .dch-esteira__item { width: auto; flex: 0 0 auto; border-left: 0; border-bottom: 2px solid var(--dc-filete); }
   .dch-esteira__item--ativa { border-left: 0; border-bottom-color: var(--dc-verde); }
   .dch-resumo { position: static; }
+  .dch-destino-opcoes { grid-template-columns: 1fr; }
+  .dch-destino-drive { align-items: stretch; flex-direction: column; }
 }

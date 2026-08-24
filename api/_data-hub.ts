@@ -5,7 +5,7 @@ import {
   type RequisicaoDataHub,
 } from './_data-hub-spike.js';
 
-type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect';
+type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
 
 function jsonBody(req: Request): unknown {
   return req.body == null ? {} : req.body;
@@ -43,6 +43,15 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   }
   if (path === '/google/disconnect' && method === 'POST') {
     return { operation: 'google-disconnect', request: { endpoint: `${base}/google/disconnect`, method: 'POST', body: {} } };
+  }
+  if (path === '/google/spreadsheets' && method === 'POST') {
+    return { operation: 'google-spreadsheet-create', request: { endpoint: `${base}/google/spreadsheets`, method: 'POST', body: jsonBody(req) } };
+  }
+  if (path === '/google/spreadsheets/resolve' && method === 'POST') {
+    return { operation: 'google-spreadsheet-resolve', request: { endpoint: `${base}/google/spreadsheets/resolve`, method: 'POST', body: jsonBody(req) } };
+  }
+  if (path === '/google/picker/session' && method === 'POST') {
+    return { operation: 'google-picker-session', request: { endpoint: `${base}/google/picker/session`, method: 'POST', body: {} } };
   }
   const match = path.match(/^\/extractions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
   if (!match) return { error: 'rota_data_hub_invalida' };

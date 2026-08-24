@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
-import { CriadorDeExtracao, ListaDeExtracoes, type ExtracaoLocal } from './data-hub-extracoes';
+import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type ExtracaoLocal } from './data-hub-extracoes';
+import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { CATALOGO_PADRAO, normalizarCatalogo, type Catalogo } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
@@ -86,6 +87,42 @@ function DataHubInicio() {
     const salvo = await chamarDataHub('/extractions', { method: 'POST', body: JSON.stringify({ extraction: definition }) });
     const item = salvo?.data;
     setExtracoes((atuais) => [...atuais, { ...extracao, id: String(item.extractionId ?? extracao.id), revision: Number(item.revision ?? 1), definition: item }]);
+  }
+
+  function destinoDaResposta(resposta: any): DestinoGoogleSheets {
+    const destino = resposta?.data?.destination;
+    if (destino?.provider !== 'google_sheets' || typeof destino.spreadsheetId !== 'string' || !destino.spreadsheetId.trim()
+      || typeof destino.spreadsheetName !== 'string' || !destino.spreadsheetName.trim()
+      || !Number.isInteger(destino.sheetId) || typeof destino.sheetTitle !== 'string' || !destino.sheetTitle.trim() || destino.startCell !== 'A1'
+      || !['append', 'replace'].includes(destino.writeMode)) {
+      throw new Error('O Data Hub não confirmou uma planilha válida.');
+    }
+    return {
+      provider: 'google_sheets',
+      spreadsheetId: destino.spreadsheetId,
+      spreadsheetName: destino.spreadsheetName,
+      sheetId: destino.sheetId,
+      sheetTitle: destino.sheetTitle,
+      startCell: 'A1',
+      writeMode: destino.writeMode,
+    };
+  }
+
+  async function criarPlanilha(title: string) {
+    const resposta = await chamarDataHub('/google/spreadsheets', { method: 'POST', body: JSON.stringify({ title }) });
+    return destinoDaResposta(resposta);
+  }
+
+  async function resolverPlanilha(valor: string) {
+    const body = /^https?:\/\//i.test(valor) ? { url: valor } : { spreadsheetId: valor };
+    return destinoDaResposta(await chamarDataHub('/google/spreadsheets/resolve', { method: 'POST', body: JSON.stringify(body) }));
+  }
+
+  async function escolherNoDrive() {
+    const sessaoPicker = await chamarDataHub('/google/picker/session', { method: 'POST', body: '{}' });
+    const accessToken = String(sessaoPicker?.data?.accessToken ?? '');
+    const spreadsheetId = await escolherPlanilhaGoogle(accessToken);
+    return spreadsheetId ? resolverPlanilha(spreadsheetId) : null;
   }
 
   async function carregarGoogle() {
@@ -195,6 +232,9 @@ function DataHubInicio() {
         ) : (
           <CriadorDeExtracao
             catalogo={catalogo}
+            aoCriarPlanilha={criarPlanilha}
+            aoResolverPlanilha={resolverPlanilha}
+            aoEscolherNoDrive={escolherNoDrive}
             aoCancelar={() => setVista('lista')}
             aoConcluir={async (extracao) => {
               setErroSalvar(null);
