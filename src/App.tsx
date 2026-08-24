@@ -120,6 +120,14 @@ export default function App() {
         }
       />
       <Route
+        path="/data-hub/google/callback"
+        element={
+          <Suspense fallback={<CarregandoPainel />}>
+            <DataHub />
+          </Suspense>
+        }
+      />
+      <Route
         path="/painel-de-relatorios"
         element={
           <Suspense fallback={<CarregandoPainel />}>

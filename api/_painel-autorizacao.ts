@@ -52,6 +52,7 @@ export function extrairTokenBearer(cabecalho: unknown): string | null {
 }
 
 export interface UsuarioSupabase {
+  id?: string | null;
   email?: string | null;
   app_metadata?: { provider?: string | null; providers?: string[] | null } | null;
   identities?: Array<{ provider?: string | null }> | null;
@@ -78,7 +79,7 @@ export function entrouPeloGoogle(usuario: UsuarioSupabase): boolean {
 /* ------------------------------------------------------------------ */
 
 export type ResultadoAcesso =
-  | { ok: true; email: string; nome: string | null }
+  | { ok: true; id: string | null; email: string; nome: string | null }
   | { ok: false; status: number; corpo: Record<string, unknown> };
 
 /**
@@ -170,6 +171,7 @@ export async function conferirAcesso(cabecalhoAutorizacao: unknown): Promise<Res
   }
 
   const email = typeof usuario?.email === 'string' ? usuario.email : '';
+  const id = typeof usuario?.id === 'string' && usuario.id.trim() ? usuario.id.trim() : null;
   if (!email) {
     return {
       ok: false,
@@ -216,5 +218,5 @@ export async function conferirAcesso(cabecalhoAutorizacao: unknown): Promise<Res
     (typeof metadados.name === 'string' && metadados.name) ||
     null;
 
-  return { ok: true, email, nome };
+  return { ok: true, id, email, nome };
 }

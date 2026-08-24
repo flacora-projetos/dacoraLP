@@ -5,7 +5,7 @@ import {
   type RequisicaoDataHub,
 } from './_data-hub-spike.js';
 
-type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete';
+type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect';
 
 function jsonBody(req: Request): unknown {
   return req.body == null ? {} : req.body;
@@ -32,6 +32,18 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   if (path === '/extractions' && method === 'POST') {
     return { operation: 'create', request: { endpoint: `${base}/extractions`, method: 'POST', body: jsonBody(req) } };
   }
+  if (path === '/google/status' && method === 'GET') {
+    return { operation: 'google-status', request: { endpoint: `${base}/google/status`, method: 'GET' } };
+  }
+  if (path === '/google/connect' && method === 'POST') {
+    return { operation: 'google-connect', request: { endpoint: `${base}/google/connect`, method: 'POST', body: {} } };
+  }
+  if (path === '/google/callback' && method === 'POST') {
+    return { operation: 'google-callback', request: { endpoint: `${base}/google/callback`, method: 'POST', body: jsonBody(req) } };
+  }
+  if (path === '/google/disconnect' && method === 'POST') {
+    return { operation: 'google-disconnect', request: { endpoint: `${base}/google/disconnect`, method: 'POST', body: {} } };
+  }
   const match = path.match(/^\/extractions\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i);
   if (!match) return { error: 'rota_data_hub_invalida' };
   const id = encodeURIComponent(match[1]);
@@ -48,7 +60,7 @@ export interface DependenciasDataHubPortal {
 export async function atenderDataHub(
   req: Request,
   res: Response,
-  ator: { email: string },
+  ator: { id: string; email: string },
   dependencias: DependenciasDataHubPortal = {},
 ) {
   res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');

@@ -129,6 +129,9 @@ const fetches = pagina.match(/fetch\(/g) ?? [];
 assert.ok(fetches.length >= 2, 'PWI2 precisa consultar o catálogo e as extrações');
 assert.match(pagina, /fetch\('\/api\/data-hub-spike'/);
 assert.match(pagina, /fetch\(`\/api\/data-hub\$\{path\}`/);
+assert.match(pagina, /Conectar Google Drive/);
+assert.match(pagina, /\/google\/status/);
+assert.match(pagina, /\/google\/callback/);
 
 const catalogo = fs.readFileSync(new URL('../src/pages/data-hub-catalogo.ts', import.meta.url), 'utf8');
 assert.doesNotMatch(catalogo, /act_\d|\b\d{10,}\b/, 'nenhum ID de conta real pode entrar no catálogo fonte');

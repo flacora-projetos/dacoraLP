@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PainelAuthProvider, usarPainelAuth } from '../painel/AuthContext';
 import Portao from '../painel/Portao';
@@ -13,6 +13,13 @@ type EstadoConexao =
   | { tipo: 'testando' }
   | { tipo: 'ok'; requestId: string }
   | { tipo: 'erro'; mensagem: string; requestId?: string };
+
+type EstadoGoogle =
+  | { tipo: 'carregando' }
+  | { tipo: 'desconectado' }
+  | { tipo: 'conectado'; email: string }
+  | { tipo: 'processando' }
+  | { tipo: 'indisponivel'; mensagem: string };
 
 
 export default function DataHub() {
@@ -38,6 +45,8 @@ function DataHubInicio() {
   const [carregando, setCarregando] = useState(true);
   const [erroDados, setErroDados] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [google, setGoogle] = useState<EstadoGoogle>({ tipo: 'carregando' });
+  const callbackGoogleTratado = useRef(false);
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';
 
   async function chamarDataHub(path: string, init: RequestInit = {}) {
@@ -77,6 +86,60 @@ function DataHubInicio() {
     const salvo = await chamarDataHub('/extractions', { method: 'POST', body: JSON.stringify({ extraction: definition }) });
     const item = salvo?.data;
     setExtracoes((atuais) => [...atuais, { ...extracao, id: String(item.extractionId ?? extracao.id), revision: Number(item.revision ?? 1), definition: item }]);
+  }
+
+  async function carregarGoogle() {
+    try {
+      const resposta = await chamarDataHub('/google/status');
+      const status = resposta?.data;
+      setGoogle(status?.connected === true
+        ? { tipo: 'conectado', email: String(status?.account?.emailMasked ?? 'Conta Google') }
+        : { tipo: 'desconectado' });
+    } catch (error) {
+      setGoogle({ tipo: 'indisponivel', mensagem: error instanceof Error ? error.message : 'Conexão Google indisponível.' });
+    }
+  }
+
+  useEffect(() => {
+    if (!sessao?.access_token) return;
+    const callback = window.location.pathname === '/data-hub/google/callback';
+    if (!callback) { void carregarGoogle(); return; }
+    if (callbackGoogleTratado.current) return;
+    callbackGoogleTratado.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    window.history.replaceState({}, '', '/data-hub');
+    if (!code || !state || params.get('error')) {
+      setGoogle({ tipo: 'indisponivel', mensagem: 'A autorização do Google foi cancelada ou retornou incompleta.' });
+      return;
+    }
+    setGoogle({ tipo: 'processando' });
+    chamarDataHub('/google/callback', { method: 'POST', body: JSON.stringify({ code, state }) })
+      .then((resposta) => setGoogle({ tipo: 'conectado', email: String(resposta?.data?.account?.emailMasked ?? 'Conta Google') }))
+      .catch((error) => setGoogle({ tipo: 'indisponivel', mensagem: error instanceof Error ? error.message : 'Não foi possível concluir a autorização Google.' }));
+  }, [sessao?.access_token]);
+
+  async function conectarGoogle() {
+    setGoogle({ tipo: 'processando' });
+    try {
+      const resposta = await chamarDataHub('/google/connect', { method: 'POST', body: '{}' });
+      const authorizationUrl = String(resposta?.data?.authorizationUrl ?? '');
+      if (!authorizationUrl.startsWith('https://accounts.google.com/')) throw new Error('URL de autorização Google inválida.');
+      window.location.assign(authorizationUrl);
+    } catch (error) {
+      setGoogle({ tipo: 'indisponivel', mensagem: error instanceof Error ? error.message : 'Não foi possível iniciar a autorização Google.' });
+    }
+  }
+
+  async function desconectarGoogle() {
+    setGoogle({ tipo: 'processando' });
+    try {
+      await chamarDataHub('/google/disconnect', { method: 'POST', body: '{}' });
+      setGoogle({ tipo: 'desconectado' });
+    } catch (error) {
+      setGoogle({ tipo: 'indisponivel', mensagem: error instanceof Error ? error.message : 'Não foi possível desconectar a conta Google.' });
+    }
   }
 
   async function testarConexao() {
@@ -146,6 +209,24 @@ function DataHubInicio() {
         )}
         {erroSalvar ? <p className="dch-status dch-status--erro" role="alert">{erroSalvar}</p> : null}
 
+        <section className="dch-conexao" aria-labelledby="google-titulo">
+          <div>
+            <span className="dch-etapa">Destino</span>
+            <h2 id="google-titulo">Google Sheets</h2>
+            <p>Conecte sua conta Google para criar uma planilha nova ou escolher uma planilha pelo Drive.</p>
+          </div>
+          <div className="dch-acao">
+            {google.tipo === 'conectado' ? (
+              <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => void desconectarGoogle()}>Desconectar Google</button>
+            ) : (
+              <button type="button" className="dcp-botao dcp-botao--primario" disabled={google.tipo === 'processando' || google.tipo === 'carregando'} onClick={() => void conectarGoogle()}>
+                {google.tipo === 'processando' ? 'Conectando…' : 'Conectar Google Drive'}
+              </button>
+            )}
+            <EstadoGoogleSheets estado={google} />
+          </div>
+        </section>
+
         <section className="dch-conexao" aria-labelledby="conexao-titulo">
           <div>
             <span className="dch-etapa">Diagnóstico</span>
@@ -170,6 +251,14 @@ function DataHubInicio() {
       </main>
     </>
   );
+}
+
+function EstadoGoogleSheets({ estado }: { estado: EstadoGoogle }) {
+  if (estado.tipo === 'carregando') return <p className="dch-status" role="status">Verificando conexão Google…</p>;
+  if (estado.tipo === 'processando') return <p className="dch-status" role="status">Validando autorização com o Google…</p>;
+  if (estado.tipo === 'conectado') return <p className="dch-status dch-status--ok" role="status">Google conectado: {estado.email}</p>;
+  if (estado.tipo === 'indisponivel') return <p className="dch-status dch-status--erro" role="alert">{estado.mensagem}</p>;
+  return <p className="dch-status">Nenhuma conta Google conectada.</p>;
 }
 
 function EstadoDaConexao({ estado }: { estado: EstadoConexao }) {
