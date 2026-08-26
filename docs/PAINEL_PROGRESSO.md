@@ -1644,3 +1644,43 @@ via `aria-describedby`, para a mensagem no resumo — dita uma vez só, não dua
 O PO validou a tela no Preview da Vercel em 2026-08-23, com a ressalva explícita
 de que o teste que vale para ele é com **contas reais**, na fase do catálogo real.
 Esta validação libera a frente para seguir; não é aprovação final da tela.
+
+---
+
+## 13. Data Hub — contrato `selectedFields` e UX publicados (2026-08-26)
+
+O portal do Data Hub foi alinhado ao contrato canônico de seleção por campos. A
+criação/edição de extrações deixou de pedir **nível** manual: o grão é deduzido
+pela própria seleção. O catálogo do portal passou a expor também os campos de
+hierarquia (`date`, `account_id`, `campaign_id`, `campaign_name`, `adset_id`,
+`adset_name`, `ad_id`, `ad_name`) e normaliza campos de criativo para a forma
+`creative.*` ao construir `selectedFields`.
+
+No salvamento novo, `src/pages/data-hub-extracoes.tsx` envia `selectedFields` e
+remove do payload os campos legados `entityLevel`, `fields`, `creativeFields` e
+`breakdowns`. `src/pages/DataHub.tsx` mantém compatibilidade de leitura/edição
+com definições antigas que ainda cheguem nesse formato.
+
+A UX foi revisada com as skills compartilhadas `frontend-design`,
+`impeccable-design-polish`, `web-design-guidelines` e
+`vercel-react-best-practices`. A revisão eliminou linguagem que induzia uma
+escolha manual de nível, passou a mostrar **grão deduzido**, preservou ligação
+dos erros com os controles e acrescentou `name`/`autocomplete` aos controles
+alterados. A auditoria estática da frente não encontrou `div`/`span` clicável,
+remoção de outline, `transition: all` nem o antigo seletor `id="nivel"` na UI.
+
+Validação da entrega: `npm run verifica:data-hub-casca` passou; `git diff
+--check` passou; lint/typecheck passou com heap ampliado; a varredura do diff
+não encontrou segredo óbvio. O commit funcional é `e158438` (`feat: align Data
+Hub portal with selected fields`), integrado em `main` e enviado a `origin/main`.
+A Vercel publicou o deployment `dpl_7JVd4pcC61vBLefL1N8KjYiZuf1W` com estado
+`Ready`. Smoke externo pós-deploy confirmou `/data-hub` com HTTP 200 e headers
+de rota privada (`private, no-store`, `noindex`, `no-referrer`); a chamada sem
+sessão a `/api/data-hub/catalog` respondeu 401 `sem_sessao`, preservando o gate.
+
+**Próximo gate operacional:** validar o fluxo autenticado do Data Hub com conta
+real, sem assumir sucesso por causa do smoke público. Primeiro faça leitura do
+catálogo e das extrações existentes; depois valide criação/edição e o contrato
+`selectedFields`. Executar uma extração real (`POST .../run`) ou produzir saída
+real no destino é efeito operacional e deve ser tratado separadamente, com GO
+explícito antes da mutação. Não reintroduza `entityLevel` como escolha de UX.
