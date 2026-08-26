@@ -9,8 +9,9 @@ import {
   filtrarCampos,
   aplicarPreset,
   campoDisponivelNaCombinacao,
+  nivelResolvidoDoRascunho,
+  selectedFieldsDoRascunho,
   type Granularidade,
-  type NivelEntidade,
   type Rascunho,
 } from './data-hub-catalogo';
 
@@ -197,10 +198,9 @@ export function CriadorDeExtracao({
   const conta = catalogo.contas.find((item) => item.id === rascunho.contaId);
   const periodo = catalogo.periodos.find((item) => item.id === rascunho.periodoId);
   const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId);
-  const nivel = catalogo.niveis.find((item) => item.id === rascunho.nivel);
   const granularidade = catalogo.granularidades.find((item) => item.id === rascunho.granularidade);
   const sensiveisAtribuicao = naturezas.filter((campo) => campo.natureza === 'sensivel-atribuicao');
-  const naoAditivos = naturezas.filter((campo) => campo.natureza !== 'aditiva' && campo.natureza !== 'sensivel-atribuicao');
+  const naoAditivos = naturezas.filter((campo) => !['dimensao', 'aditiva', 'sensivel-atribuicao'].includes(campo.natureza));
 
   const impedimentoConta = problemas.find((problema) => problema.campo === 'conta');
   const impedimentoTemplate = problemas.find((problema) => problema.campo === 'template');
@@ -252,9 +252,10 @@ export function CriadorDeExtracao({
   const criativosVisiveis = filtrarCampos(catalogo.creativeFields ?? [], buscaCampos);
   const camposSelecionados = catalogo.campos.filter((campo) => rascunho.campos.includes(campo.id));
   const criativosSelecionados = (catalogo.creativeFields ?? []).filter((campo) => rascunho.creativeFields.includes(campo.id));
-  const dimensoesSistema = ['Data', ...(rascunho.nivel === 'conta' ? ['Conta'] : rascunho.nivel === 'campanha'
-    ? ['Campanha'] : rascunho.nivel === 'conjunto' ? ['Campanha', 'Conjunto'] : ['Campanha', 'Conjunto', 'Anúncio'])];
-  const templateEfetivo = rascunho.creativeFields.length > 0 ? 'meta_creative_performance' : rascunho.templateId || catalogo.templates.find((item) => item.niveisCompativeis.includes(rascunho.nivel)
+  const selectedFields = selectedFieldsDoRascunho(rascunho, catalogo);
+  const nivelResolvido = nivelResolvidoDoRascunho(rascunho, catalogo);
+  const nomeGraoResolvido = catalogo.niveis.find((item) => item.id === nivelResolvido)?.nome ?? nivelResolvido;
+  const templateEfetivo = rascunho.creativeFields.length > 0 ? 'meta_creative_performance' : rascunho.templateId || catalogo.templates.find((item) => item.niveisCompativeis.includes(nivelResolvido)
     && (rascunho.breakdownId === 'nenhum' || item.breakdownsCompativeis.includes(rascunho.breakdownId)))?.id || '';
 
   async function definirDestino(acao: 'criar' | 'resolver' | 'drive') {
@@ -314,6 +315,8 @@ export function CriadorDeExtracao({
                 <span>Conta</span>
                 <select
                   id="conta"
+                  name="sourceAccountId"
+                  autoComplete="off"
                   aria-invalid={impedimentoConta ? 'true' : undefined}
                   aria-describedby={impedimentoConta ? 'dch-impedimento-conta' : undefined}
                   value={rascunho.contaId}
@@ -329,6 +332,8 @@ export function CriadorDeExtracao({
                 <span>Preset opcional</span>
                 <select
                   id="template"
+                  name="template"
+                  autoComplete="off"
                   aria-invalid={impedimentoTemplate ? 'true' : undefined}
                   aria-describedby={impedimentoTemplate ? 'dch-impedimento-template' : undefined}
                   value={rascunho.templateId}
@@ -338,18 +343,9 @@ export function CriadorDeExtracao({
                   {catalogo.templates.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
                 </select>
               </label>
-              <label className="dch-campo" htmlFor="nivel">
-                <span>Nível</span>
-                <select
-                  id="nivel"
-                  value={rascunho.nivel}
-                  onChange={(evento) => setRascunho((atual) => ({ ...atual, nivel: evento.target.value as NivelEntidade }))}
-                >
-                  {catalogo.niveis.map((item) => (
-                    <option key={item.id} value={item.id}>{item.nome}</option>
-                  ))}
-                </select>
-              </label>
+              <p className="dcp-nota">
+                O grão da extração não é uma escolha manual. O Data Hub deduz o detalhe das linhas pela seleção de campos.
+              </p>
             </>
           ) : null}
 
@@ -358,22 +354,19 @@ export function CriadorDeExtracao({
               <h2 ref={tituloEtapaRef} tabIndex={-1}>Dimensões e métricas</h2>
               <p className="dch-formulario__apoio">Escolha o detalhe das linhas e os valores que entrarão na planilha.</p>
               <label className="dch-campo" htmlFor="busca-campos"><span>Buscar campos</span>
-                <input id="busca-campos" type="search" value={buscaCampos} onChange={(evento) => setBuscaCampos(evento.target.value)}
-                  placeholder="Busque por nome ou descrição" />
+                <input id="busca-campos" name="fieldSearch" type="search" autoComplete="off" value={buscaCampos} onChange={(evento) => setBuscaCampos(evento.target.value)}
+                  placeholder="Ex.: investimento, campanha…" />
               </label>
               <div className="dch-seletor-campos">
                 <div className="dch-seletor-campos__lista" role="group" aria-label="Campos disponíveis">
-                  <h3>Dimensões do sistema</h3>
-                  {dimensoesSistema.map((dimensao) => <p key={dimensao} className="dch-campo-info"><strong>{dimensao}</strong>
-                    <span>{dimensao === 'Data' ? `Intervalo ${granularidade?.nome?.toLowerCase() ?? 'temporal'} de cada linha.` : 'Identidade publicada pelo nível escolhido.'}</span></p>)}
-                  <h3>Métricas</h3>
+                  <h3>Campos</h3>
                   <div className="dch-seletor-campos__rolagem" aria-invalid={impedimentoCampos ? 'true' : undefined}
                     aria-describedby={impedimentoCampos ? 'dch-impedimento-campos' : undefined}>
                     {metricasVisiveis.map((campo) => <label key={campo.id} className="dch-opcao dch-opcao--detalhada">
                       <input type="checkbox" checked={rascunho.campos.includes(campo.id)} onChange={() => alternarCampo(campo.id)} />
                       <span><strong>{campo.nome}</strong>{campo.descricao ? <small>{campo.descricao}</small> : null}
                         {campo.natureza === 'sensivel-atribuicao' ? <small>Depende da janela e do momento de atribuição da Meta; não deve ser somada como uma métrica comum.</small> : null}
-                        {!campoDisponivelNaCombinacao(campo, rascunho, catalogo) ? <small>Indisponível no nível e breakdown atuais.</small> : null}
+                        {!campoDisponivelNaCombinacao(campo, rascunho, catalogo) ? <small>Indisponível na seleção e breakdown atuais.</small> : null}
                         {campo.exemplo ? <small>Exemplo: {campo.exemplo}</small> : null}</span>
                     </label>)}
                     {metricasVisiveis.length === 0 ? <p>Nenhuma métrica encontrada.</p> : null}
@@ -386,10 +379,10 @@ export function CriadorDeExtracao({
                     </label>)}</div></> : null}
                 </div>
                 <aside className="dch-seletor-campos__selecao" aria-label="Campos selecionados">
-                  <h3>Sua seleção <span>{dimensoesSistema.length + (rascunho.breakdownId === 'nenhum' ? 0 : 1) + rascunho.campos.length + rascunho.creativeFields.length}</span></h3>
+                  <h3>Sua seleção <span>{selectedFields.length}</span></h3>
                   <button type="button" className="dcp-botao dcp-botao--discreto" disabled={rascunho.campos.length + rascunho.creativeFields.length === 0}
                     onClick={() => setRascunho((atual) => ({ ...atual, campos: [], creativeFields: [] }))}>Limpar opcionais</button>
-                  <div className="dch-chips">{dimensoesSistema.map((dimensao) => <span key={dimensao} className="dch-chip dch-chip--fixo">{dimensao}</span>)}
+                  <div className="dch-chips">
                     {rascunho.breakdownId !== 'nenhum' ? <span className="dch-chip">{breakdown?.nome}</span> : null}
                     {camposSelecionados.map((campo) => <button key={campo.id} type="button" className="dch-chip" aria-label={`Remover ${campo.nome}`} onClick={() => alternarCampo(campo.id)}>{campo.nome} ×</button>)}
                     {criativosSelecionados.map((campo) => <button key={campo.id} type="button" className="dch-chip" aria-label={`Remover ${campo.nome}`} onClick={() => alternarCriativo(campo.id)}>{campo.nome} ×</button>)}
@@ -400,6 +393,8 @@ export function CriadorDeExtracao({
                 <span>Breakdown</span>
                 <select
                   id="breakdown"
+                  name="breakdown"
+                  autoComplete="off"
                   aria-invalid={impedimentoBreakdown ? 'true' : undefined}
                   aria-describedby={impedimentoBreakdown ? 'dch-impedimento-breakdown' : undefined}
                   value={rascunho.breakdownId}
@@ -424,6 +419,8 @@ export function CriadorDeExtracao({
                 <span>Período</span>
                 <select
                   id="periodo"
+                  name="dataPeriod"
+                  autoComplete="off"
                   value={rascunho.periodoId}
                   onChange={(evento) => { setPeriodoAlterado(true); setRascunho((atual) => ({ ...atual, periodoId: evento.target.value })); }}
                 >
@@ -436,6 +433,8 @@ export function CriadorDeExtracao({
                 <span>Granularidade</span>
                 <select
                   id="granularidade"
+                  name="outputGranularity"
+                  autoComplete="off"
                   aria-invalid={impedimentoGranularidade ? 'true' : undefined}
                   aria-describedby={impedimentoGranularidade ? 'dch-impedimento-granularidade' : undefined}
                   value={rascunho.granularidade}
@@ -451,7 +450,10 @@ export function CriadorDeExtracao({
                   <span>Dias por linha</span>
                   <input
                     id="granularidade-dias"
+                    name="customGranularityDays"
                     type="number"
+                    inputMode="numeric"
+                    autoComplete="off"
                     min="1"
                     max="90"
                     step="1"
@@ -472,7 +474,7 @@ export function CriadorDeExtracao({
                 <div className="dch-destino-opcao">
                   <h3>Criar uma planilha</h3>
                   <label className="dch-campo" htmlFor="titulo-planilha"><span>Nome da planilha</span>
-                    <input id="titulo-planilha" value={tituloPlanilha} onChange={(evento) => {
+                    <input id="titulo-planilha" name="spreadsheetTitle" autoComplete="off" value={tituloPlanilha} onChange={(evento) => {
                       setTituloPlanilha(evento.target.value);
                       if (modo === 'criar') setDestino(null);
                       setErroDestino(null);
@@ -486,11 +488,11 @@ export function CriadorDeExtracao({
                 <div className="dch-destino-opcao">
                   <h3>Usar uma planilha existente</h3>
                   <label className="dch-campo" htmlFor="referencia-planilha"><span>Link ou ID da planilha</span>
-                    <input id="referencia-planilha" value={referenciaPlanilha} onChange={(evento) => {
+                    <input id="referencia-planilha" name="spreadsheetReference" autoComplete="off" value={referenciaPlanilha} onChange={(evento) => {
                       setReferenciaPlanilha(evento.target.value);
                       if (modo === 'criar') setDestino(null);
                       setErroDestino(null);
-                    }} placeholder="Cole o link do Google Sheets" />
+                    }} placeholder="Ex.: link ou ID da planilha…" />
                   </label>
                   <button type="button" className="dcp-botao dcp-botao--discreto" disabled={!referenciaPlanilha.trim() || destinoOcupado !== null} onClick={() => void definirDestino('resolver')}>
                     {destinoOcupado === 'resolver' ? 'Confirmando…' : 'Confirmar planilha'}
@@ -523,7 +525,7 @@ export function CriadorDeExtracao({
               <h2 ref={tituloEtapaRef} tabIndex={-1}>Revisão</h2>
               <dl className="dch-revisao">
                 <div><dt>Conta</dt><dd>{conta?.nome ?? 'Não escolhida'}</dd></div>
-                <div><dt>Nível</dt><dd>{nivel?.nome ?? '—'}</dd></div>
+                <div><dt>Grão deduzido</dt><dd>{nomeGraoResolvido}</dd></div>
                 <div><dt>Campos</dt><dd>{naturezas.length > 0 ? naturezas.map((campo) => campo.nome).join(', ') : 'Nenhum'}</dd></div>
                 <div><dt>Breakdown</dt><dd>{breakdown?.nome ?? '—'}</dd></div>
                 <div><dt>Período</dt><dd>{periodo?.nome ?? '—'}</dd></div>
@@ -551,8 +553,8 @@ export function CriadorDeExtracao({
         <aside className="dch-resumo" aria-label="Resumo da extração">
           <h2 className="dch-resumo__titulo">Resumo</h2>
           <p className="dch-resumo__linha"><strong>Conta:</strong> {conta?.nome ?? 'não escolhida'}</p>
-          <p className="dch-resumo__linha"><strong>Nível:</strong> {nivel?.nome ?? '—'}</p>
-          <p className="dch-resumo__linha"><strong>Campos:</strong> {rascunho.campos.length}</p>
+          <p className="dch-resumo__linha"><strong>Grão deduzido:</strong> {nomeGraoResolvido}</p>
+          <p className="dch-resumo__linha"><strong>Campos:</strong> {selectedFields.length}</p>
           <p className="dch-resumo__linha"><strong>Período:</strong> {periodo?.nome ?? '—'}</p>
           <p className="dch-resumo__linha"><strong>Granularidade:</strong> {granularidade?.nome ?? '—'}</p>
           <p className="dch-resumo__linha"><strong>Destino:</strong> {destino ? `${destino.spreadsheetName} · ${destino.sheetTitle}` : 'não escolhido'}</p>
@@ -608,26 +610,30 @@ export function CriadorDeExtracao({
                   if (salvando) return;
                   setSalvando(true);
                   try {
+                    const definicaoBase = { ...(definicaoInicial ?? {}) } as Record<string, unknown>;
+                    delete definicaoBase.entityLevel;
+                    delete definicaoBase.fields;
+                    delete definicaoBase.creativeFields;
+                    delete definicaoBase.breakdowns;
+                    const nomeExtracao = `${conta?.nome ?? 'Conta'} — ${selectedFields.length} campos`;
                     await aoConcluir({
-                    id: `local-${Date.now()}`,
-                    nome: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(),
-                    resumo: `${rascunho.campos.length} campos · ${periodo?.nome ?? ''} · ${granularidade?.nome ?? ''} · ${breakdown?.nome ?? ''}`,
-                    definition: {
-                      ...(definicaoInicial ?? {}),
-                      schemaVersion: String(definicaoInicial?.schemaVersion ?? '1.0.0'), name: `${conta?.nome ?? 'Conta'} — ${nivel?.nome ?? ''}`.trim(), provider: 'meta_official',
-                      sourceAccountId: rascunho.contaId, template: templateEfetivo,
-                      entityLevel: rascunho.nivel === 'conta' ? 'account' : rascunho.nivel === 'campanha' ? 'campaign' : rascunho.nivel === 'conjunto' ? 'adset' : 'ad',
-                      breakdowns: breakdown?.valores ?? [], fields: rascunho.campos,
-                      ...(catalogo.creativeFields == null ? {} : { creativeFields: rascunho.creativeFields }),
-                      periodContract: modo === 'editar' && !periodoAlterado && definicaoInicial?.periodContract
-                        ? definicaoInicial.periodContract : { ...((definicaoInicial?.periodContract as Record<string, unknown> | undefined) ?? {}),
-                          version: String((definicaoInicial?.periodContract as any)?.version ?? '1.0.0'),
-                          executionFrequency: (definicaoInicial?.periodContract as any)?.executionFrequency ?? { unit: 'disabled' },
-                          timezone: String((definicaoInicial?.periodContract as any)?.timezone ?? 'America/Sao_Paulo'),
-                          runAtLocal: (definicaoInicial?.periodContract as any)?.runAtLocal ?? null,
-                          dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
-                      destination: destino,
-                    },
+                      id: `local-${Date.now()}`,
+                      nome: nomeExtracao,
+                      resumo: `${selectedFields.length} campos · ${periodo?.nome ?? ''} · ${granularidade?.nome ?? ''} · ${breakdown?.nome ?? ''}`,
+                      definition: {
+                        ...definicaoBase,
+                        schemaVersion: String(definicaoInicial?.schemaVersion ?? '1.0.0'), name: nomeExtracao, provider: 'meta_official',
+                        sourceAccountId: rascunho.contaId, template: templateEfetivo,
+                        selectedFields,
+                        periodContract: modo === 'editar' && !periodoAlterado && definicaoInicial?.periodContract
+                          ? definicaoInicial.periodContract : { ...((definicaoInicial?.periodContract as Record<string, unknown> | undefined) ?? {}),
+                            version: String((definicaoInicial?.periodContract as any)?.version ?? '1.0.0'),
+                            executionFrequency: (definicaoInicial?.periodContract as any)?.executionFrequency ?? { unit: 'disabled' },
+                            timezone: String((definicaoInicial?.periodContract as any)?.timezone ?? 'America/Sao_Paulo'),
+                            runAtLocal: (definicaoInicial?.periodContract as any)?.runAtLocal ?? null,
+                            dataPeriod: { type: 'relative', unit: 'day', value: periodo?.dias ?? 7, offset: 0 }, outputGranularity: rascunho.granularidade === 'diaria' ? 'day' : rascunho.granularidade === 'semanal' ? 'week' : rascunho.granularidade === 'mensal' ? 'month' : rascunho.granularidade === 'periodo-inteiro' ? 'all_days' : `custom_${rascunho.granularidadeDias}` },
+                        destination: destino,
+                      },
                     });
                   } finally {
                     setSalvando(false);

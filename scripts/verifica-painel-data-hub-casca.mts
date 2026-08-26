@@ -108,15 +108,13 @@ assert.deepEqual(filtrarCampos([
   assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
 }
 
-/* Criativos falham cedo fora do nível aceito, antes de chegar ao backend. */
+/* Criativos deixam de pedir nível manual: a própria seleção deduz grão Anúncio. */
 {
   const catalogoCriativo = normalizarCatalogo({ data: { accounts: [], fields: [{ key: 'spend' }],
     creativeFields: [{ key: 'thumbnail_url' }], granularities: ['day'], templates: [
       { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[]], fields: ['spend'], creativeFields: ['thumbnail_url'] },
     ] } });
-  const invalido = impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'campanha' }, catalogoCriativo);
-  assert.ok(invalido.some((item) => item.campo === 'criativos' && /Anúncio/.test(item.mensagem)));
-  assert.equal(impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'anuncio' }, catalogoCriativo)
+  assert.equal(impedimentos({ ...base, creativeFields: ['thumbnail_url'], nivel: 'campanha' }, catalogoCriativo)
     .some((item) => item.campo === 'criativos'), false);
 }
 
@@ -134,15 +132,14 @@ assert.deepEqual(filtrarCampos([
   assert.ok(problemas.some((item) => item.campo === 'campos'), 'consulta sem campo precisa ser recusada');
 }
 
-/* Breakdown incompatível com o nível recusa e nomeia os níveis que servem.
- * Trocar o nível sozinho seria fallback silencioso: proibido. */
+/* Breakdown incompatível com o grão deduzido recusa e nomeia os grãos que servem. */
 {
-  const problemas = impedimentos({ ...base, nivel: 'conta', breakdownId: 'demografico' });
+  const problemas = impedimentos({ ...base, campos: ['date', 'account_id', 'spend'], nivel: 'conta', breakdownId: 'demografico' });
   const breakdown = problemas.find((item) => item.campo === 'breakdown');
-  assert.ok(breakdown, 'breakdown demográfico não existe no nível conta');
-  assert.match(breakdown.mensagem, /Campanha/i, 'a recusa precisa dizer quais níveis servem');
-  const valido = impedimentos({ ...base, nivel: 'campanha', breakdownId: 'demografico' });
-  assert.equal(valido.length, 0, 'no nível campanha a mesma combinação é válida');
+  assert.ok(breakdown, 'breakdown demográfico não existe no grão conta');
+  assert.match(breakdown.mensagem, /Campanha/i, 'a recusa precisa dizer quais grãos servem');
+  const valido = impedimentos({ ...base, campos: ['date', 'campaign_name', 'spend'], breakdownId: 'demografico' });
+  assert.equal(valido.length, 0, 'no grão campanha a mesma combinação é válida');
 }
 
 /* Granularidade maior que o período é impossível, não "quase certo". */
@@ -191,7 +188,12 @@ assert.match(componentes, /aria-live="polite"/, 'o resumo precisa anunciar mudan
 assert.match(componentes, /configuração será salva no Data Hub/);
 assert.match(componentes, /if \(salvando\) return/);
 assert.match(componentes, /Salvando…/);
-assert.match(componentes, /rascunho\.nivel === 'conta' \? 'account'/);
+assert.match(componentes, /selectedFieldsDoRascunho\(rascunho, catalogo\)/);
+assert.match(componentes, /delete definicaoBase\.entityLevel/);
+assert.match(componentes, /delete definicaoBase\.fields/);
+assert.match(componentes, /selectedFields,/);
+assert.doesNotMatch(componentes, /htmlFor="nivel"/);
+assert.doesNotMatch(componentes, /id="nivel"/);
 
 /* O diagnóstico PWI0 continua separado; PWI2 usa o BFF agregado para catálogo/CRUD. */
 const fetches = pagina.match(/fetch\(/g) ?? [];
@@ -217,8 +219,8 @@ assert.match(
 assert.match(componentes, /Buscar campos/);
 assert.match(componentes, /Sua seleção/);
 assert.match(componentes, /Remover \$\{campo\.nome\}/);
-assert.match(componentes, /creativeFields == null \? \{\} : \{ creativeFields: rascunho\.creativeFields \}/);
-assert.match(componentes, /\.\.\.\(definicaoInicial \?\? \{\}\)/, 'edição deve preservar propriedades fora do formulário');
+assert.match(componentes, /selectedFields,/);
+assert.match(componentes, /const definicaoBase = \{ \.\.\.\(definicaoInicial \?\? \{\}\) \}/, 'edição deve preservar propriedades fora do formulário');
 assert.doesNotMatch(componentes, /entityIds: \[\][\s\S]*filters: \[\]/, 'edição não pode zerar filtros e IDs silenciosamente');
 assert.match(componentes, /Completar configuração/);
 assert.match(pagina, /method: atual \? 'PATCH' : 'POST'/);
@@ -333,8 +335,8 @@ function html(no: unknown) {
   const avancar = [...dom.window.document.querySelectorAll('button')].find((item) => item.textContent === 'Avançar') as HTMLButtonElement;
   await act(async () => avancar.click());
   assert.match(dom.window.document.body.textContent ?? '', /Depende da janela e do momento de atribuição da Meta/);
-  assert.match(dom.window.document.body.textContent ?? '', /Indisponível no nível e breakdown atuais/);
-  assert.match(dom.window.document.body.textContent ?? '', /Troque o nível ou breakdown, ou remova a métrica/);
+  assert.match(dom.window.document.body.textContent ?? '', /Indisponível na seleção e breakdown atuais/);
+  assert.match(dom.window.document.body.textContent ?? '', /Ajuste os campos\/dimensões ou breakdown, ou remova a métrica/);
   await act(async () => root.unmount());
   Object.assign(globalThis, { window: previousWindow, document: previousDocument });
 }

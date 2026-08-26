@@ -28,7 +28,7 @@ export type Campo = {
    * alcance de dois dias não dá o alcance do período, e CTR não se soma nunca.
    * A tela precisa dizer isso antes de o número existir, não depois.
    */
-  readonly natureza: 'aditiva' | 'calculada' | 'nao-aditiva' | 'sensivel-atribuicao';
+  readonly natureza: 'dimensao' | 'aditiva' | 'calculada' | 'nao-aditiva' | 'sensivel-atribuicao';
   readonly disponibilidade?: {
     readonly combinacoes: readonly {
       readonly niveis: readonly NivelEntidade[];
@@ -96,6 +96,32 @@ export const GRANULARIDADES: readonly { id: Granularidade; nome: string; dias: n
   { id: 'mensal', nome: 'Mensal', dias: 30 },
 ];
 
+export const CAMPOS_DE_HIERARQUIA: readonly Campo[] = [
+  { id: 'date', nome: 'Data', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'account_id', nome: 'ID da conta', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'campaign_id', nome: 'ID da campanha', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'campaign_name', nome: 'Campanha', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'adset_id', nome: 'ID do conjunto', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'adset_name', nome: 'Conjunto', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'ad_id', nome: 'ID do anúncio', natureza: 'dimensao', categoria: 'Dimensões' },
+  { id: 'ad_name', nome: 'Anúncio', natureza: 'dimensao', categoria: 'Dimensões' },
+];
+
+const GRAO_ORDEM: readonly NivelEntidade[] = ['conta', 'campanha', 'conjunto', 'anuncio'];
+const CAMPO_GRAO: Readonly<Record<string, NivelEntidade>> = Object.freeze({
+  date: 'conta', account_id: 'conta', campaign_id: 'campanha', campaign_name: 'campanha',
+  adset_id: 'conjunto', adset_name: 'conjunto', ad_id: 'anuncio', ad_name: 'anuncio',
+});
+
+const CREATIVE_FIELD_TO_SELECTED: Readonly<Record<string, string>> = Object.freeze({
+  creative_name: 'creative.name', image_url: 'creative.image_url', thumbnail_url: 'creative.thumbnail_url',
+  body: 'creative.body', title: 'creative.title', call_to_action_type: 'creative.call_to_action_type',
+  destination_url: 'creative.destination_url', video_id: 'creative.video_id',
+});
+const SELECTED_CREATIVE_TO_LEGACY: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(Object.entries(CREATIVE_FIELD_TO_SELECTED).map(([legacy, selected]) => [selected, legacy])),
+);
+
 export type Rascunho = {
   contaId: string;
   templateId: string;
@@ -130,7 +156,7 @@ export type Catalogo = {
 export const CATALOGO_PADRAO: Catalogo = {
   contas: CONTAS,
   niveis: NIVEIS,
-  campos: CAMPOS,
+  campos: camposComHierarquia(CAMPOS),
   creativeFields: [],
   breakdowns: BREAKDOWNS,
   periodos: PERIODOS,
@@ -139,6 +165,37 @@ export const CATALOGO_PADRAO: Catalogo = {
 };
 
 function lista<T>(value: unknown): T[] { return Array.isArray(value) ? value as T[] : []; }
+
+function camposComHierarquia(campos: readonly Campo[]): Campo[] {
+  const ids = new Set(campos.map((campo) => campo.id));
+  return [...campos, ...CAMPOS_DE_HIERARQUIA.filter((campo) => !ids.has(campo.id))];
+}
+
+export function canonicalizarCampoCriativo(id: string): string {
+  return CREATIVE_FIELD_TO_SELECTED[id] ?? id;
+}
+
+export function campoCriativoLegado(id: string): string | null {
+  return SELECTED_CREATIVE_TO_LEGACY[id] ?? null;
+}
+
+export function selectedFieldsDoRascunho(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_PADRAO): readonly string[] {
+  const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId)?.valores ?? [];
+  return [...new Set([
+    ...rascunho.campos,
+    ...breakdown,
+    ...rascunho.creativeFields.map(canonicalizarCampoCriativo),
+  ].filter(Boolean))];
+}
+
+export function nivelResolvidoDoRascunho(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_PADRAO): NivelEntidade {
+  let resolvido = rascunho.nivel ?? 'campanha';
+  for (const field of selectedFieldsDoRascunho(rascunho, catalogo)) {
+    const grao = field.startsWith('creative.') ? 'anuncio' : CAMPO_GRAO[field];
+    if (grao && GRAO_ORDEM.indexOf(grao) > GRAO_ORDEM.indexOf(resolvido)) resolvido = grao;
+  }
+  return resolvido;
+}
 
 function nivelDaApi(value: unknown): NivelEntidade | null {
   const id = typeof value === 'string' ? value : (value as any)?.id;
@@ -161,8 +218,9 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
     descricao: typeof item.description === 'string' ? item.description : undefined,
     exemplo: typeof item.example === 'string' ? item.example : undefined,
     categoria: typeof item.category === 'string' ? item.category : undefined,
-    natureza: item.natureza ?? ([item.classification, item.aggregation].includes('attribution_sensitive') ? 'sensivel-atribuicao'
-      : item.classification === 'non_additive' ? 'nao-aditiva' : item.classification === 'calculated' ? 'calculada' : 'aditiva'),
+    natureza: item.natureza ?? (item.classification === 'dimension' || item.aggregation === 'none' ? 'dimensao'
+      : [item.classification, item.aggregation].includes('attribution_sensitive') ? 'sensivel-atribuicao'
+        : item.classification === 'non_additive' ? 'nao-aditiva' : item.classification === 'calculated' ? 'calculada' : 'aditiva'),
     disponibilidade: item.availability && typeof item.availability === 'object' ? {
       combinacoes: lista<any>(item.availability.combinations).map((combination) => ({
         niveis: lista<any>(combination?.entityLevels).map(nivelDaApi).filter(Boolean) as NivelEntidade[],
@@ -170,7 +228,7 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
       })),
     } : undefined,
   });
-  const campos = lista<any>(raw.fields ?? raw.campos).map(normalizarCampo).filter((item) => item.id && item.nome) as Campo[];
+  const campos = camposComHierarquia(lista<any>(raw.fields ?? raw.campos).map(normalizarCampo).filter((item) => item.id && item.nome) as Campo[]);
   const creativeFields = Object.hasOwn(raw, 'creativeFields')
     ? lista<any>(raw.creativeFields).map(normalizarCampo).filter((item) => item.id && item.nome) as Campo[] : undefined;
   const templates = lista<any>(raw.templates).map((item) => {
@@ -206,7 +264,7 @@ export const RASCUNHO_INICIAL: Rascunho = {
   contaId: '',
   templateId: '',
   nivel: 'campanha',
-  campos: ['spend', 'impressions', 'clicks'],
+  campos: ['date', 'campaign_name', 'spend', 'impressions', 'clicks'],
   creativeFields: [],
   breakdownId: 'nenhum',
   periodoId: 'ultimos-7',
@@ -228,23 +286,21 @@ export function impedimentos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_P
     lista.push({ campo: 'conta', mensagem: 'Escolha a conta de origem.' });
   }
 
-  if (rascunho.campos.length === 0) {
+  if (selectedFieldsDoRascunho(rascunho, catalogo).length === 0) {
     lista.push({ campo: 'campos', mensagem: 'Escolha ao menos um campo para trazer.' });
   }
 
+  const nivelResolvido = nivelResolvidoDoRascunho(rascunho, catalogo);
   const camposIndisponiveis = catalogo.campos.filter((campo) => rascunho.campos.includes(campo.id)
     && !campoDisponivelNaCombinacao(campo, rascunho, catalogo));
   if (camposIndisponiveis.length > 0) {
-    const nivel = catalogo.niveis.find((item) => item.id === rascunho.nivel)?.nome ?? rascunho.nivel;
     const recorte = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId)?.nome ?? rascunho.breakdownId;
-    lista.push({ campo: 'campos', mensagem: `As métricas ${camposIndisponiveis.map((campo) => campo.nome).join(', ')} não estão disponíveis para ${nivel} com ${recorte}. Troque o nível ou breakdown, ou remova a métrica.` });
+    lista.push({ campo: 'campos', mensagem: `As métricas ${camposIndisponiveis.map((campo) => campo.nome).join(', ')} não estão disponíveis para a seleção atual com ${recorte}. Ajuste os campos/dimensões ou breakdown, ou remova a métrica.` });
   }
 
   if (rascunho.creativeFields.length > 0) {
     const perfilCriativo = catalogo.templates.find((item) => item.id === 'meta_creative_performance');
-    if (rascunho.nivel !== 'anuncio') {
-      lista.push({ campo: 'criativos', mensagem: 'Campos de criativo exigem o nível Anúncio. Troque o nível ou remova esses campos.' });
-    } else if (perfilCriativo && rascunho.breakdownId !== 'nenhum' && !perfilCriativo.breakdownsCompativeis.includes(rascunho.breakdownId)) {
+    if (perfilCriativo && rascunho.breakdownId !== 'nenhum' && !perfilCriativo.breakdownsCompativeis.includes(rascunho.breakdownId)) {
       lista.push({ campo: 'criativos', mensagem: 'Este breakdown não é compatível com campos de criativo. Use uma opção aceita pelo perfil de criativos ou remova esses campos.' });
     }
   }
@@ -252,22 +308,22 @@ export function impedimentos(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_P
   const preset = rascunho.templateId ? catalogo.templates.find((item) => item.id === rascunho.templateId) : null;
   if (rascunho.templateId && !preset) {
     lista.push({ campo: 'template', mensagem: 'O preset salvo não existe mais no catálogo. Escolha outro ou monte a seleção manualmente.' });
-  } else if (preset && rascunho.creativeFields.length === 0 && !preset.niveisCompativeis.includes(rascunho.nivel)) {
-    lista.push({ campo: 'template', mensagem: 'Este preset não atende ao nível escolhido. Troque o nível, escolha outro preset ou monte manualmente.' });
+  } else if (preset && rascunho.creativeFields.length === 0 && !preset.niveisCompativeis.includes(nivelResolvido)) {
+    lista.push({ campo: 'template', mensagem: 'Este preset não atende ao grão deduzido pela seleção atual. Ajuste os campos, escolha outro preset ou monte manualmente.' });
   } else if (preset && rascunho.creativeFields.length === 0 && rascunho.breakdownId !== 'nenhum'
     && !preset.breakdownsCompativeis.includes(rascunho.breakdownId)) {
     lista.push({ campo: 'template', mensagem: 'Este preset não atende ao breakdown escolhido. Troque o recorte, escolha outro preset ou monte manualmente.' });
   }
 
   const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId);
-  if (breakdown && !breakdown.niveisCompativeis.includes(rascunho.nivel)) {
-    const nomeNivel = catalogo.niveis.find((item) => item.id === rascunho.nivel)?.nome ?? rascunho.nivel;
+  if (breakdown && !breakdown.niveisCompativeis.includes(nivelResolvido)) {
+    const nomeNivel = catalogo.niveis.find((item) => item.id === nivelResolvido)?.nome ?? nivelResolvido;
     const compativeis = breakdown.niveisCompativeis
       .map((nivel) => catalogo.niveis.find((item) => item.id === nivel)?.nome ?? nivel)
       .join(', ');
     lista.push({
       campo: 'breakdown',
-      mensagem: `${breakdown.nome} não existe no nível ${nomeNivel}. Use ${compativeis}, ou volte para "Sem breakdown".`,
+      mensagem: `${breakdown.nome} não existe no grão deduzido ${nomeNivel}. Use ${compativeis}, ou volte para "Sem breakdown".`,
     });
   }
 
@@ -295,9 +351,10 @@ export function avisoDeVolume(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_
   if (!periodo) return null;
   const detalhaPorDia = rascunho.granularidade === 'diaria';
   const temBreakdown = rascunho.breakdownId !== 'nenhum';
-  const nivelFino = rascunho.nivel === 'anuncio' || rascunho.nivel === 'conjunto';
+  const nivelResolvido = nivelResolvidoDoRascunho(rascunho, catalogo);
+  const nivelFino = nivelResolvido === 'anuncio' || nivelResolvido === 'conjunto';
   if (periodo.dias >= 90 && detalhaPorDia && temBreakdown && nivelFino) {
-    return 'Esta combinação gera muitas linhas: 90 dias, detalhe diário, breakdown e nível fino ao mesmo tempo. Considere dividir em períodos menores ou agendar uma atualização incremental.';
+    return 'Esta combinação gera muitas linhas: 90 dias, detalhe diário, breakdown e grão fino ao mesmo tempo. Considere dividir em períodos menores ou agendar uma atualização incremental.';
   }
   return null;
 }
@@ -313,7 +370,8 @@ function mesmaSelecao(a: readonly string[], b: readonly string[]): boolean {
 export function campoDisponivelNaCombinacao(campo: Campo, rascunho: Rascunho, catalogo: Catalogo): boolean {
   if (campo.disponibilidade == null) return true;
   const breakdown = catalogo.breakdowns.find((item) => item.id === rascunho.breakdownId)?.valores ?? [];
-  return campo.disponibilidade.combinacoes.some((combination) => combination.niveis.includes(rascunho.nivel)
+  const nivelResolvido = nivelResolvidoDoRascunho(rascunho, catalogo);
+  return campo.disponibilidade.combinacoes.some((combination) => combination.niveis.includes(nivelResolvido)
     && combination.breakdowns.some((selection) => mesmaSelecao(selection, breakdown)));
 }
 

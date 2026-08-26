@@ -6,7 +6,7 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
-import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type NivelEntidade, type Rascunho } from './data-hub-catalogo';
+import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
 
@@ -80,11 +80,15 @@ function DataHubInicio() {
         if (!ativo) return;
         setCatalogo(normalizarCatalogo(catalogoRemoto));
         const items = extracoesRemotas?.data?.items ?? [];
-        setExtracoes(items.map((item: any) => ({
-          id: String(item.extractionId ?? item.id), revision: Number(item.revision ?? 1),
-          nome: String(item.name ?? item.nome ?? item.extractionId), resumo: `${(item.fields ?? []).length} campos · ${item.periodContract?.dataPeriod?.type ?? 'período'} · ${item.periodContract?.outputGranularity ?? ''}`,
-          definition: item,
-        })));
+        setExtracoes(items.map((item: any) => {
+          const quantidadeCampos = Array.isArray(item.selectedFields) && item.selectedFields.length > 0
+            ? item.selectedFields.length : (Array.isArray(item.fields) ? item.fields.length : 0);
+          return {
+            id: String(item.extractionId ?? item.id), revision: Number(item.revision ?? 1),
+            nome: String(item.name ?? item.nome ?? item.extractionId), resumo: `${quantidadeCampos} campos · ${item.periodContract?.dataPeriod?.type ?? 'período'} · ${item.periodContract?.outputGranularity ?? ''}`,
+            definition: item,
+          };
+        }));
       })
       .catch((error) => { if (ativo) setErroDados(error instanceof Error ? error.message : 'Não foi possível carregar o Data Hub.'); })
       .finally(() => { if (ativo) setCarregando(false); });
@@ -103,28 +107,41 @@ function DataHubInicio() {
     setExtracoes((atuais) => atual ? atuais.map((registro) => registro.id === atual.id ? normalizada : registro) : [...atuais, normalizada]);
   }
 
+  function selecaoDaDefinicao(item: any) {
+    const selectedFields = Array.isArray(item.selectedFields) && item.selectedFields.length > 0 ? item.selectedFields.map(String) : [];
+    const breakdown = selectedFields.length > 0 ? catalogo.breakdowns.find((opcao) => opcao.id !== 'nenhum'
+      && (opcao.valores ?? []).length > 0 && (opcao.valores ?? []).every((valor) => selectedFields.includes(valor))) : null;
+    const breakdownValues = selectedFields.length > 0 ? breakdown?.valores ?? [] : Array.isArray(item.breakdowns) ? item.breakdowns.map(String) : [];
+    const creativeFields = selectedFields.length > 0
+      ? selectedFields.map(campoCriativoLegado).filter((campo): campo is string => typeof campo === 'string')
+      : Array.isArray(item.creativeFields) ? item.creativeFields.map(String) : [];
+    const campos = selectedFields.length > 0
+      ? selectedFields.filter((campo) => !campoCriativoLegado(campo) && !breakdownValues.includes(campo))
+      : Array.isArray(item.fields) ? item.fields.map(String) : [];
+    return { campos, creativeFields, breakdownValues };
+  }
+
   function rascunhoDaExtracao(extracao: ExtracaoLocal): Rascunho {
     const item: any = extracao.definition ?? {};
-    const breakdownValues = Array.isArray(item.breakdowns) ? item.breakdowns : [];
+    const { campos, creativeFields, breakdownValues } = selecaoDaDefinicao(item);
     const breakdownId = catalogo.breakdowns.find((opcao) => JSON.stringify(opcao.valores ?? []) === JSON.stringify(breakdownValues))?.id ?? 'nenhum';
-    const nivel = item.entityLevel === 'account' ? 'conta' : item.entityLevel === 'adset' ? 'conjunto'
-      : item.entityLevel === 'ad' ? 'anuncio' : 'campanha';
     const output = item.periodContract?.outputGranularity;
     const granularidade = (output === 'week' ? 'semanal' : output === 'month' ? 'mensal' : output === 'all_days'
       ? 'periodo-inteiro' : typeof output === 'string' && output.startsWith('custom_') ? 'personalizada' : 'diaria') as Granularidade;
     const dias = Number(item.periodContract?.dataPeriod?.value ?? 7);
-    return sanearCamposDoCatalogo({ ...RASCUNHO_INICIAL, contaId: String(item.sourceAccountId ?? ''), templateId: String(item.template ?? ''),
-      nivel: nivel as NivelEntidade, campos: Array.isArray(item.fields) ? item.fields.map(String) : [],
-      creativeFields: Array.isArray(item.creativeFields) ? item.creativeFields.map(String) : [], breakdownId,
+    const rascunhoBase: Rascunho = { ...RASCUNHO_INICIAL, contaId: String(item.sourceAccountId ?? ''), templateId: String(item.template ?? ''),
+      campos, creativeFields, breakdownId,
       periodoId: catalogo.periodos.find((periodo) => periodo.dias === dias)?.id ?? RASCUNHO_INICIAL.periodoId,
-      granularidade, granularidadeDias: granularidade === 'personalizada' ? Number(String(output).slice(7)) : 14 }, catalogo).rascunho;
+      granularidade, granularidadeDias: granularidade === 'personalizada' ? Number(String(output).slice(7)) : 14 };
+    const nivelLegado = item.entityLevel === 'account' ? 'conta' : item.entityLevel === 'adset' ? 'conjunto'
+      : item.entityLevel === 'ad' ? 'anuncio' : item.entityLevel === 'campaign' ? 'campanha' : nivelResolvidoDoRascunho(rascunhoBase, catalogo);
+    return sanearCamposDoCatalogo({ ...rascunhoBase, nivel: nivelLegado }, catalogo).rascunho;
   }
 
   function avisoLegado(extracao: ExtracaoLocal): string | null {
     const item: any = extracao.definition ?? {};
-    const saneado = sanearCamposDoCatalogo({ ...RASCUNHO_INICIAL,
-      campos: Array.isArray(item.fields) ? item.fields.map(String) : [],
-      creativeFields: Array.isArray(item.creativeFields) ? item.creativeFields.map(String) : [] }, catalogo);
+    const { campos, creativeFields } = selecaoDaDefinicao(item);
+    const saneado = sanearCamposDoCatalogo({ ...RASCUNHO_INICIAL, campos, creativeFields }, catalogo);
     return saneado.removidos.length > 0
       ? `${saneado.removidos.length} campo(s) antigo(s) não existem mais no catálogo e foram removidos. Revise a seleção antes de salvar.` : null;
   }
