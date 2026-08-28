@@ -7,9 +7,10 @@ import { useState, useEffect } from 'react';
 
 
 
-const CONTACT_LINK = 'https://wa.me/556296242626?text=Ol%C3%A1%21+Vi+a+proposta+de+landing+pages+da+D%C3%A1cora+e+gostaria+de+conversar+sobre+meu+projeto.';
+const CONTACT_LINK = 'https://wa.me/5519988947233?text=Ol%C3%A1%21+Vim+do+site+da+D%C3%A1cora+e+quero+saber+mais';
+const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-18415625900/F2OMCMWG1-kcEKzNoM1E';
 
-const trackEvent = (eventName: string) => {
+const trackEvent = (eventName: string, options: { googleAdsConversion?: boolean } = {}) => {
   const generateEventId = () => {
     return typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
@@ -29,6 +30,12 @@ const trackEvent = (eventName: string) => {
       event_category: 'Landing Page',
       event_label: eventName
     });
+
+    if (options.googleAdsConversion) {
+      (window as any).gtag('event', 'conversion', {
+        send_to: GOOGLE_ADS_CONVERSION_SEND_TO
+      });
+    }
   }
 
   // 3. Conversions API no server-side
@@ -140,7 +147,7 @@ export default function PropostaLandingPage() {
               href={CONTACT_LINK} 
               target="_blank" 
               rel="noopener noreferrer"
-              onClick={() => trackEvent('ClickHeroWhatsApp')}
+              onClick={() => trackEvent('ClickHeroWhatsApp', { googleAdsConversion: true })}
               className="text-sm font-bold tracking-wide text-dacora-primary bg-dacora-offwhite px-6 py-2.5 rounded-[4px] hover:bg-white transition-colors"
             >
               Solicitar proposta
@@ -212,7 +219,7 @@ export default function PropostaLandingPage() {
                 href={CONTACT_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent('ClickHeroWhatsApp')}
+                onClick={() => trackEvent('ClickHeroWhatsApp', { googleAdsConversion: true })}
                 className="inline-flex items-center justify-center px-10 py-[1.125rem] bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-white hover:scale-[1.02] transition-all duration-300 w-full sm:w-auto"
               >
                 Quero uma landing page que converte →
@@ -580,7 +587,7 @@ export default function PropostaLandingPage() {
                 href={CONTACT_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent('ClickEssentialPlan')}
+                onClick={() => trackEvent('ClickEssentialPlan', { googleAdsConversion: true })}
                 className="block text-center px-8 py-4 bg-dacora-offwhite text-dacora-primary border border-dacora-primary font-bold text-lg rounded-[4px] hover:bg-dacora-primary hover:text-dacora-offwhite hover:scale-[1.02] transition-all duration-300"
               >
                 Quero a opção Essencial
@@ -633,7 +640,7 @@ export default function PropostaLandingPage() {
                 href={CONTACT_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent('ClickCompletePlan')}
+                onClick={() => trackEvent('ClickCompletePlan', { googleAdsConversion: true })}
                 className="block text-center px-8 py-4 bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-white hover:scale-[1.02] transition-all duration-300"
               >
                 Quero a opção Completa
@@ -980,7 +987,7 @@ export default function PropostaLandingPage() {
               href={CONTACT_LINK}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackEvent('ClickFinalWhatsApp')}
+              onClick={() => trackEvent('ClickFinalWhatsApp', { googleAdsConversion: true })}
               className="inline-flex items-center justify-center px-10 py-5 bg-dacora-offwhite text-dacora-primary font-bold text-lg md:text-xl rounded-[4px] hover:bg-white transition-colors duration-300"
             >
               Conversar sobre meu projeto
@@ -1034,7 +1041,7 @@ export default function PropostaLandingPage() {
             href={CONTACT_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackEvent('ClickFooterWhatsApp')}
+            onClick={() => trackEvent('ClickFooterWhatsApp', { googleAdsConversion: true })}
             className="text-dacora-sage/60 hover:text-dacora-offwhite transition-colors text-xs tracking-wide order-2 md:order-3"
           >
             WhatsApp
@@ -1048,7 +1055,7 @@ export default function PropostaLandingPage() {
         href={CONTACT_LINK}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => trackEvent('ClickFloatingWhatsApp')}
+        onClick={() => trackEvent('ClickFloatingWhatsApp', { googleAdsConversion: true })}
         className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1EBE5D] hover:scale-105 hover:shadow-xl transition-all duration-300 group flex items-center justify-center pointer-events-auto"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

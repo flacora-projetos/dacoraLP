@@ -7,7 +7,8 @@ import { motion, type Variants } from 'motion/react';
 import { CheckCircle2, Instagram } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const CONTACT_LINK = 'https://wa.me/556296242626?text=Quero+melhorar+a+estrat%C3%A9gia+da+minha+empresa';
+const CONTACT_LINK = 'https://wa.me/5519988947233?text=Ol%C3%A1%21+Vim+do+site+da+D%C3%A1cora+e+quero+saber+mais';
+const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-18415625900/F2OMCMWG1-kcEKzNoM1E';
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -54,6 +55,10 @@ const trackContact = () => {
     (window as any).gtag('event', 'Contact', {
       event_category: 'Home Page',
       event_label: 'Contact'
+    });
+
+    (window as any).gtag('event', 'conversion', {
+      send_to: GOOGLE_ADS_CONVERSION_SEND_TO
     });
   }
 
