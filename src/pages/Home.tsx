@@ -344,12 +344,9 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={trackContact}
-              className="inline-flex items-center justify-center gap-3 px-8 py-5 border border-dacora-sage/30 bg-dacora-offwhite rounded-[4px] shadow-sm hover:bg-white hover:border-dacora-primary/40 hover:scale-[1.02] transition-all duration-300"
+              className="inline-flex items-center justify-center px-10 py-5 bg-dacora-primary text-dacora-offwhite font-bold text-lg md:text-xl rounded-[4px] hover:brightness-110 hover:scale-[1.02] transition-all duration-300"
             >
-              <span className="text-dacora-dark font-medium text-lg md:text-xl tracking-wide">
-                Planos a partir de <span className="font-bold text-dacora-primary">R$1.500,00</span>/mês
-              </span>
-              <span className="text-dacora-primary font-bold text-lg md:text-xl">→</span>
+              Quero saber mais →
             </a>
           </motion.div>
         </div>
