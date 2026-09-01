@@ -1779,3 +1779,37 @@ por CSS.
 **Cinco mutações aplicadas uma a uma, todas pegas.** Os 13 verificadores do
 relatório e do painel passam; `npm run build` completo verde.
 
+---
+
+## 16. Quebra de página do PDF (2026-09-01)
+
+O PO imprimiu de novo e reprovou: *"muitas páginas em branco, quebras mal
+feitas"*. A causa foi **medida na largura real de uma folha A4 (794px)**, não
+deduzida: **5 das 11 seções deste relatório passam de uma página** — 1269,
+1247, 1088, 1047 e 1047px contra 1016px úteis — e a regra de impressão tinha
+`break-inside: avoid` em `.dc-secao`.
+
+⚠️ **A REGRA QUE FICA, e ela é o aprendizado desta rodada:** `break-inside:
+avoid` só vale para peça que **cabe** numa folha. Em bloco de tamanho aberto
+ele **não evita a quebra** — só escolhe um lugar pior para ela, e cobra uma
+página em branco pela escolha, porque o navegador empurra o bloco inteiro para
+a folha seguinte antes de desistir.
+
+Duas causas menores vieram junto, também medidas: **10 `th` com `position:
+sticky`** (cabeçalho grudado na tela atrapalha a repetição no papel) e uma
+**altura mínima de viewport** no container, que só rende folha em branco no fim.
+
+**O que passou a valer:** `.dc-secao` e `.dc-grafico` podem quebrar; o que abre
+um bloco (`__titulo`, `__apoio`, `__cabecalho`, `__pergunta`) leva
+`break-after: avoid`, para título não ficar sozinho no pé; peça pequena
+(`.dc-kpi`, `.dc-fonte`, `.dc-canal`, `.dc-criativo`, `.dc-analise-editorial`,
+`tr`) continua inteira; tabela longa repete o próprio cabeçalho
+(`thead { display: table-header-group }` + `th { position: static }`); e
+parágrafos ganham `orphans`/`widows`.
+
+**Provas:** as asserções entraram em `npm run verifica:cliente-enxuto`, amarradas
+ao fato medido — bloco grande não pode ter `avoid`, peça pequena precisa ter.
+**Seis mutações aplicadas uma a uma, todas pegas**, inclusive devolver o
+`avoid` em `.dc-secao`, que é o defeito original. Os 13 verificadores passam;
+`npm run build` completo verde.
+

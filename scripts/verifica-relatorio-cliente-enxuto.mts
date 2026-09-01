@@ -168,4 +168,48 @@ assert.match(html, /dc-topo__imprimir/, 'e carregar a classe que a regra de impr
   assert.match(css, /@page\s*\{[^}]*margin:/, 'sem @page cada navegador imprime com uma margem diferente');
 }
 
+/* ------------------------------------------------------------------ */
+/* 10) Quebra de página — o PDF não pode sair com folha em branco       */
+/*                                                                      */
+/* O PO imprimiu e recebeu "muitas páginas em branco, quebras mal       */
+/* feitas". A causa foi `break-inside: avoid` em `.dc-secao`: medido na */
+/* largura real de A4, 5 das 11 seções deste relatório passam de uma    */
+/* folha, e "não me quebre" num bloco que não cabe só escolhe um lugar  */
+/* pior para a quebra — cobrando uma página em branco pela escolha.     */
+/* ------------------------------------------------------------------ */
+{
+  const css = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
+  const regras = regrasDeImpressao(css);
+  const corpoDe = (seletor: string) => regras.filter((r) => r.seletores.includes(seletor)).map((r) => r.corpo).join(' ');
+
+  /* Bloco de tamanho aberto NUNCA leva "não me quebre". */
+  for (const grande of ['.dc-secao', '.dc-grafico']) {
+    assert.doesNotMatch(
+      corpoDe(grande),
+      /break-inside:\s*avoid/,
+      `${grande} pode passar de uma folha; "break-inside: avoid" aqui produz página em branco`,
+    );
+    assert.match(corpoDe(grande), /break-inside:\s*auto/, `${grande} precisa poder quebrar`);
+  }
+
+  /* Peça pequena continua inteira — senão a correção vira o defeito oposto. */
+  for (const pequena of ['.dc-kpi', '.dc-fonte', '.dc-analise-editorial', 'tr']) {
+    assert.match(corpoDe(pequena), /break-inside:\s*avoid/, `${pequena} cabe numa folha e não pode ser partida`);
+  }
+
+  /* Título não fica sozinho no pé da folha. */
+  assert.match(corpoDe('.dc-secao__titulo'), /break-after:\s*avoid/, 'título solto no fim da página é a outra metade de uma quebra mal feita');
+
+  /* Tabela que atravessa a folha repete o cabeçalho — e para isso o `th`
+     não pode continuar grudado. */
+  assert.match(corpoDe('thead'), /display:\s*table-header-group/, 'tabela longa precisa repetir o cabeçalho em cada folha');
+  assert.match(corpoDe('th'), /position:\s*static/, 'th sticky atrapalha a repetição do cabeçalho no papel');
+
+  /* Altura mínima de viewport rende folha em branco no fim. */
+  assert.match(corpoDe('.dc-report'), /min-height:\s*0/, 'altura mínima medida na janela não existe no papel');
+
+  /* Linha órfã. */
+  assert.match(corpoDe('p'), /orphans|widows/, 'parágrafo precisa de orphans/widows para não deixar linha solta');
+}
+
 console.log('verifica-relatorio-cliente-enxuto: ok');
