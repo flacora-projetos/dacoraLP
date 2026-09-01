@@ -25,6 +25,36 @@ import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026
 
 const snapshot = karyneMontada202607 as any;
 
+/**
+ * Um bloco `@media print { … }` inteiro, até a chave que fecha na coluna zero.
+ *
+ * ⚠️ `[\r\n]+` e não `\n`: este repositório grava CSS com CRLF, e casar só
+ * `\n` é frágil o bastante para o bloco inteiro sumir da varredura — e uma
+ * varredura vazia faz TODA asserção de ausência passar por vacuidade. É
+ * exatamente por isso que existe a prova negativa no fim deste arquivo.
+ */
+const RE_BLOCO_PRINT = /@media print\s*\{([\s\S]*?)[\r\n]+\}/g;
+
+/**
+ * As regras de impressão, já separadas em seletores e corpo.
+ *
+ * ⚠️ Os comentários saem ANTES do parse. Sem isso, o texto do comentário que
+ * documenta uma regra entra na captura do seletor dela, e a busca por
+ * `.dc-grafico__area` falha mesmo com a regra presente — ou, pior, passa por
+ * casar com o nome citado dentro do comentário. Este repositório já tinha
+ * registrado essa armadilha em outra trava; aqui ela custou uma rodada.
+ */
+function regrasDeImpressao(css: string) {
+  const blocos = [...css.matchAll(RE_BLOCO_PRINT)].map((m) => m[1]);
+  assert.ok(blocos.length > 0, 'a varredura não achou bloco @media print — vazia, toda asserção de ausência passa por vacuidade');
+  return blocos.flatMap((bloco) =>
+    [...bloco.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*)\{([^{}]*)\}/g)]
+      .map(([, sel, corpo]) => ({
+        seletores: sel.split(',').map((s) => s.trim()).filter(Boolean),
+        corpo,
+      })));
+}
+
 /* A fixture precisa MESMO ter o dado das duas seções, senão a prova de que
    elas não são publicadas passaria por ausência de conteúdo — o teste diria
    "não apareceu" sobre algo que nunca teve o que aparecer. */
@@ -91,6 +121,51 @@ assert.match(html, /dc-topo__imprimir/, 'e carregar a classe que a regra de impr
     [...bloco.matchAll(/([^{}]*)\{([^{}]*)\}/g)].some(([, seletores]) =>
       seletores.split(',').map((s) => s.trim()).includes('.dc-classe-que-nao-existe')));
   assert.equal(achaInexistente, false, 'a varredura não pode dar positivo para qualquer coisa');
+}
+
+/* ------------------------------------------------------------------ */
+/* 8) O PDF precisa refletir o relatório                                */
+/*                                                                      */
+/* O PO imprimiu e recebeu um documento "incompleto e estranho": os      */
+/* cinco `<details>` de dados dos gráficos nascem FECHADOS e a regra de  */
+/* impressão escondia `details` fechado, então cada seção de gráfico     */
+/* saía sem número nenhum — ao lado de um SVG do Recharts medido em      */
+/* 110px, que não se remede na repaginação.                             */
+/* ------------------------------------------------------------------ */
+{
+  const css = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
+  const regras = regrasDeImpressao(css);
+
+  const regraDe = (seletor: string) => regras.find((r) => r.seletores.includes(seletor));
+
+  /* O gráfico sai do papel. */
+  const area = regraDe('.dc-grafico__area');
+  assert.ok(area && /display:\s*none/.test(area.corpo), 'o SVG do gráfico não pode ir ao papel: ele não se remede na repaginação');
+
+  /* A tabela dele entra, aberta. Forçar no FILHO é o que funciona num
+     `<details>` fechado — o navegador esconde o conteúdo por dentro. */
+  const tabela = regraDe('.dc-grafico__dados > .dc-grafico__dados-rolagem');
+  assert.ok(tabela && /display:\s*block/.test(tabela.corpo), 'a tabela de dados do gráfico precisa aparecer no papel, mesmo com o details fechado');
+  const sumario = regraDe('.dc-grafico__dados > summary');
+  assert.ok(sumario && /display:\s*none/.test(sumario.corpo), 'o "ver os números em tabela" não faz sentido impresso');
+
+  /* Prova negativa: a regra que causava o defeito não pode voltar. */
+  const escondeFechado = regras.some((r) =>
+    r.seletores.some((sel) => sel.includes('.dc-grafico__dados') && sel.includes(':not([open])'))
+    && /display:\s*none/.test(r.corpo));
+  assert.equal(escondeFechado, false, 'esconder o details fechado é exatamente o que tirava os números do PDF');
+
+  /* Rolagem lateral não existe no papel — o excedente é cortado em silêncio. */
+  for (const seletor of ['.dc-grafico__dados-rolagem', '.dc-campanhas']) {
+    const r = regras.find((x) => x.seletores.includes(seletor));
+    assert.ok(r && /overflow:\s*visible/.test(r.corpo), `${seletor} precisa abrir no papel, senão a tabela sai cortada na largura`);
+  }
+}
+
+/* ---- 9) o papel tem margem declarada ---- */
+{
+  const css = readFileSync(new URL('../src/reports/report.css', import.meta.url), 'utf8');
+  assert.match(css, /@page\s*\{[^}]*margin:/, 'sem @page cada navegador imprime com uma margem diferente');
 }
 
 console.log('verifica-relatorio-cliente-enxuto: ok');

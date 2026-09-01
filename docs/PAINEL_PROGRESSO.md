@@ -1731,3 +1731,51 @@ de que a varredura do CSS não dá positivo para qualquer coisa. Três mutaçõe
 aplicadas uma a uma, todas pegas. Os 12 verificadores existentes do relatório e
 do painel passam; `npm run build` completo verde.
 
+---
+
+## 15. O PDF passou a refletir o relatório (2026-09-01)
+
+O PO imprimiu o primeiro PDF e reprovou: *"não reflete o relatório, ficou meio
+incompleto e estranho, deveria ser uma versão, pode até ser diferente mas que
+reflita o relatório"*. **Quatro causas somadas**, todas medidas na página real
+de produção, não deduzidas:
+
+1. **Os cinco `<details>` de dados dos gráficos nascem FECHADOS**, e a regra de
+   impressão escondia `.dc-grafico__dados:not([open])`. Cada seção de gráfico
+   ia ao papel **sem número nenhum**.
+2. **O SVG do Recharts não se remede na repaginação.** Medido no relatório
+   real: 110px de largura, um deles com 22px. O que sobrava na seção era um
+   desenho torto.
+3. **Rolagem lateral não existe no papel.** `.dc-grafico__dados-rolagem` ocupava
+   643px dentro de uma faixa de 110px, e `.dc-campanhas` também transbordava —
+   na tela é uma barra de rolagem, impresso é número cortado sem aviso.
+4. **Não havia `@page`**, então a margem era a que cada navegador quisesse.
+
+**A correção segue o que o PO autorizou — "pode ser diferente, mas que
+reflita":** no papel, **o gráfico sai e a tabela dele entra**. A tabela tem
+exatamente os mesmos números, imprime de forma determinística e não depende de
+medição; a leitura em texto (`.dc-grafico__leitura`) continua, então a seção
+mantém o que o desenho contava. É a mesma escolha que o glossário e as notas já
+faziam — **só o gráfico tinha ficado de fora**.
+
+⚠️ **Forçar `display` no FILHO é o que faz o conteúdo de um `<details>` fechado
+aparecer**; o navegador o esconde por dentro e a marca `open` não é alcançável
+por CSS.
+
+**Duas armadilhas de teste apareceram nesta rodada e valem mais que a correção:**
+
+- **A varredura do CSS achava zero blocos e toda asserção de ausência passava
+  por vacuidade.** A causa era casar `
+\}` num arquivo gravado com CRLF. Hoje
+  a varredura é `[
+]+` e há uma asserção explícita de que ela achou algo.
+- **O comentário que documenta uma regra entrava na captura do seletor dela.**
+  Os comentários agora saem antes do parse. Este repositório já tinha registrado
+  essa armadilha em outra trava, e ela custou uma rodada assim mesmo.
+
+**Provas:** `npm run verifica:cliente-enxuto` fixa o contrato de impressão
+(gráfico oculto, tabela forçada visível, sumário oculto, overflow aberto,
+`@page` presente) com prova negativa contra a regra que causava o defeito.
+**Cinco mutações aplicadas uma a uma, todas pegas.** Os 13 verificadores do
+relatório e do painel passam; `npm run build` completo verde.
+

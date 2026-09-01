@@ -3790,9 +3790,55 @@
     display: none;
   }
 
-  .dc-grafico__dados[open] > summary,
-  .dc-grafico__dados:not([open]) {
-    display: none;
+  /*
+   * NO PAPEL, O GRÁFICO VIRA A TABELA DELE — 2026-09-01.
+   *
+   * A regra anterior escondia `.dc-grafico__dados:not([open])`, e os cinco
+   * `<details>` desta página nascem FECHADOS: a impressão saía com o desenho
+   * do gráfico e **sem número nenhum**. Junto, o SVG do Recharts é medido em
+   * pixels na tela e não se remede na repaginação — no relatório real ele foi
+   * medido com 110px de largura —, então o que ia ao PDF era um gráfico torto
+   * ao lado de uma seção vazia. Foi o "incompleto e estranho" relatado pelo PO.
+   *
+   * A escolha é a mesma que o glossário e as notas já faziam, e que o PO
+   * autorizou: *"pode até ser diferente, mas que reflita o relatório"*. A
+   * tabela carrega exatamente os mesmos números do gráfico, imprime de forma
+   * determinística e não depende de medição nenhuma. O gráfico sai; os números
+   * ficam. A leitura em texto (`.dc-grafico__leitura`) continua, então a
+   * seção mantém o que o desenho contava.
+   *
+   * ⚠️ Forçar `display` no FILHO é o que faz o conteúdo de um `<details>`
+   * fechado aparecer — o navegador o esconde por dentro, e a marca `open` não
+   * é alcançável por CSS. Mesmo padrão de `.dc-glossario__caixa > .dc-glossario`
+   * e `.dc-notas-caixa > .dc-notas-tabela`, logo acima.
+   */
+  .dc-grafico__area {
+    display: none !important;
+  }
+
+  .dc-grafico__dados > summary {
+    display: none !important;
+  }
+
+  .dc-grafico__dados > .dc-grafico__dados-rolagem {
+    display: block !important;
+  }
+
+  /*
+   * Rolagem lateral não existe no papel: o que passa da largura é CORTADO, sem
+   * aviso. Medido no relatório real: a tabela de dados ocupava 643px dentro de
+   * uma faixa de 110px. Na tela isso é uma barra de rolagem; impresso, é
+   * número faltando.
+   */
+  .dc-grafico__dados-rolagem,
+  .dc-campanhas,
+  .dc-tabela-dados-rolagem {
+    overflow: visible !important;
+  }
+
+  .dc-tabela-dados {
+    min-width: 0 !important;
+    font-size: 0.7rem;
   }
 
   .dc-secao,
@@ -3853,4 +3899,15 @@
   padding: 2rem;
   border: 1px solid rgba(23, 63, 52, 0.16);
   background: #fffdf8;
+}
+
+/*
+ * A MARGEM DO PAPEL — 2026-09-01.
+ *
+ * Sem `@page`, cada navegador aplica a margem padrão dele, e o mesmo relatório
+ * sai com recuo diferente dependendo de quem imprimiu. 14mm dá respiro nas
+ * quatro bordas sem estreitar as tabelas a ponto de forçar corte.
+ */
+@page {
+  margin: 14mm;
 }
