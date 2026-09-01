@@ -21,6 +21,7 @@ import { formatarCompetencia } from '../reports/format';
 import { usarPainelAuth } from './AuthContext';
 import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
 import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
+import { corpoDaDecisao } from './corpoDaDecisao';
 import type { EstadoSeguroDoEnvioP5, ResultadoDoEnvioP5 } from './EnvioDaRevisao';
 import { useLinkDeVoltaParaFila } from './linkDeVolta';
 import { AnaliseIntroducao, type AcaoDaIntroducao, type SugestaoDaIntroducao } from './AnaliseIntroducao';
@@ -264,16 +265,7 @@ export function RevisaoComSessao({
           Authorization: `Bearer ${sessaoAtual.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          id: relatorio.id,
-          decisao: pedido.decisao,
-          // O checksum que ESTA tela mostrou. Se o documento mudou no banco, o
-          // servidor recusa em vez de carimbar algo que ninguém leu.
-          checksum: relatorio.checksum,
-          ...(pedido.decisao === 'recusar'
-            ? { motivo: pedido.motivo ?? '', escopoSecoes: pedido.escopoSecoes ?? ['relatorio_inteiro'] }
-            : {}),
-        }),
+        body: JSON.stringify(corpoDaDecisao(pedido, relatorio.id, relatorio.checksum)),
       });
       const corpo = await resposta.json().catch(() => null);
       if (!resposta.ok || corpo?.gravado !== true) {
