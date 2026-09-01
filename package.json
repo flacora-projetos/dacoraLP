@@ -22,6 +22,7 @@
     "verifica:analise": "tsx scripts/verifica-painel-analise-provider.mts && tsx scripts/verifica-painel-analise-introducao.mts && tsx scripts/verifica-painel-analises-secao.mts",
     "verifica:decisao": "tsx scripts/verifica-painel-decisao.mts",
     "verifica:ra4": "tsx scripts/verifica-painel-ra4.mts",
+    "verifica:prontidao-refresh": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-painel-prontidao-refresh.mts",
     "verifica:av2": "tsx scripts/verifica-painel-av2-prontidao.mts && tsx scripts/verifica-painel-av2-escrita.mts && tsx scripts/verifica-painel-av2-aviso.mts",
     "verifica:av3": "tsx scripts/verifica-painel-av3-historico.mts",
     "verifica:av4": "tsx scripts/verifica-painel-av4-fechamento.mts",

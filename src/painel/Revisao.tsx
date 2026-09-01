@@ -38,6 +38,7 @@ import { OPCOES_MODO_ANALISE, type ModoAnaliseUI } from './modoAnalise';
 import { afirmacoesDaIntroducaoRevisada } from './revisaoAnalise';
 import type { HistoricoEditorialInterno } from './HistoricoAnalises';
 import type { EstadoRetencaoEditorial, ResultadoRetencaoEditorial } from './RetencaoEditorial';
+import type { ResumoEditorialRA4 } from './estadoEditorial';
 
 export function RevisaoApresentada({
   relatorio,
@@ -165,6 +166,13 @@ export function RevisaoComSessao({
   const [tentativa, setTentativa] = useState(0);
   const [tentativaHistorico, setTentativaHistorico] = useState(0);
   const [historicoAnalises, setHistoricoAnalises] = useState<HistoricoEditorialInterno | null>(null);
+  /* A prontidão editorial que o SERVIDOR calculou por último.
+     Ela vive fora de `relatorio` de propósito. Trocar o objeto `relatorio`
+     mudaria a identidade de `analisarSecoes`/`analisarIntroducao`, e os dois
+     efeitos de carga (`AnalisesSecaoProvider` e `AnaliseIntroducao`) dependem
+     dessas funções: cada revalidação recarregaria as análises do servidor e
+     apagaria o rascunho do "Contexto do mês". Aqui só a prontidão anda. */
+  const [prontidaoEditorial, setProntidaoEditorial] = useState<ResumoEditorialRA4 | null>(null);
   const [modoAnalise, setModoAnalise] = useState<ModoAnaliseUI>('automatico');
   const linkDeVolta = useLinkDeVoltaParaFila();
   const sessaoAtualRef = useRef(sessao);
@@ -180,6 +188,7 @@ export function RevisaoComSessao({
       setCarregando(true);
       setErro(null);
       setRelatorio(null);
+      setProntidaoEditorial(null);
       try {
         const resposta = await fetch(`/api/painel-relatorio?id=${encodeURIComponent(relatorioId)}`, {
           headers: { Authorization: `Bearer ${sessaoAtual.access_token}` },
@@ -301,6 +310,51 @@ export function RevisaoComSessao({
       };
     }
   }
+
+  /**
+   * Relê do servidor **só a prontidão editorial** do documento que está na tela.
+   *
+   * Toda ação editorial pode mudar o 8/8 que libera o botão "Aprovar
+   * relatório", e quem calcula esse número é o servidor
+   * (`conferirEstadoEditorial`, em `api/painel-relatorio.ts`). Sem esta
+   * segunda leitura, a tela resolvia a última pendência, o banco passava a
+   * considerar o relatório pronto e o botão continuava desabilitado até um
+   * F5 — que foi exatamente o defeito relatado no Dr. Flávio Zenun/2026-08.
+   *
+   * Três recusas, todas para o mesmo lado:
+   *
+   *  • **falha de rede ou HTTP** não mexe em nada. O estado anterior veio do
+   *    servidor e continua valendo; nada é inferido aqui.
+   *  • **resposta sem `revisaoEditorial`** também não mexe em nada, pelo mesmo
+   *    motivo.
+   *  • **documento diferente** — id ou checksum divergentes — é descartado.
+   *    Uma coleta nova pode ter trocado o documento corrente embaixo da tela,
+   *    e a prontidão dele fala de fatos que esta tela não mostrou. Adotá-la
+   *    poderia liberar a aprovação de um documento que ninguém leu.
+   *
+   * A tela nunca deriva `podeAprovar` por conta própria: ela só transporta o
+   * que o servidor respondeu, e o portão real continua sendo `painel-decisao`.
+   */
+  const revalidarProntidao = useCallback(async (): Promise<void> => {
+    const sessaoAtual = sessaoAtualRef.current;
+    const relatorioAtual = relatorio;
+    if (!sessaoAtual || !relatorioAtual?.id) return;
+    try {
+      const resposta = await fetch(`/api/painel-relatorio?id=${encodeURIComponent(relatorioAtual.id)}`, {
+        headers: { Authorization: `Bearer ${sessaoAtual.access_token}` },
+      });
+      if (!resposta.ok) return;
+      const corpo = await resposta.json().catch(() => null);
+      const lido = corpo?.relatorio;
+      if (!lido?.revisaoEditorial) return;
+      if (lido.id !== relatorioAtual.id || lido.checksum !== relatorioAtual.checksum) return;
+      setProntidaoEditorial(lido.revisaoEditorial as ResumoEditorialRA4);
+    } catch {
+      /* Silêncio proposital: a ação editorial já foi gravada e confirmada pelo
+         servidor. Falhar aqui não pode transformar um sucesso em erro na cara
+         de quem revisa — e não muda a prontidão para lado nenhum. */
+    }
+  }, [relatorio, usuarioId]);
 
   const registrarObservacao = useCallback(async (secao: string, texto: string): Promise<ResultadoDaDecisao> => {
     const sessaoAtual = sessaoAtualRef.current;
@@ -453,8 +507,12 @@ export function RevisaoComSessao({
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? 'A análise está indisponível agora.'));
     if (acao === 'aplicar' || acao === 'editar') setTentativaHistorico((valor) => valor + 1);
+    /* `desfazer` entra aqui junto com `aplicar`/`editar`: ele TIRA a prontidão
+       da introdução, e não revalidar deixaria o botão habilitado por um estado
+       que o servidor já não confirma mais. */
+    if (acao !== 'carregar') await revalidarProntidao();
     return corpo?.sugestao ?? null;
-  }, [modoAnalise, relatorio, usuarioId]);
+  }, [modoAnalise, relatorio, revalidarProntidao, usuarioId]);
 
   const analisarSecoes = useCallback(async (
     acao: AcaoAnalisesUI,
@@ -485,8 +543,13 @@ export function RevisaoComSessao({
     if (acao === 'aplicar' || acao === 'editar' || acao === 'dispensar') {
       setTentativaHistorico((valor) => valor + 1);
     }
+    /* Vale para toda ação que mexe no estado editorial de uma seção, nos dois
+       sentidos — inclusive `desfazer`, `reverter_dispensa` e as gerações, que
+       podem devolver a seção para "sugerida" e derrubar a prontidão de volta.
+       `salvar_contexto` não decide seção nenhuma e fica de fora. */
+    if (acao !== 'carregar' && acao !== 'salvar_contexto') await revalidarProntidao();
     return corpo ?? {};
-  }, [modoAnalise, relatorio, usuarioId]);
+  }, [modoAnalise, relatorio, revalidarProntidao, usuarioId]);
 
   if (carregando) {
     return (
@@ -518,7 +581,7 @@ export function RevisaoComSessao({
 
   return (
     <RevisaoApresentada
-      relatorio={relatorio}
+      relatorio={prontidaoEditorial ? { ...relatorio, revisaoEditorial: prontidaoEditorial } : relatorio}
       quem={sessao?.user?.email ?? undefined}
       aoDecidir={decidir}
       aoCarregarEnvio={carregarEnvio}
