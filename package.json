@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "prebuild": "npm run lint && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento",
+    "prebuild": "npm run lint && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento && npm run verifica:cliente-enxuto",
     "build": "vite build && npm run build:ssr && npm run prerender && npm run verifica:casca && npm run sitemap && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr --emptyOutDir",
     "prerender": "node scripts/prerender.mjs",
@@ -23,6 +23,7 @@
     "verifica:decisao": "tsx scripts/verifica-painel-decisao.mts",
     "verifica:ra4": "tsx scripts/verifica-painel-ra4.mts",
     "verifica:prontidao-refresh": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-painel-prontidao-refresh.mts",
+    "verifica:cliente-enxuto": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-relatorio-cliente-enxuto.mts",
     "verifica:av2": "tsx scripts/verifica-painel-av2-prontidao.mts && tsx scripts/verifica-painel-av2-escrita.mts && tsx scripts/verifica-painel-av2-aviso.mts",
     "verifica:av3": "tsx scripts/verifica-painel-av3-historico.mts",
     "verifica:av4": "tsx scripts/verifica-painel-av4-fechamento.mts",

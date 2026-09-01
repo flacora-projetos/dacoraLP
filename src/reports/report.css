@@ -245,6 +245,32 @@
   }
 }
 
+/* O botão que transforma a página em PDF. Alvo de toque de 44px, como o resto
+   da interface; nunca aparece no próprio PDF (ver a lista de `@media print`). */
+.dc-topo__imprimir {
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--dc-filete-forte);
+  background: transparent;
+  color: var(--dc-cinza);
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.dc-topo__imprimir:hover {
+  border-color: var(--dc-tinta);
+  color: var(--dc-tinta);
+}
+
+@media (max-width: 480px) {
+  .dc-topo__imprimir {
+    width: 100%;
+  }
+}
+
 .dc-topo__seletor label {
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -3711,6 +3737,7 @@
   }
 
   .dc-topo__seletor,
+  .dc-topo__imprimir,
   .dc-demo,
   .dc-botao-detalhe,
   .dc-acao,
