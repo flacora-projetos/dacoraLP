@@ -1,8 +1,8 @@
 /**
  * O ESQUELETO do relatório — o que não muda entre clientes nem entre formatos.
  *
- * Cabeçalho, capa, resumo do mês, oportunidades, qualidade das fontes e
- * rodapé. O miolo chega pronto, como uma lista de seções: quem monta essa
+ * Cabeçalho, capa, resumo do mês e rodapé (oportunidades e qualidade das
+ * fontes estão suspensas — ver `SECOES_SUSPENSAS_PARA_O_CLIENTE`). O miolo chega pronto, como uma lista de seções: quem monta essa
  * lista é o formato (`RelatorioMensal` resolve por tipo, `RelatorioMontado`
  * resolve pelo catálogo de blocos).
  *
@@ -86,6 +86,35 @@ function usaPaginaPrivada(titulo: string) {
   }, [titulo]);
 }
 
+/**
+ * Duas seções ficam FORA do documento do cliente — decisão do PO, 2026-09-01.
+ *
+ * "A versão pro cliente não deve ter qualidade e origem de dados e nem
+ * oportunidade e próximos passos; pra ter isso precisamos melhorar demais
+ * ainda, então vamos retirar esse mês pra poder mandar pros clientes."
+ *
+ * São `Oportunidades e próximos passos` (destaques, pontos de atenção e
+ * próximos passos, todos vindos de `leitura`) e `Qualidade e origem dos
+ * dados` (as fontes consultadas).
+ *
+ * ⚠️ **Nada foi apagado do snapshot.** `leitura.destaques`, `leitura.atencao`,
+ * `leitura.proximosPassos` e `fontes` continuam gravados, viajando na
+ * auditoria e alimentando o contexto da análise — o que muda é o documento
+ * deixar de publicá-los. Voltar é virar esta constante, e é por isso que o
+ * código das duas seções continua aqui em vez de ser removido: a decisão é
+ * "ainda não", não "nunca".
+ *
+ * ⚠️ Vale IGUALMENTE na revisão do painel, e isso é deliberado: quem aprova
+ * está aprovando o que o cliente vai receber. Mostrar ao revisor uma seção
+ * que não será entregue tornaria a revisão uma leitura de outro documento.
+ * A qualidade das fontes continua disponível ao revisor pelos sinais e pelo
+ * contexto factual da faixa de revisão.
+ *
+ * A numeração das seções é posicional (`proximo()`), então ela se refaz
+ * sozinha nos dois sentidos — nenhum índice fica com buraco.
+ */
+export const SECOES_SUSPENSAS_PARA_O_CLIENTE = true;
+
 const indice = (posicao: number) => String(posicao).padStart(2, '0');
 
 export default function Esqueleto({ snapshot, competencias, proposta, secoes, demo, introducaoDaRevisao }: Props) {
@@ -129,6 +158,25 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
               ))}
             </select>
           </div>
+
+          {/* O "PDF" sempre foi a impressão desta mesma página — nunca houve
+              uma segunda fonte, e é isso que garante que o papel e a tela não
+              divirjam. O que faltava era o botão: a capacidade existia e só
+              quem conhecia Ctrl+P a alcançava. `window.print()` respeita as
+              regras `@media print` já existentes, inclusive a que tira a
+              revisão interna do documento do cliente.
+
+              ⚠️ Ele próprio precisa sumir na impressão, senão sai desenhado
+              no PDF do cliente — a regra está em `report.css`, ao lado das
+              outras. `.dc-acao` NÃO serve aqui: aquilo é a célula de 44px das
+              tabelas, não um botão. */}
+          <button
+            type="button"
+            className="dc-topo__imprimir"
+            onClick={() => window.print()}
+          >
+            Exportar PDF
+          </button>
         </div>
       </header>
 
@@ -202,6 +250,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
         ))}
 
         {/* N+1 — oportunidades e próximos passos -------------------- */}
+        {!SECOES_SUSPENSAS_PARA_O_CLIENTE && (
         <Secao
           indice={proximo()}
           id="proximos-passos"
@@ -216,8 +265,10 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
             <BlocoLeitura titulo="Próximos passos" tom="passos" itens={leitura.proximosPassos} />
           </div>
         </Secao>
+        )}
 
         {/* N+2 — qualidade dos dados -------------------------------- */}
+        {!SECOES_SUSPENSAS_PARA_O_CLIENTE && (
         <Secao
           indice={proximo()}
           id="qualidade"
@@ -263,6 +314,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
             })}
           </div>
         </Secao>
+        )}
 
         {/* rodapé ---------------------------------------------------- */}
         <footer className="dc-rodape">

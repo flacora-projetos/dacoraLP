@@ -1684,3 +1684,50 @@ catálogo e das extrações existentes; depois valide criação/edição e o con
 `selectedFields`. Executar uma extração real (`POST .../run`) ou produzir saída
 real no destino é efeito operacional e deve ser tratado separadamente, com GO
 explícito antes da mutação. Não reintroduza `entityLevel` como escolha de UX.
+
+---
+
+## 14. Documento do cliente enxuto e botão de PDF (2026-09-01)
+
+**Decisão do PO, no dia do primeiro envio real pós-RA5:** *"A versão pro cliente
+não deve ter qualidade e origem de dados e nem oportunidade e próximos passos;
+pra ter isso precisamos melhorar demais ainda, então vamos retirar esse mês pra
+poder mandar pros clientes."*
+
+`Oportunidades e próximos passos` (destaques, pontos de atenção, próximos
+passos) e `Qualidade e origem dos dados` (as fontes consultadas) deixam de ser
+publicadas. A porta é a constante `SECOES_SUSPENSAS_PARA_O_CLIENTE`, em
+`src/reports/Esqueleto.tsx`.
+
+⚠️ **Nada foi apagado do snapshot.** `leitura.destaques`, `leitura.atencao`,
+`leitura.proximosPassos` e `fontes` continuam gravados, na auditoria e no
+contexto analítico. A decisão é sobre **publicar**, não sobre coletar — quem
+"limpar" o snapshot quebra auditoria e a análise assistida. O código das duas
+seções continua no arquivo porque a decisão é *"ainda não"*, não *"nunca"*:
+voltar é virar a constante.
+
+⚠️ **Vale igualmente na revisão do painel, de propósito.** Quem aprova está
+aprovando o que o cliente vai receber; mostrar ao revisor uma seção que não
+será entregue tornaria a revisão a leitura de outro documento. A qualidade das
+fontes continua disponível ao revisor pelos sinais e pelo contexto factual da
+faixa de revisão.
+
+A numeração das seções é posicional, então ela se refez sozinha — a regressão
+prova que não ficou buraco.
+
+**O botão "Exportar PDF" passou a existir.** A documentação falava em "PDF"
+desde a RA5 e **nunca houve botão**: o PDF sempre foi a impressão desta mesma
+página (`@media print` em `report.css`), alcançável só por Ctrl+P. A capacidade
+existia; o acesso, não. `window.print()` reusa as regras de impressão que já
+tiram a revisão interna do documento do cliente.
+
+⚠️ **O próprio botão entra na lista de `@media print`**, senão sairia desenhado
+dentro do PDF.
+
+**Provas:** `npm run verifica:cliente-enxuto` (novo, no `prebuild`) exige a
+ausência das duas seções, a presença do dado no snapshot, a numeração sem
+buraco, a presença do botão e o sumiço dele na impressão — com prova negativa
+de que a varredura do CSS não dá positivo para qualquer coisa. Três mutações
+aplicadas uma a uma, todas pegas. Os 12 verificadores existentes do relatório e
+do painel passam; `npm run build` completo verde.
+
