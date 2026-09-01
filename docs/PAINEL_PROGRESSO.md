@@ -1813,3 +1813,50 @@ ao fato medido — bloco grande não pode ter `avoid`, peça pequena precisa ter
 `avoid` em `.dc-secao`, que é o defeito original. Os 13 verificadores passam;
 `npm run build` completo verde.
 
+---
+
+## 17. Prontidão editorial chega à tela sem reload (2026-09-01)
+
+**EM PRODUÇÃO (`main/3225ef8`).** Cronologicamente é a primeira entrega do dia;
+está registrada depois das seções 14–16 só porque estas foram escritas antes.
+
+O botão **Aprovar relatório** ficava desabilitado mesmo com todas as seções
+editoriais resolvidas — reproduzido no Dr. Flávio Zenun / agosto de 2026, onde
+o banco já registrava 8/8 e só um F5 liberava o botão.
+
+**Era refresh, não contrato.** Depois de aplicar, editar ou dispensar uma seção,
+`src/painel/Revisao.tsx` atualizava apenas o histórico editorial
+(`setTentativaHistorico`); `relatorio.revisaoEditorial`, que decide o `disabled`
+do botão, continuava sendo a cópia lida na abertura da tela. O fluxo de decisão
+final já relia o relatório inteiro do servidor; o fluxo das análises, não.
+
+⚠️ **A correção óbvia quebraria a tela.** Recarregar o objeto `relatorio`
+mudaria a identidade de `analisarSecoes`/`analisarIntroducao`, e os efeitos de
+carga do `AnalisesSecaoProvider` e da `AnaliseIntroducao` dependem dessas
+funções: cada revalidação recarregaria as análises do servidor e **apagaria o
+rascunho do "Contexto do mês"**. Por isso a prontidão vive em estado próprio
+(`prontidaoEditorial`) e só é fundida ao `relatorio` no momento de renderizar.
+
+A revalidação vale nos **dois sentidos** — `desfazer` e `reverter_dispensa`
+voltam a bloquear o botão na hora, em vez de deixá-lo habilitado por estado
+vencido. Três recusas, todas fail-closed: falha de rede/HTTP, resposta sem
+`revisaoEditorial`, e documento com `id`/`checksum` divergente (uma coleta nova
+pode ter trocado o documento corrente embaixo da tela, e a prontidão dele fala
+de fatos que esta tela não mostrou).
+
+**A tela nunca deriva `podeAprovar`:** ela só transporta o que o servidor
+respondeu, e o portão real continua em `api/painel-decisao`, que confere
+prontidão e checksum por conta própria.
+
+**Provas:** `npm run verifica:prontidao-refresh` (novo) monta o componente real
+em jsdom sobre a montagem de fixture já usada pelo painel e cobre os dez casos
+pedidos — pendente bloqueia, seção do meio não libera cedo, a última libera sem
+reload, aplicar/editar/dispensar revalidam, desfazer volta a bloquear, falha de
+releitura não promove o botão, documento divergente é descartado e nenhuma
+decisão real é registrada. **Cinco mutações aplicadas uma a uma, todas pegas —
+inclusive a que devolve exatamente o comportamento anterior à correção.**
+
+O carregador `scripts/_registra-css-vazio.mjs` entrou junto: sem ele, qualquer
+verificador que importe um componente que carrega `report.css` morre em
+`ERR_UNKNOWN_FILE_EXTENSION` antes da primeira asserção.
+
