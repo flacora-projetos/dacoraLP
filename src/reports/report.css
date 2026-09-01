@@ -3841,16 +3841,82 @@
     font-size: 0.7rem;
   }
 
+  /*
+   * QUEBRA DE PÁGINA — reescrito em 2026-09-01.
+   *
+   * O PO imprimiu e recebeu "muitas páginas em branco, quebras mal feitas".
+   * A causa: `break-inside: avoid` estava em `.dc-secao`, e **5 das 11 seções
+   * deste relatório são mais altas que uma folha** — medido na largura real de
+   * A4 (794px): 1269, 1247, 1088, 1047 e 1047px contra 1016px úteis.
+   *
+   * "Não me quebre" num bloco que não cabe faz o navegador empurrar a seção
+   * inteira para a folha seguinte, deixar o resto da anterior em branco — e
+   * estourar assim mesmo. Cinco vezes no mesmo documento.
+   *
+   * ⚠️ A REGRA QUE FICA: `break-inside: avoid` só vale para peça que CABE numa
+   * folha. Em bloco de tamanho aberto ele não evita a quebra, só escolhe um
+   * lugar pior para ela — e cobra uma página em branco pela escolha.
+   */
   .dc-secao,
+  .dc-grafico {
+    break-inside: auto;
+  }
+
+  /* O que abre um bloco acompanha o que vem depois: título sozinho no pé da
+     folha é a outra metade de uma quebra mal feita. */
+  .dc-secao__titulo,
+  .dc-secao__apoio,
+  .dc-grafico__cabecalho,
+  .dc-grafico__pergunta {
+    break-after: avoid;
+  }
+
+  /* Peça pequena continua inteira — todas medidas abaixo de uma folha. */
   .dc-kpi,
   .dc-canal,
-  .dc-grafico,
   .dc-fonte,
+  .dc-criativo,
   .dc-confronto__quadro,
   .dc-confronto__texto,
   .dc-analise-editorial,
-  .dc-audio {
+  .dc-audio,
+  tr {
     break-inside: avoid;
+  }
+
+  /*
+   * Tabela que atravessa a folha repete o próprio cabeçalho. Sem isso, a
+   * segunda página de uma tabela é uma grade de números sem coluna nomeada.
+   *
+   * ⚠️ `position: static` nos `th` é obrigatório: eles são `sticky` na tela
+   * (10 deles neste relatório), e cabeçalho grudado atrapalha a repetição no
+   * papel.
+   */
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  th {
+    position: static !important;
+  }
+
+  /* Altura mínima medida na janela não existe no papel: ela só rende folha
+     em branco no fim do documento. */
+  .dc-report {
+    min-height: 0 !important;
+  }
+
+  /* Nem uma linha solta no fim ou no começo de uma folha. */
+  p,
+  li,
+  dd,
+  dt {
+    orphans: 3;
+    widows: 3;
   }
 
   /* A tabela de fontes de venda não pode sair cortada nem rolar: na
