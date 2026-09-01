@@ -339,11 +339,18 @@ export default function App() {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="flex justify-center"
           >
-            <div className="px-8 py-5 border border-dacora-sage/30 bg-dacora-offwhite rounded-[4px] shadow-sm">
+            <a
+              href={CONTACT_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={trackContact}
+              className="inline-flex items-center justify-center gap-3 px-8 py-5 border border-dacora-sage/30 bg-dacora-offwhite rounded-[4px] shadow-sm hover:bg-white hover:border-dacora-primary/40 hover:scale-[1.02] transition-all duration-300"
+            >
               <span className="text-dacora-dark font-medium text-lg md:text-xl tracking-wide">
                 Planos a partir de <span className="font-bold text-dacora-primary">R$1.500,00</span>/mês
               </span>
-            </div>
+              <span className="text-dacora-primary font-bold text-lg md:text-xl">→</span>
+            </a>
           </motion.div>
         </div>
       </section>
