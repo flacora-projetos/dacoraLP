@@ -1182,6 +1182,7 @@ const linhas = [
   const { createRoot } = await import('react-dom/client');
 
   const enviados: any[] = [];
+  let respostaDoServidor: { ok: boolean; mensagem: string } = { ok: true, mensagem: 'Decisão registrada.' };
   const elemento = dom.window.document.getElementById('raiz')!;
   const montagem = dom.window.document.getElementById('montagem')!;
   const raiz = createRoot(montagem);
@@ -1193,7 +1194,7 @@ const linhas = [
         quem: 'pessoa.autorizada@exemplo.com',
         aoDecidir: async (pedido: any) => {
           enviados.push(pedido);
-          return { ok: true, mensagem: 'Decisão registrada.' };
+          return respostaDoServidor;
         },
       }),
     );
@@ -1241,27 +1242,52 @@ const linhas = [
     'o diálogo precisa sair da faixa lateral e permanecer dentro de .dc-painel',
   );
 
+  /*
+   * O botão NÃO nasce desabilitado, por decisão de 01/09/2026.
+   *
+   * Botão apagado sem explicação manda a pessoa procurar o erro na tela
+   * inteira, e foi exatamente essa a reclamação do PO. A proteção que importa
+   * nunca foi o cinza do botão: é não sair pedido nenhum sem causa completa, e
+   * é isso que este trecho prova, junto com o aviso que diz o que falta.
+   */
   const registrar = botaoPor('Registrar recusa');
-  assert.equal(registrar.disabled, true, 'sem causa estruturada, registrar precisa estar impossível');
-  clicar(registrar);
-  assert.equal(enviados.length, 0, 'clicar no botão desabilitado não pode gravar');
+  assert.equal(registrar.disabled, false, 'o botão precisa estar clicável desde o começo');
+  flushSync(() => clicar(registrar));
+  assert.equal(enviados.length, 0, 'clicar sem causa nenhuma não pode gravar');
+  const avisoVazio = elemento.querySelector('.dcp-causas__aviso');
+  assert.ok(avisoVazio, 'clicar sem causa precisa dizer o que falta, não ficar mudo');
+  assert.equal(avisoVazio.getAttribute('role'), 'alert', 'o aviso precisa ser anunciado');
+  assert.match(avisoVazio.textContent ?? '', /Marque pelo menos um problema/);
 
   const primeiraCausa = elemento.querySelector('.dcp-causa input[type="checkbox"]') as HTMLInputElement;
   assert.ok(primeiraCausa, 'faltou a causa estruturada inicial');
   flushSync(() => primeiraCausa.click());
-  assert.equal(botaoPor('Registrar recusa').disabled, true, 'causa sem parâmetros ainda não vale');
+  flushSync(() => clicar(botaoPor('Registrar recusa')));
+  assert.equal(enviados.length, 0, 'causa sem os campos preenchidos não pode gravar');
+  assert.match(
+    elemento.querySelector('.dcp-causas__aviso')?.textContent ?? '',
+    /escolha a plataforma/i,
+    'faltando campo, o aviso precisa nomear qual é',
+  );
 
   const selects = Array.from(elemento.querySelectorAll('.dcp-causa--ativa select')) as HTMLSelectElement[];
-  assert.equal(selects.length, 3, 'métrica ausente precisa pedir seção, plataforma e métrica');
-  for (const [select, valor] of [[selects[0], 'bloco:meta'], [selects[1], 'google'], [selects[2], 'google_resultado']] as Array<[HTMLSelectElement, string]>) {
+  assert.equal(selects.length, 3, 'falta de número precisa pedir plataforma, número e parte');
+  for (const [select, valor] of [[selects[0], 'google'], [selects[1], 'google_resultado'], [selects[2], 'bloco:meta']] as Array<[HTMLSelectElement, string]>) {
     flushSync(() => {
       (Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, 'value') as any).set.call(select, valor);
       select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
     });
   }
-  assert.equal(botaoPor('Registrar recusa').disabled, false, 'causa completa precisa liberar');
-  assert.match(elemento.textContent ?? '', /Métrica obrigatória ausente/);
-  assert.match(elemento.textContent ?? '', /não interpreta texto livre/);
+  assert.equal(elemento.querySelector('.dcp-causas__aviso'), null, 'preencher limpa o aviso');
+  assert.match(elemento.textContent ?? '', /Falta um número/);
+  // A tela fala do relatório, não do sistema: quem revisa não sabe o que é
+  // "ordem", "fábrica" ou "catálogo".
+  for (const jargao of ['fábrica', 'texto livre', 'catálogo', 'ordem inteira manual', 'estruturad']) {
+    assert.ok(
+      !(elemento.textContent ?? '').includes(jargao),
+      `o diálogo não pode falar em "${jargao}" para quem revisa`,
+    );
+  }
 
   // `Esc` fecha sem gravar.
   flushSync(() => {
@@ -1274,7 +1300,7 @@ const linhas = [
   clicar(botaoPor('Recusar com motivo'));
   flushSync(() => (elemento.querySelector('.dcp-causa input[type="checkbox"]') as HTMLInputElement).click());
   const selectsDois = Array.from(elemento.querySelectorAll('.dcp-causa--ativa select')) as HTMLSelectElement[];
-  for (const [select, valor] of [[selectsDois[0], 'bloco:meta'], [selectsDois[1], 'google'], [selectsDois[2], 'google_resultado']] as Array<[HTMLSelectElement, string]>) {
+  for (const [select, valor] of [[selectsDois[0], 'google'], [selectsDois[1], 'google_resultado'], [selectsDois[2], 'bloco:meta']] as Array<[HTMLSelectElement, string]>) {
     flushSync(() => {
       (Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, 'value') as any).set.call(select, valor);
       select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
@@ -1284,10 +1310,39 @@ const linhas = [
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(enviados, [{
     decisao: 'recusar',
-    motivo: 'Métrica obrigatória ausente',
+    motivo: 'Falta um número',
     catalogVersion: CATALOGO,
     causas: CAUSAS,
   }]);
+
+  /*
+   * A falha do servidor precisa aparecer DENTRO do diálogo.
+   *
+   * Ela era pintada só na página, atrás da máscara do modal: numa recusa
+   * reprovada, o diálogo seguia aberto e a explicação ficava embaixo dele. Para
+   * quem clicava, o botão simplesmente não fazia nada — foi a reclamação real
+   * que originou esta regressão.
+   */
+  enviados.length = 0;
+  respostaDoServidor = { ok: false, mensagem: 'O relatório mudou desde que você abriu.' };
+  clicar(botaoPor('Recusar com motivo'));
+  flushSync(() => (elemento.querySelector('.dcp-causa input[type="checkbox"]') as HTMLInputElement).click());
+  const selectsTres = Array.from(elemento.querySelectorAll('.dcp-causa--ativa select')) as HTMLSelectElement[];
+  for (const [select, valor] of [[selectsTres[0], 'google'], [selectsTres[1], 'google_resultado'], [selectsTres[2], 'bloco:meta']] as Array<[HTMLSelectElement, string]>) {
+    flushSync(() => {
+      (Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, 'value') as any).set.call(select, valor);
+      select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+    });
+  }
+  await new Promise((resolve) => { flushSync(() => clicar(botaoPor('Registrar recusa'))); setTimeout(resolve, 0); });
+  assert.equal(enviados.length, 1, 'a recusa completa precisa ter sido enviada');
+
+  const dialogoAberto = elemento.querySelector('[role="dialog"]');
+  assert.ok(dialogoAberto, 'falhando, o diálogo precisa continuar aberto');
+  const avisoDaFalha = dialogoAberto.querySelector('.dcp-causas__aviso');
+  assert.ok(avisoDaFalha, 'a falha do servidor precisa aparecer DENTRO do diálogo');
+  assert.match(avisoDaFalha.textContent ?? '', /mudou desde que você abriu/);
+  assert.equal(avisoDaFalha.getAttribute('role'), 'alert');
 
   flushSync(() => raiz.unmount());
   dom.window.close();
@@ -1348,12 +1403,22 @@ const linhas = [
     [...css.matchAll(/\.([A-Za-z0-9_-]+)\s*[,{:>+~\[]/g)].map((achado) => achado[1]),
   );
   assert.ok(seletores.has('dcp-causa'), 'a varredura do CSS precisa achar algo — senão passa vazia');
-  for (const classe of [
-    'dcp-modal__caixa--causas', 'dcp-causas', 'dcp-causa',
-    'dcp-causa--ativa', 'dcp-causa__cabecalho', 'dcp-causa__campos',
-  ]) {
-    assert.ok(seletores.has(classe), `a classe .${classe} usada pelo modal não existe em painel.css`);
-  }
+
+  /*
+   * A lista de classes é EXTRAÍDA do componente, não escrita à mão.
+   *
+   * Lista fixa envelhece calada: o modal ganha uma classe nova, ninguém lembra
+   * de acrescentá-la aqui, e a folha volta a ficar incompleta sem nada
+   * reclamar. Foi assim que este diálogo chegou a produção sem estilo nenhum.
+   */
+  const usadas = new Set(
+    [...modal.matchAll(/className=[`"']([^`"']+)[`"']/g)]
+      .flatMap((achado) => achado[1].split(/\s+/))
+      .filter((classe) => classe.startsWith('dcp-')),
+  );
+  assert.ok(usadas.size >= 8, `esperava várias classes no modal, achei ${usadas.size}`);
+  const semEstilo = [...usadas].filter((classe) => !seletores.has(classe));
+  assert.deepEqual(semEstilo, [], `classes do modal ausentes em painel.css: ${semEstilo.join(', ')}`);
 }
 
 console.log(

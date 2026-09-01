@@ -16,12 +16,42 @@ export const OPCOES_CAUSA_RECUSA: ReadonlyArray<{
   apoio: string;
   manual: boolean;
 }> = [
-  { id: 'metrica_obrigatoria_ausente', titulo: 'Métrica obrigatória ausente', apoio: 'Um número que deveria existir não aparece ou está sem valor.', manual: false },
-  { id: 'periodo_medicao_incorreto', titulo: 'Período de medição incorreto', apoio: 'Os dados não correspondem à competência mostrada no relatório.', manual: false },
-  { id: 'resultado_fora_do_contrato', titulo: 'Resultado fora do contrato', apoio: 'O relatório usa outro resultado no lugar da conversão contratada.', manual: false },
-  { id: 'inconsistencia_entre_blocos', titulo: 'Inconsistência entre blocos', apoio: 'O mesmo contrato de métrica fecha com valores diferentes em blocos diferentes.', manual: false },
-  { id: 'apresentacao_visual', titulo: 'Apresentação visual', apoio: 'Há problema de leitura, corte, sobreposição ou composição visual.', manual: true },
-  { id: 'outra_causa', titulo: 'Outra causa', apoio: 'Caso não coberto pelas causas automáticas. A ordem inteira vai para revisão humana.', manual: true },
+  {
+    id: 'metrica_obrigatoria_ausente',
+    titulo: 'Falta um número',
+    apoio: 'Um dado que deveria estar na página não aparece, ou aparece vazio.',
+    manual: false,
+  },
+  {
+    id: 'periodo_medicao_incorreto',
+    titulo: 'Os números são de outro período',
+    apoio: 'Os dados não batem com o mês que o relatório diz estar mostrando.',
+    manual: false,
+  },
+  {
+    id: 'resultado_fora_do_contrato',
+    titulo: 'O resultado contado está errado',
+    apoio: 'O relatório conta uma coisa como resultado, e o combinado com o cliente é outra.',
+    manual: false,
+  },
+  {
+    id: 'inconsistencia_entre_blocos',
+    titulo: 'O mesmo número aparece diferente',
+    apoio: 'Um valor aparece de um jeito numa parte e de outro jeito em outra.',
+    manual: false,
+  },
+  {
+    id: 'apresentacao_visual',
+    titulo: 'Problema de leitura ou de layout',
+    apoio: 'Texto cortado, sobreposto, tabela estourando, algo difícil de ler.',
+    manual: true,
+  },
+  {
+    id: 'outra_causa',
+    titulo: 'Outra coisa',
+    apoio: 'Não é nenhum dos casos acima. Você escreve o que precisa mudar.',
+    manual: true,
+  },
 ];
 
 export const PLATAFORMAS_CAUSA = ['meta', 'google', 'instagram', 'ga4', 'crm', 'ecommerce', 'pinterest'] as const;

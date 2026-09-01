@@ -2271,91 +2271,147 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Modal de recusa por causas estruturadas (catálogo 2026-09-01.v1).
+   Diálogo de recusa.
 
-   O diálogo é mais largo que o modal padrão porque cada causa abre campos
-   próprios (selects de seção, plataforma e métrica). A caixa continua rolando
-   dentro de `max-height`, então a lista de causas nunca empurra a página; em
-   celular os campos viram uma coluna só e todo alvo de toque fica em 44px.
+   Três colunas de decisão, todas vindas de uso real:
+
+   - o diálogo é uma grade de três faixas (topo, corpo, rodapé) e só o CORPO
+     rola. Com tudo rolando junto, o botão de registrar sumia para baixo assim
+     que duas causas eram abertas, e a pessoa não achava mais o que clicar.
+   - as causas nascem como uma lista de leitura. Os campos só existem depois de
+     marcar, então a primeira coisa que se vê é a pergunta, não um formulário.
+   - alvo de toque de 44px em tudo que é clicável, inclusive nas caixinhas de
+     seção, que são muitas e ficam próximas.
    --------------------------------------------------------------------------- */
 .dcp-modal__caixa--causas {
-  width: min(46rem, 100%);
+  width: min(44rem, 100%);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0;
+  padding: 0;
+  max-height: min(88vh, 52rem);
+  overscroll-behavior: contain;
 }
 
-.dcp-causas {
-  display: grid;
-  gap: 0.5rem;
+.dcp-causas__topo {
+  padding: 1.15rem 1.25rem 0.85rem;
+  border-bottom: 1px solid var(--dc-filete);
+}
+
+.dcp-causas__topo .dcp-modal__titulo {
+  margin: 0 0 0.3rem;
+}
+
+.dcp-causas__topo .dcp-modal__apoio {
   margin: 0;
-  padding: 0;
-  border: 0;
+}
+
+.dcp-causas__corpo {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 1.35rem;
+  min-height: 0;
+}
+
+.dcp-causas__grupo {
+  display: grid;
+  gap: 0.45rem;
   min-width: 0;
+}
+
+.dcp-causas__grupo > h3 {
+  margin: 0 0 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
 }
 
 .dcp-causa {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.7rem 0.75rem;
   border: 1px solid var(--dc-filete);
-  border-radius: 10px;
-  background: var(--dc-canvas);
+  border-radius: 12px;
+  background: var(--dc-superficie);
   min-width: 0;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .dcp-causa--ativa {
-  border-color: var(--dc-filete-forte);
-  border-left: 3px solid var(--dc-verde);
+  border-color: var(--dc-verde);
+  background: var(--dc-canvas);
 }
 
 .dcp-causa__cabecalho {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: start;
-  gap: 0.6rem;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
   min-height: 44px;
-  align-content: center;
   cursor: pointer;
+  touch-action: manipulation;
   min-width: 0;
 }
 
-.dcp-causa__cabecalho input[type="checkbox"] {
-  width: 1.15rem;
-  height: 1.15rem;
+.dcp-causa__cabecalho input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
   margin-top: 0.15rem;
   accent-color: var(--dc-verde);
   flex: none;
+  cursor: pointer;
 }
 
-.dcp-causa__cabecalho span {
+.dcp-causa__cabecalho > span {
   display: grid;
-  gap: 0.15rem;
+  gap: 0.12rem;
   min-width: 0;
 }
 
 .dcp-causa__cabecalho strong {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  font-weight: 600;
   color: var(--dc-tinta);
 }
 
 .dcp-causa__cabecalho small {
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-size: 0.79rem;
+  line-height: 1.4;
   color: var(--dc-cinza);
 }
 
 .dcp-causa__campos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.5rem;
+  gap: 0.75rem;
+  padding: 0.15rem 0.8rem 0.85rem 2.55rem;
   min-width: 0;
 }
 
-.dcp-causa__campos > * {
+@media (max-width: 34rem) {
+  .dcp-causa__campos {
+    padding-left: 0.8rem;
+  }
+}
+
+.dcp-causa__campo {
+  display: grid;
+  gap: 0.28rem;
+  margin: 0;
   min-width: 0;
 }
 
-.dcp-causa__campos select,
-.dcp-causa__campos input,
-.dcp-causa__campos textarea {
+.dcp-causa__campo > label,
+.dcp-causa__grupo > legend {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dc-tinta);
+  padding: 0;
+}
+
+.dcp-causa__campo select,
+.dcp-causa__campo textarea {
   width: 100%;
   min-height: 44px;
   padding: 0.5rem 0.6rem;
@@ -2364,34 +2420,108 @@
   background: var(--dc-superficie);
   color: var(--dc-tinta);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.86rem;
 }
 
-/* Lista de múltipla escolha: altura própria, porque `min-height` de alvo de
-   toque não descreve uma caixa que precisa mostrar várias linhas de uma vez. */
-.dcp-causa__campos select[multiple] {
-  min-height: 7rem;
-  padding: 0.3rem;
-}
-
-.dcp-causa__campos select[multiple] option {
-  padding: 0.35rem 0.4rem;
-  border-radius: 4px;
-}
-
-.dcp-causa__campos textarea {
-  grid-column: 1 / -1;
-  min-height: 5rem;
+.dcp-causa__campo textarea {
+  min-height: 4.6rem;
   resize: vertical;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
-.dcp-causas[disabled] {
-  opacity: 0.6;
+.dcp-causa__grupo {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 
-@media (max-width: 40rem) {
-  .dcp-causa__campos {
-    grid-template-columns: 1fr;
-  }
+/* As caixinhas substituem a lista de seleção múltipla: marcar vários itens não
+   pode depender de segurar Ctrl, que no celular nem existe. */
+.dcp-causa__caixinhas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.dcp-causa__caixinha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.3rem 0.6rem 0.3rem 0.45rem;
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 999px;
+  background: var(--dc-superficie);
+  font-size: 0.8rem;
+  color: var(--dc-tinta);
+  cursor: pointer;
+  touch-action: manipulation;
+  max-width: 100%;
+}
+
+.dcp-causa__caixinha:has(input:checked) {
+  border-color: var(--dc-verde);
+  background: color-mix(in srgb, var(--dc-verde) 8%, var(--dc-superficie));
+}
+
+.dcp-causa__caixinha input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--dc-verde);
+  flex: none;
+  cursor: pointer;
+}
+
+.dcp-causa__caixinha > span {
+  overflow-wrap: anywhere;
+}
+
+.dcp-causas__rodape {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem 1.15rem;
+  border-top: 1px solid var(--dc-filete);
+  background: var(--dc-superficie);
+}
+
+.dcp-causas__nota,
+.dcp-causas__aviso,
+.dcp-causas__eco {
+  margin: 0;
+  font-size: 0.81rem;
+  line-height: 1.45;
+}
+
+.dcp-causas__nota {
+  padding: 0.55rem 0.65rem;
+  border-left: 3px solid var(--dc-verde);
+  border-radius: 8px;
+  background: var(--dc-canvas);
+  color: var(--dc-tinta);
+}
+
+.dcp-causas__aviso {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--dc-sinal);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--dc-sinal) 7%, var(--dc-superficie));
+  color: var(--dc-tinta);
+}
+
+.dcp-causas__aviso:focus-visible {
+  outline: 2px solid var(--dc-sinal);
+  outline-offset: 2px;
+}
+
+.dcp-causas__eco {
+  color: var(--dc-cinza);
+}
+
+.dcp-causas__rodape .dcp-modal__acoes {
+  margin: 0;
 }
