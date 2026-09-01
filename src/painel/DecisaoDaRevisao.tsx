@@ -344,7 +344,12 @@ export default function DecisaoDaRevisao({
 
   return (
     <div className="dcp-decisao">
-      {resultado && (
+      {/*
+        Com o diálogo aberto, a mensagem sai DENTRO dele e não aqui: este
+        parágrafo fica atrás da máscara do modal, então repeti-lo nos dois
+        lugares só produz um aviso invisível e outro duplicado.
+      */}
+      {resultado && confirmando !== 'recusar' && (
         <p
           className={`dcp-decisao__resultado${resultado.ok ? '' : ' dcp-decisao__resultado--falha'}`}
           role={resultado.ok ? 'status' : 'alert'}
@@ -438,6 +443,7 @@ export default function DecisaoDaRevisao({
           aoConfirmar={(causas) => void registrar('recusar', causas)}
           aoCancelar={fecharDialogo}
           registrando={registrando}
+          falha={resultado && !resultado.ok ? resultado.mensagem : null}
         />
       )}
     </div>
