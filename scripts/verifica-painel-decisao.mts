@@ -1421,6 +1421,53 @@ const linhas = [
   assert.deepEqual(semEstilo, [], `classes do modal ausentes em painel.css: ${semEstilo.join(', ')}`);
 }
 
+/* ------------------------------------------------------------------ */
+/* O corpo que REALMENTE sai para o servidor                           */
+/* ------------------------------------------------------------------ */
+{
+  const { corpoDaDecisao } = await import('../src/painel/corpoDaDecisao.ts');
+
+  /*
+   * Este trecho existe por um defeito que passou por tudo.
+   *
+   * O modal montava as causas certas, o `DecisaoDaRevisao` as colocava no
+   * pedido, e a montagem do `fetch` — escrita à mão dentro do componente —
+   * repassava só `motivo` e `escopoSecoes`. As causas eram descartadas no
+   * último passo, e o servidor respondia "escolha de 1 a 5 causas" para quem
+   * tinha acabado de escolher uma.
+   *
+   * Nenhuma regressão pegou porque todas substituem `aoDecidir` por um falso:
+   * o fake ocupava exatamente o lugar do defeito. Testar o corpo enviado é o
+   * único jeito de fechar essa porta.
+   */
+  const corpo: any = corpoDaDecisao(
+    {
+      decisao: 'recusar',
+      motivo: 'Falta um número',
+      catalogVersion: CATALOGO,
+      causas: CAUSAS as any,
+      escopoSecoes: ['bloco:meta'],
+    },
+    ID,
+    CHECKSUM,
+  );
+  assert.equal(corpo.id, ID);
+  assert.equal(corpo.checksum, CHECKSUM, 'o checksum vai o da tela, nunca o do pedido');
+  assert.equal(corpo.catalogVersion, CATALOGO, 'a versão do catálogo precisa chegar ao servidor');
+  assert.deepEqual(corpo.causas, CAUSAS, 'as causas precisam chegar ao servidor');
+
+  // E o que sai daqui tem de ser aceito pelo parser do servidor. Sem esta
+  // ligação, os dois lados podem divergir e cada teste continua verde.
+  const lido: any = lerPedido(corpo);
+  assert.equal(lido.ok, true, 'o corpo montado pela tela precisa passar no parser do servidor');
+  assert.deepEqual(lido.pedido.causas, CAUSAS);
+
+  // Aprovar não carrega recusa nenhuma.
+  const aprovacao: any = corpoDaDecisao({ decisao: 'aprovar' }, ID, CHECKSUM);
+  assert.equal('causas' in aprovacao, false);
+  assert.equal('motivo' in aprovacao, false);
+}
+
 console.log(
   'OK — decisão do painel: porta fechada, checksum carimbado da coluna, motivo obrigatório, ' +
     'read-back conferido, o eco confirmado antes de gravar e o estado recusado presente ' +
