@@ -90,3 +90,20 @@ Rode apenas os scripts pertinentes da raiz (`npm run verifica:*`, `npm run
 build` ou `npm run lint`) e relate comandos, resultado e limitações. Não
 declare validação visual, autenticada ou em produção sem evidência obtida na
 rodada atual.
+
+⚠️ **`npm run verifica:ra4` falha hoje, e a falha é PRÉ-EXISTENTE** (`recusa não
+depende de análises prontas`: 502 onde espera 200). Ela vem do caminho da
+recusa e pertence às branches `feat/recusa-causas-fabrica` /
+`feat/recusa-causas-portal`. Conferido em 01/09/2026 contra a `main` anterior à
+sessão: falha idêntico. **Não atribua essa falha à sua rodada nem tente
+"consertá-la" de passagem.**
+
+**`npm run verifica:cliente-enxuto`** (no `prebuild` desde 01/09/2026) fixa o
+contrato do documento do cliente e da impressão: as duas seções suspensas, a
+presença do dado no snapshot, a numeração sem buraco, o botão de PDF, o sumiço
+dele no papel, o gráfico virando tabela e as regras de quebra de página.
+
+⚠️ **Ao conferir algo publicado, olhe o artefato que o NAVEGADOR aplica.** As
+rotas de relatório são montadas no cliente: `curl` na página devolve só a casca,
+e nem o bundle `index-*.js` nem o `index-*.css` contêm o relatório — ele vive em
+chunk separado. Três falsos negativos saíram disso em 01/09/2026.
