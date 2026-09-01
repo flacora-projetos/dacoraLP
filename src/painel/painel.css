@@ -2053,7 +2053,7 @@
 
 .dcp-analises-relatorio {
   margin: 0 0 1rem;
-  color: var(--dc-tinta-suave);
+  color: var(--dc-cinza);
 }
 
 .dcp-analises-relatorio__cabecalho {
@@ -2123,7 +2123,7 @@
   line-height: 1.5;
   color: var(--dc-cinza);
 }
-.dcp-aviso-validade strong { color: var(--dc-tinta-suave); }
+.dcp-aviso-validade strong { color: var(--dc-cinza); }
 .dcp-aviso-validade small { display: block; margin-top: 0.15rem; font-size: 0.74rem; }
 
 .dcp-analise-secao { margin-top: 1rem; }
@@ -2132,7 +2132,7 @@
   border: 1px dashed var(--dc-filete-forte);
   border-radius: 0.55rem;
   background: color-mix(in srgb, var(--dc-superficie) 84%, transparent);
-  color: var(--dc-tinta-suave);
+  color: var(--dc-cinza);
 }
 .dcp-analise-secao__topo > div { display: grid; gap: 0.2rem; max-width: 52rem; }
 .dcp-analise-secao__topo strong { color: var(--dc-tinta); }
@@ -2268,4 +2268,130 @@
   color: var(--dc-tinta);
   border: 1px solid var(--dc-filete);
   border-radius: 0.6rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Modal de recusa por causas estruturadas (catálogo 2026-09-01.v1).
+
+   O diálogo é mais largo que o modal padrão porque cada causa abre campos
+   próprios (selects de seção, plataforma e métrica). A caixa continua rolando
+   dentro de `max-height`, então a lista de causas nunca empurra a página; em
+   celular os campos viram uma coluna só e todo alvo de toque fica em 44px.
+   --------------------------------------------------------------------------- */
+.dcp-modal__caixa--causas {
+  width: min(46rem, 100%);
+}
+
+.dcp-causas {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.dcp-causa {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--dc-filete);
+  border-radius: 10px;
+  background: var(--dc-canvas);
+  min-width: 0;
+}
+
+.dcp-causa--ativa {
+  border-color: var(--dc-filete-forte);
+  border-left: 3px solid var(--dc-verde);
+}
+
+.dcp-causa__cabecalho {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.6rem;
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.dcp-causa__cabecalho input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  accent-color: var(--dc-verde);
+  flex: none;
+}
+
+.dcp-causa__cabecalho span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.dcp-causa__cabecalho strong {
+  font-size: 0.9rem;
+  color: var(--dc-tinta);
+}
+
+.dcp-causa__cabecalho small {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--dc-cinza);
+}
+
+.dcp-causa__campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dcp-causa__campos > * {
+  min-width: 0;
+}
+
+.dcp-causa__campos select,
+.dcp-causa__campos input,
+.dcp-causa__campos textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--dc-filete-forte);
+  border-radius: 8px;
+  background: var(--dc-superficie);
+  color: var(--dc-tinta);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+/* Lista de múltipla escolha: altura própria, porque `min-height` de alvo de
+   toque não descreve uma caixa que precisa mostrar várias linhas de uma vez. */
+.dcp-causa__campos select[multiple] {
+  min-height: 7rem;
+  padding: 0.3rem;
+}
+
+.dcp-causa__campos select[multiple] option {
+  padding: 0.35rem 0.4rem;
+  border-radius: 4px;
+}
+
+.dcp-causa__campos textarea {
+  grid-column: 1 / -1;
+  min-height: 5rem;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.dcp-causas[disabled] {
+  opacity: 0.6;
+}
+
+@media (max-width: 40rem) {
+  .dcp-causa__campos {
+    grid-template-columns: 1fr;
+  }
 }

@@ -225,6 +225,11 @@ function FaixaDeRevisao({
               { secao: 'introducao', titulo: 'Introdução' },
               ...relatorio.snapshot.montagem.map((bloco) => ({ secao: `bloco:${bloco.id}`, titulo: bloco.titulo })),
             ],
+            metricasRecusaveis: relatorio.snapshot.analysisContext?.fatos.map((fato) => ({
+              id: fato.id,
+              rotulo: fato.rotulo,
+              plataforma: fato.plataforma,
+            })) ?? [],
           }}
           quem={quem ?? 'você'}
           aoDecidir={aoDecidir as (pedido: PedidoDeDecisao) => Promise<ResultadoDaDecisao>}
