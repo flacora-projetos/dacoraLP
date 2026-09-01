@@ -57,6 +57,9 @@ const COLUNAS_DA_LEITURA = [
   'correcao_estado',
   'correcao_solicitado_em',
   'correcao_escopo_secoes',
+  'correcao_catalog_version',
+  'correcao_routing_mode',
+  'correcao_causas',
   'notificacao_interna_id',
   'notificacao_interna_estado',
   'notificacao_destino_referencia',
@@ -215,7 +218,7 @@ export default async function handler(req: Request, res: Response) {
        transação do banco; a recusa escopada preserva o circuito P3/P4. ------- */
     const endpointDaDecisao = pedido.decisao === 'aprovar'
       ? 'aprovar_e_fechar_relatorio_editorial'
-      : 'decidir_relatorio_com_escopo';
+      : 'decidir_relatorio_com_causas_v1';
     const corpoDaDecisao = pedido.decisao === 'aprovar'
       ? {
           p_relatorio_id: pedido.id,
@@ -225,11 +228,14 @@ export default async function handler(req: Request, res: Response) {
         }
       : {
           p_relatorio_id: pedido.id,
-          p_decisao: pedido.decisao,
           p_checksum_visto: pedido.checksumVisto,
           p_quem: quem,
           p_motivo: pedido.motivo,
-          p_escopo_secoes: pedido.escopoSecoes,
+          p_catalog_version: pedido.catalogVersion,
+          p_causas: pedido.causas?.map((causa) => ({
+            cause_id: causa.causeId,
+            parameters: causa.parameters,
+          })),
         };
     const respostaDecisao = await fetch(`${urlSupabase}/rest/v1/rpc/${endpointDaDecisao}`, {
       method: 'POST',

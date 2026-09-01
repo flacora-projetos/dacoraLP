@@ -45,7 +45,13 @@ import DecisaoDaRevisao, {
 
 const ID = '22222222-2222-4222-8222-222222222222';
 const CHECKSUM = 'abc123def456abc123def456abc123de';
-const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir antes de mandar.';
+const MOTIVO = 'Métrica obrigatória ausente';
+const CATALOGO = '2026-09-01.v1';
+const CAUSAS = [{
+  causeId: 'metrica_obrigatoria_ausente' as const,
+  parameters: { section_id: 'bloco:meta', platform: 'google', metric_id: 'google_resultado' },
+}];
+const CORPO_RECUSA = { id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: MOTIVO, catalogVersion: CATALOGO, causas: CAUSAS };
 
 {
   const inicio = readFileSync(new URL('../src/painel/PainelInicio.tsx', import.meta.url), 'utf8');
@@ -65,7 +71,7 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
   assert.equal(bom.ok, true);
   assert.equal(bom.ok && bom.pedido.motivo, '', 'aprovação não carrega motivo');
 
-  const recusa = lerPedido({ id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: `  ${MOTIVO}  ` });
+  const recusa = lerPedido({ ...CORPO_RECUSA, motivo: `  ${MOTIVO}  ` });
   assert.equal(recusa.ok, true);
   assert.equal(recusa.ok && recusa.pedido.motivo, MOTIVO, 'o motivo é aparado antes de gravar');
 
@@ -76,10 +82,10 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
     [{ id: ID, decisao: 'apagar', checksum: CHECKSUM }, 'decisao_desconhecida'],
     [{ id: ID, decisao: 'aprovar' }, 'checksum_ausente'],
     [{ id: ID, decisao: 'aprovar', checksum: '   ' }, 'checksum_ausente'],
-    [{ id: ID, decisao: 'recusar', checksum: CHECKSUM }, 'motivo_obrigatorio'],
-    [{ id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: '   ok   ' }, 'motivo_obrigatorio'],
+    [{ id: ID, decisao: 'recusar', checksum: CHECKSUM }, 'causas_estruturadas_invalidas'],
+    [{ ...CORPO_RECUSA, motivo: '   ok   ' }, 'motivo_obrigatorio'],
     [
-      { id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: 'x'.repeat(MAXIMO_DO_MOTIVO + 1) },
+      { ...CORPO_RECUSA, motivo: 'x'.repeat(MAXIMO_DO_MOTIVO + 1) },
       'motivo_longo',
     ],
     [{ id: ID, decisao: 'aprovar', checksum: CHECKSUM, motivo: MOTIVO }, 'motivo_nao_se_aplica'],
@@ -96,16 +102,48 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
   // O piso do motivo é o mesmo aqui e no banco. Se um dia divergirem, quem
   // manda é o banco — mas divergir em silêncio é o que este teste impede.
   const noLimite = lerPedido({
-    id: ID,
-    decisao: 'recusar',
-    checksum: CHECKSUM,
+    ...CORPO_RECUSA,
     motivo: 'x'.repeat(MINIMO_DO_MOTIVO),
   });
   assert.equal(noLimite.ok, true);
-  const escopada = lerPedido({ id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: 'correção por seção', escopoSecoes: ['introducao', 'bloco:meta'] });
+  const escopada = lerPedido(CORPO_RECUSA);
   assert.equal(escopada.ok, true);
-  if (escopada.ok) assert.deepEqual(escopada.pedido.escopoSecoes, ['introducao', 'bloco:meta']);
-  assert.equal(lerPedido({ id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: 'correção por seção', escopoSecoes: ['relatorio_inteiro', 'bloco:meta'] }).ok, false);
+  if (escopada.ok) assert.deepEqual(escopada.pedido.escopoSecoes, ['bloco:meta']);
+  assert.equal(lerPedido({ ...CORPO_RECUSA, catalogVersion: 'v0' }).ok, false);
+  assert.equal(lerPedido({ ...CORPO_RECUSA, causas: [{ causeId: 'analise_interpretativa_incorreta', parameters: {} }] }).ok, false);
+
+  // Parâmetro fora da allowlist da causa é recusado, não ignorado: aceitar e
+  // descartar deixaria quem recusa achando que pediu uma coisa que não viajou.
+  assert.equal(lerPedido({ ...CORPO_RECUSA, causas: [{
+    causeId: 'metrica_obrigatoria_ausente',
+    parameters: { ...CAUSAS[0].parameters, sql: 'drop table relatorios' },
+  }] }).ok, false, 'parâmetro desconhecido tem de reprovar a leitura inteira');
+
+  // Falta de parâmetro obrigatório reprova pelo mesmo caminho.
+  assert.equal(lerPedido({ ...CORPO_RECUSA, causas: [{
+    causeId: 'metrica_obrigatoria_ausente',
+    parameters: { platform: 'meta', metric_id: 'meta_resultado' },
+  }] }).ok, false, 'parâmetro obrigatório ausente tem de reprovar');
+
+  // O catálogo tem SEIS causas e o teto é CINCO: marcar todas precisa reprovar
+  // no servidor mesmo quando a tela deixou passar.
+  assert.equal(lerPedido({ ...CORPO_RECUSA, causas: [
+    { causeId: 'metrica_obrigatoria_ausente', parameters: { section_id: 'bloco:meta', platform: 'meta', metric_id: 'm1' } },
+    { causeId: 'periodo_medicao_incorreto', parameters: { platform: 'meta', section_ids: ['bloco:meta'], metric_ids: ['m1'] } },
+    { causeId: 'resultado_fora_do_contrato', parameters: { platform: 'meta', section_ids: ['bloco:meta'] } },
+    { causeId: 'inconsistencia_entre_blocos', parameters: { metric_contract_id: 'meta:m1', section_ids: ['bloco:meta', 'bloco:google'] } },
+    { causeId: 'apresentacao_visual', parameters: { block_ids: ['meta'], viewport: 'ambos', description: 'corta no celular' } },
+    { causeId: 'outra_causa', parameters: { description: 'algo fora do catálogo' } },
+  ] }).ok, false, 'seis causas tem de reprovar pelo teto de cinco');
+
+  // A mesma causa repetida para o MESMO alvo é duplicata; para alvo diferente
+  // continua legítima — é o que permite duas métricas ausentes numa recusa só.
+  const mesmoAlvo = { causeId: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters };
+  assert.equal(lerPedido({ ...CORPO_RECUSA, causas: [mesmoAlvo, mesmoAlvo] }).ok, false);
+  assert.equal(lerPedido({ ...CORPO_RECUSA, causas: [
+    { causeId: 'metrica_obrigatoria_ausente', parameters: { section_id: 'bloco:meta', platform: 'meta', metric_id: 'm1' } },
+    { causeId: 'metrica_obrigatoria_ausente', parameters: { section_id: 'bloco:meta', platform: 'meta', metric_id: 'm2' } },
+  ] }).ok, true, 'alvo estruturado diferente continua aceito');
 
   // Quem decidiu NUNCA vem do navegador.
   const comIdentidadeForjada: any = lerPedido({
@@ -178,7 +216,15 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
   }
   assert.equal(conferirLeituraDeVolta(null, pedidoAprovar, quem).ok, false);
 
-  const pedidoRecusar = { id: ID, decisao: 'recusar' as const, checksumVisto: CHECKSUM, motivo: MOTIVO };
+  const pedidoRecusar = {
+    id: ID,
+    decisao: 'recusar' as const,
+    checksumVisto: CHECKSUM,
+    motivo: MOTIVO,
+    escopoSecoes: ['bloco:meta'],
+    catalogVersion: CATALOGO,
+    causas: CAUSAS,
+  };
   const recusada = {
     estado: 'recusado',
     checksum: CHECKSUM,
@@ -194,7 +240,17 @@ const MOTIVO = 'O investimento do Google não bateu com a planilha; conferir ant
     notificacao_interna_id: 'notificacao-1',
     notificacao_interna_estado: 'pendente' as const,
     notificacao_destino_referencia: 'dacora_semanais.recipients',
-    correcao_escopo_secoes: ['relatorio_inteiro'],
+    correcao_escopo_secoes: ['bloco:meta'],
+    correcao_catalog_version: CATALOGO,
+    correcao_routing_mode: 'automatic' as const,
+    correcao_causas: [{
+      ordinal: 1,
+      catalog_version: CATALOGO,
+      cause_id: 'metrica_obrigatoria_ausente',
+      parameters: CAUSAS[0].parameters,
+      routing_mode: 'automatic' as const,
+      verification_status: 'pending',
+    }],
   };
   assert.equal(conferirLeituraDeVolta(recusada, pedidoRecusar, quem).ok, true);
   assert.equal(
@@ -554,7 +610,7 @@ for (const corpoTorto of [
 {
   const saida = await chamar({
     usuario: autorizada,
-    corpo: { id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: `  ${MOTIVO}  ` },
+    corpo: { ...CORPO_RECUSA, motivo: `  ${MOTIVO}  ` },
     cenario: {
       linhaLida: linhaGravada('pessoa.autorizada@exemplo.com', {
         estado: 'recusado',
@@ -570,7 +626,10 @@ for (const corpoTorto of [
         notificacao_interna_id: 'notificacao-1',
         notificacao_interna_estado: 'pendente',
         notificacao_destino_referencia: 'dacora_semanais.recipients',
-        correcao_escopo_secoes: ['relatorio_inteiro'],
+        correcao_escopo_secoes: ['bloco:meta'],
+        correcao_catalog_version: CATALOGO,
+        correcao_routing_mode: 'automatic',
+        correcao_causas: [{ ordinal: 1, catalog_version: CATALOGO, cause_id: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters, routing_mode: 'automatic', verification_status: 'pending' }],
       }),
     },
   });
@@ -580,10 +639,11 @@ for (const corpoTorto of [
   assert.equal(saida.corpo.relatorio.recusaMotivo, MOTIVO);
 
   const rpc = chamadasAoBanco.find((c) => c.url.includes('/rpc/'))!;
-  assert.ok(rpc.url.includes('decidir_relatorio_com_escopo'));
-  assert.equal(rpc.corpo.p_decisao, 'recusar');
-  assert.equal(rpc.corpo.p_motivo, MOTIVO, 'o motivo chega aparado ao banco');
-  assert.deepEqual(rpc.corpo.p_escopo_secoes, ['relatorio_inteiro']);
+  assert.ok(rpc.url.includes('decidir_relatorio_com_causas_v1'));
+  assert.equal(rpc.corpo.p_motivo, MOTIVO, 'o resumo de auditoria chega aparado ao banco');
+  assert.equal(rpc.corpo.p_catalog_version, CATALOGO);
+  assert.deepEqual(rpc.corpo.p_causas, [{ cause_id: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters }]);
+  assert.equal('p_escopo_secoes' in rpc.corpo, false);
 }
 
 /* --- Sem chave de serviço, falha alto — nunca cai para a chave pública -- */
@@ -762,6 +822,13 @@ const decidivel: RelatorioDecidivel = {
   recusadoPor: null,
   recusadoEm: null,
   recusaMotivo: null,
+  secoesRecusaveis: [
+    { secao: 'introducao', titulo: 'Introdução' },
+    { secao: 'bloco:meta', titulo: 'Meta / Google' },
+  ],
+  metricasRecusaveis: [
+    { id: 'google_resultado', rotulo: 'Leads', plataforma: 'google' },
+  ],
   revisaoEditorial: {
     disponivel: true,
     podeAprovar: true,
@@ -1175,58 +1242,118 @@ const linhas = [
   );
 
   const registrar = botaoPor('Registrar recusa');
-  assert.equal(registrar.disabled, true, 'sem motivo, registrar precisa estar impossível');
+  assert.equal(registrar.disabled, true, 'sem causa estruturada, registrar precisa estar impossível');
   clicar(registrar);
   assert.equal(enviados.length, 0, 'clicar no botão desabilitado não pode gravar');
 
-  const campo = elemento.querySelector('textarea') as HTMLTextAreaElement;
-  assert.ok(campo, 'faltou o campo do motivo');
+  const primeiraCausa = elemento.querySelector('.dcp-causa input[type="checkbox"]') as HTMLInputElement;
+  assert.ok(primeiraCausa, 'faltou a causa estruturada inicial');
+  flushSync(() => primeiraCausa.click());
+  assert.equal(botaoPor('Registrar recusa').disabled, true, 'causa sem parâmetros ainda não vale');
 
-  // Texto curto continua barrado — e o contador diz quanto falta.
-  flushSync(() => {
-    (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any)
-      .set.call(campo, 'curto');
-    campo.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  });
-  assert.equal(botaoPor('Registrar recusa').disabled, true, 'motivo curto não vale');
-  assert.match(elemento.textContent ?? '', /Faltam \d+ caracteres/);
-
-  flushSync(() => {
-    (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any)
-      .set.call(campo, `  ${MOTIVO}  `);
-    campo.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  });
-  const registrarValido = botaoPor('Registrar recusa');
-  assert.equal(registrarValido.disabled, false, 'com motivo, registrar precisa liberar');
-  // O eco do diálogo repete o motivo inteiro, que é sobre o que se confirma.
-  assert.ok(
-    (elemento.querySelector('.dcp-decisao__eco')?.textContent ?? '').includes(MOTIVO),
-    'o eco da recusa precisa mostrar o motivo escrito',
-  );
+  const selects = Array.from(elemento.querySelectorAll('.dcp-causa--ativa select')) as HTMLSelectElement[];
+  assert.equal(selects.length, 3, 'métrica ausente precisa pedir seção, plataforma e métrica');
+  for (const [select, valor] of [[selects[0], 'bloco:meta'], [selects[1], 'google'], [selects[2], 'google_resultado']] as Array<[HTMLSelectElement, string]>) {
+    flushSync(() => {
+      (Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, 'value') as any).set.call(select, valor);
+      select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+    });
+  }
+  assert.equal(botaoPor('Registrar recusa').disabled, false, 'causa completa precisa liberar');
+  assert.match(elemento.textContent ?? '', /Métrica obrigatória ausente/);
+  assert.match(elemento.textContent ?? '', /não interpreta texto livre/);
 
   // `Esc` fecha sem gravar.
   flushSync(() => {
-    dom.window.document.dispatchEvent(
-      new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
-    );
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
   assert.equal(elemento.querySelector('[role="dialog"]'), null, 'Esc precisa fechar o diálogo');
   assert.equal(enviados.length, 0, 'fechar com Esc não grava');
 
-  // Reabrir e registrar de verdade: o motivo chega aparado.
+  // Reabrir, preencher a mesma causa e registrar de verdade.
   clicar(botaoPor('Recusar com motivo'));
-  const campoDois = elemento.querySelector('textarea') as HTMLTextAreaElement;
-  flushSync(() => {
-    (Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, 'value') as any)
-      .set.call(campoDois, `  ${MOTIVO}  `);
-    campoDois.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  });
+  flushSync(() => (elemento.querySelector('.dcp-causa input[type="checkbox"]') as HTMLInputElement).click());
+  const selectsDois = Array.from(elemento.querySelectorAll('.dcp-causa--ativa select')) as HTMLSelectElement[];
+  for (const [select, valor] of [[selectsDois[0], 'bloco:meta'], [selectsDois[1], 'google'], [selectsDois[2], 'google_resultado']] as Array<[HTMLSelectElement, string]>) {
+    flushSync(() => {
+      (Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, 'value') as any).set.call(select, valor);
+      select.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+    });
+  }
   clicar(botaoPor('Registrar recusa'));
   await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.deepEqual(enviados, [{ decisao: 'recusar', motivo: MOTIVO, escopoSecoes: ['relatorio_inteiro'] }]);
+  assert.deepEqual(enviados, [{
+    decisao: 'recusar',
+    motivo: 'Métrica obrigatória ausente',
+    catalogVersion: CATALOGO,
+    causas: CAUSAS,
+  }]);
 
   flushSync(() => raiz.unmount());
   dom.window.close();
+}
+
+/* ------------------------------------------------------------------ */
+/* O catálogo da tela e o CSS que ela usa                              */
+/* ------------------------------------------------------------------ */
+{
+  const { OPCOES_CAUSA_RECUSA, MAXIMO_CAUSAS_RECUSA, contratosDeMetricaDoSnapshot } =
+    await import('../src/painel/causasRecusa.ts');
+
+  // `analise_interpretativa_incorreta` saiu do modal por decisão do PO em
+  // 01/09/2026: dado correto com leitura errada tem caminho próprio no editor
+  // humano de análise, antes da aprovação. Abrir ordem de regeração para isso
+  // regeraria um documento cujos números já estão certos.
+  const ids = OPCOES_CAUSA_RECUSA.map((opcao) => opcao.id);
+  assert.equal(ids.length, 6);
+  assert.ok(!ids.includes('analise_interpretativa_incorreta' as never));
+  assert.deepEqual(
+    OPCOES_CAUSA_RECUSA.filter((opcao) => opcao.manual).map((opcao) => opcao.id),
+    ['apresentacao_visual', 'outra_causa'],
+  );
+  assert.equal(MAXIMO_CAUSAS_RECUSA, 5);
+
+  // O contrato de métrica é DERIVADO do snapshot. O caso especial que a fábrica
+  // reconhece (`conversoes_totais`) perde o prefixo da plataforma; todo o resto
+  // mantém o id do fato. Se esta regra escorregar, a tela volta a oferecer um
+  // contrato que o verificador não resolve.
+  assert.deepEqual(
+    contratosDeMetricaDoSnapshot([
+      { id: 'google_resultado', rotulo: 'Leads', plataforma: 'google' },
+      { id: 'google_conversoes_totais', rotulo: 'Conversões', plataforma: 'google' },
+    ]).map((contrato) => contrato.id),
+    ['google:google_resultado', 'google:conversoes_totais'],
+  );
+
+  const modal = readFileSync(new URL('../src/painel/DialogoRecusaCausas.tsx', import.meta.url), 'utf8');
+  // Digitação livre do contrato devolveria texto humano dirigindo automação —
+  // que é o defeito inteiro que esta frente existe para remover.
+  assert.ok(
+    !/<input[^>]*metric_contract_id/.test(modal),
+    'o contrato da métrica não pode voltar a ser um campo de digitação livre',
+  );
+
+  /**
+   * As classes do modal precisam EXISTIR no CSS.
+   *
+   * Sem isto, a tela sobe funcionando e ilegível: os selects múltiplos e os
+   * checkboxes empilham crus, e o gate de celular passa despercebido porque
+   * nada quebra. A varredura remove comentários antes de procurar, senão o
+   * próprio comentário que documenta a regra a satisfaz.
+   */
+  const cssBruto = readFileSync(new URL('../src/painel/painel.css', import.meta.url), 'utf8');
+  const css = cssBruto.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.ok(cssBruto.length > css.length, 'a limpeza de comentários precisa ter removido algo');
+  const seletores = new Set(
+    [...css.matchAll(/\.([A-Za-z0-9_-]+)\s*[,{:>+~\[]/g)].map((achado) => achado[1]),
+  );
+  assert.ok(seletores.has('dcp-causa'), 'a varredura do CSS precisa achar algo — senão passa vazia');
+  for (const classe of [
+    'dcp-modal__caixa--causas', 'dcp-causas', 'dcp-causa',
+    'dcp-causa--ativa', 'dcp-causa__cabecalho', 'dcp-causa__campos',
+  ]) {
+    assert.ok(seletores.has(classe), `a classe .${classe} usada pelo modal não existe em painel.css`);
+  }
 }
 
 console.log(

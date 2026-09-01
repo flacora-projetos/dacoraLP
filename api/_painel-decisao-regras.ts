@@ -23,7 +23,21 @@
  * ---------------------------------------------------------------------------
  */
 
+import { isDeepStrictEqual } from 'node:util';
+
 export type Decisao = 'aprovar' | 'recusar';
+export const CATALOGO_CAUSAS_RECUSA = '2026-09-01.v1';
+export type IdCausaRecusa =
+  | 'metrica_obrigatoria_ausente'
+  | 'periodo_medicao_incorreto'
+  | 'resultado_fora_do_contrato'
+  | 'inconsistencia_entre_blocos'
+  | 'apresentacao_visual'
+  | 'outra_causa';
+export interface CausaRecusaEstruturada {
+  causeId: IdCausaRecusa;
+  parameters: Record<string, unknown>;
+}
 
 export type EstadoDaNotificacaoInterna =
   | 'pendente'
@@ -64,8 +78,10 @@ export interface PedidoDeDecisao {
   checksumVisto: string;
   /** Já aparado. Vazio quando a decisão é aprovar. */
   motivo: string;
-  /** Escopo canônico da recusa; o banco confere contra o snapshot persistido. */
+  /** Escopo legado; mantido vazio no contrato estruturado v1. */
   escopoSecoes?: string[];
+  catalogVersion?: string;
+  causas?: CausaRecusaEstruturada[];
 }
 
 export type LeituraDoPedido =
@@ -79,10 +95,81 @@ function texto(valor: unknown): string {
 function lerEscopo(valor: unknown): string[] | null {
   if (!Array.isArray(valor) || valor.length === 0 || valor.length > 100) return null;
   const secoes = valor.map(texto);
-  if (secoes.some((secao) => !secao || !/^(relatorio_inteiro|introducao|bloco:[a-zA-Z0-9_-]+)$/.test(secao))) return null;
+  if (secoes.some((secao) => !secao || !/^(relatorio_inteiro|introducao|bloco:[a-zA-Z0-9_.:-]+)$/.test(secao))) return null;
   if (new Set(secoes).size !== secoes.length) return null;
   if (secoes.includes('relatorio_inteiro') && secoes.length !== 1) return null;
   return secoes;
+}
+
+const IDS_CAUSA = new Set<IdCausaRecusa>([
+  'metrica_obrigatoria_ausente', 'periodo_medicao_incorreto', 'resultado_fora_do_contrato',
+  'inconsistencia_entre_blocos', 'apresentacao_visual', 'outra_causa',
+]);
+const PLATAFORMAS = new Set(['meta', 'google', 'instagram', 'ga4', 'crm', 'ecommerce', 'pinterest']);
+const IDENTIFICADOR = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/;
+
+function objeto(valor: unknown): Record<string, unknown> | null {
+  return valor && typeof valor === 'object' && !Array.isArray(valor) ? valor as Record<string, unknown> : null;
+}
+function chavesExatas(valor: Record<string, unknown>, permitidas: string[], obrigatorias = permitidas): boolean {
+  const chaves = Object.keys(valor).sort();
+  if (chaves.some((chave) => !permitidas.includes(chave))) return false;
+  return obrigatorias.every((chave) => chaves.includes(chave));
+}
+function listaIds(valor: unknown, minimo = 1): string[] | null {
+  if (!Array.isArray(valor) || valor.length < minimo || valor.length > 50) return null;
+  const itens = valor.map(texto);
+  if (itens.some((item) => !IDENTIFICADOR.test(item)) || new Set(itens).size !== itens.length) return null;
+  return itens;
+}
+function lerCausas(valor: unknown, catalogVersion: string): CausaRecusaEstruturada[] | null {
+  if (catalogVersion !== CATALOGO_CAUSAS_RECUSA || !Array.isArray(valor) || valor.length < 1 || valor.length > 5) return null;
+  const causas: CausaRecusaEstruturada[] = [];
+  const alvos = new Set<string>();
+  for (const entrada of valor) {
+    const bruto = objeto(entrada);
+    if (!bruto || !chavesExatas(bruto, ['causeId', 'parameters'])) return null;
+    const causeId = texto(bruto.causeId) as IdCausaRecusa;
+    const p = objeto(bruto.parameters);
+    if (!IDS_CAUSA.has(causeId) || !p) return null;
+    let parameters: Record<string, unknown>;
+    if (causeId === 'metrica_obrigatoria_ausente') {
+      if (!chavesExatas(p, ['metric_id', 'platform', 'section_id'])) return null;
+      const section_id = texto(p.section_id); const platform = texto(p.platform); const metric_id = texto(p.metric_id);
+      if (!lerEscopo([section_id]) || !PLATAFORMAS.has(platform) || !IDENTIFICADOR.test(metric_id)) return null;
+      parameters = { section_id, platform, metric_id };
+    } else if (causeId === 'periodo_medicao_incorreto') {
+      if (!chavesExatas(p, ['metric_ids', 'platform', 'section_ids'])) return null;
+      const platform = texto(p.platform); const section_ids = lerEscopo(p.section_ids); const metric_ids = listaIds(p.metric_ids);
+      if (!PLATAFORMAS.has(platform) || !section_ids || !metric_ids) return null;
+      parameters = { platform, section_ids, metric_ids };
+    } else if (causeId === 'resultado_fora_do_contrato') {
+      if (!chavesExatas(p, ['campaign_ids', 'platform', 'section_ids'], ['platform', 'section_ids'])) return null;
+      const platform = texto(p.platform); const section_ids = lerEscopo(p.section_ids); const campaign_ids = p.campaign_ids === undefined ? undefined : listaIds(p.campaign_ids);
+      if (!PLATAFORMAS.has(platform) || !section_ids || (p.campaign_ids !== undefined && !campaign_ids)) return null;
+      parameters = campaign_ids ? { platform, section_ids, campaign_ids } : { platform, section_ids };
+    } else if (causeId === 'inconsistencia_entre_blocos') {
+      if (!chavesExatas(p, ['metric_contract_id', 'section_ids'])) return null;
+      const metric_contract_id = texto(p.metric_contract_id); const section_ids = lerEscopo(p.section_ids);
+      if (!IDENTIFICADOR.test(metric_contract_id) || !section_ids || section_ids.length < 2 || section_ids.some((secao) => !secao.startsWith('bloco:'))) return null;
+      parameters = { metric_contract_id, section_ids };
+    } else if (causeId === 'apresentacao_visual') {
+      if (!chavesExatas(p, ['block_ids', 'description', 'viewport'])) return null;
+      const block_ids = listaIds(p.block_ids); const description = texto(p.description); const viewport = texto(p.viewport);
+      if (!block_ids || description.length < 10 || description.length > 1000 || !['desktop', 'mobile', 'ambos'].includes(viewport)) return null;
+      parameters = { block_ids, viewport, description };
+    } else {
+      if (!chavesExatas(p, ['description', 'section_ids'], ['description'])) return null;
+      const description = texto(p.description); const section_ids = p.section_ids === undefined ? undefined : lerEscopo(p.section_ids);
+      if (description.length < 10 || description.length > 1000 || (p.section_ids !== undefined && !section_ids)) return null;
+      parameters = section_ids ? { description, section_ids } : { description };
+    }
+    const alvo = `${causeId}:${JSON.stringify(parameters)}`;
+    if (alvos.has(alvo)) return null;
+    alvos.add(alvo);
+    causas.push({ causeId, parameters });
+  }
+  return causas;
 }
 
 /**
@@ -133,16 +220,24 @@ export function lerPedido(corpo: unknown): LeituraDoPedido {
   }
 
   const motivo = texto(bruto.motivo);
+  const catalogVersion = texto(bruto.catalogVersion);
+  const causas = decisao === 'recusar' ? lerCausas(bruto.causas, catalogVersion) : [];
   const escopoSecoes = decisao === 'recusar'
-    ? lerEscopo(bruto.escopoSecoes ?? ['relatorio_inteiro'])
+    ? Array.from(new Set((causas ?? []).flatMap((causa) => {
+        const p = causa.parameters;
+        if (typeof p.section_id === 'string') return [p.section_id];
+        if (Array.isArray(p.section_ids)) return p.section_ids as string[];
+        if (Array.isArray(p.block_ids)) return (p.block_ids as string[]).map((id) => `bloco:${id}`);
+        return [];
+      })))
     : [];
 
   if (decisao === 'recusar') {
-    if (!escopoSecoes) {
+    if (!causas) {
       return {
         ok: false,
-        erro: 'escopo_invalido',
-        mensagem: 'Escolha o relatório inteiro ou uma ou mais seções canônicas antes de recusar.',
+        erro: 'causas_estruturadas_invalidas',
+        mensagem: 'Escolha de 1 a 5 causas do catálogo e complete os campos obrigatórios antes de recusar.',
       };
     }
     if (motivo.length < MINIMO_DO_MOTIVO) {
@@ -178,7 +273,9 @@ export function lerPedido(corpo: unknown): LeituraDoPedido {
       decisao,
       checksumVisto,
       motivo: decisao === 'recusar' ? motivo : '',
-      escopoSecoes: escopoSecoes ?? [],
+      escopoSecoes,
+      catalogVersion: decisao === 'recusar' ? catalogVersion : undefined,
+      causas: decisao === 'recusar' ? causas ?? [] : undefined,
     },
   };
 }
@@ -332,6 +429,16 @@ export interface LinhaDecidida {
   notificacao_interna_estado?: EstadoDaNotificacaoInterna | null;
   notificacao_destino_referencia?: string | null;
   correcao_escopo_secoes?: string[] | null;
+  correcao_catalog_version?: string | null;
+  correcao_routing_mode?: 'automatic' | 'manual' | null;
+  correcao_causas?: Array<{
+    ordinal: number;
+    catalog_version: string;
+    cause_id: string;
+    parameters: Record<string, unknown>;
+    routing_mode: 'automatic' | 'manual';
+    verification_status: string;
+  }> | null;
 }
 
 /**
@@ -389,12 +496,25 @@ export function conferirLeituraDeVolta(
   if (linha.notificacao_destino_referencia !== 'dacora_semanais.recipients') {
     return { ok: false, motivo: 'o aviso interno não aponta para o destinatário canônico' };
   }
-  if (
-    !Array.isArray(linha.correcao_escopo_secoes) ||
-    linha.correcao_escopo_secoes.length !== (pedido.escopoSecoes ?? ['relatorio_inteiro']).length ||
-    linha.correcao_escopo_secoes.some((secao, indice) => secao !== (pedido.escopoSecoes ?? ['relatorio_inteiro'])[indice])
-  ) {
-    return { ok: false, motivo: 'o escopo gravado não é o que foi confirmado' };
+  if (linha.correcao_catalog_version !== pedido.catalogVersion) {
+    return { ok: false, motivo: 'a versão do catálogo gravada não é a que foi confirmada' };
+  }
+  const esperadoManual = (pedido.causas ?? []).some((causa) => causa.causeId === 'apresentacao_visual' || causa.causeId === 'outra_causa');
+  if (linha.correcao_routing_mode !== (esperadoManual ? 'manual' : 'automatic')) {
+    return { ok: false, motivo: 'o roteamento da ordem não corresponde às causas confirmadas' };
+  }
+  if (!Array.isArray(linha.correcao_causas) || linha.correcao_causas.length !== (pedido.causas ?? []).length) {
+    return { ok: false, motivo: 'as causas estruturadas não voltaram completas do banco' };
+  }
+  for (let indice = 0; indice < (pedido.causas ?? []).length; indice += 1) {
+    const esperada = pedido.causas![indice];
+    const gravada = linha.correcao_causas[indice];
+    if (Number(gravada?.ordinal) !== indice + 1 || gravada?.catalog_version !== pedido.catalogVersion
+      || gravada?.cause_id !== esperada.causeId
+      || !isDeepStrictEqual(gravada?.parameters ?? {}, esperada.parameters)
+      || gravada?.verification_status !== 'pending') {
+      return { ok: false, motivo: 'o read-back das causas estruturadas diverge do que foi confirmado' };
+    }
   }
   return { ok: true };
 }

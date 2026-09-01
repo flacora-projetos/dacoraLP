@@ -23,7 +23,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatarCompetencia } from '../reports/format';
 import PortalDoDialogo from './PortalDoDialogo';
+import DialogoRecusaCausas from './DialogoRecusaCausas';
 import type { EstadoEditorialRA4, ResumoEditorialRA4 } from './estadoEditorial';
+import {
+  CATALOGO_CAUSAS_RECUSA,
+  resumoHumanoDasCausas,
+  type CausaRecusa,
+} from './causasRecusa';
 
 /** A mesma régua do servidor e do banco. Ver `api/_painel-decisao-regras.ts`. */
 export const MINIMO_DO_MOTIVO = 10;
@@ -43,6 +49,8 @@ export interface PedidoDeDecisao {
   decisao: Decisao;
   motivo?: string;
   escopoSecoes?: string[];
+  catalogVersion?: string;
+  causas?: CausaRecusa[];
 }
 
 export interface ResultadoDaDecisao {
@@ -80,6 +88,7 @@ export interface RelatorioDecidivel {
   } | null;
   revisaoEditorial?: ResumoEditorialRA4;
   secoesRecusaveis?: Array<{ secao: string; titulo: string }>;
+  metricasRecusaveis?: Array<{ id: string; rotulo: string; plataforma: string }>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -235,142 +244,14 @@ export function textoDoJaDecidido(relatorio: RelatorioDecidivel): string | null 
 /* ------------------------------------------------------------------ */
 
 /**
- * A recusa abre diálogo próprio porque ela **exige texto**, e um campo aberto
- * ao lado do botão de aprovar convida ao clique errado.
+ * O diálogo de recusa por TEXTO LIVRE foi removido em 01/09/2026, junto com o
+ * estado `motivo`/`escopoSecoes` que só ele usava.
  *
- * Foco preso dentro, `Esc` fecha e o foco volta para o botão que abriu — sem
- * isso, quem navega por teclado sai do diálogo para o relatório de 17 seções e
- * não acha o caminho de volta.
+ * Ele não foi deixado desconectado de propósito: um diálogo que grava recusa
+ * sem `cause_id` continua a um `import` de distância de voltar ao ar, e a
+ * recusa que ele produz é exatamente a que o worker novo tem de recusar como
+ * `legacy_unstructured`. Quem recusa agora passa por `DialogoRecusaCausas`.
  */
-function DialogoDeRecusa({
-  relatorio,
-  quem,
-  motivo,
-  escopoSecoes,
-  aoMudarEscopo,
-  aoEscrever,
-  aoConfirmar,
-  aoCancelar,
-  registrando,
-}: {
-  relatorio: RelatorioDecidivel;
-  quem: string;
-  motivo: string;
-  escopoSecoes: string[];
-  aoMudarEscopo: (secoes: string[]) => void;
-  aoEscrever: (valor: string) => void;
-  aoConfirmar: () => void;
-  aoCancelar: () => void;
-  registrando: boolean;
-}) {
-  const idBase = useId();
-  const caixa = useRef<HTMLDivElement | null>(null);
-  const campo = useRef<HTMLTextAreaElement | null>(null);
-  const suficiente = motivo.trim().length >= MINIMO_DO_MOTIVO;
-  const excedeu = motivo.trim().length > MAXIMO_DO_MOTIVO;
-
-  useEffect(() => {
-    campo.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    function aoTeclar(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') {
-        evento.preventDefault();
-        aoCancelar();
-        return;
-      }
-      if (evento.key !== 'Tab' || !caixa.current) return;
-      const focaveis = caixa.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), textarea, a[href]',
-      );
-      if (focaveis.length === 0) return;
-      const primeiro = focaveis[0];
-      const ultimo = focaveis[focaveis.length - 1];
-      if (evento.shiftKey && document.activeElement === primeiro) {
-        evento.preventDefault();
-        ultimo.focus();
-      } else if (!evento.shiftKey && document.activeElement === ultimo) {
-        evento.preventDefault();
-        primeiro.focus();
-      }
-    }
-    document.addEventListener('keydown', aoTeclar);
-    return () => document.removeEventListener('keydown', aoTeclar);
-  }, [aoCancelar]);
-
-  return (
-    <PortalDoDialogo>
-      <div className="dcp-modal" role="presentation">
-        <div
-          className="dcp-modal__caixa"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={`${idBase}-titulo`}
-          ref={caixa}
-        >
-          <h2 id={`${idBase}-titulo`} className="dcp-modal__titulo">
-            Recusar o relatório de {relatorio.clienteNome}, {formatarCompetencia(relatorio.competencia)}
-          </h2>
-          <p className="dcp-modal__apoio">
-            O motivo é obrigatório: ele é o que chega a quem vai regerar o relatório. Escreva o que
-            precisa mudar, não uma nota interna.
-          </p>
-          <fieldset className="dcp-modal__campo" disabled={registrando}>
-            <legend className="dcp-modal__rotulo">Escopo da correção</legend>
-            <label><input type="checkbox" checked={escopoSecoes[0] === 'relatorio_inteiro'} onChange={(evento) => aoMudarEscopo(evento.target.checked ? ['relatorio_inteiro'] : [])} /> Relatório inteiro</label>
-            {relatorio.secoesRecusaveis?.map((secao) => (
-              <label key={secao.secao}><input type="checkbox" checked={escopoSecoes.includes(secao.secao)} disabled={escopoSecoes[0] === 'relatorio_inteiro'} onChange={(evento) => aoMudarEscopo(evento.target.checked ? [...escopoSecoes.filter(item => item !== 'relatorio_inteiro'), secao.secao] : escopoSecoes.filter(item => item !== secao.secao))} /> {secao.titulo}</label>
-            ))}
-          </fieldset>
-          <label className="dcp-modal__rotulo" htmlFor={`${idBase}-motivo`}>
-            Motivo da recusa
-          </label>
-          <textarea
-            id={`${idBase}-motivo`}
-            ref={campo}
-            className="dcp-modal__campo"
-            rows={4}
-            value={motivo}
-            maxLength={MAXIMO_DO_MOTIVO + 1}
-            onChange={(evento) => aoEscrever(evento.target.value)}
-            aria-describedby={`${idBase}-contagem ${idBase}-eco`}
-            disabled={registrando}
-          />
-          <p id={`${idBase}-contagem`} className="dcp-modal__contagem" aria-live="polite">
-            {excedeu
-              ? `Passou de ${MAXIMO_DO_MOTIVO} caracteres. Resuma o que precisa mudar.`
-              : suficiente
-                ? `${motivo.trim().length} caracteres.`
-                : `Faltam ${MINIMO_DO_MOTIVO - motivo.trim().length} caracteres para o motivo valer.`}
-          </p>
-          <p id={`${idBase}-eco`} className="dcp-decisao__eco">
-            {ecoDaDecisao(relatorio, 'recusar', quem, `${motivo} Escopo: ${escopoSecoes.join(', ') || '…'}`)}
-          </p>
-          <div className="dcp-modal__acoes">
-            <button
-              type="button"
-              className="dcp-botao dcp-botao--sinal"
-              onClick={aoConfirmar}
-              disabled={!suficiente || excedeu || escopoSecoes.length === 0 || registrando}
-              aria-label={`Registrar a recusa do relatório de ${relatorio.clienteNome}, ${formatarCompetencia(relatorio.competencia)}`}
-            >
-              {registrando ? 'Registrando…' : 'Registrar recusa'}
-            </button>
-            <button
-              type="button"
-              className="dcp-botao dcp-botao--discreto"
-              onClick={aoCancelar}
-              disabled={registrando}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </div>
-    </PortalDoDialogo>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* A decisão                                                           */
@@ -389,8 +270,6 @@ export default function DecisaoDaRevisao({
   aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
 }) {
   const [confirmando, setConfirmando] = useState<Decisao | null>(null);
-  const [motivo, setMotivo] = useState('');
-  const [escopoSecoes, setEscopoSecoes] = useState<string[]>(['relatorio_inteiro']);
   const [registrando, setRegistrando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoDaDecisao | null>(null);
   const [secaoDaObservacao, setSecaoDaObservacao] = useState('relatorio_inteiro');
@@ -405,24 +284,25 @@ export default function DecisaoDaRevisao({
 
   function fecharDialogo() {
     setConfirmando(null);
-    setMotivo('');
-    setEscopoSecoes(['relatorio_inteiro']);
     botaoRecusar.current?.focus();
   }
 
-  async function registrar(decisao: Decisao) {
+  async function registrar(decisao: Decisao, causas: CausaRecusa[] = []) {
     setRegistrando(true);
     setResultado(null);
     try {
       const saida = await aoDecidir(
-        decisao === 'recusar' ? { decisao, motivo: motivo.trim(), escopoSecoes } : { decisao },
+        decisao === 'recusar'
+          ? {
+              decisao,
+              motivo: resumoHumanoDasCausas(causas),
+              catalogVersion: CATALOGO_CAUSAS_RECUSA,
+              causas,
+            }
+          : { decisao },
       );
       setResultado(saida);
-      if (saida.ok) {
-        setConfirmando(null);
-        setMotivo('');
-        setEscopoSecoes(['relatorio_inteiro']);
-      }
+      if (saida.ok) setConfirmando(null);
     } finally {
       setRegistrando(false);
     }
@@ -552,14 +432,10 @@ export default function DecisaoDaRevisao({
       </p>
 
       {confirmando === 'recusar' && (
-      <DialogoDeRecusa
+        <DialogoRecusaCausas
           relatorio={relatorio}
           quem={quem}
-        motivo={motivo}
-        escopoSecoes={escopoSecoes}
-        aoEscrever={setMotivo}
-        aoMudarEscopo={setEscopoSecoes}
-          aoConfirmar={() => void registrar('recusar')}
+          aoConfirmar={(causas) => void registrar('recusar', causas)}
           aoCancelar={fecharDialogo}
           registrando={registrando}
         />
