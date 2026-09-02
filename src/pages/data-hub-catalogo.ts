@@ -111,6 +111,9 @@ const GRAO_ORDEM: readonly NivelEntidade[] = ['conta', 'campanha', 'conjunto', '
 const CAMPO_GRAO: Readonly<Record<string, NivelEntidade>> = Object.freeze({
   date: 'conta', account_id: 'conta', campaign_id: 'campanha', campaign_name: 'campanha',
   adset_id: 'conjunto', adset_name: 'conjunto', ad_id: 'anuncio', ad_name: 'anuncio',
+  age: 'campanha', gender: 'campanha', country: 'campanha', region: 'campanha',
+  publisher_platform: 'campanha', platform_position: 'campanha', device_platform: 'campanha',
+  video_asset: 'anuncio',
 });
 
 const CREATIVE_FIELD_TO_SELECTED: Readonly<Record<string, string>> = Object.freeze({
@@ -189,12 +192,21 @@ export function selectedFieldsDoRascunho(rascunho: Rascunho, catalogo: Catalogo 
 }
 
 export function nivelResolvidoDoRascunho(rascunho: Rascunho, catalogo: Catalogo = CATALOGO_PADRAO): NivelEntidade {
-  let resolvido = rascunho.nivel ?? 'campanha';
+  let resolvido: NivelEntidade = 'conta';
   for (const field of selectedFieldsDoRascunho(rascunho, catalogo)) {
     const grao = field.startsWith('creative.') ? 'anuncio' : CAMPO_GRAO[field];
     if (grao && GRAO_ORDEM.indexOf(grao) > GRAO_ORDEM.indexOf(resolvido)) resolvido = grao;
   }
   return resolvido;
+}
+
+const CAMPO_IDENTIDADE_NIVEL: Readonly<Record<NivelEntidade, string>> = Object.freeze({
+  conta: 'account_id', campanha: 'campaign_id', conjunto: 'adset_id', anuncio: 'ad_id',
+});
+
+export function preservarGraoLegadoNosCampos(campos: readonly string[], nivel: NivelEntidade): readonly string[] {
+  const identidade = CAMPO_IDENTIDADE_NIVEL[nivel];
+  return [identidade, ...campos.filter((campo) => campo !== identidade)];
 }
 
 function nivelDaApi(value: unknown): NivelEntidade | null {

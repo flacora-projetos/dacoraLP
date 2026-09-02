@@ -6,7 +6,7 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
-import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
+import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, preservarGraoLegadoNosCampos, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
 
@@ -135,7 +135,9 @@ function DataHubInicio() {
       granularidade, granularidadeDias: granularidade === 'personalizada' ? Number(String(output).slice(7)) : 14 };
     const nivelLegado = item.entityLevel === 'account' ? 'conta' : item.entityLevel === 'adset' ? 'conjunto'
       : item.entityLevel === 'ad' ? 'anuncio' : item.entityLevel === 'campaign' ? 'campanha' : nivelResolvidoDoRascunho(rascunhoBase, catalogo);
-    return sanearCamposDoCatalogo({ ...rascunhoBase, nivel: nivelLegado }, catalogo).rascunho;
+    const temSelectedFields = Array.isArray(item.selectedFields) && item.selectedFields.length > 0;
+    const camposComGrao = temSelectedFields ? campos : preservarGraoLegadoNosCampos(campos, nivelLegado);
+    return sanearCamposDoCatalogo({ ...rascunhoBase, campos: camposComGrao, nivel: nivelLegado }, catalogo).rascunho;
   }
 
   function avisoLegado(extracao: ExtracaoLocal): string | null {
