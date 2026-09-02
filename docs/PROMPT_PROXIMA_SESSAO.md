@@ -14,45 +14,42 @@ Continue a frente **Data Hub no portal Dácora** a partir do estado de produçã
 ## Estado confirmado
 
 - Portal Data Hub publicado em Vercel Production; commit funcional da frente `fa244dc`.
-- Backend publicado: `dacora-data-hub-00030-8ms`, imagem `runtime:d54c50e`, 100% do tráfego.
-- Digest backend: `sha256:9f29d69086a571830eb75b2b0fa41ab358936a154007dccaa5abb6f4e32e89f4`.
-- Rollback backend: `dacora-data-hub-00029-f5b`, tag `preupsert`.
+- Backend publicado: `dacora-data-hub-00031-fzv`, imagem `runtime:f13b028`, 100% do tráfego.
+- Digest backend: `sha256:ca3db7f5fdc53e01bcfa118bfe5eaa750d7b5ae65278a08686f6689d59ec9c5a`.
+- Rollback backend: `dacora-data-hub-00030-8ms`, tag `preselectedsheets`.
 - Scheduler continua `PAUSED`.
 - O criador não possui seletor manual de nível; novas definições usam `selectedFields`.
-- O CRUD field-centric foi provado em produção.
-- O gate Meta real até BigQuery foi fechado em produção com `selectedFields = [date, campaign_name, spend]`, grão `campaign`, período `2026-08-28`.
-- `sync_run_id = 501547d2-5ec3-42f2-9dd8-dbfcb3072bd6` terminou `success/reconciled`.
-- BigQuery devolveu `spend = 166.14`, igual à fonte independente; `impressions` e `clicks` permaneceram `NULL`.
-- PR backend `#79` corrigiu a reconciliação do caminho Hub.
-- PR backend `#82` corrigiu definitivamente o upsert projetado para `require_partition_filter` substituindo o MERGE problemático por DMLs transacionais particionáveis.
-- As definições e `sheets_exports` temporários dos smokes foram removidos; `sync_runs`/BigQuery permanecem como evidência.
+- O golden slice field-centric está fechado de ponta a ponta em produção.
+- Meta→BigQuery: `selectedFields = [date, campaign_name, spend]`, grão `campaign`, `success/reconciled`, valor reconciliado com fonte independente.
+- Google Sheets: export `succeeded`, `1×3`, range `'Página1'!A1:C2`.
+- Read-back final: `Data`, `Nome da campanha`, `Investimento`, nessa ordem; linha `2026-08-27 | MENSAGENS (WhatsApp) - PEC. CORTE | 195,48`.
+- PR backend `#79` corrigiu reconciliação Hub.
+- PR backend `#82` corrigiu o upsert projetado BigQuery para `require_partition_filter`.
+- PR backend `#84` fez `selectedFields` ser autoritativo também no Sheets, preservando layout legado para definições antigas.
+- Backend validado no Node 22.22.0: **489/489**; focados Sheets **30/30**; lint/diff-check OK.
+- Artefatos temporários de smoke foram removidos do Firestore e as planilhas de teste foram movidas para a lixeira do Drive.
 - Todos os grants temporários TokenCreator foram revogados; nenhuma chave persistente foi criada.
-- O único gate operacional aberto do smoke é Google Sheets/read-back.
-- O export pós-BigQuery terminou `dead` com `reauthorization_required`.
-- O fluxo oficial de reautorização Google foi aberto no navegador local; a conclusão depende de consentimento humano na conta Google.
 - O norte continua sendo expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract.
 
 ## Próximo objetivo
 
-Fechar somente o gate Google Sheets/read-back:
+O próximo trabalho deixa de ser fechamento do golden slice e passa a ser expansão funcional:
 
-1. confirmar que o consentimento Google foi concluído;
-2. repetir um smoke curto com `selectedFields = [date, campaign_name, spend]` e janela inédita;
-3. confirmar `sync_runs=success/reconciled` e BigQuery como regressão;
-4. confirmar `sheets_exports=succeeded`;
-5. fazer read-back do Sheets;
-6. validar ordem de `selectedFields`, zero versus ausência e ausência de campos não escolhidos;
-7. limpar os artefatos temporários do smoke;
-8. atualizar a documentação canônica.
-
-Depois disso, seguir para ordem integral de `selectedFields`, actions/conversions em colunas, enriquecimento criativo e matriz 611 × Hub.
+1. projetar actions/conversions selecionadas como colunas;
+2. fechar enriquecimento criativo;
+3. construir a matriz **611 × Hub** sem `unknown`;
+4. classificar cada capacidade como `supported`, `unsupported_upstream` ou `not_applicable`;
+5. expandir catálogo/backend por lotes preservando grão, granularidade e compatibilidades reais;
+6. manter a UI derivada do catálogo canônico;
+7. só depois fechar PAR5/piloto e reavaliar ativação do Scheduler.
 
 ## Gates
 
-- Não inventar workaround de OAuth nem criar chave de service account.
-- Não ampliar IAM permanente para contornar reautorização Google.
+- Não reabrir seletor manual de nível.
+- Não reduzir o catálogo do portal para esconder lacunas do backend.
+- Não criar workaround de OAuth nem chave de service account.
+- Não ampliar IAM permanente sem necessidade explícita.
 - Não tocar nos worktrees/branches de RA ou outras frentes.
 - Diferenciar IMPLEMENTADO, INTEGRADO e PRODUÇÃO.
-- Não reduzir o catálogo do portal para esconder lacunas do backend.
 
 Siga ENTENDER → LOCALIZAR → LER → EXECUTAR → TESTAR → VALIDAR → ENTREGAR. Se Git/produção divergirem deste prompt, Git + respostas reais + documentação canônica prevalecem.

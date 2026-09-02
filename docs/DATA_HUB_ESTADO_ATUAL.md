@@ -16,15 +16,15 @@ O portal é a superfície de escolha e operação; o repositório `Dacora Data H
 | --- | --- |
 | Portal | Vercel Production automático a cada merge em `main`; commit funcional Data Hub `fa244dc` |
 | URL | `https://www.dacora.com.br/data-hub` |
-| Backend | Cloud Run `dacora-data-hub-00030-8ms`, 100% do tráfego |
-| Imagem backend | `runtime:d54c50e` |
-| Digest backend | `sha256:9f29d69086a571830eb75b2b0fa41ab358936a154007dccaa5abb6f4e32e89f4` |
-| Rollback backend | `dacora-data-hub-00029-f5b`, tag `preupsert` |
+| Backend | Cloud Run `dacora-data-hub-00031-fzv`, 100% do tráfego |
+| Imagem backend | `runtime:f13b028` |
+| Digest backend | `sha256:ca3db7f5fdc53e01bcfa118bfe5eaa750d7b5ae65278a08686f6689d59ec9c5a` |
+| Rollback backend | `dacora-data-hub-00030-8ms`, tag `preselectedsheets` |
 | Scheduler | `PAUSED` |
 
 Como merges documentais também geram deployment Vercel, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
 
-## Contrato field-centric
+## Contrato field-centric — fechado de ponta a ponta
 
 O portal publicado segue o modelo por campos:
 
@@ -34,22 +34,19 @@ O portal publicado segue o modelo por campos:
 - mostra o grão apenas como consequência da seleção;
 - mantém leitura/edição de definições legadas.
 
-O CRUD `selectedFields` já foi provado em produção com `selectedFields = [date, campaign_name, spend]`, deduzindo `entityLevel = campaign`.
+O golden slice foi provado com:
 
-## Smoke Meta real — BigQuery fechado em produção
+`selectedFields = [date, campaign_name, spend]`
 
-O backend executou um smoke pós-correções com:
+Grão deduzido:
 
-- conta queryable `act_643514297405998`;
-- `selectedFields = [date, campaign_name, spend]`;
-- grão `campaign`;
+`campaign`
+
+## Meta → BigQuery — fechado em produção
+
+Smoke controlado na conta queryable `act_643514297405998`:
+
 - período `2026-08-28`;
-- revisão `dacora-data-hub-00030-8ms`.
-
-A fonte independente Saldos MCP retornou `spend = 166.14` para a campanha `23852456848550667` (`MENSAGENS (WhatsApp) - PEC. CORTE`).
-
-O Data Hub registrou no BigQuery:
-
 - `sync_run_id = 501547d2-5ec3-42f2-9dd8-dbfcb3072bd6`;
 - `status = success`;
 - `reconciliation_status = reconciled`;
@@ -57,50 +54,71 @@ O Data Hub registrou no BigQuery:
 - `impressions = NULL`;
 - `clicks = NULL`.
 
-A divergência de gasto contra a fonte independente foi zero. Isso prova o caminho:
+A fonte independente Saldos MCP devolveu `166.14` para o mesmo recorte. Divergência: zero.
+
+Isso prova:
 
 `selectedFields → Hub Data API → normalização → reconciliação → BigQuery`
 
-para o recorte controlado.
+com distinção correta entre ausência e zero para campos não escolhidos.
 
-Os campos não selecionados permaneceram `NULL`; não foram transformados em zero nem preenchidos indevidamente.
+## Google Sheets/read-back — fechado em produção
 
-## Correções backend descobertas pelo smoke
+Depois da reautorização Google do ator, o backend conseguiu trocar o refresh token e criar planilha pela Sheets API normalmente.
+
+O smoke final usou:
+
+- período `2026-08-27`;
+- baseline independente `spend = 195.48`;
+- `selectedFields = [date, campaign_name, spend]`;
+- revisão backend `dacora-data-hub-00031-fzv`.
+
+O export terminou:
+
+- `sheets_exports.state = succeeded`;
+- `rows = 1`;
+- `cols = 3`;
+- range `'Página1'!A1:C2`.
+
+Read-back real da planilha:
+
+| Data | Nome da campanha | Investimento |
+| --- | --- | ---: |
+| 2026-08-27 | MENSAGENS (WhatsApp) - PEC. CORTE | 195,48 |
+
+Portanto o portal/backend agora fecham o contrato `selectedFields` até a planilha:
+
+- somente campos escolhidos aparecem;
+- a ordem escolhida é preservada;
+- `campaign_name` aparece corretamente;
+- campos não escolhidos não vazam para a saída;
+- valor final permanece reconciliado com fonte independente.
+
+## Correções backend descobertas pelos smokes
 
 1. PR backend `#79`: materializou `reconciliation` no caminho Hub.
-2. PR backend `#81`: primeira tentativa de filtro de partição no `MERGE` projetado; insuficiente em runtime.
-3. PR backend `#82`: correção definitiva, substituindo o projected `MERGE` por DMLs transacionais particionáveis, preservando fencing e campos não selecionados.
+2. PR backend `#82`: correção definitiva do upsert projetado para `require_partition_filter`, usando DMLs transacionais particionáveis.
+3. PR backend `#84`: fez `selectedFields` ser autoritativo também no export Sheets, preservando o layout legado para definições antigas.
 
-Validação backend da correção definitiva:
+Validação backend da PR #84:
 
-- Node 22.22.0: 488/488;
-- focados merge/loader: 17/17;
+- Node 22.22.0: **489/489**;
+- focados Sheets: **30/30**;
 - lint: OK;
 - `git diff --check`: OK.
 
-## Google Sheets — único gate aberto
-
-O export correspondente ao run bem-sucedido chegou a ser disparado, mas terminou `dead` com:
-
-`lastErrorCode = reauthorization_required`
-
-O refresh token Google armazenado para o ator não é mais aceito pela Sheets API. O backend abriu o fluxo oficial `/internal/v1/portal/google/connect` e a URL de consentimento Google foi aberta no navegador local.
-
-**A conclusão depende de consentimento humano na conta Google.** Não criar chave nova, não ampliar IAM permanente e não criar workaround no portal.
-
-Depois da reautorização, repetir somente um smoke curto para confirmar:
-
-1. export `succeeded`;
-2. read-back do Sheets;
-3. ordem final de `selectedFields`;
-4. zero versus ausência;
-5. nenhum campo não escolhido aparecendo indevidamente.
-
 ## Higiene
 
-As definições e documentos `sheets_exports` temporários criados pelos smokes foram removidos do Firestore depois da coleta de evidências. Os `sync_runs` e linhas BigQuery permanecem como evidência auditável.
+Os artefatos temporários dos smokes foram removidos depois da coleta de evidências:
 
-Todos os grants temporários de TokenCreator foram revogados; nenhuma chave persistente foi criada.
+- definições em `extractions`;
+- documentos em `sheets_exports`;
+- registro em `sheets_export_destinations`;
+- planilhas de validação e smoke movidas para a lixeira do Google Drive.
+
+Os `sync_runs` e linhas BigQuery permanecem como evidência auditável.
+
+Todos os grants temporários TokenCreator foram revogados; nenhuma chave persistente foi criada.
 
 Nenhum módulo de relatórios/RA, Supabase, envio ou outra aplicação do portal foi alterado.
 
@@ -124,11 +142,11 @@ O portal deve derivar o máximo possível seu catálogo e regras do backend, evi
 
 ## Próximos gates
 
-1. concluir o consentimento Google e fechar Sheets/read-back;
-2. garantir ordem integral de `selectedFields` na saída;
-3. projetar actions/conversions selecionadas como colunas;
-4. fechar enriquecimento criativo;
-5. construir e executar a matriz **611 × Hub**;
-6. manter a UI derivada do catálogo canônico e validar desktop/móvel a cada ampliação significativa.
+1. projetar actions/conversions selecionadas como colunas;
+2. fechar enriquecimento criativo;
+3. construir e executar a matriz **611 × Hub**;
+4. expandir catálogo e backend por lotes;
+5. manter a UI derivada do catálogo canônico e validar desktop/móvel a cada ampliação significativa;
+6. só depois reavaliar PAR5/piloto e ativação do Scheduler.
 
-Scheduler permanece pausado até os gates posteriores do backend/piloto.
+Scheduler permanece pausado até esses gates posteriores.
