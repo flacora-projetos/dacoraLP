@@ -13,34 +13,43 @@ Continue a frente **Data Hub no portal Dácora** a partir do estado de produçã
 
 ## Estado confirmado
 
-- Portal Data Hub publicado em Vercel Production; o commit funcional da frente é `fa244dc`. Merges documentais em `main` também geram novo deployment, então consulte `vercel inspect https://www.dacora.com.br` para o ID corrente em vez de confiar em um ID fixado neste arquivo.
-- Commit funcional do portal: `fa244dc`.
-- Backend publicado: `dacora-data-hub-00040-cil`, imagem `runtime:b77456f`, 100% do tráfego.
-- Rollback backend: `dacora-data-hub-00038-top`, tag `rollback-pre-selected`.
+- Portal Data Hub publicado em Vercel Production; commit funcional da frente `fa244dc`.
+- Merges documentais também geram deployment Vercel; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
+- Backend publicado: `dacora-data-hub-00028-t4n`, imagem `runtime:83ca649`, 100% do tráfego.
+- Commit backend em produção: `83ca64920a60fd2833e9d05214f3dc414040341e`.
+- Rollback backend: `dacora-data-hub-00040-cil`, tag `prehubrec`.
 - Scheduler continua `PAUSED`.
 - O criador não possui seletor manual de nível. O grão é consequência dos campos selecionados.
 - Definições novas usam `selectedFields`; definições legadas preservam o grão materializando a identidade correspondente antes da migração.
-- O contrato `selectedFields` foi provado em produção por CRUD reversível: create 201 → read 200 → `entityLevel=campaign` → delete 204 → read 404.
-- A definição temporária de smoke foi removida e nenhuma extração Meta foi executada.
-- A permissão temporária usada para gerar ID token foi revogada; nenhuma chave/credencial persistente foi criada.
-- Validação pré-release do portal: `verifica:data-hub-casca` OK, `verifica:data-hub-spike` OK, TypeScript com heap ampliado exit 0, build completo OK, diff-check e secret scan verdes.
-- O norte de produto é a expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract, preservando semântica, grão, granularidade e compatibilidades.
+- O CRUD `selectedFields` foi provado em produção e a definição temporária daquele smoke foi removida.
+- Um smoke Meta real com `selectedFields = [date, campaign_name, spend]` comprovou retorno da Hub Data API e reconciliação independente de `spend=228.21` em `2026-09-01`.
+- Esse primeiro run revelou que o caminho Hub não materializava `reconciliation`; a correção entrou na PR backend `#79` e já está em produção na revisão `00028-t4n`.
+- O gate E2E completo **ainda não está fechado**: falta run pós-correção até BigQuery + Sheets/read-back.
+- Google OAuth do ator retornou `reauthorization_required`; não inventar workaround nem trocar escopos.
+- Duas definições temporárias de smoke permanecem no backend/Firestore e devem ser removidas somente com GO explícito.
+- Grants temporários de TokenCreator usados na sessão foram revogados; nenhuma chave persistente foi criada.
+- O norte continua sendo expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract.
 
 ## Próximo objetivo
 
-O próximo gate real não é mais provar o CRUD da definição. É provar **dados reais**:
+O próximo gate real é concluir **dados reais pós-correção**:
 
-1. executar uma extração field-centric controlada;
-2. reconciliar Hub Data API → normalização → BigQuery → Sheets/read-back;
-3. confirmar ordem de `selectedFields` na saída;
-4. depois avançar actions em colunas, enriquecimento criativo e matriz 611 × Hub.
+1. com GO operacional, limpar as duas definições temporárias de smoke no backend;
+2. reautorizar a conexão Google existente se necessário;
+3. executar uma extração field-centric com work unit inédita e janela curta;
+4. confirmar `sync_runs=success/reconciled` e persistência no BigQuery;
+5. reconciliar o mesmo período por fonte independente;
+6. confirmar export/read-back no Sheets;
+7. validar ordem de `selectedFields`, zero versus ausência e ausência de campos não escolhidos;
+8. só depois avançar actions em colunas, enriquecimento criativo e matriz 611 × Hub.
 
 ## Gates
 
-- Não confundir CRUD de definição com prova de números Meta.
+- Não confundir CRUD de definição nem resposta isolada da Hub Data API com prova E2E completa.
 - Merge/push/deploy/produção continuam sujeitos às regras vigentes do projeto e à autorização do PO.
 - Não invente contas, IDs, catálogo, payloads ou resultados. Diferencie IMPLEMENTADO, INTEGRADO e PRODUÇÃO.
 - Não reduza o catálogo do portal para contornar lacuna do backend; a direção é expandir a fonte canônica do Hub.
+- Não tocar nos worktrees/branches de RA ou outras frentes apenas porque aparecem na listagem.
 
 ## Arquivos centrais do Data Hub no portal
 
