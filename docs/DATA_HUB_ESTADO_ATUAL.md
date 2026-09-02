@@ -15,23 +15,14 @@ O portal é a superfície de escolha e operação; o repositório `Dacora Data H
 | Componente | Estado |
 | --- | --- |
 | Portal | Vercel Production automático a cada merge em `main`; commit funcional Data Hub `fa244dc` |
-| Commit funcional do portal | `fa244dc` |
 | URL | `https://www.dacora.com.br/data-hub` |
-| Backend | Cloud Run `dacora-data-hub-00028-t4n`, 100% do tráfego |
-| Imagem backend | `runtime:83ca649` |
-| Commit backend em produção | `83ca64920a60fd2833e9d05214f3dc414040341e` |
-| Rollback backend | `dacora-data-hub-00040-cil`, tag `prehubrec` |
+| Backend | Cloud Run `dacora-data-hub-00030-8ms`, 100% do tráfego |
+| Imagem backend | `runtime:d54c50e` |
+| Digest backend | `sha256:9f29d69086a571830eb75b2b0fa41ab358936a154007dccaa5abb6f4e32e89f4` |
+| Rollback backend | `dacora-data-hub-00029-f5b`, tag `preupsert` |
 | Scheduler | `PAUSED` |
 
-O deployment funcional do portal permanece publicado em Vercel Production. Como merges documentais em `main` também geram novo deployment, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
-
-Smoke anônimo pós-release já provado:
-
-- `/data-hub` → HTTP 200;
-- `Cache-Control` privado/no-store;
-- `X-Robots-Tag: noindex`;
-- `Referrer-Policy: no-referrer`;
-- `/api/data-hub/catalog` sem sessão → HTTP 401.
+Como merges documentais também geram deployment Vercel, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
 
 ## Contrato field-centric
 
@@ -43,84 +34,101 @@ O portal publicado segue o modelo por campos:
 - mostra o grão apenas como consequência da seleção;
 - mantém leitura/edição de definições legadas.
 
-A correção integrada no PR `#30` também garante que:
+O CRUD `selectedFields` já foi provado em produção com `selectedFields = [date, campaign_name, spend]`, deduzindo `entityLevel = campaign`.
 
-- `nivelResolvidoDoRascunho` não usa mais `rascunho.nivel` legado como entrada para uma definição field-centric nova;
-- todos os breakdowns atuais publicados pelo Hub participam da dedução de grão;
-- ao migrar definição legada sem `selectedFields`, o portal materializa o campo de identidade do grão (`account_id`, `campaign_id`, `adset_id` ou `ad_id`) antes de eliminar `entityLevel`;
-- definições que já possuem `selectedFields` não recebem campo artificial.
+## Smoke Meta real — BigQuery fechado em produção
 
-Arquivos funcionais tocados nessa frente ficaram restritos ao Data Hub:
+O backend executou um smoke pós-correções com:
 
-- `src/pages/DataHub.tsx`;
-- `src/pages/data-hub-catalogo.ts`;
-- `scripts/verifica-painel-data-hub-casca.mts`.
+- conta queryable `act_643514297405998`;
+- `selectedFields = [date, campaign_name, spend]`;
+- grão `campaign`;
+- período `2026-08-28`;
+- revisão `dacora-data-hub-00030-8ms`.
+
+A fonte independente Saldos MCP retornou `spend = 166.14` para a campanha `23852456848550667` (`MENSAGENS (WhatsApp) - PEC. CORTE`).
+
+O Data Hub registrou no BigQuery:
+
+- `sync_run_id = 501547d2-5ec3-42f2-9dd8-dbfcb3072bd6`;
+- `status = success`;
+- `reconciliation_status = reconciled`;
+- `spend = 166.14`;
+- `impressions = NULL`;
+- `clicks = NULL`.
+
+A divergência de gasto contra a fonte independente foi zero. Isso prova o caminho:
+
+`selectedFields → Hub Data API → normalização → reconciliação → BigQuery`
+
+para o recorte controlado.
+
+Os campos não selecionados permaneceram `NULL`; não foram transformados em zero nem preenchidos indevidamente.
+
+## Correções backend descobertas pelo smoke
+
+1. PR backend `#79`: materializou `reconciliation` no caminho Hub.
+2. PR backend `#81`: primeira tentativa de filtro de partição no `MERGE` projetado; insuficiente em runtime.
+3. PR backend `#82`: correção definitiva, substituindo o projected `MERGE` por DMLs transacionais particionáveis, preservando fencing e campos não selecionados.
+
+Validação backend da correção definitiva:
+
+- Node 22.22.0: 488/488;
+- focados merge/loader: 17/17;
+- lint: OK;
+- `git diff --check`: OK.
+
+## Google Sheets — único gate aberto
+
+O export correspondente ao run bem-sucedido chegou a ser disparado, mas terminou `dead` com:
+
+`lastErrorCode = reauthorization_required`
+
+O refresh token Google armazenado para o ator não é mais aceito pela Sheets API. O backend abriu o fluxo oficial `/internal/v1/portal/google/connect` e a URL de consentimento Google foi aberta no navegador local.
+
+**A conclusão depende de consentimento humano na conta Google.** Não criar chave nova, não ampliar IAM permanente e não criar workaround no portal.
+
+Depois da reautorização, repetir somente um smoke curto para confirmar:
+
+1. export `succeeded`;
+2. read-back do Sheets;
+3. ordem final de `selectedFields`;
+4. zero versus ausência;
+5. nenhum campo não escolhido aparecendo indevidamente.
+
+## Higiene
+
+As definições e documentos `sheets_exports` temporários criados pelos smokes foram removidos do Firestore depois da coleta de evidências. Os `sync_runs` e linhas BigQuery permanecem como evidência auditável.
+
+Todos os grants temporários de TokenCreator foram revogados; nenhuma chave persistente foi criada.
 
 Nenhum módulo de relatórios/RA, Supabase, envio ou outra aplicação do portal foi alterado.
 
-## Contrato portal ↔ backend provado em produção
+## Validação do portal
 
-O CRUD field-centric foi provado em produção usando a identidade real do portal, sem extração Meta:
-
-1. `GET /readyz` → 200;
-2. catálogo → 200, com 56 contas, 51 queryable, 10 fields, 8 creativeFields, 8 breakdowns e 7 templates;
-3. criação com `selectedFields = [date, campaign_name, spend]` → 201;
-4. backend deduziu `entityLevel = campaign`;
-5. read-back → 200 com a seleção preservada;
-6. delete → 204;
-7. GET posterior → 404.
-
-A definição temporária desse CRUD foi removida.
-
-## Smoke de dados Meta reais — estado correto
-
-O backend avançou além do CRUD e executou um smoke real de dados com a mesma seleção `selectedFields = [date, campaign_name, spend]`, na conta queryable `act_643514297405998`.
-
-Para `2026-09-01`, a Hub Data API devolveu uma linha com `spend = 228.21`. A reconciliação independente via Saldos MCP retornou o mesmo total. Portanto, a origem Meta real e o mapeamento field-centric da requisição foram comprovados nesse recorte.
-
-O primeiro run E2E, porém, foi bloqueado antes da persistência porque o caminho Hub não materializava `reconciliation` para o worker. A correção entrou pela PR backend `#79` e está publicada em `dacora-data-hub-00028-t4n`/`runtime:83ca649`.
-
-**Não declarar o gate completo encerrado ainda.** Falta um run pós-correção até:
-
-`Hub Data API → normalização → BigQuery → Sheets/read-back`
-
-com `sync_runs=success/reconciled`, conferência independente, ordem de `selectedFields`, distinção de zero/ausente e ausência de campos não escolhidos.
-
-## Google Sheets — bloqueio operacional atual
-
-A conexão Google do ator devolveu `reauthorization_required` durante o smoke. Isso bloqueou a prova nova de escrita/read-back em Sheets.
-
-O portal não deve criar workaround nem trocar escopos. Quando houver GO operacional, reautorizar a conexão existente pelo fluxo próprio do Data Hub e repetir o read-back.
-
-Duas definições temporárias de smoke existem no backend/Firestore. A limpeza pertence ao backend e deve ocorrer somente com GO explícito; não alterar o portal para esconder esses registros.
-
-## Validação concluída nesta rodada
-
-Portal em `main` foi revalidado sem tocar em RA/Supabase/relatórios:
+Última validação funcional da frente Data Hub, sem tocar em outras aplicações:
 
 - `npm run verifica:data-hub-casca`: OK;
 - `npm run verifica:data-hub-spike`: OK;
 - `npx tsc --noEmit` com `NODE_OPTIONS=--max-old-space-size=8192`: exit 0;
 - build completo com `NODE_OPTIONS=--max-old-space-size=8192`: exit 0;
-- `git diff --check`: obrigatório antes do commit.
+- `git diff --check`: OK.
 
-A tentativa de build com heap padrão morreu por OOM durante o `prebuild`/TypeScript. Isso reproduz a limitação já conhecida; não é regressão funcional do Data Hub. A evidência válida é o TypeScript/build com heap ampliado.
+A tentativa com heap padrão pode morrer por OOM no `prebuild`; a evidência canônica usa heap ampliado.
 
 ## Norte de cobertura
 
-O objetivo do Data Hub não é limitar o portal ao catálogo pequeno atual. O alvo funcional é se aproximar ao máximo do benchmark Stract documentado no backend: **611 capacidades úteis deduplicadas**, com semântica, grão, granularidade e compatibilidades reais.
+O objetivo continua sendo aproximar o Data Hub do benchmark Stract de **611 capacidades úteis deduplicadas**, preservando semântica, grão, granularidade e compatibilidades reais.
 
-O portal deve ser uma projeção da fonte canônica do backend. Não manter manualmente uma segunda lista de centenas de capacidades se o backend puder fornecê-las no catálogo. Não esconder uma capacidade suportada apenas para simplificar a UI; incompatibilidades reais devem ser explicadas e bloqueadas pelo contrato.
-
-Fonte canônica do placar: repositório `Dacora Data Hub`, `docs/COBERTURA_STRACT_META.md`.
+O portal deve derivar o máximo possível seu catálogo e regras do backend, evitando uma segunda fonte manual de centenas de campos.
 
 ## Próximos gates
 
-1. com GO operacional, limpar as definições temporárias de smoke no backend e reautorizar Google se necessário;
-2. executar um run pós-correção e provar BigQuery + Sheets/read-back;
-3. fazer a saída obedecer integralmente à ordem de `selectedFields`;
-4. projetar actions selecionadas como colunas quando aplicável e fechar enriquecimento criativo;
-5. construir a matriz **611 × Hub** e expandir o catálogo canônico por lotes;
-6. manter a UI derivada desse catálogo e validar desktop/móvel a cada ampliação significativa.
+1. concluir o consentimento Google e fechar Sheets/read-back;
+2. garantir ordem integral de `selectedFields` na saída;
+3. projetar actions/conversions selecionadas como colunas;
+4. fechar enriquecimento criativo;
+5. construir e executar a matriz **611 × Hub**;
+6. manter a UI derivada do catálogo canônico e validar desktop/móvel a cada ampliação significativa.
 
 Scheduler permanece pausado até os gates posteriores do backend/piloto.
