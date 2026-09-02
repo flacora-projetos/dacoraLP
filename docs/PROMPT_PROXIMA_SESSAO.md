@@ -6,31 +6,28 @@ Continue a frente **Data Hub no portal Dácora** a partir do estado de produçã
 
 1. Carregue o runtime atual do Codex Ninja (`getCodexNinjaRuntime`, `include=all`).
 2. Selecione o workspace `@projects/SITE DACORA LP/repo`.
-3. Leia por inteiro `AGENTS.md` e `CLAUDE.md` e leia a seção mais recente de Data Hub em `docs/PAINEL_PROGRESSO.md`.
+3. Leia por inteiro `AGENTS.md` e `CLAUDE.md` e leia `docs/DATA_HUB_ESTADO_ATUAL.md`. Para Data Hub, esse arquivo é a continuidade canônica; não use o histórico de outras aplicações do portal para inferir estado.
 4. Rode `git fetch origin --prune`, confirme branch/HEAD/status e preserve qualquer trabalho preexistente.
 5. Não desenvolva diretamente em `main`; se houver mudança de código/docs, crie branch temática a partir de `origin/main` sincronizada.
 
 ## Estado confirmado ao encerrar a sessão anterior
 
-- `main == origin/main` no commit funcional `e158438646a008e83b94fcb24c6c693cbb42482a` (`feat: align Data Hub portal with selected fields`), antes do commit documental de handoff desta sessão.
-- O portal foi publicado na Vercel; deployment funcional confirmado: `dpl_7JVd4pcC61vBLefL1N8KjYiZuf1W`, estado `Ready`.
-- `/data-hub` respondeu HTTP 200 em produção com `private, no-store`, `noindex` e `no-referrer`.
-- `/api/data-hub/catalog` sem sessão respondeu HTTP 401 `sem_sessao`; o gate privado está preservado.
-- A UX foi revisada com `frontend-design`, `impeccable-design-polish`, `web-design-guidelines` e `vercel-react-best-practices`.
-- O criador não possui mais seletor manual de nível. O grão é deduzido pelos campos selecionados.
-- Novas definições usam `selectedFields`; o salvamento remove `entityLevel`, `fields`, `creativeFields` e `breakdowns` do payload novo.
-- A leitura/edição continua compatível com definições legadas.
-- `npm run verifica:data-hub-casca` passou; `git diff --check` passou; lint/typecheck passou com `NODE_OPTIONS=--max-old-space-size=8192`; secret scan do diff não encontrou segredo óbvio.
+- A `main` contém o commit funcional histórico `e158438 feat: align Data Hub portal with selected fields` e o portal publicado já usa `selectedFields`.
+- A correção mais recente está localmente em `fix/data-hub-field-contracts`; confirme commit/working tree antes de continuar.
+- O criador não possui seletor manual de nível. O grão é consequência dos campos selecionados.
+- A prova de contratos de 2026-09-02 encontrou e corrigiu localmente a influência do `nivel` legado oculto e a perda de grão ao migrar definições legadas.
+- Definições legadas passam a materializar o campo de identidade do grão antes de serem salvas como `selectedFields`.
+- `npm run verifica:data-hub-casca`: OK; `npm run verifica:data-hub-spike`: OK; `npx tsc --noEmit` com heap 8192 MB: exit 0; `git diff --check`: exit 0.
+- O backend em produção ainda está em `dacora-data-hub-00038-top`/`runtime:a8fbe2c`, anterior ao suporte a `selectedFields`. Produção está desalinhada ponta a ponta.
+- O norte de produto é a expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract, com grão/granularidade/compatibilidades; o portal não deve reduzir artificialmente esse catálogo.
 
 ## Próximo objetivo
 
-Validar o **fluxo autenticado real do Data Hub** no portal, começando por operações read-only:
-
-1. confirmar catálogo real e contas disponíveis;
-2. confirmar listagem de extrações e formato retornado (`selectedFields` versus legado);
-3. revisar no navegador autenticado desktop e viewport móvel o criador/edição, sem executar extração nem produzir saída real;
-4. verificar que combinações inválidas, mensagens de erro, grão deduzido e resumo permanecem coerentes com o catálogo real;
-5. somente depois decidir o próximo passo de mutação.
+1. Confirmar que as branches de correção de portal e backend estão integradas antes de qualquer smoke de contrato novo.
+2. Alinhar as versões publicadas seguindo os gates de merge/push/deploy.
+3. Validar o fluxo autenticado real do Data Hub, primeiro catálogo/listagem e depois uma extração field-centric controlada quando houver GO para efeito externo.
+4. Manter a UI derivada do catálogo canônico do Hub à medida que a cobertura cresce rumo às 611 capacidades; não criar uma segunda fonte manual de regras no frontend.
+5. Revisar desktop/móvel e mensagens de incompatibilidade a cada lote de expansão.
 
 ## Gates
 

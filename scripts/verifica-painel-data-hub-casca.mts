@@ -28,6 +28,9 @@ import {
   filtrarCampos,
   aplicarPreset,
   campoDisponivelNaCombinacao,
+  nivelResolvidoDoRascunho,
+  preservarGraoLegadoNosCampos,
+  selectedFieldsDoRascunho,
   sanearCamposDoCatalogo,
   naturezaDosCamposEscolhidos,
   type Rascunho,
@@ -118,6 +121,41 @@ assert.deepEqual(filtrarCampos([
     .some((item) => item.campo === 'criativos'), false);
 }
 
+/* O contrato field-centric precisa bater com todos os breakdowns que o Hub publica. */
+{
+  const catalogoContrato = normalizarCatalogo({ data: {
+    accounts: [{ id: 'acct', name: 'Conta', isQueryable: true }],
+    fields: [{ key: 'spend' }],
+    creativeFields: [{ key: 'thumbnail_url' }],
+    granularities: ['day'],
+    templates: [
+      { key: 'meta_demographics', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] },
+      { key: 'meta_geography', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['country'], ['region']] },
+      { key: 'meta_placement_device', entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['publisher_platform', 'platform_position'], ['device_platform']] },
+      { key: 'meta_creative_performance', entityLevels: ['ad'], breakdownSelections: [[], ['video_asset']], fields: ['spend'], creativeFields: ['thumbnail_url'] },
+    ],
+  } });
+  const casos = [
+    { breakdownId: 'age+gender', campos: ['spend'], creativeFields: [], nivel: 'campanha', esperados: ['spend', 'age', 'gender'] },
+    { breakdownId: 'country', campos: ['spend'], creativeFields: [], nivel: 'campanha', esperados: ['spend', 'country'] },
+    { breakdownId: 'region', campos: ['spend'], creativeFields: [], nivel: 'campanha', esperados: ['spend', 'region'] },
+    { breakdownId: 'publisher_platform+platform_position', campos: ['spend'], creativeFields: [], nivel: 'campanha', esperados: ['spend', 'publisher_platform', 'platform_position'] },
+    { breakdownId: 'device_platform', campos: ['spend'], creativeFields: [], nivel: 'campanha', esperados: ['spend', 'device_platform'] },
+    { breakdownId: 'video_asset', campos: ['spend'], creativeFields: ['thumbnail_url'], nivel: 'anuncio', esperados: ['spend', 'video_asset', 'creative.thumbnail_url'] },
+  ] as const;
+  for (const caso of casos) {
+    const rascunho = { ...base, contaId: 'acct', templateId: '', breakdownId: caso.breakdownId,
+      campos: [...caso.campos], creativeFields: [...caso.creativeFields], nivel: 'anuncio' as const };
+    assert.deepEqual(selectedFieldsDoRascunho(rascunho, catalogoContrato), caso.esperados);
+    assert.equal(nivelResolvidoDoRascunho(rascunho, catalogoContrato), caso.nivel,
+      `grão deve ser consequência dos campos em ${caso.breakdownId}`);
+  }
+  assert.equal(nivelResolvidoDoRascunho({ ...base, nivel: 'anuncio', campos: ['date', 'account_id', 'spend'] }, catalogoContrato), 'conta',
+    'nivel legado oculto não pode forçar o grão de uma definição field-centric');
+  assert.deepEqual(preservarGraoLegadoNosCampos(['spend', 'clicks'], 'anuncio'), ['ad_id', 'spend', 'clicks'],
+    'ao migrar uma extração legada, o grão precisa virar campo explícito antes de remover entityLevel');
+}
+
 /* Sem conta escolhida não se monta consulta, e a mensagem diz o que fazer. */
 {
   const problemas = impedimentos({ ...base, contaId: '' });
@@ -151,10 +189,10 @@ assert.deepEqual(filtrarCampos([
 
 /* Volume alto avisa e recomenda; nunca bloqueia. A decisão é do usuário. */
 {
-  const pesado = avisoDeVolume({ ...base, nivel: 'anuncio', breakdownId: 'demografico', periodoId: 'ultimos-90', granularidade: 'diaria' });
+  const pesado = avisoDeVolume({ ...base, campos: [...base.campos, 'ad_id'], breakdownId: 'demografico', periodoId: 'ultimos-90', granularidade: 'diaria' });
   assert.ok(pesado, 'combinação pesada precisa avisar');
   assert.match(pesado, /dividir|incremental/i, 'o aviso precisa recomendar uma saída');
-  assert.equal(impedimentos({ ...base, nivel: 'anuncio', breakdownId: 'demografico', periodoId: 'ultimos-90', granularidade: 'diaria' }).length, 0, 'aviso não pode virar bloqueio');
+  assert.equal(impedimentos({ ...base, campos: [...base.campos, 'ad_id'], breakdownId: 'demografico', periodoId: 'ultimos-90', granularidade: 'diaria' }).length, 0, 'aviso não pode virar bloqueio');
   assert.equal(avisoDeVolume(base), null, 'consulta pequena não avisa à toa');
 }
 
@@ -225,6 +263,8 @@ assert.doesNotMatch(componentes, /entityIds: \[\][\s\S]*filters: \[\]/, 'ediçã
 assert.match(componentes, /Completar configuração/);
 assert.match(pagina, /method: atual \? 'PATCH' : 'POST'/);
 assert.match(pagina, /revision: atual\.revision/);
+assert.match(pagina, /preservarGraoLegadoNosCampos\(campos, nivelLegado\)/,
+  'edição legada precisa materializar o grão como campo antes de remover entityLevel');
 
 const picker = fs.readFileSync(new URL('../src/pages/data-hub-google-picker.ts', import.meta.url), 'utf8');
 assert.match(picker, /application\/vnd\.google-apps\.spreadsheet/, 'Picker precisa aceitar somente Google Sheets');
