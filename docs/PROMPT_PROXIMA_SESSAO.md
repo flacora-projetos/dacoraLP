@@ -13,7 +13,7 @@ Continue a frente **Data Hub no portal Dácora** a partir do estado de produçã
 
 ## Estado confirmado
 
-- Portal Data Hub publicado na Vercel Production `dpl_3QC4mpLZstghYAy1qY4ndAA7CSR3`.
+- Portal Data Hub publicado em Vercel Production; o commit funcional da frente é `fa244dc`. Merges documentais em `main` também geram novo deployment, então consulte `vercel inspect https://www.dacora.com.br` para o ID corrente em vez de confiar em um ID fixado neste arquivo.
 - Commit funcional do portal: `fa244dc`.
 - Backend publicado: `dacora-data-hub-00040-cil`, imagem `runtime:b77456f`, 100% do tráfego.
 - Rollback backend: `dacora-data-hub-00038-top`, tag `rollback-pre-selected`.
