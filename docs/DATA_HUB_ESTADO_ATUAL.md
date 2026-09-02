@@ -14,7 +14,7 @@ O portal é a superfície de escolha e operação; o repositório `Dacora Data H
 
 | Componente | Estado |
 | --- | --- |
-| Portal | Vercel Production `dpl_3QC4mpLZstghYAy1qY4ndAA7CSR3` |
+| Portal | Vercel Production automático a cada merge em `main`; commit funcional Data Hub `fa244dc` |
 | Commit funcional do portal | `fa244dc` |
 | URL | `https://www.dacora.com.br/data-hub` |
 | Backend | Cloud Run `dacora-data-hub-00040-cil`, 100% do tráfego |
@@ -22,7 +22,7 @@ O portal é a superfície de escolha e operação; o repositório `Dacora Data H
 | Rollback backend | `dacora-data-hub-00038-top`, tag `rollback-pre-selected` |
 | Scheduler | `PAUSED` |
 
-O deployment Vercel ficou `Ready` e os aliases `www.dacora.com.br`, `dacora.com.br` e `dacora-lp.vercel.app` apontaram para ele.
+O deployment funcional publicado ficou `Ready` e os aliases `www.dacora.com.br`, `dacora.com.br` e `dacora-lp.vercel.app` apontam para o deployment Production corrente. Como merges documentais em `main` também geram novo deployment Vercel, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o ID atual.
 
 Smoke anônimo pós-release:
 
