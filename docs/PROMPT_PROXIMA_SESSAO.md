@@ -1,48 +1,54 @@
-﻿# Prompt para a próxima sessão — Data Hub Portal
+# Prompt para a próxima sessão — Data Hub Portal
 
-Continue a frente **Data Hub no portal Dácora** a partir do estado de produção de 2026-08-26.
+Continue a frente **Data Hub no portal Dácora** a partir do estado de produção de 2026-09-02.
 
 ## Antes de agir
 
-1. Carregue o runtime atual do Codex Ninja (`getCodexNinjaRuntime`, `include=all`).
+1. Carregue o runtime atual do Codex Ninja.
 2. Selecione o workspace `@projects/SITE DACORA LP/repo`.
-3. Leia por inteiro `AGENTS.md` e `CLAUDE.md` e leia `docs/DATA_HUB_ESTADO_ATUAL.md`. Para Data Hub, esse arquivo é a continuidade canônica; não use o histórico de outras aplicações do portal para inferir estado.
-4. Rode `git fetch origin --prune`, confirme branch/HEAD/status e preserve qualquer trabalho preexistente.
+3. Leia por inteiro `AGENTS.md` e `CLAUDE.md`, depois `docs/DATA_HUB_ESTADO_ATUAL.md`.
+4. Rode `git fetch origin --prune`, confirme branch/HEAD/status/worktrees e preserve qualquer trabalho preexistente.
 5. Não desenvolva diretamente em `main`; se houver mudança de código/docs, crie branch temática a partir de `origin/main` sincronizada.
+6. O portal serve outras aplicações além do Data Hub. Não toque em RA, Supabase, relatórios, envio ou outras frentes sem escopo explícito.
 
-## Estado confirmado ao encerrar a sessão anterior
+## Estado confirmado
 
-- A `main` contém o commit funcional histórico `e158438 feat: align Data Hub portal with selected fields` e o portal publicado já usa `selectedFields`.
-- A correção mais recente está localmente em `fix/data-hub-field-contracts`; confirme commit/working tree antes de continuar.
+- Portal Data Hub publicado na Vercel Production `dpl_3QC4mpLZstghYAy1qY4ndAA7CSR3`.
+- Commit funcional do portal: `fa244dc`.
+- Backend publicado: `dacora-data-hub-00040-cil`, imagem `runtime:b77456f`, 100% do tráfego.
+- Rollback backend: `dacora-data-hub-00038-top`, tag `rollback-pre-selected`.
+- Scheduler continua `PAUSED`.
 - O criador não possui seletor manual de nível. O grão é consequência dos campos selecionados.
-- A prova de contratos de 2026-09-02 encontrou e corrigiu localmente a influência do `nivel` legado oculto e a perda de grão ao migrar definições legadas.
-- Definições legadas passam a materializar o campo de identidade do grão antes de serem salvas como `selectedFields`.
-- `npm run verifica:data-hub-casca`: OK; `npm run verifica:data-hub-spike`: OK; `npx tsc --noEmit` com heap 8192 MB: exit 0; `git diff --check`: exit 0.
-- O backend em produção ainda está em `dacora-data-hub-00038-top`/`runtime:a8fbe2c`, anterior ao suporte a `selectedFields`. Produção está desalinhada ponta a ponta.
-- O norte de produto é a expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract, com grão/granularidade/compatibilidades; o portal não deve reduzir artificialmente esse catálogo.
+- Definições novas usam `selectedFields`; definições legadas preservam o grão materializando a identidade correspondente antes da migração.
+- O contrato `selectedFields` foi provado em produção por CRUD reversível: create 201 → read 200 → `entityLevel=campaign` → delete 204 → read 404.
+- A definição temporária de smoke foi removida e nenhuma extração Meta foi executada.
+- A permissão temporária usada para gerar ID token foi revogada; nenhuma chave/credencial persistente foi criada.
+- Validação pré-release do portal: `verifica:data-hub-casca` OK, `verifica:data-hub-spike` OK, TypeScript com heap ampliado exit 0, build completo OK, diff-check e secret scan verdes.
+- O norte de produto é a expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract, preservando semântica, grão, granularidade e compatibilidades.
 
 ## Próximo objetivo
 
-1. Confirmar que as branches de correção de portal e backend estão integradas antes de qualquer smoke de contrato novo.
-2. Alinhar as versões publicadas seguindo os gates de merge/push/deploy.
-3. Validar o fluxo autenticado real do Data Hub, primeiro catálogo/listagem e depois uma extração field-centric controlada quando houver GO para efeito externo.
-4. Manter a UI derivada do catálogo canônico do Hub à medida que a cobertura cresce rumo às 611 capacidades; não criar uma segunda fonte manual de regras no frontend.
-5. Revisar desktop/móvel e mensagens de incompatibilidade a cada lote de expansão.
+O próximo gate real não é mais provar o CRUD da definição. É provar **dados reais**:
+
+1. executar uma extração field-centric controlada;
+2. reconciliar Hub Data API → normalização → BigQuery → Sheets/read-back;
+3. confirmar ordem de `selectedFields` na saída;
+4. depois avançar actions em colunas, enriquecimento criativo e matriz 611 × Hub.
 
 ## Gates
 
-- Não execute extração real, não escreva em Google Sheets/destino, não altere conta/campanha e não produza outro efeito externo sem GO explícito do PO.
-- Merge em `main`, push que dispare deploy e nova publicação também exigem GO explícito.
-- Smoke autenticado deve ser não mutante até novo GO.
-- Não invente contas, IDs, catálogo, payloads ou resultados. Diferencie CONFIRMADO / INFERIDO / NÃO VERIFICADO.
+- Não confundir CRUD de definição com prova de números Meta.
+- Merge/push/deploy/produção continuam sujeitos às regras vigentes do projeto e à autorização do PO.
+- Não invente contas, IDs, catálogo, payloads ou resultados. Diferencie IMPLEMENTADO, INTEGRADO e PRODUÇÃO.
+- Não reduza o catálogo do portal para contornar lacuna do backend; a direção é expandir a fonte canônica do Hub.
 
-## Arquivos centrais
+## Arquivos centrais do Data Hub no portal
 
 - `src/pages/DataHub.tsx`
 - `src/pages/data-hub-extracoes.tsx`
 - `src/pages/data-hub-catalogo.ts`
 - `src/pages/data-hub.css`
 - `scripts/verifica-painel-data-hub-casca.mts`
-- `docs/PAINEL_PROGRESSO.md`
+- `docs/DATA_HUB_ESTADO_ATUAL.md`
 
-Siga o fluxo ENTENDER → LOCALIZAR → LER → EXECUTAR → TESTAR → VALIDAR → ENTREGAR. Se encontrar divergência entre este prompt e Git/produção, Git + respostas reais + documentação canônica prevalecem; atualize o handoff antes de encerrar.
+Siga ENTENDER → LOCALIZAR → LER → EXECUTAR → TESTAR → VALIDAR → ENTREGAR. Se Git/produção divergirem deste prompt, Git + respostas reais + documentação canônica prevalecem e o documento deve ser atualizado na mesma sessão.
