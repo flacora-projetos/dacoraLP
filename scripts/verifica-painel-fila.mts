@@ -20,6 +20,7 @@
  * público.
  */
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
 /** O `Intl` separa moeda com espaco nao-quebravel (U+00A0). Escrito como escape
  *  porque um U+00A0 literal no codigo-fonte e invisivel para quem editar depois. */
@@ -914,7 +915,53 @@ function desenhar(dados: any): string {
   assert.doesNotMatch(html, /<th scope="col">Ações<\/th>/, 'a fila não cria uma coluna extra só para essas ações');
 }
 
+
+/* ---------------------------------------------------------------------------
+ * A FILA PEDIA AO BANCO UMA COLUNA QUE NAO EXISTE, E FALHAVA CALADA.
+ *
+ * `indisponibilidade` nunca foi coluna de `relatorio_p5_portal`: ela e
+ * CALCULADA por `montarEstadoSeguroDoEnvio`. Pedi-la no `select` fazia o
+ * PostgREST responder HTTP 400, a resposta caia num `console.warn`, o mapa de
+ * acoes ficava vazio e a fila perdia "Enviar" e "Voltar para edicao" — sem
+ * nada aparecer na tela. Introduzido em `f96a085`, medido em 2026-09-03.
+ *
+ * As asercoes de renderizacao acima passavam com o defeito presente, porque
+ * elas montam o item na mao. Esta trava olha o que o endpoint PEDE.
+ * ------------------------------------------------------------------------- */
+{
+  const fonte = await readFile(new URL('../api/painel-fila.ts', import.meta.url), 'utf8');
+  /* Comentario que EXPLICA a regra cita os mesmos nomes; sem remove-lo, a
+     asercao pode passar pelo texto em vez de passar pelo codigo. Este projeto
+     ja teve prova negativa satisfeita pelo proprio comentario. */
+  const codigo = fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/beco|HTTP 400/i.test(codigo), 'a limpeza de comentarios nao funcionou');
+
+  /* As colunas REAIS da view, lidas do banco em 2026-09-03. */
+  const COLUNAS_DA_VIEW = new Set([
+    'relatorio_id', 'cliente_slug', 'cliente_nome', 'competencia', 'relatorio_versao', 'checksum',
+    'relatorio_estado', 'aprovado_por', 'aprovado_em', 'aprovado_checksum', 'enviado_em', 'ja_enviado',
+    'destino_referencia', 'destinatario_nome', 'destinatario_habilitado', 'destinatario_sincronizado_em',
+    'envio_id', 'envio_estado', 'solicitado_por', 'solicitado_em', 'confirmado_em', 'erro_codigo',
+    'pode_solicitar_envio',
+  ]);
+
+  const pedidos = [...codigo.matchAll(/relatorio_p5_portal\?[^`'"]*select=([^`'"&]+)/g)];
+  assert.ok(pedidos.length > 0, 'a fila precisa consultar relatorio_p5_portal');
+  for (const [, lista] of pedidos) {
+    for (const coluna of lista.split(',').map((item) => item.trim()).filter(Boolean)) {
+      if (coluna === '*') continue;
+      assert.ok(
+        COLUNAS_DA_VIEW.has(coluna),
+        `a fila pede a coluna "${coluna}", que nao existe em relatorio_p5_portal — o PostgREST responde 400 e a fila perde os botoes`,
+      );
+    }
+  }
+
+  /* A fila e a tela de detalhe precisam concordar por CONSTRUCAO. */
+  assert.match(codigo, /montarEstadoSeguroDoEnvio/, 'a fila deve reusar a regra da tela de detalhe');
+}
+
 console.log(
-  'OK — fila do painel: números, sinais, ordem, contratos de recusa, ações pós-aprovação no estado, ' +
+  'OK — fila do painel: números, sinais, ordem, contratos de recusa, ações pós-aprovação no estado, colunas que a view realmente tem, ' +
     'e links preservando competência/aba/filtros',
 );
