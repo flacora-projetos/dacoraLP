@@ -3,7 +3,9 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import BlocoFunil from '../src/reports/blocos/BlocoFunil.tsx';
-import type { FunilRelatorio } from '../src/reports/blocos/tipos.ts';
+import { espacoAnaliticoDoBloco } from '../src/reports/blocos/analise.ts';
+import { renderizarBloco } from '../src/reports/blocos/catalogo.tsx';
+import type { BlocoB1, DadosDeBloco, FunilRelatorio } from '../src/reports/blocos/tipos.ts';
 
 const ecommerce: FunilRelatorio = {
   id: 'funil_ecommerce',
@@ -80,6 +82,40 @@ assert.match(htmlInstagram, /16\/07 a 14\/08/);
 assert.match(htmlInstagram, /30 dias/);
 assert.match(htmlInstagram, /Novos seguidores/);
 assert.match(htmlInstagram, /Meta limita novos seguidores a no máximo 30 dias/);
+
+const perfilComFunil: BlocoB1 = {
+  bloco: 'B1',
+  id: 'instagram-organico',
+  titulo: 'O perfil do Instagram no mês',
+  faixa: 'faixa_instagram',
+  funil: 'funil_instagram',
+  mostrarVariacao: false,
+};
+const dadosCompostos = {
+  faixas: {
+    faixa_instagram: {
+      id: 'faixa_instagram',
+      escopo: { tipo: 'plataforma', rotulo: 'perfil @exemplo no Instagram' },
+      metricas: [{
+        id: 'instagram_seguidores', rotulo: 'Seguidores', unidade: 'inteiro',
+        valor: { estado: 'ok', numero: 5000 }, origem: { tipo: 'coletado', fontes: ['instagram'] },
+        direcaoFavoravel: 'alta', comparativo: null,
+      }],
+    },
+  },
+  funis: { funil_instagram: instagram },
+  tabelas: {}, evolucoesMensais: {}, rankingsCriativos: {}, quebras: {}, series: {},
+} as DadosDeBloco;
+const htmlComposto = renderToStaticMarkup(createElement('div', null, renderizarBloco(perfilComFunil, {
+  dados: dadosCompostos,
+  theme: {} as never,
+  rotulosPlataforma: { instagram: 'Instagram' },
+})));
+assert.match(htmlComposto, /Seguidores/);
+assert.match(htmlComposto, /Visitas ao perfil/);
+assert.equal((htmlComposto.match(/data-funil="funil_instagram"/g) ?? []).length, 1);
+const fonteAnalitica = espacoAnaliticoDoBloco(perfilComFunil, dadosCompostos);
+assert.match(JSON.stringify(fonteAnalitica?.fonte), /cliques_bio/);
 
 console.log('verifica-relatorio-funil: ok');
 

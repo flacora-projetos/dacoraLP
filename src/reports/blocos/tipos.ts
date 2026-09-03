@@ -566,6 +566,8 @@ export interface BlocoB1 extends BlocoBase {
   bloco: 'B1';
   /** Id em `dados.faixas`. */
   faixa: string;
+  /** Funil opcional exibido dentro da mesma seção, depois da faixa. */
+  funil?: string;
   /** A página 1 do ICH e a de evolução do Zenun não mostram variação. */
   mostrarVariacao: boolean;
   /** Uma frase explicando cada métrica sob o número. Só o Zenun usa. */
