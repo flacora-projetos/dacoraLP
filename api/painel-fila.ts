@@ -33,6 +33,7 @@ import type { Request, Response } from 'express';
 import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarFila, type LinhaDoBanco } from './_painel-fila-dados.js';
 import { montarVisaoGeral } from './_painel-visao-geral-dados.js';
+import { montarEstadoSeguroDoEnvio, type LinhaDoPortalP5 } from './_painel-envio-regras.js';
 
 /** As colunas que a fila lê. `token` e `conteudo` completo à parte — ver abaixo. */
 const COLUNAS = [
@@ -166,19 +167,41 @@ export default async function handler(req: Request, res: Response) {
       envioEstado: string | null;
     }>();
     try {
+      /**
+       * ⚠️ `indisponibilidade` NÃO É COLUNA DA VIEW — ela é CALCULADA por
+       * `montarEstadoSeguroDoEnvio`, a partir de destino, aprovação e intenção.
+       *
+       * Pedi-la no `select` fazia o PostgREST responder HTTP 400
+       * (`column relatorio_p5_portal.indisponibilidade does not exist`), a
+       * resposta caía no `catch` abaixo, o mapa de ações ficava VAZIO e a fila
+       * perdia os dois botões do estado aprovado — "Enviar" e "Voltar para
+       * edição" — sem nada aparecer para quem estava usando: o erro virava um
+       * `console.warn` no servidor. A tela do relatório continuava funcionando
+       * porque ela sempre passou por esta mesma regra, e não pela view crua.
+       * Introduzido em `f96a085` e medido em 2026-09-03.
+       *
+       * Por isso a fila agora consome a MESMA função da tela de detalhe: as
+       * duas concordam por construção, em vez de por coincidência.
+       */
       const respostaAcoes = await fetch(
-        `${urlSupabase}/rest/v1/relatorio_p5_portal?competencia=eq.${competencia}&select=relatorio_id,destinatario_nome,pode_solicitar_envio,indisponibilidade,envio_id,envio_estado`,
+        `${urlSupabase}/rest/v1/relatorio_p5_portal?competencia=eq.${competencia}&select=*`,
         { headers: cabecalhos },
       );
       if (respostaAcoes.ok) {
-        const linhasAcoes = await respostaAcoes.json() as Array<any>;
-        acoesPorRelatorio = new Map(linhasAcoes.map((linha) => [linha.relatorio_id, {
-          destinatarioNome: linha.destinatario_nome ?? null,
-          podeSolicitarEnvio: linha.pode_solicitar_envio === true,
-          indisponibilidade: linha.indisponibilidade ?? null,
-          envioId: linha.envio_id ?? null,
-          envioEstado: linha.envio_estado ?? null,
-        }]));
+        const linhasAcoes = await respostaAcoes.json() as LinhaDoPortalP5[];
+        acoesPorRelatorio = new Map(linhasAcoes.flatMap((linha) => {
+          const montagem = montarEstadoSeguroDoEnvio(linha);
+          // Linha que a regra recusa fica DE FORA do mapa: a fila prefere não
+          // oferecer ação a oferecer uma ação que a regra considera insegura.
+          if (!montagem.ok) return [];
+          return [[montagem.estado.relatorioId, {
+            destinatarioNome: montagem.estado.destinatarioNome,
+            podeSolicitarEnvio: montagem.estado.podeSolicitarEnvio,
+            indisponibilidade: montagem.estado.indisponibilidade,
+            envioId: montagem.estado.envio ? String(linha.envio_id ?? '') || null : null,
+            envioEstado: montagem.estado.envio?.estado ?? null,
+          }] as const];
+        }));
       } else {
         console.warn(`[painel-fila] Estado P5 indisponível para ações: HTTP ${respostaAcoes.status}.`);
       }
@@ -193,7 +216,13 @@ export default async function handler(req: Request, res: Response) {
         podeVoltarEdicao: liberadoSemEnvio,
         podeSolicitarEnvio: acao?.podeSolicitarEnvio === true,
         destinatarioNome: acao?.destinatarioNome ?? null,
-        envioIndisponibilidade: acao?.indisponibilidade ?? (item.estado === 'liberado' ? 'p5_indisponivel' : null),
+        /* `??` aqui era errado: com a ação presente e SEM indisponibilidade —
+           que é o caso bom — ele caía no fallback e escrevia "Envio
+           indisponível" ao lado de um botão que funciona. O fallback só vale
+           quando a P5 nao respondeu, ou seja, quando `acao` nao existe. */
+        envioIndisponibilidade: acao
+          ? acao.indisponibilidade
+          : (item.estado === 'liberado' ? 'p5_indisponivel' : null),
         envioEstado: acao?.envioEstado ?? null,
       };
     });

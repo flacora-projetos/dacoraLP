@@ -1862,3 +1862,55 @@ O carregador `scripts/_registra-css-vazio.mjs` entrou junto: sem ele, qualquer
 verificador que importe um componente que carrega `report.css` morre em
 `ERR_UNKNOWN_FILE_EXTENSION` antes da primeira asserção.
 
+
+## 18. A fila tinha perdido os botões do estado aprovado (2026-09-03)
+
+O PO relatou que **não havia botão de enviar na fila** — era preciso abrir o
+relatório para o modal aparecer — e que **"Voltar para edição" tinha sumido**,
+embora ele lembrasse de já ter existido. Ele lembrava certo.
+
+**Causa medida, contra o banco de produção.** `api/painel-fila.ts` pedia à view
+`relatorio_p5_portal` a coluna `indisponibilidade`, que **nunca existiu lá**:
+ela é CALCULADA por `montarEstadoSeguroDoEnvio`, a partir de destino, aprovação
+e intenção. A requisição exata que a fila fazia devolve:
+
+```
+HTTP 400 — column relatorio_p5_portal.indisponibilidade does not exist
+```
+
+A mesma consulta sem aquela coluna devolve 200 com 40 linhas.
+
+**O estrago em cascata, e ele é todo silencioso:** a resposta não-ok caía num
+`console.warn` do servidor, o mapa de ações ficava **vazio**, e aí
+`podeSolicitarEnvio` virava `false` para todo mundo (sem "Enviar") e
+`podeVoltarEdicao`, que exige `Boolean(acao)`, virava `false` também (sem
+"Voltar para edição"). O item liberado ainda passava a exibir *"Envio
+indisponível: atualize a fila antes de solicitar"*, que descrevia o defeito como
+se fosse estado do relatório.
+
+A tela do relatório nunca quebrou porque ela sempre passou pela regra
+compartilhada, e não pela view crua.
+
+Introduzido em `f96a085` ("concluir acabamentos operacionais da RA4").
+
+**A correção:** a fila passou a consumir `montarEstadoSeguroDoEnvio`, a MESMA
+função da tela de detalhe — as duas concordam por construção, em vez de por
+coincidência. Linha que a regra recusa fica de fora do mapa: a fila prefere não
+oferecer ação a oferecer uma que a regra considera insegura.
+
+⚠️ **Um segundo defeito no mesmo trecho:** `envioIndisponibilidade` usava
+`acao?.indisponibilidade ?? (…)`. Com a ação presente e sem indisponibilidade —
+que é o caso bom — o `??` caía no fallback e escrevia "Envio indisponível" ao
+lado de um botão que funciona. O fallback agora só vale quando a P5 não
+respondeu.
+
+⚠️ **A regressão da fila passava com o defeito presente**, porque ela monta o
+item na mão e renderiza. `verifica:fila` ganhou uma trava que olha o que o
+endpoint **pede**: toda coluna do `select` contra `relatorio_p5_portal` precisa
+existir na lista real da view. A trava remove comentários antes de procurar —
+este projeto já teve prova negativa satisfeita pelo próprio comentário que
+documentava a regra. Mutação de devolver a coluna inexistente: reprovada, como
+esperado.
+
+**A régua que fica: falha de integração que vira `console.warn` não aparece para
+quem usa — ela aparece como funcionalidade que sumiu.**
