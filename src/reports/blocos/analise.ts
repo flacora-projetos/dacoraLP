@@ -33,7 +33,11 @@ function projetarFonte(valor: unknown, profundidade = 0): unknown {
 
 function fonteDoBloco(config: BlocoConfigurado, dados: DadosDeBloco): unknown {
   switch (config.bloco) {
-    case 'B1': return dados.faixas[config.faixa];
+    case 'B1': {
+      const faixa = dados.faixas[config.faixa];
+      if (!config.funil) return faixa;
+      return { faixa, funil: dados.funis?.[config.funil] ?? null };
+    }
     case 'B2': return dados.tabelas[config.tabela];
     case 'B3': return dados.evolucoesMensais[config.evolucao];
     case 'B4': return dados.rankingsCriativos[config.ranking];

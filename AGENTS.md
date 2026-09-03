@@ -32,6 +32,19 @@ Toda mudança de estado deve ser documentada na mesma sessão: implementação,
 teste, commit, push, merge, publicação e validação em produção são eventos
 distintos e não podem ser inferidos uns dos outros.
 
+## Ajuste ativo — Instagram unificado dos mensais
+
+Em 03/09/2026, a branch `codex/mensal-instagram-unificado-2026-09-03`
+implementou o contrato em que o B1 **“O perfil do Instagram no mês”** pode
+renderizar também o funil pago logo abaixo da faixa. A fonte da revisão
+analítica recebe os dois recortes; `analise-instagram` deixa de ser uma seção
+separada na montagem nova da fábrica. Smoke local não mutante passou em
+1440×900 e 390×844, com uma seção e sem rolagem horizontal; `verifica:funil`,
+`verifica:revisao`, lint e build completo também passaram. **Não está
+publicado:** `main`, Vercel, Supabase, decisões editoriais e envios permanecem
+intactos. Handoff canônico na fábrica:
+`OpenClaw-Dacora/docs/HANDOFF_MENSAL_INSTAGRAM_E_DESTINOS_2026-09-03.md`.
+
 ## Escopo e segurança
 
 - Preserve alterações de outras frentes e trabalhe em branch própria; não faça

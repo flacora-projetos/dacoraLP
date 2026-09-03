@@ -59,7 +59,14 @@ export function renderizarBloco(config: BlocoConfigurado, ctx: ContextoBloco): R
     case 'B1': {
       const faixa = ctx.dados.faixas[config.faixa];
       if (!faixa) return <DadoFaltando bloco="B1" chave={config.faixa} />;
-      return <B1FaixaIndicadores faixa={faixa} config={config} />;
+      const funil = config.funil ? ctx.dados.funis?.[config.funil] : null;
+      return (
+        <>
+          <B1FaixaIndicadores faixa={faixa} config={config} />
+          {config.funil && !funil ? <DadoFaltando bloco="FUNIL" chave={config.funil} /> : null}
+          {funil ? <BlocoFunil funil={funil} /> : null}
+        </>
+      );
     }
 
     case 'B2': {

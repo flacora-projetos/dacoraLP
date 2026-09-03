@@ -21,6 +21,14 @@ Cada fase roda em sessão própria e registra, em tempo
 real, implementação, teste, commit, push, merge, publicação e validação em
 produção como estados diferentes.
 
+**Ajuste local de 03/09/2026:** a branch
+`codex/mensal-instagram-unificado-2026-09-03` permite ao B1 do perfil do
+Instagram renderizar faixa e funil pago na mesma seção, e projeta ambos para a
+revisão analítica. A montagem nova da fábrica deixa de emitir a seção separada
+`analise-instagram`. Smoke local desktop/celular, verificadores, lint e build
+passaram; nada foi publicado ou mutado no painel real. Estado e gate no handoff
+`OpenClaw-Dacora/docs/HANDOFF_MENSAL_INSTAGRAM_E_DESTINOS_2026-09-03.md`.
+
 Tokens e contexto são finitos: esta sessão não é dona da frente. Codex, Claude
 Code ou GPT customizado podem continuar uma fase compatível, mas só Git, plano,
 estado e handoff carregam fatos oficiais. Antes de faltar contexto, interrompa
