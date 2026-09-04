@@ -36,7 +36,7 @@ import {
 } from './AnalisesSecao';
 import { espacosAnaliticosDoSnapshot } from '../reports/blocos/analise';
 import { OPCOES_MODO_ANALISE, type ModoAnaliseUI } from './modoAnalise';
-import { afirmacoesDaIntroducaoRevisada } from './revisaoAnalise';
+import { aplicarIntroducaoAprovada } from '../reports/analisePublicada';
 import type { HistoricoEditorialInterno } from './HistoricoAnalises';
 import type { EstadoRetencaoEditorial, ResultadoRetencaoEditorial } from './RetencaoEditorial';
 import type { ResumoEditorialRA4 } from './estadoEditorial';
@@ -71,15 +71,10 @@ export function RevisaoApresentada({
   aoMudarModoAnalise?: (modo: ModoAnaliseUI) => void;
 }) {
   const [introducaoRevisada, setIntroducaoRevisada] = useState<string | null>(null);
+  /* Mesma função da página do cliente: o que o revisor vê aqui é o que sai lá. */
   const snapshotDaRevisao = useMemo(() => {
-    if (!relatorio || !introducaoRevisada) return relatorio?.snapshot;
-    return {
-      ...relatorio.snapshot,
-      leitura: {
-        ...relatorio.snapshot.leitura,
-        resumoExecutivo: afirmacoesDaIntroducaoRevisada(introducaoRevisada),
-      },
-    };
+    if (!relatorio) return undefined;
+    return aplicarIntroducaoAprovada(relatorio.snapshot, introducaoRevisada);
   }, [relatorio, introducaoRevisada]);
   const introducaoOriginal = relatorio?.snapshot.leitura.resumoExecutivo.map((item) => item.texto).join('\n\n') ?? '';
   const espacosAnaliticos = useMemo(() => relatorio ? espacosAnaliticosDoSnapshot(relatorio.snapshot).map(({ secao, blocoId, titulo, objetivo }) => ({ secao, blocoId, titulo, objetivo })) : [], [relatorio]);

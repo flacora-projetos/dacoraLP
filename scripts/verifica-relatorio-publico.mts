@@ -58,12 +58,18 @@ function resposta() {
   } as any;
 }
 
-async function chamar(token: string, linhas: any[], fechamentos: any[], metodo = 'GET', sufixo = '', observacoes: any[] = []) {
+async function chamar(token: string, linhas: any[], fechamentos: any[], metodo = 'GET', sufixo = '', observacoes: any[] = [], analises: any[] = []) {
   const urlsConsultadas: string[] = [];
   globalThis.fetch = (async (entrada: any) => {
     const url = String(entrada);
     urlsConsultadas.push(url);
-    const corpo = url.includes('/relatorio_fechamentos_editoriais?') ? fechamentos : url.includes('/relatorio_observacoes_publicas_liberadas?') ? observacoes : linhas;
+    /* Cada leitura tem o próprio corpo. Um fake que devolvesse `linhas` para
+       tudo faria a rota receber relatório onde espera análise — foi o que
+       aconteceu quando a leitura das análises aprovadas entrou, em 04/09. */
+    const corpo = url.includes('/relatorio_fechamentos_editoriais?') ? fechamentos
+      : url.includes('/relatorio_observacoes_publicas_liberadas?') ? observacoes
+      : url.includes('/relatorio_analises_publicadas?') ? analises
+      : linhas;
     return new Response(JSON.stringify(corpo), {
       status: 200,
       headers: { 'content-type': 'application/json' },
