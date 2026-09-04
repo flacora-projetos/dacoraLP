@@ -1991,3 +1991,55 @@ o corpo devolvido pela rota. **Sete mutações aplicadas uma a uma, todas pegas.
 existia, era editável, era aprovada, ficava guardada com carimbo de auditoria — e
 não tinha fio até o leitor. Ninguém percebeu porque cada peça, olhada sozinha,
 funcionava.
+
+---
+
+## 2026-09-04 — a trava do fluxo de decisão estava vermelha desde 01/09
+
+`verifica:ra4` guarda o verbo do painel: aprovar, recusar, voltar para edição.
+Ele estava **falhando desde o redesenho da recusa por causas estruturadas**
+(`91a4463`, 01/09) e ninguém viu, porque ele não estava no `prebuild` — só roda
+quando alguém o chama na mão.
+
+**O painel não tinha defeito. O teste é que ficou para trás:** ele ainda mandava
+a recusa no formato antigo, só com `motivo`, e o servidor respondia — com toda a
+razão — `causas_estruturadas_invalidas`.
+
+⚠️ **Teste vermelho não protege nada.** De 01/09 até aqui, quebrar de verdade a
+aprovação ou a recusa não teria acusado: ninguém investiga um teste que "já
+falhava antes". O risco não é o vermelho; é o vermelho virar paisagem.
+
+**Uma segunda peça desatualizada só apareceu depois de destravar a primeira:** o
+fake do read-back escolhia qual linha devolver lendo `p_decisao` do corpo da
+RPC. A recusa por causas deixou de mandar esse campo, então ele lia `undefined`,
+devolvia sempre a linha aprovada e o read-back do handler reprovava — o handler
+certo, a fixture errada. Agora quem distingue as duas decisões é o **endpoint**
+(`decidir_relatorio_com_causas_v1` × `aprovar_e_fechar_relatorio_editorial`),
+que é o que de fato difere.
+
+**O teste passou a proteger o caminho novo, não só a deixar de reclamar:**
+
+- as causas e a versão do catálogo precisam **chegar à RPC** — mesma família do
+  defeito de 01/09, em que o modal montava tudo e a montagem do `fetch`
+  repassava só o motivo;
+- recusa **sem** causa e com causa **fora do catálogo** são rejeitadas e **não
+  tocam o banco**;
+- o read-back reprova causa divergente em oito formas: parâmetros trocados,
+  outra causa, ordem trocada, já verificada, lista vazia, causa a mais, motivo
+  gravado diferente do escrito, catálogo gravado diferente do confirmado;
+- roteamento precisa corresponder às causas — causa manual devolvida como
+  `automatic` reprova, e o caminho bom da causa manual continua passando (senão
+  a prova acima só estaria medindo que causa manual nunca funciona).
+
+⚠️ **A fixture de divergência precisou ser manipulável.** Enquanto o banco
+devolvia sempre o espelho exato do que foi pedido, apagar a conferência das
+causas no handler passava despercebido: **um espelho nunca diverge de si
+mesmo.**
+
+**Oito mutações aplicadas uma a uma, todas pegas.** `verifica:ra4` entrou no
+`prebuild` — sem isso ele volta a apodrecer calado, que foi exatamente como
+chegou aqui.
+
+**A régua que fica: teste que falha por estar desatualizado é pior que teste que
+não existe.** O que não existe todo mundo sabe que não protege; o vermelho
+crônico parece cobertura.
