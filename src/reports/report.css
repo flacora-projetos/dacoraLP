@@ -2053,6 +2053,27 @@
   border-left: 2px solid var(--dc-filete-forte);
 }
 
+/*
+ * A ANÁLISE APROVADA, no corpo da seção (04/09/2026).
+ *
+ * Ela é texto do relatório, não um recado: por isso não leva rótulo próprio
+ * como a observação leva. Fica logo abaixo do número que comenta, com um
+ * respiro maior, e vai ao PDF junto com o resto — nenhuma regra de `@media
+ * print` a esconde, ao contrário da faixa de revisão interna.
+ */
+.dc-analise-publicada {
+  margin: 1.1rem 0 0;
+  padding-left: 1rem;
+  border-left: 2px solid var(--dc-filete-forte, #c9c9c9);
+}
+
+.dc-analise-publicada p {
+  margin: 0 0 .6rem;
+  white-space: pre-wrap;
+}
+
+.dc-analise-publicada p:last-child { margin-bottom: 0; }
+
 .dc-observacao-publica {
   margin: 1.25rem 0;
   padding: .85rem 1rem;

@@ -1914,3 +1914,80 @@ esperado.
 
 **A régua que fica: falha de integração que vira `console.warn` não aparece para
 quem usa — ela aparece como funcionalidade que sumiu.**
+
+---
+
+## 2026-09-04 — a análise aprovada não chegava ao cliente
+
+**O gatilho.** A Fernanda aprovou o mensal da Aphase (agosto, v2) às 15:19:12 e o
+envio saiu confirmado 27 segundos depois. Ela relatou que o relatório foi "sem
+todas as análises e sem o contexto".
+
+**Medido no banco, não deduzido.** Não era da Aphase: nos **15 relatórios
+enviados em agosto**, foram escritas **74 análises humanas** e **nenhuma** estava
+no documento entregue. A única aparente exceção — a introdução da Aviarte — é o
+texto automático que a fábrica já gerava: ela pediu a sugestão, não gostou e
+editou de volta ao original.
+
+**Eram três peças, cada uma defensável sozinha.**
+
+1. **A análise por seção nasceu como camada de revisão.** Na RA3, o espaço da
+   análise só é injetado no documento quando `relatorio.podeDecidir` — ou seja,
+   na tela de quem revisa, antes de aprovar. Aprovou, some. A rota pública nunca
+   pediu análise nenhuma.
+2. **Existia um caminho público, e era outro botão.** A RA4 criou a "Observação"
+   (`registrar_observacao_publica`), que a rota pública lê de verdade. A tabela
+   tinha **zero linhas em toda a base**: ninguém sabia que era esse o botão que
+   publica.
+3. **A introdução era substituída só na memória do navegador.** `Revisao.tsx`
+   trocava `leitura.resumoExecutivo` pelo texto revisado dentro de um `useMemo`
+   local. Nada disso é persistido, e o snapshot é imutável por gatilho.
+
+Somadas: **quem revisava aprovava um documento e o cliente recebia outro.** Um
+F5 antes de aprovar já mostrava o texto antigo de volta.
+
+**Decisão do PO (04/09/2026):** *"todas as aprovadas devem ir pro cliente, foi
+pra isso que fizemos isso, é por isso que elas são editáveis, justamente pra não
+ir merda de IA sem revisão."*
+
+**A correção.**
+
+- View nova `relatorio_analises_publicadas`, com **as mesmas travas** da view de
+  observação: estado `final`, `tipo_decisao = 'analise'`, não invalidada,
+  checksum do documento e do snapshot factual iguais aos do fechamento AV4,
+  relatório `liberado`/aprovado/não revogado/não substituído. Não devolve
+  autoria, contexto nem histórico.
+- `api/relatorio-publico.ts` passa a ler essa view e devolver `analisesPublicadas`.
+- `RelatorioMontado` renderiza a análise no corpo da seção (`.dc-analise-publicada`).
+
+⚠️ **A introdução aprovada SUBSTITUI a leitura automática, não convive com ela.**
+As duas juntas dariam ao cliente duas aberturas seguidas, com os mesmos números e
+conclusões diferentes. É também o que a prévia sempre fez — manter a mesma
+escolha é o que faz a tela e a entrega concordarem.
+
+⚠️ **A regra de substituição mora em UM lugar** (`src/reports/analisePublicada.ts`),
+usado pela prévia da revisão e pela página do cliente. Duas cópias divergiriam na
+primeira correção, e a divergência aqui tem nome: é o defeito que esta entrega
+corrige.
+
+⚠️ **Seção dispensada (`sem_analise`) não publica nada**, e análise em `revisão
+necessária` ou `histórica` também não. Provado contra o banco real: das 210
+revisões, a view devolve exatamente **74** — nenhuma linha sem lastro, nenhuma
+seção duplicada, nada da v1 recusada da Aphase.
+
+⚠️ **A view é pré-requisito do deploy, não detalhe de ordem.** A leitura é
+fail-closed, como a da observação: sem a view, o PostgREST responde 404, a rota
+lança e **todo relatório público vira 502**. Migration primeiro, portal depois.
+
+**Efeito retroativo, e ele é deliberado:** a página é montada na hora, então os
+links já entregues aos 15 clientes de agosto passam a mostrar as análises assim
+que a view existir — sem regerar nem reenviar nada. Nenhum snapshot é alterado.
+
+`verifica:analises-publicadas` entrou no `prebuild`, com prova negativa (sem
+análise aprovada o documento sai idêntico ao de antes) e prova de integração até
+o corpo devolvido pela rota. **Sete mutações aplicadas uma a uma, todas pegas.**
+
+**A régua que fica: capacidade construída não é capacidade entregue.** A análise
+existia, era editável, era aprovada, ficava guardada com carimbo de auditoria — e
+não tinha fio até o leitor. Ninguém percebeu porque cada peça, olhada sozinha,
+funcionava.

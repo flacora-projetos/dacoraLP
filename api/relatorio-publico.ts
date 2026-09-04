@@ -65,6 +65,11 @@ interface ObservacaoPublica {
   texto: string;
 }
 
+interface AnalisePublicada {
+  secao: string;
+  texto: string;
+}
+
 function linhaPodeSerPublicada(linha: LinhaPublica) {
   return linha.estado === 'liberado'
     && linha.revogado_em === null
@@ -172,6 +177,22 @@ export default async function handler(req: Request, res: Response) {
     /* A view só libera a anotação quando a própria versão já passou pelo
        fechamento AV4; esta segunda leitura não aceita autoria, contexto ou
        histórico interno, mesmo com a chave de serviço. */
+    /* A ANÁLISE APROVADA (04/09/2026). A view carrega as mesmas travas da
+       observação — estado final, não invalidada, checksum do documento e do
+       snapshot factual iguais aos do fechamento AV4 —, e não devolve autoria,
+       contexto nem histórico. Análise pendente de revisão, histórica ou de
+       seção dispensada nunca aparece aqui. */
+    const respostaAnalises = await fetch(
+      `${urlSupabase}/rest/v1/relatorio_analises_publicadas?relatorio_id=eq.${encodeURIComponent(linha.id)}` +
+        `&relatorio_checksum=eq.${encodeURIComponent(linha.checksum)}&select=secao,texto`,
+      { headers: { apikey: chaveDeServico, Authorization: `Bearer ${chaveDeServico}` } },
+    );
+    if (!respostaAnalises.ok) throw new Error(`analises HTTP ${respostaAnalises.status}`);
+    const analisesPublicadas = (await respostaAnalises.json()) as AnalisePublicada[];
+    if (!Array.isArray(analisesPublicadas) || analisesPublicadas.some((item) => typeof item?.secao !== 'string' || typeof item?.texto !== 'string')) {
+      throw new Error('analises_publicadas_invalidas');
+    }
+
     const respostaObservacoes = await fetch(
       `${urlSupabase}/rest/v1/relatorio_observacoes_publicas_liberadas?relatorio_id=eq.${encodeURIComponent(linha.id)}` +
         `&relatorio_checksum=eq.${encodeURIComponent(linha.checksum)}&select=secao,texto`,
@@ -190,6 +211,7 @@ export default async function handler(req: Request, res: Response) {
         versao: relatorio.versao,
         conteudoCarregado: true,
         snapshot: relatorio.snapshot,
+        analisesPublicadas,
         observacoesPublicas,
       },
     });

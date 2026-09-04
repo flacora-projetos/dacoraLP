@@ -24,6 +24,12 @@ import { criarChartTheme, type PropostaId } from './charts/chartTheme';
 import Esqueleto, { type SecaoRelatorio } from './Esqueleto';
 import { renderizarBloco } from './blocos/catalogo';
 import type { SnapshotMontado } from './blocos/tipos';
+import {
+  aplicarIntroducaoAprovada,
+  introducaoDasAnalises,
+  paragrafosDaAnalise,
+  type AnalisePublicada,
+} from './analisePublicada';
 
 interface Props {
   snapshot: SnapshotMontado;
@@ -34,10 +40,26 @@ interface Props {
   analiseDaSecao?: (secao: `bloco:${string}`) => ReactNode;
   /** Vem apenas da view pública já amarrada ao fechamento AV4. */
   observacoesPublicas?: Array<{ secao: string; texto: string }>;
+  /**
+   * A análise humana aprovada, também amarrada ao fechamento AV4.
+   *
+   * Diferente da observação: a observação é um recado avulso escrito para o
+   * cliente; esta é a análise da seção, que quem revisa escreve, edita e
+   * aprova. Até 04/09/2026 ela não chegava aqui — ver `analisePublicada.ts`.
+   */
+  analisesPublicadas?: AnalisePublicada[];
 }
 
-export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao, observacoesPublicas = [] }: Props) {
+export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao, observacoesPublicas = [], analisesPublicadas = [] }: Props) {
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
+
+  /* A introdução aprovada ENTRA NO LUGAR da leitura automática, como já
+     acontecia na prévia de quem revisa. A regra mora em `analisePublicada.ts`
+     justamente para as duas não poderem divergir. */
+  const snapshotPublicado = useMemo(
+    () => aplicarIntroducaoAprovada(snapshot, introducaoDasAnalises(analisesPublicadas)),
+    [snapshot, analisesPublicadas],
+  );
 
   const secoes: SecaoRelatorio[] = useMemo(() => {
     /**
@@ -49,6 +71,16 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
     const rotulosPlataforma = Object.fromEntries(
       snapshot.fontes.map((fonte) => [fonte.plataforma, fonte.rotulo]),
     );
+
+    const analiseAprovadaDa = (secao: string) => analisesPublicadas
+      .filter((analise) => analise.secao === secao)
+      .map((analise, indice) => (
+        <aside className="dc-analise-publicada" key={`analise-${secao}-${indice}`}>
+          {paragrafosDaAnalise(analise.texto).map((paragrafo, posicao) => (
+            <p key={`${secao}-${indice}-${posicao}`}>{paragrafo}</p>
+          ))}
+        </aside>
+      ));
 
     return snapshot.montagem
       .map((config) => {
@@ -62,7 +94,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
           titulo: config.titulo,
           apoio: config.apoio,
           nota: config.nota,
-          conteudo: conteudo === null ? null : <>{conteudo}{analiseDaSecao?.(`bloco:${config.id}`)}{observacoesPublicas.filter((observacao) => observacao.secao === `bloco:${config.id}`).map((observacao, indice) => <aside className="dc-observacao-publica" key={`${config.id}-${indice}`}><strong>Observação</strong><p>{observacao.texto}</p></aside>)}</>,
+          conteudo: conteudo === null ? null : <>{conteudo}{analiseAprovadaDa(`bloco:${config.id}`)}{analiseDaSecao?.(`bloco:${config.id}`)}{observacoesPublicas.filter((observacao) => observacao.secao === `bloco:${config.id}`).map((observacao, indice) => <aside className="dc-observacao-publica" key={`${config.id}-${indice}`}><strong>Observação</strong><p>{observacao.texto}</p></aside>)}</>,
         };
       })
       /**
@@ -72,11 +104,11 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
        * título com o corpo vazio embaixo.
        */
       .filter((secao) => secao.conteudo !== null);
-  }, [analiseDaSecao, snapshot, theme]);
+  }, [analiseDaSecao, analisesPublicadas, snapshot, theme]);
 
   return (
     <Esqueleto
-      snapshot={snapshot}
+      snapshot={snapshotPublicado}
       competencias={competencias}
       proposta={proposta}
       secoes={secoes}
