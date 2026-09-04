@@ -26,6 +26,43 @@ const CHECKSUM = 'abc123def456abc123def456abc123de';
 const EMAIL = 'pessoa.autorizada@exemplo.com';
 const MOTIVO = 'A seção de Meta precisa ser revista antes de gerar uma nova versão.';
 
+/**
+ * A recusa por CAUSAS ESTRUTURADAS (catálogo `2026-09-01.v1`, 01/09/2026).
+ *
+ * ⚠️ Este bloco existe porque o teste ficou para trás quando a recusa mudou.
+ * Até 04/09 ele ainda mandava só `motivo`, o servidor respondia — corretamente
+ * — "escolha de 1 a 5 causas", e a trava inteira ficava vermelha. Teste
+ * vermelho não protege nada: de 01/09 até aqui, quebrar a aprovação ou a
+ * recusa de verdade não teria acusado, porque ninguém investiga um teste que
+ * "já falhava antes".
+ */
+const CATALOGO = '2026-09-01.v1';
+/**
+ * O que o banco devolve como causas gravadas. Normalmente é o espelho do que
+ * foi confirmado; os testes de divergência trocam isto para provar que o
+ * read-back reprova em vez de dar a recusa por boa.
+ */
+let causasDoReadBack = () => CAUSAS.map((causa, indice) => ({
+  ordinal: indice + 1,
+  catalog_version: CATALOGO,
+  cause_id: causa.causeId,
+  parameters: causa.parameters,
+  verification_status: 'pending',
+})) as any[];
+
+/** O motivo, o roteamento e a versão do catálogo que o banco devolve. */
+let motivoDoReadBack = () => MOTIVO;
+let catalogoDoReadBack = () => CATALOGO;
+let roteamentoDoReadBack = () => 'automatic';
+
+/** Os dois endpoints de decisão, como `api/painel-decisao.ts` os chama. */
+const RPC_RECUSA = '/rpc/decidir_relatorio_com_causas_v1';
+const RPC_APROVACAO = '/rpc/aprovar_e_fechar_relatorio_editorial';
+const CAUSAS = [{
+  causeId: 'metrica_obrigatoria_ausente',
+  parameters: { section_id: 'bloco:numeros-meta', platform: 'meta', metric_id: 'compras' },
+}];
+
 /* A cadeia de importação da função serverless precisa carregar extensão
    explícita em todo import relativo de valor. Sem isso o módulo resolve no
    `tsx` e no Vite, passa em tudo aqui, e só quebra no deploy — que foi
@@ -260,13 +297,20 @@ function linhaRecusada() {
     aprovado_checksum: null,
     recusado_por: EMAIL,
     recusado_em: '2026-08-13T23:00:00Z',
-    recusa_motivo: MOTIVO,
+    recusa_motivo: motivoDoReadBack(),
     correcao_ordem_id: 'ordem-1',
     correcao_estado: 'aguardando_nova_versao',
     correcao_solicitado_em: '2026-08-13T23:00:00Z',
     notificacao_interna_id: 'notificacao-1',
     notificacao_interna_estado: 'pendente',
     notificacao_destino_referencia: 'dacora_semanais.recipients',
+    /* O read-back da recusa confere as causas estruturadas uma a uma: ordinal,
+       versão do catálogo, id, parâmetros e estado da verificação. A fixture
+       precisa devolver exatamente o que foi confirmado, senão o handler
+       reprova — e reprovar aqui é o comportamento certo dele. */
+    correcao_catalog_version: catalogoDoReadBack(),
+    correcao_routing_mode: roteamentoDoReadBack(),
+    correcao_causas: causasDoReadBack(),
   };
 }
 
@@ -310,8 +354,13 @@ globalThis.fetch = (async (entrada: any, init?: RequestInit) => {
     return new Response(JSON.stringify([{ relatorio_id: ID, ja_estava_assim: false }]), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (url.includes('/rest/v1/painel_relatorios_com_correcao')) {
-    const decisao = [...chamadas].reverse().find((item) => item.url.includes('/rpc/decidir_relatorio'))?.corpo?.p_decisao;
-    return new Response(JSON.stringify([decisao === 'recusar' ? linhaRecusada() : linhaAprovada()]), { status: 200, headers: { 'content-type': 'application/json' } });
+    /* Qual linha o read-back devolve sai do ENDPOINT chamado, não de um campo
+       do corpo. A recusa por causas estruturadas (01/09) deixou de mandar
+       `p_decisao`, então o fake antigo lia `undefined` e devolvia sempre a
+       linha aprovada — o read-back do handler reprovava com razão, e o teste
+       culpava a recusa. Endpoint é o que de fato distingue as duas decisões. */
+    const recusou = [...chamadas].reverse().some((item) => item.url.includes(RPC_RECUSA));
+    return new Response(JSON.stringify([recusou ? linhaRecusada() : linhaAprovada()]), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   throw new Error(`URL não dublada: ${url}`);
 }) as typeof fetch;
@@ -340,7 +389,7 @@ async function chamar(corpo: unknown) {
   assert.equal(saida.status, 409);
   assert.equal(saida.corpo.erro, 'analises_pendentes');
   assert.equal(saida.corpo.gravado, false);
-  assert.equal(chamadas.some((item) => item.url.includes('/rpc/decidir_relatorio') || item.url.includes('/rpc/aprovar_e_fechar_relatorio_editorial')), false, 'payload forjado não pode chegar à decisão');
+  assert.equal(chamadas.some((item) => item.url.includes(RPC_RECUSA) || item.url.includes(RPC_APROVACAO)), false, 'payload forjado não pode chegar à decisão');
 }
 
 {
@@ -381,9 +430,151 @@ async function chamar(corpo: unknown) {
 
 {
   sugestoesDoBanco = comSugestaoNaoRevisada;
-  const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO });
+  const saida = await chamar({
+    id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+    catalogVersion: CATALOGO, causas: CAUSAS,
+  });
   assert.equal(saida.status, 200, 'recusa não depende de análises prontas');
   assert.equal(chamadas.some((item) => item.url.includes('/rest/v1/relatorio_analise_sugestoes?')), false, 'recusa não precisa do preflight editorial');
+
+  /* As causas precisam CHEGAR à RPC, não só existir no pedido. É a mesma
+     família do defeito de 01/09, em que o modal montava tudo e a montagem do
+     `fetch` repassava só o motivo: defeito de fiação é invisível para quem
+     confere apenas o código de saída. */
+  const rpc = chamadas.find((item) => item.url.includes(RPC_RECUSA));
+  assert.equal(rpc?.corpo?.p_catalog_version, CATALOGO, 'a versão do catálogo precisa chegar ao banco');
+  assert.deepEqual(
+    rpc?.corpo?.p_causas,
+    [{ cause_id: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters }],
+    'as causas precisam chegar ao banco no formato da RPC',
+  );
+  assert.equal(rpc?.corpo?.p_motivo, MOTIVO, 'o motivo continua viajando como auditoria humana');
+}
+
+/* Prova negativa: recusa SEM causa estruturada não passa e não toca o banco.
+   O texto livre voltou a ser auditoria; ele não dirige mais nada sozinho. */
+{
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  const saida = await chamar({ id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO });
+  assert.equal(saida.status, 400, 'recusa sem causa estruturada precisa ser rejeitada');
+  assert.equal(saida.corpo.erro, 'causas_estruturadas_invalidas');
+  assert.equal(
+    chamadas.some((item) => item.url.includes(RPC_RECUSA)),
+    false,
+    'pedido sem causa nunca pode chegar à decisão no banco',
+  );
+}
+
+/* O READ-BACK PRECISA REPROVAR CAUSA DIVERGENTE.
+   Sem estas provas, apagar a conferência das causas no handler passa despercebido:
+   a fixture devolve sempre o espelho do que foi pedido, e um espelho nunca
+   diverge de si mesmo. Cada caso troca UMA coisa no que o banco devolve. */
+{
+  const original = causasDoReadBack;
+  const divergencias: Array<[string, () => any[]]> = [
+    ['parâmetros diferentes', () => [{ ordinal: 1, catalog_version: CATALOGO, cause_id: CAUSAS[0].causeId, parameters: { section_id: 'bloco:outro', platform: 'meta', metric_id: 'compras' }, verification_status: 'pending' }]],
+    ['outra causa gravada', () => [{ ordinal: 1, catalog_version: CATALOGO, cause_id: 'outra_causa', parameters: CAUSAS[0].parameters, verification_status: 'pending' }]],
+    ['ordem trocada', () => [{ ordinal: 2, catalog_version: CATALOGO, cause_id: CAUSAS[0].causeId, parameters: CAUSAS[0].parameters, verification_status: 'pending' }]],
+    ['já verificada', () => [{ ordinal: 1, catalog_version: CATALOGO, cause_id: CAUSAS[0].causeId, parameters: CAUSAS[0].parameters, verification_status: 'verified' }]],
+    ['lista vazia', () => []],
+    /* Uma causa A MAIS. O laço só percorre o que foi pedido, então sem a
+       conferência de tamanho esta passaria: é a prova de que a contagem é
+       verificada, e não só o conteúdo item a item. */
+    ['causa a mais no banco', () => [
+      { ordinal: 1, catalog_version: CATALOGO, cause_id: CAUSAS[0].causeId, parameters: CAUSAS[0].parameters, verification_status: 'pending' },
+      { ordinal: 2, catalog_version: CATALOGO, cause_id: 'outra_causa', parameters: { description: 'causa que ninguem pediu' }, verification_status: 'pending' },
+    ]],
+  ];
+  for (const [rotulo, forjada] of divergencias) {
+    sugestoesDoBanco = comSugestaoNaoRevisada;
+    causasDoReadBack = forjada;
+    const saida = await chamar({
+      id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+      catalogVersion: CATALOGO, causas: CAUSAS,
+    });
+    assert.equal(saida.status, 502, `read-back precisa reprovar: ${rotulo}`);
+    assert.equal(saida.corpo.gravado, false, `recusa com ${rotulo} não pode ser dada por boa`);
+  }
+  causasDoReadBack = original;
+}
+
+/* O motivo gravado precisa ser o que foi escrito. Ele deixou de dirigir o
+   roteamento, mas continua sendo a auditoria humana da recusa — banco que
+   grava outro texto é divergência, não detalhe. */
+{
+  const original = motivoDoReadBack;
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  motivoDoReadBack = () => 'um motivo que ninguém escreveu';
+  const saida = await chamar({
+    id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+    catalogVersion: CATALOGO, causas: CAUSAS,
+  });
+  assert.equal(saida.status, 502, 'motivo gravado diferente do escrito precisa reprovar');
+  assert.equal(saida.corpo.gravado, false);
+  motivoDoReadBack = original;
+}
+
+/* O ROTEAMENTO precisa corresponder às causas. Causa manual torna a ordem
+   inteira manual; banco que devolver `automatic` mandaria a ordem para a
+   fábrica automática, que é justamente o que o catálogo existe para impedir. */
+{
+  const original = roteamentoDoReadBack;
+  const originalCausas = causasDoReadBack;
+  const causaManual = [{ causeId: 'outra_causa', parameters: { description: 'a apresentacao ficou confusa' } }];
+
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  roteamentoDoReadBack = () => 'automatic';
+  causasDoReadBack = () => [{ ordinal: 1, catalog_version: CATALOGO, cause_id: 'outra_causa', parameters: causaManual[0].parameters, verification_status: 'pending' }];
+  const errada = await chamar({
+    id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+    catalogVersion: CATALOGO, causas: causaManual,
+  });
+  assert.equal(errada.status, 502, 'causa manual roteada como automática precisa reprovar');
+  assert.equal(errada.corpo.gravado, false);
+
+  /* E o caminho bom da causa manual continua passando — senão a prova acima
+     estaria apenas medindo que causa manual nunca funciona. */
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  roteamentoDoReadBack = () => 'manual';
+  const certa = await chamar({
+    id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+    catalogVersion: CATALOGO, causas: causaManual,
+  });
+  assert.equal(certa.status, 200, 'causa manual roteada como manual é aceita');
+
+  roteamentoDoReadBack = original;
+  causasDoReadBack = originalCausas;
+}
+
+/* A VERSÃO DO CATÁLOGO gravada precisa ser a confirmada. Ordem gravada sob
+   outra versão seria interpretada por outro conjunto de regras adiante. */
+{
+  const original = catalogoDoReadBack;
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  catalogoDoReadBack = () => '2026-01-01.v0';
+  const saida = await chamar({
+    id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+    catalogVersion: CATALOGO, causas: CAUSAS,
+  });
+  assert.equal(saida.status, 502, 'catálogo gravado diferente do confirmado precisa reprovar');
+  assert.equal(saida.corpo.gravado, false);
+  catalogoDoReadBack = original;
+}
+
+/* E causa fora do catálogo também não passa — o catálogo é fechado. */
+{
+  sugestoesDoBanco = comSugestaoNaoRevisada;
+  const saida = await chamar({
+    id: ID, checksum: CHECKSUM, decisao: 'recusar', motivo: MOTIVO,
+    catalogVersion: CATALOGO,
+    causas: [{ causeId: 'analise_interpretativa_incorreta', parameters: { description: 'a leitura ficou errada' } }],
+  });
+  assert.equal(saida.status, 400, 'causa fora do catálogo é recusada');
+  assert.equal(
+    chamadas.some((item) => item.url.includes(RPC_RECUSA)),
+    false,
+    'causa desconhecida nunca chega ao banco',
+  );
 }
 
 async function chamarReabrir(corpo: unknown) {
