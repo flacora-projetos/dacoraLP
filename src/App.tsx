@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
+import NegociosServicos from './pages/NegociosServicos';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PropostaLandingPage from './pages/PropostaLandingPage';
 
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/negócios-serviços" element={<NegociosServicos />} />
       <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
       <Route path="/proposta-landing-page" element={<PropostaLandingPage />} />
       <Route

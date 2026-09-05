@@ -27,7 +27,7 @@ index.html                  template base + head da home + JSON-LD do site
 src/
   App.tsx                   rotas
   entry-server.tsx          entrada de SSR — usada só no build, não vai ao navegador
-  pages/                    Home, PropostaLandingPage, PrivacyPolicy
+  pages/                    Home, NegociosServicos, PropostaLandingPage, PrivacyPolicy
 scripts/
   seo-routes.mjs            metadados de SEO por rota (fonte da verdade)
   prerender.mjs             gera um .html por rota
@@ -113,6 +113,9 @@ Três lugares, sempre os três:
 
 Esquecer o passo 2 ou 3 faz a rota cair no catch-all: ela é servida com o HTML
 e o `<head>` da home, e não entra no sitemap.
+
+Rotas públicas institucionais atuais: `/`, `/negócios-serviços`,
+`/proposta-landing-page` e `/politica-de-privacidade`.
 
 ## SEO / GEO — o que está montado
 

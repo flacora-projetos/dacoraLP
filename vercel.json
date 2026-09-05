@@ -45,6 +45,7 @@
     { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
     { "src": "/data-hub(/.*)?", "dest": "/app.html" },
     { "src": "/relatorios/(.*)", "dest": "/app.html" },
+    { "src": "/negócios-serviços/?", "dest": "/negocios-servicos.html" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },
     { "src": "/(.*)", "dest": "/index.html" }

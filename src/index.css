@@ -16,3 +16,26 @@ body {
   color: var(--color-dacora-dark);
   font-family: var(--font-sans);
 }
+
+@keyframes dacora-client-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.dacora-client-marquee {
+  animation: dacora-client-marquee 42s linear infinite;
+}
+
+.dacora-client-marquee[data-paused='true'] {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dacora-client-marquee {
+    animation: none;
+  }
+}

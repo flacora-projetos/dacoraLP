@@ -81,6 +81,50 @@ export const ROUTES = [
   },
 
   {
+    path: '/negócios-serviços',
+    out: 'negocios-servicos.html',
+    title: 'Tráfego Pago para Negócios de Serviços | Dácora',
+    description:
+      'Tráfego pago com estratégia para negócios de serviços, conectando mídia paga, presença digital e processo comercial para gerar oportunidades mais qualificadas.',
+    ogImage: `${SITE}/og-image.jpg`,
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1',
+    removeHeroPreload: true,
+    sitemap: { priority: '0.9', changefreq: 'monthly' },
+    jsonld: (url) => [
+      {
+        '@type': 'WebPage',
+        '@id': `${url}#webpage`,
+        url,
+        name: 'Tráfego Pago para Negócios de Serviços | Dácora',
+        description:
+          'Tráfego pago com estratégia para negócios de serviços, conectando mídia paga, presença digital e processo comercial.',
+        inLanguage: 'pt-BR',
+        isPartOf: { '@id': `${SITE}/#website` },
+      },
+      {
+        '@type': 'Service',
+        '@id': `${url}#servico-negocios-servicos`,
+        name: 'Tráfego pago para negócios de serviços',
+        serviceType: 'Gestão de tráfego pago',
+        provider: ORG_REF,
+        areaServed: { '@type': 'Country', name: 'Brasil' },
+        description:
+          'Estratégia de aquisição para negócios de serviços conectando gestão de tráfego, presença digital e estrutura comercial.',
+        hasOfferCatalog: {
+          '@type': 'OfferCatalog',
+          name: 'Serviços',
+          itemListElement: [
+            { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Gestão de Tráfego' } },
+            { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Presença Digital' } },
+            { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Estrutura Comercial' } },
+          ],
+        },
+      },
+      breadcrumb(url, 'Negócios de serviços'),
+    ],
+  },
+
+  {
     path: '/proposta-landing-page',
     out: 'proposta-landing-page.html',
     title: 'Criação de Landing Pages que Convertem | Dácora',

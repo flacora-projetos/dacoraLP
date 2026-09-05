@@ -136,6 +136,10 @@ for (const route of ROUTES) {
     html = replaceBlock(html, 'jsonld', jsonldFor(route, url));
   }
 
+  if (route.removeHeroPreload) {
+    html = replaceBlock(html, 'hero-preload', '');
+  }
+
   const outPath = path.join(dist, route.out);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, html);
