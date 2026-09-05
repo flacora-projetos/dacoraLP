@@ -46,7 +46,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/negócios-serviços" element={<NegociosServicos />} />
+      <Route path="/negocios-servicos" element={<NegociosServicos />} />
       <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
       <Route path="/proposta-landing-page" element={<PropostaLandingPage />} />
       <Route

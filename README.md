@@ -114,7 +114,7 @@ Três lugares, sempre os três:
 Esquecer o passo 2 ou 3 faz a rota cair no catch-all: ela é servida com o HTML
 e o `<head>` da home, e não entra no sitemap.
 
-Rotas públicas institucionais atuais: `/`, `/negócios-serviços`,
+Rotas públicas institucionais atuais: `/`, `/negocios-servicos`,
 `/proposta-landing-page` e `/politica-de-privacidade`.
 
 ## SEO / GEO — o que está montado

@@ -81,7 +81,7 @@ export const ROUTES = [
   },
 
   {
-    path: '/negócios-serviços',
+    path: '/negocios-servicos',
     out: 'negocios-servicos.html',
     title: 'Tráfego Pago para Negócios de Serviços | Dácora',
     description:
