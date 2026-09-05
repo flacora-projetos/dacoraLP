@@ -3,12 +3,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion, type Variants } from 'motion/react';
-import { CheckCircle2, Instagram } from 'lucide-react';
+import { motion, useReducedMotion, type Variants } from 'motion/react';
+import { CheckCircle2, Instagram, Pause, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 const CONTACT_LINK = 'https://wa.me/5519988947233?text=Ol%C3%A1%21+Vim+do+site+da+D%C3%A1cora+e+quero+saber+mais';
 const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-18415625900/F2OMCMWG1-kcEKzNoM1E';
+
+const partnerLogos = [
+  { file: 'hannover.png', alt: 'Hannover Fondue', width: 488, height: 140 },
+  { file: 'dona-raiz.png', alt: 'Dona Raiz', width: 201, height: 140 },
+  { file: 'rei-dos-pulverizadores.png', alt: 'Rei dos Pulverizadores', width: 264, height: 140 },
+  { file: 'realmaq.png', alt: 'Realmaq Service', width: 431, height: 140 },
+  { file: 'med-moveis.png', alt: 'M e D Móveis Planejados', width: 138, height: 140 },
+  { file: 'avlon.png', alt: 'Avlon', width: 302, height: 140 },
+  { file: 'aphase.png', alt: 'Aphase', width: 483, height: 140 },
+  { file: 'dr-danilo.png', alt: 'Dr. Danilo de Sá', width: 369, height: 140 },
+  { file: 'dr-flavio-zenun.png', alt: 'Dr. Flávio Zenun', width: 565, height: 140 },
+  { file: 'lucas-bulcao.png', alt: 'Lucas Bulcão', width: 131, height: 140 },
+  { file: 'sant-alberti.png', alt: "Sant'Alberti", width: 639, height: 140 },
+  { file: 'aviarte.png', alt: 'Aviarte', width: 296, height: 140 },
+  { file: 'lerrux.png', alt: 'Lerrux', width: 487, height: 140 },
+  { file: 'maria-nazare.png', alt: 'Dra. Maria Nazaré', width: 236, height: 140 },
+] as const;
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -83,6 +101,9 @@ const trackContact = () => {
 };
 
 export default function App() {
+  const reduceMotion = useReducedMotion() ?? false;
+  const [partnersPaused, setPartnersPaused] = useState(false);
+
   return (
     <div className="min-h-screen bg-dacora-offwhite text-dacora-dark font-sans selection:bg-dacora-primary selection:text-dacora-offwhite">
       {/* 
@@ -354,7 +375,93 @@ export default function App() {
 
       {/* 
         -------------------------------------------
-        SEÇÃO 5 — CTA FINAL
+        SEÇÃO 5 — PARCEIROS
+        -------------------------------------------
+      */}
+      <section className="border-y border-dacora-sage/15 bg-white px-6 py-24 md:py-32" aria-labelledby="parceiros-title">
+        <div className="mx-auto max-w-7xl">
+          <motion.div
+            className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={staggerContainer}
+          >
+            <div className="max-w-3xl">
+              <motion.p variants={fadeInUp} className="mb-6 text-sm font-medium uppercase tracking-[0.2em] text-dacora-sage">
+                Parceiros
+              </motion.p>
+              <motion.h2
+                variants={fadeInUp}
+                id="parceiros-title"
+                className="text-balance text-3xl font-bold leading-[1.12] tracking-tight text-dacora-primary md:text-4xl lg:text-5xl"
+              >
+                Mais de 150 empresas já passaram pelo nosso processo.
+              </motion.h2>
+              <motion.p variants={fadeInUp} className="mt-8 max-w-2xl text-pretty text-lg font-light leading-relaxed text-dacora-gray">
+                De negócios locais a empresas com operação nacional, nossa estratégia parte sempre do mesmo princípio: entender o negócio antes de decidir como anunciar.
+              </motion.p>
+            </div>
+
+            <motion.button
+              variants={fadeInUp}
+              type="button"
+              onClick={() => setPartnersPaused((paused) => !paused)}
+              className="motion-reduce:hidden inline-flex min-h-12 items-center justify-center gap-2 rounded-[4px] border border-dacora-sage/30 px-4 text-sm font-semibold text-dacora-primary transition-[border-color,background-color] duration-200 hover:border-dacora-primary hover:bg-dacora-offwhite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dacora-primary"
+              aria-pressed={partnersPaused}
+              aria-label={partnersPaused ? 'Continuar carrossel de parceiros' : 'Pausar carrossel de parceiros'}
+            >
+              {partnersPaused ? (
+                <Play className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+              ) : (
+                <Pause className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+              )}
+              {partnersPaused ? 'Continuar' : 'Pausar'}
+            </motion.button>
+          </motion.div>
+
+          <div
+            className="mt-16 overflow-hidden motion-reduce:overflow-x-auto motion-reduce:pb-4"
+            tabIndex={reduceMotion ? 0 : undefined}
+            role="region"
+            aria-label="Carrossel automático com logos de parceiros"
+          >
+            <div
+              className="dacora-client-marquee flex w-max"
+              data-paused={partnersPaused ? 'true' : 'false'}
+            >
+              {[0, 1].map((groupIndex) => (
+                <div
+                  key={groupIndex}
+                  className="flex shrink-0 gap-4 pr-4"
+                  aria-hidden={groupIndex === 1 ? true : undefined}
+                >
+                  {partnerLogos.map((logo) => (
+                    <div
+                      key={`${groupIndex}-${logo.file}`}
+                      className="flex h-32 min-w-[220px] items-center justify-center rounded-[4px] border border-dacora-sage/20 bg-dacora-offwhite px-8 md:h-36 md:min-w-[260px]"
+                    >
+                      <img
+                        src={`/img/negocios-servicos/logos/${logo.file}`}
+                        alt={groupIndex === 0 ? logo.alt : ''}
+                        width={logo.width}
+                        height={logo.height}
+                        className="max-h-12 w-auto max-w-[170px] object-contain md:max-h-14 md:max-w-[190px]"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/*
+        -------------------------------------------
+        SEÇÃO 6 — CTA FINAL
         -------------------------------------------
       */}
       <section className="relative bg-dacora-primary text-dacora-offwhite py-32 px-6 overflow-hidden">
@@ -405,7 +512,7 @@ export default function App() {
 
       {/* 
         -------------------------------------------
-        SEÇÃO 6 — RODAPÉ
+        SEÇÃO 7 — RODAPÉ
         -------------------------------------------
       */}
       <footer className="bg-dacora-primary pt-12 pb-28 md:pb-12 px-6 border-t border-t-dacora-offwhite/10 relative">
