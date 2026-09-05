@@ -224,23 +224,23 @@ export default function NegociosServicos() {
 
       <main id="conteudo-principal">
         <section className="relative flex min-h-[90vh] items-center overflow-hidden bg-dacora-dark text-left lg:min-h-screen">
-          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-            <div
-              className="absolute inset-0 opacity-[0.08]"
-              style={{
-                backgroundImage: 'radial-gradient(circle, #F2EFEB 1px, transparent 1px)',
-                backgroundSize: '34px 34px',
-              }}
+          <div className="absolute inset-0">
+            <img
+              src="/img/hero-trafego-pago-1920.webp"
+              srcSet="/img/hero-trafego-pago-640.webp 640w, /img/hero-trafego-pago-828.webp 828w, /img/hero-trafego-pago-1280.webp 1280w, /img/hero-trafego-pago-1920.webp 1920w"
+              sizes="100vw"
+              width={1920}
+              height={1280}
+              alt="Fernanda Corá em uma reunião de estratégia de tráfego pago"
+              className="h-full w-full object-cover object-[70%_center] md:object-[60%_center]"
+              fetchPriority="high"
+              decoding="async"
             />
-            <div className="absolute inset-y-0 right-0 hidden w-[42%] border-l border-dacora-offwhite/10 lg:block">
-              <div className="absolute inset-x-[14%] top-[18%] h-[64%] border border-dacora-offwhite/12" />
-              <div className="absolute left-[28%] top-[31%] h-[44%] w-[58%] border border-dacora-sage/25" />
-              <div className="absolute left-[42%] top-[44%] h-[24%] w-[30%] bg-dacora-primary/70" />
-              <div className="absolute left-[14%] top-1/2 h-px w-[72%] bg-dacora-offwhite/15" />
-              <div className="absolute left-1/2 top-[18%] h-[64%] w-px bg-dacora-offwhite/15" />
-              <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-dacora-offwhite" />
-            </div>
-            <div className="absolute bottom-0 left-0 h-px w-full bg-dacora-offwhite/10" />
+            <div className="absolute inset-0 bg-dacora-dark/45" aria-hidden="true" />
+            <div
+              className="absolute inset-0 w-full bg-gradient-to-r from-dacora-dark/95 via-dacora-dark/80 to-dacora-dark/20 md:w-4/5 lg:w-3/4"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-24 pt-36 md:pt-32">
