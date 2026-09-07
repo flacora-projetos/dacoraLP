@@ -4,6 +4,8 @@ Leia [`AGENTS.md`](AGENTS.md) por inteiro antes de qualquer ação; ele é a fon
 de verdade compartilhada com Codex. Em trabalho no painel de relatórios, leia
 também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
+**Em qualquer tarefa de `/data-hub`, leia `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md` antes de editar.** O Query Engine V2 query-first/field-centric é o norte; schema-first/wide permanece só como compatibilidade do backend e não pode voltar como plano de expansão do Portal.
+
 A prioridade atual é a frente **RA — Revisão Analítica Assistida**, organizada
 em `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
 **RA1–RA5 estão publicadas; RA4 permanece parcial.** O acabamento do circuito

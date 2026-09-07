@@ -2046,25 +2046,25 @@ crônico parece cobertura.
 
 ---
 
-## 2026-09-07 — fotografia atual do Data Hub
+## 2026-09-07 — Data Hub revalidado e mudança de motor para Query Engine V2
 
-A auditoria dos três repositórios atualizou o estado da frente sem publicar
-mudanças novas. O backend em produção está no commit `54576ef`, revisão
-Cloud Run `dacora-data-hub-00060-zip`, e usa a Hub Data API do backend Saldos no
-commit `04d1865`. O Scheduler permanece `PAUSED`.
+O checkpoint revalidado registra a PR #91 no runtime `2a034551d0ca301f12286208052084567ff513b0`, revisão Cloud Run `dacora-data-hub-00035-5qn`, build `663446cb-d964-4bc5-a99f-44dacf75e01f` e digest `sha256:3347b10b579f9bee552f38e981d3f8872f22928f4aaca295c55893ec38fdc975`. Cloud Run está Ready com 100% do tráfego; rollbacks preservados: `dacora-data-hub-00060-zip` (`pre-core-expansion`) e `dacora-data-hub-00031-fzv` (`pre-meta-expansion`). Saldos está em `eed756a` / `api-00090-yok`; Scheduler `PAUSED`; IAM temporário TokenCreator foi removido na última revalidação documentada.
 
-Actions selecionadas projetadas em colunas, enriquecimento criativo e controle
-de concorrência por revisão já têm implementação e prova; portanto não são mais
-os próximos gates. A ampliação de cobertura continua necessária.
+O motor 1.x integrado possui registry com **69 entradas**, schema `1.5.0`, migration `006` com 6 colunas NUMERIC + 6 views e matriz **676 = 51 supported / 4 partial / 621 not_implemented**. Isso é estado de compatibilidade de produção, **não backlog de colunas**.
 
-O benchmark Stract atual passou de um norte histórico de 611 para **1.010
-campos brutos / 676 capacidades úteis**: 32 `supported`, 11 `partial` e 633
-`not_implemented`. A matriz ainda está em transição no repositório `Dacora Data
-Hub`; antes de entrar em `main`, precisa remover identificadores reais e ligar
-as classificações positivas a testes, probes ou smokes rastreáveis.
+### Decisão que vence os checkpoints anteriores de Data Hub
 
-O próximo gate é integrar essa matriz saneada e auditável, expandir primeiro
-hierarquia/Insights e depois as variações de actions. A inclusão de
-`business.*`/billing depende de decisão do PO. PAR5/piloto e Scheduler ficam
-depois dessa expansão. O estado detalhado e os limites estão em
-`docs/DATA_HUB_ESTADO_ATUAL.md`.
+Desde 07/09/2026, o motor schema-first/wide está **LEGADO PARA NOVA COBERTURA**. Não retomar como plano:
+
+- capability → registry → `FACT_COLUMNS` → migration/views;
+- “expandir 98 métricas por lotes”;
+- “completar 160 actions”;
+- “reduzir 621 not_implemented” como 621 tarefas físicas.
+
+O norte é o **Query Engine V2 query-first/field-centric**: conta(s) + campos + período/opções; catálogo base + discovery contextual; planner por adaptadores; row builder dinâmico/esparso. O Portal é superfície de seleção e deve derivar catálogo/compatibilidades do backend, sem manter uma segunda fonte manual.
+
+O smoke `[date, campaign_name, spend]` até Sheets/read-back continua evidência histórica do motor 1.x. O **novo** smoke representativo do V2 ainda não existe e não deve ser declarado concluído sem read-back real.
+
+Próximo gate: provar Meta → Hub → BigQuery → Sheets → read-back **sem migration global por campo**; depois adaptar/ampliar o Portal ao catálogo/resultados do V2. `business.*` continua adiado até contrato/fonte próprios; Scheduler permanece `PAUSED`.
+
+Fonte local obrigatória: `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md`. Estado detalhado: `docs/DATA_HUB_ESTADO_ATUAL.md`.

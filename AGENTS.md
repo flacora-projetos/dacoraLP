@@ -4,6 +4,8 @@ Leia este arquivo por inteiro antes de atuar no repositório. Para qualquer
 trabalho no painel de relatórios, leia também `docs/PAINEL_PROGRESSO.md` e o
 plano/handoff canônico indicado nele no repositório `OpenClaw-Dacora`.
 
+**Para qualquer trabalho em `/data-hub`, BFF Data Hub, seletor/catálogo de campos ou documentação dessa frente, leia obrigatoriamente `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md` e `docs/DATA_HUB_ESTADO_ATUAL.md`.** Desde 07/09/2026, o motor schema-first/wide é legado para expansão; não reintroduza cobertura por coluna/migration/view nem trate 51/4/621 como backlog de UI.
+
 ## Prioridade ativa — frente RA
 
 A frente **RA — Revisão Analítica Assistida dos Relatórios Mensais** é a

@@ -1,58 +1,97 @@
-# Prompt para a próxima sessão — Data Hub Portal
+# Prompt para a próxima sessão — Data Hub Portal / Query Engine V2
 
-Continue a frente **Data Hub no portal Dácora** a partir do estado auditado em 2026-09-06 e documentado em 2026-09-07.
+> **Leia primeiro [`DATA_HUB_DIRETRIZ_QUERY_FIRST.md`](DATA_HUB_DIRETRIZ_QUERY_FIRST.md).** O motor schema-first/wide é LEGADO para expansão e não pode voltar como próximo passo.
 
-## Antes de agir
+Continue a frente **Data Hub no portal Dácora** a partir do estado de 07/09/2026.
 
-1. Carregue o runtime atual do Codex Ninja.
-2. Selecione o workspace `@projects/SITE DACORA LP/repo`.
-3. Leia por inteiro `AGENTS.md` e `CLAUDE.md`, depois `docs/DATA_HUB_ESTADO_ATUAL.md`.
-4. Rode `git fetch origin --prune`, confirme branch/HEAD/status/worktrees e preserve qualquer trabalho preexistente.
-5. Não desenvolva diretamente em `main`.
-6. O portal serve outras aplicações além do Data Hub. Não toque em RA, Supabase, relatórios, envio ou outras frentes sem escopo explícito.
+## Bootstrap obrigatório
+
+1. carregue o runtime atual do Codex Ninja;
+2. selecione `@projects/SITE DACORA LP/repo`;
+3. leia `AGENTS.md` e `CLAUDE.md` integralmente;
+4. leia `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md` e `docs/DATA_HUB_ESTADO_ATUAL.md`;
+5. se o workspace Hub estiver disponível, leia `docs/DIRETRIZ_QUERY_FIRST_FIELD_CENTRIC.md` e `docs/LEGADO_MOTOR_SCHEMA_FIRST.md` do Hub;
+6. confirme branch/HEAD/status/worktrees e preserve alterações preexistentes;
+7. nunca desenvolva diretamente em `main`.
+
+O portal serve outras aplicações. Não toque em RA, Supabase, relatórios, envio ou outras frentes sem escopo explícito.
 
 ## Estado confirmado
 
-- Portal Data Hub publicado em Vercel Production; commit funcional da frente `fa244dc`.
-- Backend publicado: commit `54576ef`, revisão Cloud Run `dacora-data-hub-00060-zip`, pronta e com 100% do tráfego na auditoria.
-- Hub Data API Meta no backend Saldos: commit `04d1865`; use o health `https://api-wviue4ksza-uc.a.run.app/api/health`, não o host do MCP.
-- Scheduler continua `PAUSED`.
-- O criador não possui seletor manual de nível; novas definições usam `selectedFields`.
-- O golden slice field-centric está fechado de ponta a ponta em produção.
-- Meta→BigQuery: `selectedFields = [date, campaign_name, spend]`, grão `campaign`, `success/reconciled`, valor reconciliado com fonte independente.
-- Google Sheets: export `succeeded`, `1×3`, range `'Página1'!A1:C2`.
-- Read-back final: `Data`, `Nome da campanha`, `Investimento`, nessa ordem; linha `2026-08-27 | MENSAGENS (WhatsApp) - PEC. CORTE | 195,48`.
-- PR backend `#79` corrigiu reconciliação Hub.
-- PR backend `#82` corrigiu o upsert projetado BigQuery para `require_partition_filter`.
-- PR backend `#84` fez `selectedFields` ser autoritativo também no Sheets, preservando layout legado para definições antigas.
-- Backend validado no Node 22.22.0: **489/489**; focados Sheets **30/30**; lint/diff-check OK.
-- Artefatos temporários de smoke foram removidos do Firestore e as planilhas de teste foram movidas para a lixeira do Drive.
-- Todos os grants temporários TokenCreator foram revogados; nenhuma chave persistente foi criada.
-- Actions selecionadas em colunas, enriquecimento criativo e conflito por revisão já foram provados; não os trate como frentes ainda inexistentes.
-- O Stract atual expôs **1.010 campos brutos**, normalizados em **676 capacidades úteis**: 32 `supported`, 11 `partial` e 633 `not_implemented`.
-- A matriz de 676 capacidades ainda aguarda sanitização, evidência por linha, revisão e integração na `main` do repositório `Dacora Data Hub`.
-- Esta fotografia não representa deploy novo em nenhum dos três repositórios.
+- Portal `/data-hub` já usa `selectedFields` e não exige seletor manual de nível para novas definições.
+- Hub runtime publicado: `2a034551d0ca301f12286208052084567ff513b0`.
+- Cloud Run Hub: `dacora-data-hub-00035-5qn`, Ready, 100% do tráfego.
+- Build Hub: `663446cb-d964-4bc5-a99f-44dacf75e01f`.
+- Digest Hub: `sha256:3347b10b579f9bee552f38e981d3f8872f22928f4aaca295c55893ec38fdc975`.
+- Rollbacks: `dacora-data-hub-00060-zip` (`pre-core-expansion`) e `dacora-data-hub-00031-fzv` (`pre-meta-expansion`).
+- Saldos: `eed756a` / `api-00090-yok`.
+- Scheduler: `PAUSED`.
+- IAM temporário TokenCreator do usuário foi removido na última revalidação documentada.
+- Benchmark atual: **676 capabilities-base**; motor 1.x classificado em **51 supported / 4 partial / 621 not_implemented**.
+- Esses 621 gaps **não são 621 tarefas independentes e não são backlog de UI**.
+- O smoke field-centric histórico `[date, campaign_name, spend]` chegou a BigQuery + Sheets/read-back e continua evidência da compatibilidade 1.x.
+- O **novo** smoke representativo do Query Engine V2 até Sheets/read-back ainda não existe; não declarará conclusão sem read-back real.
 
-## Próximo objetivo
+## Norte arquitetural — não reabrir
 
-O próximo trabalho é transformar o inventário amplo em cobertura verificável e segura:
+O produto é **query-first / field-centric**:
 
-1. remover IDs e nomes reais do snapshot e dos JSON/CSV gerados;
-2. registrar teste, probe ou smoke rastreável para cada linha marcada `supported` ou `partial`;
-3. revisar e integrar a matriz de **676 capacidades**;
-4. expandir hierarquia e Insights por lotes, preservando grão, granularidade, `null`, zero e campo ausente;
-5. completar as variações de `count`, `value` e `cost` das actions;
-6. obter decisão de produto antes de incluir `business.*` ou billing;
-7. manter a UI derivada do catálogo canônico;
-8. só depois fechar PAR5/piloto e reavaliar ativação do Scheduler.
+```text
+conta(s)
++ selectedFields[]
++ período / granularidade
++ filtros / attribution / opções
+        ↓
+Query Planner V2 no Hub
+        ↓
+resultado tabular dinâmico e esparso
+```
 
-## Gates
+Para o usuário, dimensão, métrica, action, breakdown, atributo estrutural e campo contextual são **campos**. A classificação técnica pertence ao planner.
 
-- Não reabrir seletor manual de nível.
-- Não reduzir o catálogo do portal para esconder lacunas do backend.
-- Não criar workaround de OAuth nem chave de service account.
-- Não ampliar IAM permanente sem necessidade explícita.
-- Não tocar nos worktrees/branches de RA ou outras frentes.
-- Diferenciar IMPLEMENTADO, INTEGRADO e PRODUÇÃO.
+Campo sem valor naquela linha pode permanecer blank/null/ausente conforme o contrato. Zero continua zero. Erro upstream real continua erro. Nunca substituir vazio por zero sem opção explícita de apresentação.
 
-Siga ENTENDER → LOCALIZAR → LER → EXECUTAR → TESTAR → VALIDAR → ENTREGAR. Se Git/produção divergirem deste prompt, Git + respostas reais + documentação canônica prevalecem.
+## Motor antigo — LEGADO
+
+Não retomar:
+
+```text
+capability
+→ registry
+→ FACT_METRIC_COLUMNS / FACT_COLUMNS
+→ ALTER TABLE
+→ views
+→ próximo lote
+```
+
+As tabelas/views 1.x continuam compatibilidade e não devem ser removidas de passagem. O proibido é usá-las como mecanismo para destravar cobertura nova.
+
+Também não retomar como plano:
+
+- “expandir 98 métricas”;
+- “completar 160 actions”;
+- “reduzir 621 not_implemented por lotes wide”.
+
+Esses números podem orientar probes/famílias do planner, não colunas físicas nem componentes do Portal.
+
+## Próximo gate real
+
+1. o Hub inventaria allowlists/gates físicos do motor 1.x;
+2. o Hub implementa catálogo base + discovery contextual;
+3. o Hub implementa planner por adaptadores e row builder dinâmico/esparso;
+4. prova Meta → Hub → BigQuery → Sheets → read-back sem migration global por campo;
+5. o Portal consome o catálogo/resultados desse motor sem duplicar regras analíticas;
+6. só depois a matriz é recalculada/promovida por famílias do planner.
+
+## Regras do Portal
+
+- UI deriva catálogo e compatibilidades do backend;
+- não criar lista manual paralela de capabilities;
+- não esconder campos por limitação do schema wide atual;
+- não reintroduzir seletor manual de nível;
+- preservar edição/leitura das definições 1.x durante a transição;
+- não tocar em IAM, OAuth ou service-account como workaround;
+- `business.*` permanece fora até contrato/fonte próprios;
+- não reativar Scheduler nesta frente.
+
+Siga ENTENDER → LOCALIZAR → LER → EXECUTAR → TESTAR → VALIDAR → ENTREGAR. Git, respostas reais e documentos canônicos vencem qualquer fotografia antiga.
