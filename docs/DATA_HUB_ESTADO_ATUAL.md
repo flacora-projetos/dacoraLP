@@ -1,3 +1,5 @@
+> **Diretriz obrigatória:** leia primeiro [`DATA_HUB_DIRETRIZ_QUERY_FIRST.md`](DATA_HUB_DIRETRIZ_QUERY_FIRST.md). O motor schema-first/wide está aposentado para nova cobertura; este documento separa compatibilidade 1.x do próximo Query Engine V2.
+
 # Data Hub no portal Dácora — estado atual
 
 **Atualizado em 2026-09-07.** Este documento trata somente da rota `/data-hub`, seus módulos e o BFF correspondente. O portal também serve outras aplicações; trabalho de Data Hub não autoriza alterações nelas.
@@ -10,19 +12,32 @@ O Data Hub é uma funcionalidade do portal Dácora. A arquitetura vigente é:
 
 O portal é a superfície de escolha e operação; o repositório `Dacora Data Hub` é o backend/serviço de dados. Não duplicar lógica analítica ampla no frontend.
 
-## Produção agora
+## Estado atual revalidado
 
 | Componente | Estado |
 | --- | --- |
 | Portal | Vercel Production automático a cada merge em `main`; commit funcional Data Hub `fa244dc` |
 | URL | `https://www.dacora.com.br/data-hub` |
-| Backend | commit `54576ef`; Cloud Run `dacora-data-hub-00060-zip`, pronto e com 100% do tráfego na auditoria de 2026-09-06 |
-| Hub Data API Meta | backend Saldos no commit `04d1865`; health correto em `https://api-wviue4ksza-uc.a.run.app/api/health` |
+| Backend | PR #91 mesclado em `2a034551d0ca301f12286208052084567ff513b0`; Cloud Run `dacora-data-hub-00035-5qn`, Ready, 100% do tráfego; build `663446cb-d964-4bc5-a99f-44dacf75e01f`, digest `sha256:3347b10b579f9bee552f38e981d3f8872f22928f4aaca295c55893ec38fdc975` |
+| Rollbacks backend | `dacora-data-hub-00060-zip` (`pre-core-expansion`) e `dacora-data-hub-00031-fzv` (`pre-meta-expansion`) |
+| Hub Data API Meta | Saldos no commit `eed756a`, revisão `api-00090-yok`; health 200 em `https://api-wviue4ksza-uc.a.run.app/api/health` |
 | Scheduler | `PAUSED` |
 
 Como merges documentais também geram deployment Vercel, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
 
-Esta atualização registra o estado observado, mas **não representa deploy novo** do portal, do Data Hub nem do Saldos.
+Esta atualização registra o estado revalidado pela sessão principal, mas **não representa deploy novo** do portal, do Data Hub nem do Saldos. O backend mantém `roles/run.invoker` restrito às três service accounts previstas; o grant temporário `TokenCreator` do portal está ausente.
+
+## Compatibilidade backend 1.x já integrada — NÃO é o motor de expansão futuro
+
+O estado integrado da expansão inclui:
+
+- registry com **69 entradas** e schema `1.5.0`;
+- migration `006` aplicada, com **6 colunas NUMERIC** e **6 views**, preservando a partição;
+- matriz de **676 capacidades úteis**: **51 `supported`**, **4 `partial`** e **621 `not_implemented`**.
+
+Esses números substituem o placar anterior de `32/11/633`. A matriz sanitizada e auditável está ligada ao código e às evidências correspondentes da PR #91; o smoke autenticado novo até Sheets/read-back continua separado dessa prova.
+
+**Atenção:** as 69 entradas e as colunas/views da migration 006 são estado de compatibilidade do runtime publicado, não receita para novas capabilities. Desde 07/09/2026, é proibido transformar `621 not_implemented` em fila de colunas/migrations. A expansão futura pertence ao Query Engine V2.
 
 ## Contrato field-centric — fechado de ponta a ponta
 
@@ -94,7 +109,7 @@ Portanto o portal/backend agora fecham o contrato `selectedFields` até a planil
 - campos não escolhidos não vazam para a saída;
 - valor final permanece reconciliado com fonte independente.
 
-## Capacidades adicionais já provadas
+## Capacidades adicionais historicamente provadas
 
 As frentes que antes eram gates deixaram de ser apenas plano e foram confirmadas no código e nos testes dos três repositórios:
 
@@ -103,7 +118,7 @@ As frentes que antes eram gates deixaram de ser apenas plano e foram confirmadas
 - edições concorrentes usam a revisão da extração e falham com conflito, em vez de sobrescrever silenciosamente uma definição mais nova;
 - a UI continua derivando campos e compatibilidades do catálogo devolvido pelo backend.
 
-Essas provas não significam que todas as variações de actions ou todos os campos criativos do Stract já estejam cobertos. Elas fecham o caminho técnico; a ampliação do catálogo segue em lotes.
+Essas provas históricas não significam que todas as variações de actions ou todos os campos criativos do Stract já estejam cobertos. Elas comprovam compatibilidade do motor 1.x; **não autorizam repetir projeção wide por campo**. Para o Query Engine V2, o smoke autenticado novo até Sheets/read-back **ainda não foi verificado**; portanto não se deve afirmar que o novo motor está comprovado ponta a ponta.
 
 ## Correções backend descobertas pelos smokes
 
@@ -145,28 +160,28 @@ Nenhum módulo de relatórios/RA, Supabase, envio ou outra aplicação do portal
 
 A tentativa com heap padrão pode morrer por OOM no `prebuild`; a evidência canônica usa heap ampliado.
 
-## Norte de cobertura
+## Norte vigente — Query Engine V2
 
-O benchmark Stract foi reconsultado em 2026-09-06. O inventário em transição encontrou:
+O benchmark Stract integrado possui:
 
 - **1.010 campos brutos**;
-- **676 capacidades úteis** depois da normalização;
-- **32 `supported`**;
-- **11 `partial`**;
-- **633 `not_implemented`**.
+- **676 capabilities-base**;
+- motor 1.x atual: **51 `supported`**, **4 `partial`**, **621 `not_implemented`**.
 
-Esse levantamento substitui o norte histórico de 611 capacidades. A matriz nova ainda está em worktree/branch do repositório `Dacora Data Hub` e **não está integrada em `main`**. Até a integração, os totais acima são inventário auditado em transição, não contrato publicado do produto.
+Esses números medem cobertura observada; **não são backlog de colunas nem de componentes do Portal**. A evidência de 07/09/2026 mostrou que o produto de referência é query-first: conta(s) + campos + período/opções; o planner resolve nível/fontes e o resultado pode ser esparso.
 
-O portal deve derivar o máximo possível seu catálogo e regras do backend, evitando uma segunda fonte manual de centenas de campos.
+O Portal deve continuar derivando catálogo e compatibilidades do backend. Não manter segunda lista manual de centenas de campos e não esconder capability só porque o warehouse 1.x ainda não possui coluna wide correspondente.
 
-## Próximos gates
+## Próximos gates — Query Engine V2
 
-1. sanitizar o snapshot e os artefatos da matriz, removendo IDs e nomes reais de contas/clientes;
-2. ligar cada classificação `supported`/`partial` a evidência rastreável de teste, probe ou smoke;
-3. revisar e integrar a matriz vigente de **676 capacidades** no repositório `Dacora Data Hub`;
-4. expandir primeiro hierarquia e métricas de Insights e, depois, as variações de `count`, `value` e `cost` das actions;
-5. decidir com o PO se capacidades `business.*` e billing pertencem ao produto antes de implementá-las;
-6. manter a UI derivada do catálogo canônico e validar desktop/móvel a cada ampliação significativa;
-7. só depois reavaliar PAR5/piloto e ativação do Scheduler.
+1. no Hub, inventariar os gates físicos que ainda amarram `selectedFields` a registry/schema wide;
+2. implementar catálogo base + discovery contextual, planner por adaptadores e row builder dinâmico/esparso;
+3. provar uma query representativa em Meta → Hub → BigQuery → Sheets → read-back **sem migration global por campo**;
+4. só então adaptar/ampliar o Portal para consumir o catálogo e resultado do V2, mantendo a UI derivada do backend;
+5. preservar definições 1.x legadas enquanto a transição não estiver comprovada;
+6. manter `business.*` adiado até contrato/fonte próprios; billing não entra por analogia;
+7. reavaliar PAR5/piloto e Scheduler somente no gate operacional separado.
 
-Scheduler permanece pausado até esses gates posteriores.
+**LEGADO:** não retomar como plano “expandir hierarquia e 98 métricas”, “completar 160 actions” ou qualquer outro lote `capability → coluna → migration/view`. Essas listas antigas podem orientar probes/famílias do planner, mas não implementação física.
+
+Scheduler permanece `PAUSED`.
