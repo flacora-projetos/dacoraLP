@@ -1,6 +1,6 @@
 # Data Hub no portal Dácora — estado atual
 
-**Atualizado em 2026-09-02.** Este documento trata somente da rota `/data-hub`, seus módulos e o BFF correspondente. O portal também serve outras aplicações; trabalho de Data Hub não autoriza alterações nelas.
+**Atualizado em 2026-09-07.** Este documento trata somente da rota `/data-hub`, seus módulos e o BFF correspondente. O portal também serve outras aplicações; trabalho de Data Hub não autoriza alterações nelas.
 
 ## Papel do portal
 
@@ -16,13 +16,13 @@ O portal é a superfície de escolha e operação; o repositório `Dacora Data H
 | --- | --- |
 | Portal | Vercel Production automático a cada merge em `main`; commit funcional Data Hub `fa244dc` |
 | URL | `https://www.dacora.com.br/data-hub` |
-| Backend | Cloud Run `dacora-data-hub-00031-fzv`, 100% do tráfego |
-| Imagem backend | `runtime:f13b028` |
-| Digest backend | `sha256:ca3db7f5fdc53e01bcfa118bfe5eaa750d7b5ae65278a08686f6689d59ec9c5a` |
-| Rollback backend | `dacora-data-hub-00030-8ms`, tag `preselectedsheets` |
+| Backend | commit `54576ef`; Cloud Run `dacora-data-hub-00060-zip`, pronto e com 100% do tráfego na auditoria de 2026-09-06 |
+| Hub Data API Meta | backend Saldos no commit `04d1865`; health correto em `https://api-wviue4ksza-uc.a.run.app/api/health` |
 | Scheduler | `PAUSED` |
 
 Como merges documentais também geram deployment Vercel, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
+
+Esta atualização registra o estado observado, mas **não representa deploy novo** do portal, do Data Hub nem do Saldos.
 
 ## Contrato field-centric — fechado de ponta a ponta
 
@@ -66,12 +66,12 @@ com distinção correta entre ausência e zero para campos não escolhidos.
 
 Depois da reautorização Google do ator, o backend conseguiu trocar o refresh token e criar planilha pela Sheets API normalmente.
 
-O smoke final usou:
+O smoke field-centric inicial usou:
 
 - período `2026-08-27`;
 - baseline independente `spend = 195.48`;
 - `selectedFields = [date, campaign_name, spend]`;
-- revisão backend `dacora-data-hub-00031-fzv`.
+- revisão backend `dacora-data-hub-00031-fzv`, vigente naquele smoke.
 
 O export terminou:
 
@@ -93,6 +93,17 @@ Portanto o portal/backend agora fecham o contrato `selectedFields` até a planil
 - `campaign_name` aparece corretamente;
 - campos não escolhidos não vazam para a saída;
 - valor final permanece reconciliado com fonte independente.
+
+## Capacidades adicionais já provadas
+
+As frentes que antes eram gates deixaram de ser apenas plano e foram confirmadas no código e nos testes dos três repositórios:
+
+- `actions` e `action_values` selecionadas são projetadas como colunas estáveis para BigQuery e Sheets, sem despejar o array cru na planilha;
+- o enriquecimento de criativo funciona no grão de anúncio e preserva a seleção field-centric;
+- edições concorrentes usam a revisão da extração e falham com conflito, em vez de sobrescrever silenciosamente uma definição mais nova;
+- a UI continua derivando campos e compatibilidades do catálogo devolvido pelo backend.
+
+Essas provas não significam que todas as variações de actions ou todos os campos criativos do Stract já estejam cobertos. Elas fecham o caminho técnico; a ampliação do catálogo segue em lotes.
 
 ## Correções backend descobertas pelos smokes
 
@@ -136,17 +147,26 @@ A tentativa com heap padrão pode morrer por OOM no `prebuild`; a evidência can
 
 ## Norte de cobertura
 
-O objetivo continua sendo aproximar o Data Hub do benchmark Stract de **611 capacidades úteis deduplicadas**, preservando semântica, grão, granularidade e compatibilidades reais.
+O benchmark Stract foi reconsultado em 2026-09-06. O inventário em transição encontrou:
+
+- **1.010 campos brutos**;
+- **676 capacidades úteis** depois da normalização;
+- **32 `supported`**;
+- **11 `partial`**;
+- **633 `not_implemented`**.
+
+Esse levantamento substitui o norte histórico de 611 capacidades. A matriz nova ainda está em worktree/branch do repositório `Dacora Data Hub` e **não está integrada em `main`**. Até a integração, os totais acima são inventário auditado em transição, não contrato publicado do produto.
 
 O portal deve derivar o máximo possível seu catálogo e regras do backend, evitando uma segunda fonte manual de centenas de campos.
 
 ## Próximos gates
 
-1. projetar actions/conversions selecionadas como colunas;
-2. fechar enriquecimento criativo;
-3. construir e executar a matriz **611 × Hub**;
-4. expandir catálogo e backend por lotes;
-5. manter a UI derivada do catálogo canônico e validar desktop/móvel a cada ampliação significativa;
-6. só depois reavaliar PAR5/piloto e ativação do Scheduler.
+1. sanitizar o snapshot e os artefatos da matriz, removendo IDs e nomes reais de contas/clientes;
+2. ligar cada classificação `supported`/`partial` a evidência rastreável de teste, probe ou smoke;
+3. revisar e integrar a matriz vigente de **676 capacidades** no repositório `Dacora Data Hub`;
+4. expandir primeiro hierarquia e métricas de Insights e, depois, as variações de `count`, `value` e `cost` das actions;
+5. decidir com o PO se capacidades `business.*` e billing pertencem ao produto antes de implementá-las;
+6. manter a UI derivada do catálogo canônico e validar desktop/móvel a cada ampliação significativa;
+7. só depois reavaliar PAR5/piloto e ativação do Scheduler.
 
 Scheduler permanece pausado até esses gates posteriores.
