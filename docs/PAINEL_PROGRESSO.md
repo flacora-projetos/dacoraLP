@@ -2043,3 +2043,28 @@ chegou aqui.
 **A régua que fica: teste que falha por estar desatualizado é pior que teste que
 não existe.** O que não existe todo mundo sabe que não protege; o vermelho
 crônico parece cobertura.
+
+---
+
+## 2026-09-07 — fotografia atual do Data Hub
+
+A auditoria dos três repositórios atualizou o estado da frente sem publicar
+mudanças novas. O backend em produção está no commit `54576ef`, revisão
+Cloud Run `dacora-data-hub-00060-zip`, e usa a Hub Data API do backend Saldos no
+commit `04d1865`. O Scheduler permanece `PAUSED`.
+
+Actions selecionadas projetadas em colunas, enriquecimento criativo e controle
+de concorrência por revisão já têm implementação e prova; portanto não são mais
+os próximos gates. A ampliação de cobertura continua necessária.
+
+O benchmark Stract atual passou de um norte histórico de 611 para **1.010
+campos brutos / 676 capacidades úteis**: 32 `supported`, 11 `partial` e 633
+`not_implemented`. A matriz ainda está em transição no repositório `Dacora Data
+Hub`; antes de entrar em `main`, precisa remover identificadores reais e ligar
+as classificações positivas a testes, probes ou smokes rastreáveis.
+
+O próximo gate é integrar essa matriz saneada e auditável, expandir primeiro
+hierarquia/Insights e depois as variações de actions. A inclusão de
+`business.*`/billing depende de decisão do PO. PAR5/piloto e Scheduler ficam
+depois dessa expansão. O estado detalhado e os limites estão em
+`docs/DATA_HUB_ESTADO_ATUAL.md`.

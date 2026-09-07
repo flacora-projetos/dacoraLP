@@ -1,6 +1,6 @@
 # Prompt para a próxima sessão — Data Hub Portal
 
-Continue a frente **Data Hub no portal Dácora** a partir do estado de produção de 2026-09-02.
+Continue a frente **Data Hub no portal Dácora** a partir do estado auditado em 2026-09-06 e documentado em 2026-09-07.
 
 ## Antes de agir
 
@@ -14,9 +14,8 @@ Continue a frente **Data Hub no portal Dácora** a partir do estado de produçã
 ## Estado confirmado
 
 - Portal Data Hub publicado em Vercel Production; commit funcional da frente `fa244dc`.
-- Backend publicado: `dacora-data-hub-00031-fzv`, imagem `runtime:f13b028`, 100% do tráfego.
-- Digest backend: `sha256:ca3db7f5fdc53e01bcfa118bfe5eaa750d7b5ae65278a08686f6689d59ec9c5a`.
-- Rollback backend: `dacora-data-hub-00030-8ms`, tag `preselectedsheets`.
+- Backend publicado: commit `54576ef`, revisão Cloud Run `dacora-data-hub-00060-zip`, pronta e com 100% do tráfego na auditoria.
+- Hub Data API Meta no backend Saldos: commit `04d1865`; use o health `https://api-wviue4ksza-uc.a.run.app/api/health`, não o host do MCP.
 - Scheduler continua `PAUSED`.
 - O criador não possui seletor manual de nível; novas definições usam `selectedFields`.
 - O golden slice field-centric está fechado de ponta a ponta em produção.
@@ -29,19 +28,23 @@ Continue a frente **Data Hub no portal Dácora** a partir do estado de produçã
 - Backend validado no Node 22.22.0: **489/489**; focados Sheets **30/30**; lint/diff-check OK.
 - Artefatos temporários de smoke foram removidos do Firestore e as planilhas de teste foram movidas para a lixeira do Drive.
 - Todos os grants temporários TokenCreator foram revogados; nenhuma chave persistente foi criada.
-- O norte continua sendo expansão progressiva rumo às **611 capacidades úteis** do benchmark Stract.
+- Actions selecionadas em colunas, enriquecimento criativo e conflito por revisão já foram provados; não os trate como frentes ainda inexistentes.
+- O Stract atual expôs **1.010 campos brutos**, normalizados em **676 capacidades úteis**: 32 `supported`, 11 `partial` e 633 `not_implemented`.
+- A matriz de 676 capacidades ainda aguarda sanitização, evidência por linha, revisão e integração na `main` do repositório `Dacora Data Hub`.
+- Esta fotografia não representa deploy novo em nenhum dos três repositórios.
 
 ## Próximo objetivo
 
-O próximo trabalho deixa de ser fechamento do golden slice e passa a ser expansão funcional:
+O próximo trabalho é transformar o inventário amplo em cobertura verificável e segura:
 
-1. projetar actions/conversions selecionadas como colunas;
-2. fechar enriquecimento criativo;
-3. construir a matriz **611 × Hub** sem `unknown`;
-4. classificar cada capacidade como `supported`, `unsupported_upstream` ou `not_applicable`;
-5. expandir catálogo/backend por lotes preservando grão, granularidade e compatibilidades reais;
-6. manter a UI derivada do catálogo canônico;
-7. só depois fechar PAR5/piloto e reavaliar ativação do Scheduler.
+1. remover IDs e nomes reais do snapshot e dos JSON/CSV gerados;
+2. registrar teste, probe ou smoke rastreável para cada linha marcada `supported` ou `partial`;
+3. revisar e integrar a matriz de **676 capacidades**;
+4. expandir hierarquia e Insights por lotes, preservando grão, granularidade, `null`, zero e campo ausente;
+5. completar as variações de `count`, `value` e `cost` das actions;
+6. obter decisão de produto antes de incluir `business.*` ou billing;
+7. manter a UI derivada do catálogo canônico;
+8. só depois fechar PAR5/piloto e reavaliar ativação do Scheduler.
 
 ## Gates
 
