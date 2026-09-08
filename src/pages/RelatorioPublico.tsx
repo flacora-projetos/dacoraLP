@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import RelatorioMontado from '../reports/RelatorioMontado';
+import BotaoPdfRelatorio from '../reports/pdf/BotaoPdfRelatorio';
 import { formatarCompetencia } from '../reports/format';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
 
@@ -26,6 +27,13 @@ export function RelatorioPublicoApresentado({ relatorio }: { relatorio: Relatori
       }]}
       analisesPublicadas={relatorio.analisesPublicadas ?? []}
       observacoesPublicas={relatorio.observacoesPublicas ?? []}
+      acaoPdf={(
+        <BotaoPdfRelatorio
+          snapshot={relatorio.snapshot}
+          analisesPublicadas={relatorio.analisesPublicadas ?? []}
+          observacoesPublicas={relatorio.observacoesPublicas ?? []}
+        />
+      )}
     />
   );
 }

@@ -265,9 +265,46 @@
   color: var(--dc-tinta);
 }
 
+.dc-topo__imprimir:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.dc-topo__pdf {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.dc-topo__pdf-erro {
+  max-width: 15rem;
+  color: var(--dc-sinal);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.dc-topo__pdf-fallback {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (max-width: 480px) {
   .dc-topo__imprimir {
     width: 100%;
+  }
+
+  .dc-topo__pdf {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .dc-topo__pdf-erro {
+    max-width: none;
   }
 }
 
@@ -3789,6 +3826,7 @@
 
   .dc-topo__seletor,
   .dc-topo__imprimir,
+  .dc-topo__pdf,
   .dc-demo,
   .dc-botao-detalhe,
   .dc-acao,

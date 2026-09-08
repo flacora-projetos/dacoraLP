@@ -89,6 +89,33 @@ for (const apresentacao of ['grafico', 'tabela'] as const) {
 }
 
 /* ---------------------------------------------------------------- */
+/* O PDF lê as mesmas colunas                                        */
+/* ---------------------------------------------------------------- */
+
+/**
+ * ⚠️ O documento em PDF é OUTRO consumidor do mesmo snapshot, e nasceu no mesmo
+ * dia da série por conversão — sem a regra de ocultar. Provar só a página
+ * deixaria a coluna de denominador aparecer no arquivo que o cliente baixa.
+ *
+ * A prova é do CÓDIGO e não do render: montar o PDF aqui exigiria o runtime do
+ * `@react-pdf`, e o que precisa ficar amarrado é que a função de evolução filtre
+ * as colunas antes de desenhar, nas três passagens (cabeçalho, meses, total).
+ */
+const pdf = readFileSync('src/reports/pdf/RelatorioPdf.tsx', 'utf8');
+const evolucaoPdf = pdf.slice(pdf.indexOf('function EvolucaoPdf'), pdf.indexOf('function RankingPdf'));
+assert.ok(evolucaoPdf.length > 200, 'a fatia do PDF veio vazia — toda asserção abaixo passaria por vacuidade');
+assert.match(
+  evolucaoPdf,
+  /const colunas = evolucao\.colunas\.filter\(\(coluna\) => !coluna\.oculta\)/,
+  'o PDF precisa filtrar a coluna de denominador, como a página faz',
+);
+assert.equal(
+  (evolucaoPdf.match(/evolucao\.colunas\.map\(/g) || []).length,
+  0,
+  'nenhuma das três passagens do PDF pode percorrer as colunas sem o filtro',
+);
+
+/* ---------------------------------------------------------------- */
 /* A grade dos painéis                                              */
 /* ---------------------------------------------------------------- */
 
