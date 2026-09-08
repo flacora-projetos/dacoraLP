@@ -2128,3 +2128,11 @@ Validação da integração:
 O bundle pesado de PDF ficou em chunk dinâmico e não entra no carregamento
 inicial do relatório. Produção só pode ser declarada depois do merge, deployment
 READY e smoke no link publicado; esta seção registra implementação e prova local.
+
+**Produção confirmada em 08/09/2026:** PR #42 integrada em `main/b026f50`;
+deployment Vercel `dpl_7BnJYWzkYEUGjpZ86rMU8WhQxP6Z`, target `production`,
+status `Ready`, servido por `https://www.dacora.com.br`. O smoke final abriu um
+link real já liberado de Sementes Santa Fé, clicou no mesmo botão e baixou
+`Dacora-Sementes-Santa-Fe-2026-08-v3.pdf`, sem erro de console ou de página.
+Foi leitura e download: nenhuma versão, aprovação, decisão ou entrega foi criada
+ou alterada.
