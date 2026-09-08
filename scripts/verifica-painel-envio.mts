@@ -431,8 +431,7 @@ try {
   };
 
   flushSync(() => raiz.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar, linkDeVolta: '/painel-de-relatorios?competencia=2026-07' })));
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  assert.ok(elemento.querySelector('[role="dialog"]'));
+  assert.ok(await aguardarSeletor('[role="dialog"]'));
   assert.ok(
     elemento.querySelector('.dcp-portal > .dcp-modal [role="dialog"]'),
     'o diálogo precisa sair da faixa lateral e permanecer dentro de .dc-painel',
@@ -455,6 +454,24 @@ try {
     }
   }
 
+  /**
+   * ⚠️ ESPERAR UM TICK NÃO É ESPERAR O RENDER TERMINAR.
+   *
+   * As duas esperas abaixo eram `setTimeout(…, 0)` — um único tick, contando
+   * com o React ter concluído a carga assíncrona dentro dele. Passava nesta
+   * máquina e **derrubou o build da Vercel** em 08/09, no primeiro deploy
+   * depois de este verificador entrar no `prebuild`: lá o diálogo ainda não
+   * existia quando a asserção rodou. Teste que depende de quantos ticks o
+   * ambiente gasta não é teste, é sorte — e a sorte muda de máquina.
+   */
+  async function aguardarSeletor(seletor: string) {
+    const limite = Date.now() + 2_000;
+    while (!elemento.querySelector(seletor) && Date.now() < limite) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    return elemento.querySelector(seletor);
+  }
+
   const voltar = elemento.querySelector('a[href="/painel-de-relatorios?competencia=2026-07"]') as HTMLAnchorElement | null;
   assert.ok(voltar, 'faltou a opção Voltar para a fila');
   assert.equal(voltar?.textContent?.trim(), 'Voltar para a fila');
@@ -463,7 +480,7 @@ try {
   flushSync(() => raiz.unmount());
   const raizDois = createRoot(elemento);
   flushSync(() => raizDois.render(createElement(EnvioDaRevisao, { aoCarregar, aoSolicitar, linkDeVolta: '/painel-de-relatorios?competencia=2026-07' })));
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await aguardarSeletor('[role="dialog"]');
   const enviar = botao('Enviar agora');
   clicar(enviar);
   clicar(enviar);
