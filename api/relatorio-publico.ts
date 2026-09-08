@@ -4,6 +4,34 @@
  * O token é tratado como credencial: só é aceito no servidor, nunca é
  * devolvido no JSON e só abre a versão final cujo recibo AV4 amarra o
  * documento, o snapshot factual e a aprovação persistida.
+ *
+ * ---------------------------------------------------------------------------
+ * O TOKEN ABRE A VERSÃO CORRENTE, NÃO A VERSÃO EM QUE ELE NASCEU (08/09/2026)
+ *
+ * Cada versão do relatório tem token próprio, e até aqui este endpoint servia
+ * **a linha daquele token**. Consequência, medida quando o PO precisou corrigir
+ * três relatórios de agosto já entregues: o link que está no grupo continua
+ * mostrando o documento antigo para sempre, e liberar a versão nova deixaria
+ * **duas versões liberadas ao mesmo tempo**, com dois links vivos e números
+ * diferentes para a mesma competência.
+ *
+ * ⚠️ E não havia como aposentar um link: `substituido_por` e `revogado_em`
+ * existem desde a migration `0001`, são lidos como trava aqui — e **nunca são
+ * escritos por lugar nenhum**. Varredura em `api/`, `src/` e `db/migrations/`:
+ * zero `UPDATE`. Nos 330 relatórios da base, os dois estão vazios.
+ *
+ * Decisão do PO em 08/09: o link entregue passa a abrir **a versão liberada
+ * corrente daquele cliente e daquela competência** — inclusive quando o token é
+ * de uma versão antiga ou recusada. Um link, um cliente, um mês, sempre o
+ * documento válido.
+ *
+ * ⚠️ Isso vale RETROATIVAMENTE para os links já entregues, e é justamente por
+ * isso que a mudança é só de leitura: nada é atualizado, nenhum token muda de
+ * dono, e o histórico de versões continua intacto para auditoria.
+ *
+ * ⚠️ O recibo de envio guarda o checksum do que FOI ENVIADO, e o link mostra o
+ * que está CORRENTE. A partir daqui as duas coisas podem divergir, de propósito.
+ * ---------------------------------------------------------------------------
  */
 import type { Request, Response } from 'express';
 import { montarRelatorioParaRevisao } from './painel-relatorio.js';
@@ -123,11 +151,38 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
+    /* Primeiro a linha do token, em QUALQUER estado: ela não é o que será
+       servido, é só quem diz de qual cliente e de qual mês este link fala. */
+    const doToken = await fetch(
+      `${urlSupabase}/rest/v1/relatorios?token=eq.${encodeURIComponent(token)}` +
+        '&select=cliente_slug,competencia&limit=1',
+      { headers: { apikey: chaveDeServico, Authorization: `Bearer ${chaveDeServico}` } },
+    );
+    if (!doToken.ok) throw new Error(`token HTTP ${doToken.status}`);
+    const [dono] = (await doToken.json()) as Array<{ cliente_slug: string; competencia: string }>;
+    if (!dono || typeof dono.cliente_slug !== 'string' || typeof dono.competencia !== 'string') {
+      return indisponivel(res);
+    }
+
+    /**
+     * A versão corrente daquele cliente e daquela competência.
+     *
+     * ⚠️ O DESEMPATE É PELA MAIOR VERSÃO, e não pela data mais recente: duas
+     * aprovações podem cair no mesmo instante e a data empataria, enquanto o
+     * número da versão é único por construção (`UNIQUE(cliente_slug,
+     * competencia, versao)`).
+     *
+     * ⚠️ E o cliente e a competência vêm da linha DO PRÓPRIO TOKEN, nunca de
+     * parâmetro da requisição — é o que impede um link de abrir o relatório de
+     * outra empresa.
+     */
     const filtros = [
-      `token=eq.${encodeURIComponent(token)}`,
+      `cliente_slug=eq.${encodeURIComponent(dono.cliente_slug)}`,
+      `competencia=eq.${encodeURIComponent(dono.competencia)}`,
       'estado=eq.liberado',
       'revogado_em=is.null',
       'substituido_por=is.null',
+      'order=versao.desc',
       `select=${COLUNAS}`,
       'limit=1',
     ].join('&');
@@ -141,6 +196,12 @@ export default async function handler(req: Request, res: Response) {
 
     const [linha] = (await resposta.json()) as LinhaPublica[];
     if (!linha || !linhaPodeSerPublicada(linha)) return indisponivel(res);
+    /* Cinto e suspensório: a versão servida tem de ser mesmo do dono do token.
+       O filtro acima já garante isso; esta conferência existe para o dia em que
+       alguém mexer no filtro. */
+    if (linha.cliente_slug !== dono.cliente_slug || linha.competencia !== dono.competencia) {
+      return indisponivel(res);
+    }
 
     const respostaFechamento = await fetch(
       `${urlSupabase}/rest/v1/relatorio_fechamentos_editoriais?relatorio_id=eq.${encodeURIComponent(linha.id)}` +
