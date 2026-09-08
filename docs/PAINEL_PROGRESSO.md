@@ -2068,3 +2068,52 @@ O smoke `[date, campaign_name, spend]` até Sheets/read-back continua evidência
 Próximo gate: provar Meta → Hub → BigQuery → Sheets → read-back **sem migration global por campo**; depois adaptar/ampliar o Portal ao catálogo/resultados do V2. `business.*` continua adiado até contrato/fonte próprios; Scheduler permanece `PAUSED`.
 
 Fonte local obrigatória: `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md`. Estado detalhado: `docs/DATA_HUB_ESTADO_ATUAL.md`.
+
+---
+
+## 2026-09-08 — Gate 1 do PDF dedicado: três protótipos locais, sem integração
+
+O PDF mensal deixou de depender, no protótipo, da impressão da página web. A
+branch `codex/pdf-relatorios-mensais-prototipo-2026-09-08` contém um renderer
+próprio em `@react-pdf/renderer`, alimentado diretamente pelo mesmo
+`SnapshotMontado` que monta a página. Não há consulta a banco, plataforma ou API
+no renderer.
+
+O desenho é compartilhado pela carteira, sem condição por cliente: A4 paisagem,
+Red Hat Display TTF incorporada, capa executiva, cabeçalho e rodapé fixos, versão,
+checksum, página X de Y, indicadores, tabelas, criativos, análises, funil,
+glossário e estados de indisponibilidade. Zero medido continua diferente de
+ausência; o renderer só formata os valores já resolvidos pela fábrica.
+
+Foram gerados e inspecionados, página por página, protótipos das fixtures de Dr.
+Flávio Zenun (8 páginas), Karyne Magalhães (12 páginas) e Aviarte (19 páginas).
+Os três saíram em 841,89 × 595,28 pt, A4 paisagem, com camada de texto, versão e
+paginação presentes. A Aviarte ficou uma página menor que a impressão atual; os
+dois relatórios menores ainda não atingiram a régua de densidade proposta. No
+Gate 1 prevaleceu legibilidade: não houve redução de fonte ou remoção de conteúdo
+para forçar a meta.
+
+Validação registrada:
+
+- TypeScript completo com heap de 8 GB: passou;
+- `pdf:prototipos`: passou para os três cenários;
+- `verifica:cliente-enxuto`: passou;
+- `verifica:analises-publicadas`: passou;
+- `verifica:linguagem`: passou;
+- `verifica:vazamento`: passou;
+- 39 páginas finais renderizadas em PNG e comparadas com a rodada inspecionada:
+  zero diferenças;
+- extração textual: 5.815, 10.064 e 21.167 caracteres, respectivamente.
+
+⚠️ **A camada de texto ainda não passou como contrato de acessibilidade.** Dois
+extratores leram todo o conteúdo e nenhuma página veio vazia, mas alguns acentos
+da primeira ocorrência de certos glifos saíram como caractere de substituição.
+O arquivo aparece corretamente no leitor e o problema não é visual; ainda assim,
+copiar/pesquisar texto com fidelidade fica pendente para o Gate 2. Não se deve
+ligar o download público afirmando extração fiel antes de resolver ou trocar o
+motor.
+
+⚠️ **Isto não está integrado ao portal.** Nenhum botão, rota pública, Supabase,
+aprovação, envio, relatório liberado ou produção foi alterado. O `window.print()`
+continua sendo o único caminho público. A próxima decisão é visual: aprovar ou
+ajustar esta linguagem antes de ligar download e provar RA5 no Gate 2/3.
