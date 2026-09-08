@@ -2068,3 +2068,63 @@ O smoke `[date, campaign_name, spend]` até Sheets/read-back continua evidência
 Próximo gate: provar Meta → Hub → BigQuery → Sheets → read-back **sem migration global por campo**; depois adaptar/ampliar o Portal ao catálogo/resultados do V2. `business.*` continua adiado até contrato/fonte próprios; Scheduler permanece `PAUSED`.
 
 Fonte local obrigatória: `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md`. Estado detalhado: `docs/DATA_HUB_ESTADO_ATUAL.md`.
+
+---
+
+## 2026-09-08 — PDF dedicado integrado ao botão do relatório público
+
+O PDF mensal deixou de depender, no protótipo, da impressão da página web. A
+branch `codex/pdf-relatorios-mensais-prototipo-2026-09-08` contém um renderer
+próprio em `@react-pdf/renderer`, alimentado diretamente pelo mesmo
+`SnapshotMontado` que monta a página. Não há consulta a banco, plataforma ou API
+no renderer.
+
+O desenho é compartilhado pela carteira, sem condição por cliente: A4 paisagem,
+Red Hat Display TTF incorporada, capa executiva, cabeçalho e rodapé fixos, versão,
+checksum, página X de Y, indicadores, tabelas, criativos, análises, funil,
+glossário e estados de indisponibilidade. Zero medido continua diferente de
+ausência; o renderer só formata os valores já resolvidos pela fábrica.
+
+Foram gerados e inspecionados, página por página, protótipos das fixtures de Dr.
+Flávio Zenun (8 páginas), Karyne Magalhães (12 páginas) e Aviarte (19 páginas).
+Os três saíram em 841,89 × 595,28 pt, A4 paisagem, com camada de texto, versão e
+paginação presentes. A Aviarte ficou uma página menor que a impressão atual; os
+dois relatórios menores ainda não atingiram a régua de densidade proposta. No
+Gate 1 prevaleceu legibilidade: não houve redução de fonte ou remoção de conteúdo
+para forçar a meta.
+
+Validação registrada:
+
+- TypeScript completo com heap de 8 GB: passou;
+- `pdf:prototipos`: passou para os três cenários;
+- `verifica:cliente-enxuto`: passou;
+- `verifica:analises-publicadas`: passou;
+- `verifica:linguagem`: passou;
+- `verifica:vazamento`: passou;
+- 39 páginas finais renderizadas em PNG e comparadas com a rodada inspecionada:
+  zero diferenças;
+- extração textual: 5.815, 10.064 e 21.167 caracteres, respectivamente.
+
+O mesmo botão **Exportar PDF**, na mesma posição do cabeçalho público, passou a
+carregar o renderer dedicado somente no clique. Ele recebe exatamente o snapshot,
+as análises publicadas e as observações públicas já entregues pela API do link;
+não reconsulta dados, não cria versão, não muda aprovação e não envia mensagem.
+Se o motor dedicado falhar, o próprio cabeçalho oferece **Usar impressão** como
+fallback explícito.
+
+Validação da integração:
+
+- regressão `verifica:pdf-dedicado` protege o botão único, as três camadas de
+  conteúdo, o nome estável do arquivo, o carregamento tardio e o fallback;
+- `npm run build`, incluindo todas as travas de relatório, passou;
+- navegador Chromium real clicou no botão e baixou os três cenários, sem erro de
+  console ou de página;
+- os PDFs baixados têm 8, 12 e 19 páginas; todas as 39 páginas têm texto e A4
+  paisagem 841,89 × 595,28 pt;
+- a inspeção visual das 39 páginas não encontrou página vazia, corte ou
+  sobreposição;
+- a extração final com `pdfplumber` encontrou zero caracteres de substituição.
+
+O bundle pesado de PDF ficou em chunk dinâmico e não entra no carregamento
+inicial do relatório. Produção só pode ser declarada depois do merge, deployment
+READY e smoke no link publicado; esta seção registra implementação e prova local.

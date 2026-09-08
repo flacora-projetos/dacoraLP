@@ -1,5 +1,6 @@
 /**
- * `.css` como módulo vazio, para regressão que monta componente de verdade.
+ * `.css` como módulo vazio e fonte como URL, para regressão que monta
+ * componente de verdade.
  *
  * O Vite resolve folha de estilo no build; o Node, não. Sem este gancho,
  * qualquer verificador que importe um componente que carrega `report.css`
@@ -10,6 +11,9 @@
 export async function load(url, context, nextLoad) {
   if (url.endsWith('.css')) {
     return { format: 'module', shortCircuit: true, source: 'export default {};' };
+  }
+  if (new URL(url).pathname.endsWith('.ttf')) {
+    return { format: 'module', shortCircuit: true, source: `export default ${JSON.stringify(url)};` };
   }
   return nextLoad(url, context);
 }

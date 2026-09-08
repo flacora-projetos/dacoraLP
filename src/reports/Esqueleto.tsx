@@ -54,6 +54,8 @@ interface Props {
   demo?: { rotulo: string; href: string; descricao: string };
   /** Só a revisão autenticada entrega a caneta; relatórios públicos nunca a montam. */
   introducaoDaRevisao?: ReactNode;
+  /** A página pública injeta o download dedicado; demos mantêm a impressão como fallback. */
+  acaoPdf?: ReactNode;
 }
 
 const MARCA_DACORA: Marca = {
@@ -117,7 +119,7 @@ export const SECOES_SUSPENSAS_PARA_O_CLIENTE = true;
 
 const indice = (posicao: number) => String(posicao).padStart(2, '0');
 
-export default function Esqueleto({ snapshot, competencias, proposta, secoes, demo, introducaoDaRevisao }: Props) {
+export default function Esqueleto({ snapshot, competencias, proposta, secoes, demo, introducaoDaRevisao, acaoPdf }: Props) {
   const { identidade, publicacao, leitura } = snapshot;
   const marca = identidade.marca ?? MARCA_DACORA;
 
@@ -159,24 +161,20 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
             </select>
           </div>
 
-          {/* O "PDF" sempre foi a impressão desta mesma página — nunca houve
-              uma segunda fonte, e é isso que garante que o papel e a tela não
-              divirjam. O que faltava era o botão: a capacidade existia e só
-              quem conhecia Ctrl+P a alcançava. `window.print()` respeita as
-              regras `@media print` já existentes, inclusive a que tira a
-              revisão interna do documento do cliente.
-
-              ⚠️ Ele próprio precisa sumir na impressão, senão sai desenhado
-              no PDF do cliente — a regra está em `report.css`, ao lado das
-              outras. `.dc-acao` NÃO serve aqui: aquilo é a célula de 44px das
-              tabelas, não um botão. */}
-          <button
-            type="button"
-            className="dc-topo__imprimir"
-            onClick={() => window.print()}
-          >
-            Exportar PDF
-          </button>
+          {/* O link público injeta aqui o gerador dedicado, alimentado pelo
+              MESMO snapshot e pelas mesmas camadas aprovadas que montam a
+              página. Demos e revisão conservam a impressão antiga como
+              fallback. O controle continua com a mesma classe para manter a
+              posição aprovada e continuar fora do papel em `@media print`. */}
+          {acaoPdf ?? (
+            <button
+              type="button"
+              className="dc-topo__imprimir"
+              onClick={() => window.print()}
+            >
+              Exportar PDF
+            </button>
+          )}
         </div>
       </header>
 

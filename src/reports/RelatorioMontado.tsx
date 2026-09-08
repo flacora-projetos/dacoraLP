@@ -48,9 +48,11 @@ interface Props {
    * aprova. Até 04/09/2026 ela não chegava aqui — ver `analisePublicada.ts`.
    */
   analisesPublicadas?: AnalisePublicada[];
+  /** Ação de PDF da rota pública; ausente mantém o fallback de impressão. */
+  acaoPdf?: ReactNode;
 }
 
-export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao, observacoesPublicas = [], analisesPublicadas = [] }: Props) {
+export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao, observacoesPublicas = [], analisesPublicadas = [], acaoPdf }: Props) {
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
 
   /* A introdução aprovada ENTRA NO LUGAR da leitura automática, como já
@@ -113,6 +115,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
       proposta={proposta}
       secoes={secoes}
       demo={demo}
+      acaoPdf={acaoPdf}
       introducaoDaRevisao={<>{introducaoDaRevisao}{observacoesPublicas.filter((observacao) => observacao.secao === 'introducao' || observacao.secao === 'relatorio_inteiro').map((observacao, indice) => <aside className="dc-observacao-publica" key={`${observacao.secao}-${indice}`}><strong>Observação</strong><p>{observacao.texto}</p></aside>)}</>}
     />
   );
