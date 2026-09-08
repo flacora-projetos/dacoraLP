@@ -116,6 +116,62 @@ function linhaComIntencao(
     'destinatario_ausente',
   );
 
+  /* ------------------------------------------------------------------ */
+  /* A competência já entregue, por outra versão — 08/09/2026             */
+  /* ------------------------------------------------------------------ */
+
+  {
+    /**
+     * Desde a frente LV, o link no grupo abre a versão CORRENTE. Uma versão
+     * nova de uma competência já entregue no mesmo destino não precisa de
+     * envio: mandar de novo só somaria um segundo link para o mesmo documento.
+     *
+     * ⚠️ A prova de controle vem primeiro: sem ela, "não oferece envio" passaria
+     * por qualquer motivo, inclusive por a fixture estar quebrada.
+     */
+    const controle = montarEstadoSeguroDoEnvio(linha());
+    assert.equal(
+      controle.ok && controle.estado.podeSolicitarEnvio,
+      true,
+      'o caso de controle precisa mesmo oferecer envio',
+    );
+
+    const jaEntregue = montarEstadoSeguroDoEnvio(linha({
+      pode_solicitar_envio: false,
+      entregue_pelo_link_anterior: true,
+    }));
+    assert.equal(jaEntregue.ok, true);
+    assert.equal(jaEntregue.ok && jaEntregue.estado.podeSolicitarEnvio, false);
+    assert.equal(jaEntregue.ok && jaEntregue.estado.entreguePeloLinkAnterior, true);
+    /**
+     * ⚠️ O MOTIVO NÃO PODE SER O GENÉRICO. "Fora de circulação" e "já está nas
+     * mãos de quem precisa" descrevem a mesma ausência de botão por razões
+     * opostas, e o genérico faria a fila avisar de um problema inexistente.
+     */
+    assert.equal(
+      jaEntregue.ok && jaEntregue.estado.indisponibilidade,
+      'entregue_pelo_link_anterior',
+    );
+
+    /* Aprovação inválida continua ganhando: ali há mesmo algo errado. */
+    const invalidaEEntregue = montarEstadoSeguroDoEnvio(linha({
+      pode_solicitar_envio: false,
+      entregue_pelo_link_anterior: true,
+      aprovado_por: null,
+    }));
+    assert.equal(
+      invalidaEEntregue.ok && invalidaEEntregue.estado.indisponibilidade,
+      'aprovacao_invalida',
+    );
+
+    /* Sem a marca, o caso de sempre continua caindo no genérico. */
+    const foraDeCirculacao = montarEstadoSeguroDoEnvio(linha({ pode_solicitar_envio: false }));
+    assert.equal(
+      foraDeCirculacao.ok && foraDeCirculacao.estado.indisponibilidade,
+      'fora_de_circulacao',
+    );
+  }
+
   for (const estado of ['pendente', 'reservado', 'enviando', 'confirmado', 'incerto', 'falhou'] as const) {
     const resultado = montarEstadoSeguroDoEnvio(linhaComIntencao(estado));
     assert.equal(resultado.ok, true, `o estado ${estado} precisa ser reconhecido`);
