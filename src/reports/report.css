@@ -2240,6 +2240,31 @@
  * o barra + linha de eixo duplo do relatório de origem — a justificativa está
  * em `blocos/tipos.ts`, no BlocoB3. Cada painel tem uma escala e uma série, o
  * que dispensa legenda: o título do painel nomeia a métrica.
+ *
+ * ⚠️ AS DUAS COLUNAS SÃO FIXAS, e a regra anterior (`auto-fit` com trilha
+ * mínima de 280px) foi removida por aritmética, não por gosto. A largura útil
+ * aqui é ~893px (64rem de conteúdo, menos o respiro da página e o da
+ * superfície) e três trilhas de 280px com 2rem de intervalo pedem 904px: no
+ * relatório small cap, que tem três painéis, faltavam ONZE PIXELS para caber e
+ * o terceiro — "Custo por resultado" — caía sozinho na linha de baixo. Não era
+ * uma tela específica: acontecia em todo desktop, porque abaixo de 1024px sobra
+ * ainda menos. Foi o defeito relatado pelo PO em 08/09/2026.
+ *
+ * Com número variável de painéis (a evolução por conversão pode ter cinco), a
+ * grade regular precisa de duas exceções para nunca deixar buraco:
+ *   • o PRIMEIRO painel ocupa a linha inteira — é o investimento, o número
+ *     âncora da seção — mas SÓ a partir de três painéis: com dois, esticar o
+ *     primeiro empilharia a evolução de quem hoje está correta (Karyne,
+ *     VetSell, Aviarte…), que é regressão e não conserto. É o que
+ *     `:not(:nth-last-child(-n+2))` testa;
+ *   • o ÚLTIMO ocupa a linha inteira quando ficaria órfão. Como o primeiro já
+ *     consome uma linha, isso acontece quando o total de painéis é par — e o
+ *     `:nth-child(n+4)` mantém o caso de dois painéis fora da regra pelo mesmo
+ *     motivo.
+ *
+ * Medido no navegador com este arquivo, a 966px de viewport: 2 painéis lado a
+ * lado; 3 → largo + 2; 4 → largo + 2 + largo; 5 → largo + 2 + 2; 6 → largo + 2
+ * + 2 + largo. Nunca sobra buraco ao lado de um painel solto.
  */
 .dc-paineis-metrica {
   display: grid;
@@ -2248,8 +2273,13 @@
 
 @media (min-width: 720px) {
   .dc-paineis-metrica {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.4rem 2rem;
+  }
+
+  .dc-paineis-metrica > :first-child:not(:nth-last-child(-n + 2)),
+  .dc-paineis-metrica > :last-child:nth-child(even):nth-child(n + 4) {
+    grid-column: 1 / -1;
   }
 }
 
