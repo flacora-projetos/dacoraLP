@@ -67,6 +67,7 @@ export function registrarFontesDoRelatorioPdf(fontes: {
   medium: string;
   bold: string;
 }) {
+  if (Font.getRegisteredFontFamilies().includes(FONTE_PDF)) return;
   Font.register({
     family: FONTE_PDF,
     fonts: [
@@ -677,16 +678,25 @@ function EvolucaoPdf({ evolucao }: { evolucao: EvolucaoMensal }) {
 }
 
 function RankingPdf({ ranking }: { ranking: RankingCriativos }) {
+  const resolverImagem = (src: string | undefined) => {
+    if (!src) return null;
+    if (/^(?:https?:|data:)/.test(src)) return src;
+    if (src.startsWith('/') && typeof globalThis.location?.origin === 'string') {
+      return new URL(src, globalThis.location.origin).href;
+    }
+    return null;
+  };
   return (
     <View>
       <EscopoPdf escopo={ranking.escopo} />
       <Text style={styles.nota}>Ordenado por {textoPdf(ranking.ordenadoPor)}.</Text>
       <View style={styles.gradeCriativos}>
-        {ranking.criativos.map((criativo) => (
-          <View key={criativo.id} style={styles.criativo} wrap={false}>
+        {ranking.criativos.map((criativo) => {
+          const imagem = resolverImagem(criativo.miniatura?.src);
+          return <View key={criativo.id} style={styles.criativo} wrap={false}>
             <View style={styles.criativoInterno}>
-              {criativo.miniatura?.src && /^(?:https?:|data:)/.test(criativo.miniatura.src)
-                ? <Image src={criativo.miniatura.src} style={styles.criativoImagem} />
+              {imagem
+                ? <Image src={imagem} style={styles.criativoImagem} />
                 : <View style={styles.criativoVazio}><Text style={styles.criativoVazioTexto}>{textoPdf(criativo.motivoSemMiniatura ?? 'Imagem indisponível')}</Text></View>}
               <View style={styles.criativoConteudo}>
                 <Text style={styles.criativoNome}>{textoPdf(criativo.nome)}</Text>
@@ -694,8 +704,8 @@ function RankingPdf({ ranking }: { ranking: RankingCriativos }) {
                 {criativo.situacao && <Text style={styles.criativoSituacao}>{textoPdf(criativo.situacao.situacao)} - situação em {textoPdf(formatarCarimbo(criativo.situacao.lidaEm))}</Text>}
               </View>
             </View>
-          </View>
-        ))}
+          </View>;
+        })}
       </View>
     </View>
   );

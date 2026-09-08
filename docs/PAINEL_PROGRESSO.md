@@ -2071,7 +2071,7 @@ Fonte local obrigatória: `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md`. Estado detalh
 
 ---
 
-## 2026-09-08 — Gate 1 do PDF dedicado: três protótipos locais, sem integração
+## 2026-09-08 — PDF dedicado integrado ao botão do relatório público
 
 O PDF mensal deixou de depender, no protótipo, da impressão da página web. A
 branch `codex/pdf-relatorios-mensais-prototipo-2026-09-08` contém um renderer
@@ -2105,15 +2105,26 @@ Validação registrada:
   zero diferenças;
 - extração textual: 5.815, 10.064 e 21.167 caracteres, respectivamente.
 
-⚠️ **A camada de texto ainda não passou como contrato de acessibilidade.** Dois
-extratores leram todo o conteúdo e nenhuma página veio vazia, mas alguns acentos
-da primeira ocorrência de certos glifos saíram como caractere de substituição.
-O arquivo aparece corretamente no leitor e o problema não é visual; ainda assim,
-copiar/pesquisar texto com fidelidade fica pendente para o Gate 2. Não se deve
-ligar o download público afirmando extração fiel antes de resolver ou trocar o
-motor.
+O mesmo botão **Exportar PDF**, na mesma posição do cabeçalho público, passou a
+carregar o renderer dedicado somente no clique. Ele recebe exatamente o snapshot,
+as análises publicadas e as observações públicas já entregues pela API do link;
+não reconsulta dados, não cria versão, não muda aprovação e não envia mensagem.
+Se o motor dedicado falhar, o próprio cabeçalho oferece **Usar impressão** como
+fallback explícito.
 
-⚠️ **Isto não está integrado ao portal.** Nenhum botão, rota pública, Supabase,
-aprovação, envio, relatório liberado ou produção foi alterado. O `window.print()`
-continua sendo o único caminho público. A próxima decisão é visual: aprovar ou
-ajustar esta linguagem antes de ligar download e provar RA5 no Gate 2/3.
+Validação da integração:
+
+- regressão `verifica:pdf-dedicado` protege o botão único, as três camadas de
+  conteúdo, o nome estável do arquivo, o carregamento tardio e o fallback;
+- `npm run build`, incluindo todas as travas de relatório, passou;
+- navegador Chromium real clicou no botão e baixou os três cenários, sem erro de
+  console ou de página;
+- os PDFs baixados têm 8, 12 e 19 páginas; todas as 39 páginas têm texto e A4
+  paisagem 841,89 × 595,28 pt;
+- a inspeção visual das 39 páginas não encontrou página vazia, corte ou
+  sobreposição;
+- a extração final com `pdfplumber` encontrou zero caracteres de substituição.
+
+O bundle pesado de PDF ficou em chunk dinâmico e não entra no carregamento
+inicial do relatório. Produção só pode ser declarada depois do merge, deployment
+READY e smoke no link publicado; esta seção registra implementação e prova local.
