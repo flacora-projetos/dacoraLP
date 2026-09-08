@@ -49,6 +49,12 @@ export interface LinhaDoPortalP5 {
   confirmado_em: string | null;
   erro_codigo: string | null;
   pode_solicitar_envio: boolean;
+  /**
+   * A competência deste cliente JÁ FOI ENTREGUE no mesmo destino, por outra
+   * versão — e desde a frente LV o link que está lá abre a versão corrente.
+   * Vem da view; a fila não recalcula isso do lado do navegador.
+   */
+  entregue_pelo_link_anterior?: boolean;
 }
 
 export interface EstadoSeguroDoEnvioP5 {
@@ -59,9 +65,13 @@ export interface EstadoSeguroDoEnvioP5 {
   checksum: string;
   destinatarioNome: string | null;
   podeSolicitarEnvio: boolean;
+  /** O link que já está no grupo abre esta versão — enviar de novo só somaria
+   *  um segundo link, apontando para o mesmo documento. */
+  entreguePeloLinkAnterior: boolean;
   indisponibilidade:
     | 'destinatario_ausente'
     | 'aprovacao_invalida'
+    | 'entregue_pelo_link_anterior'
     | 'fora_de_circulacao'
     | null;
   envio: {
@@ -193,6 +203,8 @@ export function montarEstadoSeguroDoEnvio(linha: LinhaDoPortalP5): ResultadoDaMo
     return { ok: false, motivo: 'a view ofereceu envio sem destino habilitado ou com intenção existente' };
   }
 
+  const entreguePeloLinkAnterior = linha.entregue_pelo_link_anterior === true;
+
   let indisponibilidade: EstadoSeguroDoEnvioP5['indisponibilidade'] = null;
   if (!envio && !podeSolicitarEnvio) {
     if (!temDestino) indisponibilidade = 'destinatario_ausente';
@@ -202,6 +214,15 @@ export function montarEstadoSeguroDoEnvio(linha: LinhaDoPortalP5): ResultadoDaMo
       !linha.aprovado_em ||
       linha.aprovado_checksum !== linha.checksum
     ) indisponibilidade = 'aprovacao_invalida';
+    /**
+     * ⚠️ ANTES de `fora_de_circulacao`, e a ordem é o que importa aqui.
+     *
+     * As duas descrevem "não dá para enviar", e o motivo é oposto: uma diz que
+     * o documento não está em condição de circular, a outra que ele JÁ ESTÁ
+     * NAS MÃOS DE QUEM PRECISA. Cair no genérico faria a fila avisar de um
+     * problema onde não há nenhum.
+     */
+    else if (entreguePeloLinkAnterior) indisponibilidade = 'entregue_pelo_link_anterior';
     else indisponibilidade = 'fora_de_circulacao';
   }
 
@@ -215,6 +236,7 @@ export function montarEstadoSeguroDoEnvio(linha: LinhaDoPortalP5): ResultadoDaMo
       checksum: linha.checksum,
       destinatarioNome,
       podeSolicitarEnvio,
+      entreguePeloLinkAnterior,
       indisponibilidade,
       envio,
     },

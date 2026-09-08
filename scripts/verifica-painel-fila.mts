@@ -19,6 +19,7 @@
  * Nenhum número, nome ou ID real de cliente entra aqui: este repositório é
  * público.
  */
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -878,6 +879,52 @@ function desenhar(dados: any): string {
 }
 
 /* ================================================================== */
+/* 6.9 JÁ ENTREGUE PELO LINK ANTERIOR (frente LV, 08/09/2026)         */
+/* ================================================================== */
+{
+  const { podeVoltarEdicao } = await import('../api/painel-fila.ts');
+  const acaoNormal = { envioId: null, entreguePeloLinkAnterior: false };
+  const acaoJaEntregue = { envioId: null, entreguePeloLinkAnterior: true };
+
+  /* Controle primeiro: sem ele, "não oferece" passaria por qualquer motivo. */
+  assert.equal(podeVoltarEdicao('liberado', null, acaoNormal), true);
+
+  /**
+   * ⚠️ Desde a frente LV o link no grupo abre a versão CORRENTE, então reabrir
+   * a edição de um documento já entregue muda na hora o que o cliente vê.
+   */
+  assert.equal(podeVoltarEdicao('liberado', null, acaoJaEntregue), false);
+
+  /* E o que já valia continua valendo. */
+  assert.equal(podeVoltarEdicao('gerado', null, acaoNormal), false);
+  assert.equal(podeVoltarEdicao('liberado', '2026-09-01T10:00:00Z', acaoNormal), false);
+  assert.equal(podeVoltarEdicao('liberado', null, undefined), false);
+  assert.equal(podeVoltarEdicao('liberado', null, { envioId: 'x', entreguePeloLinkAnterior: false }), false);
+
+  /**
+   * ⚠️ PROVA DE FIAÇÃO: a função ser correta não adianta se o handler não a
+   * chamar. Uma mutação que reimplementasse a regra antiga direto no `map`
+   * passava verde com todas as asserções acima — é o defeito de fiação clássico
+   * deste projeto, e ele é invisível para teste que exercita só a peça.
+   *
+   * Os comentários saem antes da busca: o texto que explica a regra cita o nome
+   * dela, e a asserção passaria por casar com a própria explicação.
+   */
+  const fonteDaFila = readFileSync(new URL('../api/painel-fila.ts', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  assert.match(
+    fonteDaFila,
+    /podeVoltarEdicao:\s*podeVoltarEdicao\(/,
+    'a fila precisa DECIDIR pela função, e não repetir a regra no lugar',
+  );
+  assert.ok(
+    !/podeVoltarEdicao:\s*liberadoSemEnvio/.test(fonteDaFila),
+    'a regra antiga não pode voltar inline',
+  );
+}
+
+/* ================================================================== */
 /* 7. AÇÕES PÓS-APROVAÇÃO FICAM NO PRÓPRIO ESTADO (RA4)              */
 /* ================================================================== */
 {
@@ -913,6 +960,43 @@ function desenhar(dados: any): string {
   assert.match(celulaEstado, /Voltar para edição/);
   assert.match(celulaEstado, />Enviar</);
   assert.doesNotMatch(html, /<th scope="col">Ações<\/th>/, 'a fila não cria uma coluna extra só para essas ações');
+
+  /**
+   * ⚠️ JÁ ENTREGUE PELO LINK ANTERIOR: sem botão, e com o motivo certo.
+   *
+   * A mesma célula, com a compet6ncia já entregue no mesmo destino, não pode
+   * oferecer ação nenhuma — enviar somaria um segundo link para o mesmo
+   * documento, e reabrir a edição mudaria na hora o que o cliente vê. E o texto
+   * NÃO pode ser o genérico de "envio indisponível": ali não há problema
+   * nenhum, e avisar de um faria a fila mentir.
+   */
+  const jaEntregue = {
+    ...base,
+    checksum: 'abc123',
+    podeVoltarEdicao: false,
+    podeSolicitarEnvio: false,
+    destinatarioNome: 'Cliente Aprovado',
+    envioIndisponibilidade: 'entregue_pelo_link_anterior',
+  };
+  const htmlEntregue = renderToStaticMarkup(
+    createElement(
+      MemoryRouter,
+      null,
+      createElement(FilaApresentada, {
+        dados: { competencia: '2026-07', competencias: ['2026-07'], itens: [jaEntregue] },
+        aoVoltarEdicao: () => undefined,
+        aoEnviar: () => undefined,
+      }),
+    ),
+  );
+  assert.match(htmlEntregue, /Já entregue pelo link anterior/);
+  assert.doesNotMatch(htmlEntregue, /Voltar para edição/);
+  assert.doesNotMatch(htmlEntregue, />Enviar</);
+  assert.doesNotMatch(
+    htmlEntregue,
+    /Envio indisponível/,
+    'o aviso genérico faria a fila avisar de um problema que não existe',
+  );
 }
 
 

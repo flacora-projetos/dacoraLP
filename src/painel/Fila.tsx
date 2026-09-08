@@ -440,9 +440,15 @@ function AcoesDoEstadoAprovado({
           Enviar
         </button>
       )}
-      {item.envioIndisponibilidade && (
+      {item.envioIndisponibilidade === 'entregue_pelo_link_anterior' ? (
+        /* Não é problema: o link que já está no grupo abre esta versão. Enviar
+           de novo só somaria um segundo link para o mesmo documento. */
+        <span className="dcp-estado__apoio" role="status">
+          Já entregue pelo link anterior — o link que está no grupo abre esta versão.
+        </span>
+      ) : item.envioIndisponibilidade ? (
         <span className="dcp-estado__apoio" role="status">Envio indisponível: atualize a fila antes de solicitar.</span>
-      )}
+      ) : null}
     </span>
   );
 }

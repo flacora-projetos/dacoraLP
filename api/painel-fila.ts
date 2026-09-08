@@ -83,6 +83,31 @@ const COLUNAS = [
 
 const COMPETENCIA_VALIDA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/**
+ * Se a fila deve oferecer o botão de voltar para edição.
+ *
+ * ⚠️ REABRIR A EDIÇÃO FICOU MAIS CARO DO QUE ERA, e é por isso que ele some
+ * quando a competência já foi entregue.
+ *
+ * Antes da frente LV o link entregue estava preso à versão enviada, então mexer
+ * numa versão liberada não alcançava ninguém. Desde 08/09 o link abre a versão
+ * CORRENTE — reabrir a edição de um documento já entregue muda, na hora, o que
+ * o cliente vê no link que já tem, sem aviso para ele nem para quem clicou.
+ *
+ * Função pura e exportada só para poder ser provada: o caminho que a produz
+ * dentro do handler depende de duas leituras ao banco, e a regressão que a
+ * cobria antes montava o item da fila à mão — a mutação mostrou que esta linha
+ * podia ser desfeita sem nada reprovar.
+ */
+export function podeVoltarEdicao(
+  estado: string,
+  enviadoEm: string | null | undefined,
+  acao: { envioId: string | null; entreguePeloLinkAnterior: boolean } | undefined,
+): boolean {
+  const liberadoSemEnvio = estado === 'liberado' && !enviadoEm && Boolean(acao) && !acao?.envioId;
+  return liberadoSemEnvio && acao?.entreguePeloLinkAnterior !== true;
+}
+
 export default async function handler(req: Request, res: Response) {
   // Dado de cliente nunca fica em cache intermediário.
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -162,6 +187,7 @@ export default async function handler(req: Request, res: Response) {
     let acoesPorRelatorio = new Map<string, {
       destinatarioNome: string | null;
       podeSolicitarEnvio: boolean;
+      entreguePeloLinkAnterior: boolean;
       indisponibilidade: string | null;
       envioId: string | null;
       envioEstado: string | null;
@@ -197,6 +223,7 @@ export default async function handler(req: Request, res: Response) {
           return [[montagem.estado.relatorioId, {
             destinatarioNome: montagem.estado.destinatarioNome,
             podeSolicitarEnvio: montagem.estado.podeSolicitarEnvio,
+            entreguePeloLinkAnterior: montagem.estado.entreguePeloLinkAnterior,
             indisponibilidade: montagem.estado.indisponibilidade,
             envioId: montagem.estado.envio ? String(linha.envio_id ?? '') || null : null,
             envioEstado: montagem.estado.envio?.estado ?? null,
@@ -210,10 +237,9 @@ export default async function handler(req: Request, res: Response) {
     }
     const itensDaFila = montarFila(linhas).map((item) => {
       const acao = acoesPorRelatorio.get(item.id);
-      const liberadoSemEnvio = item.estado === 'liberado' && !item.enviadoEm && Boolean(acao) && !acao?.envioId;
       return {
         ...item,
-        podeVoltarEdicao: liberadoSemEnvio,
+        podeVoltarEdicao: podeVoltarEdicao(item.estado, item.enviadoEm, acao),
         podeSolicitarEnvio: acao?.podeSolicitarEnvio === true,
         destinatarioNome: acao?.destinatarioNome ?? null,
         /* `??` aqui era errado: com a ação presente e SEM indisponibilidade —
