@@ -135,6 +135,22 @@ const linha = {
   token: sortearToken(),
   conteudo,
   checksum: publicacao.checksum,
+  /**
+   * ⚠️ A IMPRESSÃO FACTUAL, E POR QUE ELA FALTAVA AQUI.
+   *
+   * Este script nasceu na fase A da P1, antes de existir o fechamento editorial
+   * AV4 — e ficou para trás quando ele passou a exigir `checksum_factual_editorial`.
+   * Consequência medida em 08/09/2026: três v4 de agosto foram carregadas por
+   * aqui e o painel recusou a aprovação com *"esta versão ainda não possui a
+   * impressão factual exigida para o fechamento final"*, uma frase que manda
+   * atualizar os dados quando o que faltava era uma coluna que este carregador
+   * não conhecia.
+   *
+   * A fábrica grava esse campo em todos os caminhos vivos (`monthly-report-cadencia.js`,
+   * `monthly-report-batch.js`, `report-correction-worker.js`). Aqui ele
+   * simplesmente não era copiado, e o snapshot sempre o trouxe.
+   */
+  checksum_factual_editorial: publicacao.checksumFactualEditorial ?? null,
   estado: publicacao.estado ?? 'gerado',
   // A data de geração é a da fábrica, não a de agora: o relatório foi apurado
   // quando foi apurado, e a hora em que alguém rodou a carga não é fato do
@@ -146,6 +162,7 @@ console.log('\nRelatório lido do arquivo:');
 console.log(`  cliente      ${identidade.clienteNome ?? '(sem nome)'} (${linha.cliente_slug})`);
 console.log(`  competência  ${linha.competencia}, versão ${linha.versao}, estado "${linha.estado}"`);
 console.log(`  checksum     ${linha.checksum} (recalculado do conteúdo, confere)`);
+console.log(`  factual      ${linha.checksum_factual_editorial ?? '(ausente — o painel vai recusar a aprovação)'}`);
 console.log(`  conteúdo     ${JSON.stringify(conteudo).length.toLocaleString('pt-BR')} caracteres`);
 // O token nunca sai inteiro em log: ele é a credencial do cliente, e log é o
 // lugar mais fácil do mundo de vazar uma.
@@ -258,7 +275,7 @@ function canonico(valor: any): any {
   return valor;
 }
 const conferencia = await fetch(
-  `${urlSupabase}/rest/v1/relatorios?id=eq.${gravado.id}&select=cliente_slug,competencia,versao,estado,checksum,gerado_em,conteudo`,
+  `${urlSupabase}/rest/v1/relatorios?id=eq.${gravado.id}&select=cliente_slug,competencia,versao,estado,checksum,checksum_factual_editorial,gerado_em,conteudo`,
   { headers: cabecalhos },
 );
 
@@ -274,11 +291,16 @@ const envelopeIgual =
   devolvido.cliente_slug === linha.cliente_slug &&
   devolvido.competencia === linha.competencia &&
   devolvido.versao === linha.versao &&
-  devolvido.checksum === linha.checksum;
+  devolvido.checksum === linha.checksum &&
+  /* ⚠️ A impressão factual entra no read-back porque a ausência dela não quebra
+     nada na hora: a linha grava, o script diz "confere", e a recusa só aparece
+     dias depois, na tela de quem vai aprovar, com uma frase que culpa os dados. */
+  (devolvido.checksum_factual_editorial ?? null) === (linha.checksum_factual_editorial ?? null);
 
 console.log('\nLido de volta do banco:');
 console.log(`  ${devolvido.cliente_slug} · ${devolvido.competencia} · versão ${devolvido.versao} · ${devolvido.estado}`);
 console.log(`  checksum da coluna:  ${devolvido.checksum} ${devolvido.checksum === linha.checksum ? '(igual ao do arquivo)' : '(DIFERENTE do arquivo)'}`);
+console.log(`  impressão factual:   ${devolvido.checksum_factual_editorial ?? '(vazia)'}`);
 console.log(`  conteúdo devolvido:  ${conteudoIgual ? 'idêntico ao que subiu' : 'DIFERENTE do que subiu'}`);
 
 if (!envelopeIgual || !conteudoIgual) {
