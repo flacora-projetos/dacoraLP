@@ -99,6 +99,23 @@ export interface ColunaTabela {
   sufixo?: string;
   /** Sai da grade no celular e volta na linha de detalhe. */
   secundaria?: boolean;
+  /**
+   * A conversão contratada a que esta coluna pertence, quando o relatório
+   * publica uma série por conversão. Serve de rótulo de contexto; a coluna já
+   * traz o nome da conversão em `rotulo`.
+   */
+  conversao?: string;
+  /**
+   * Coluna que EXISTE no snapshot e NÃO é desenhada.
+   *
+   * Hoje há uma só: o investimento por conversão da evolução do ano, que é o
+   * denominador declarado do custo por resultado daquela conversão. Ele precisa
+   * viajar para o total do ano poder dividir os dois lados do mesmo recorte —
+   * dividir o investimento da conta inteira pelo resultado de uma conversão só
+   * produz um número plausível e errado. Desenhá-lo dobraria os painéis sem
+   * acrescentar leitura.
+   */
+  oculta?: boolean;
 }
 
 export interface LinhaTabela {

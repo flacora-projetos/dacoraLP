@@ -651,12 +651,23 @@ function TabelaPdf({ tabela }: { tabela: TabelaEntidades }) {
 }
 
 function EvolucaoPdf({ evolucao }: { evolucao: EvolucaoMensal }) {
+  /**
+   * ⚠️ O PDF LÊ AS MESMAS COLUNAS DA PÁGINA, INCLUSIVE A REGRA DE OCULTAR.
+   *
+   * A evolução do ano pode trazer o investimento por conversão, que é o
+   * DENOMINADOR do custo daquela conversão e viaja no snapshot só para o total
+   * do ano poder dividir os dois lados do mesmo recorte. Ele não é desenhado em
+   * lugar nenhum — e este caminho nasceu no mesmo dia da série por conversão,
+   * sem a regra, que é o defeito de fiação clássico deste projeto: o consumidor
+   * novo não sabe do contrato que o antigo já respeita.
+   */
+  const colunas = evolucao.colunas.filter((coluna) => !coluna.oculta);
   return (
     <View>
       <View style={styles.tabela}>
         <View style={[styles.linhaTabela, styles.linhaCabecalho]}>
           <View style={[styles.celula, styles.celulaPrimeira]}><Text style={styles.celulaCabecalho}>Mês</Text></View>
-          {evolucao.colunas.map((coluna) => <View key={coluna.id} style={styles.celula}><Text style={[styles.celulaCabecalho, styles.celulaNumero]}>{textoPdf(coluna.rotulo)}</Text></View>)}
+          {colunas.map((coluna) => <View key={coluna.id} style={styles.celula}><Text style={[styles.celulaCabecalho, styles.celulaNumero]}>{textoPdf(coluna.rotulo)}</Text></View>)}
         </View>
         {evolucao.meses.map((mes) => (
           <View key={mes.competencia} style={styles.linhaTabela} wrap={false}>
@@ -664,12 +675,12 @@ function EvolucaoPdf({ evolucao }: { evolucao: EvolucaoMensal }) {
               <Text style={styles.celulaNome}>{textoPdf(formatarCompetencia(mes.competencia))}</Text>
               {mes.observacao && <Text style={styles.etiqueta}>{textoPdf(mes.observacao)}</Text>}
             </View>
-            {evolucao.colunas.map((coluna) => <View key={coluna.id} style={styles.celula}><Text style={styles.celulaNumero}>{textoDoValor(mes.valores[coluna.id], coluna.unidade, coluna.sufixo)}</Text></View>)}
+            {colunas.map((coluna) => <View key={coluna.id} style={styles.celula}><Text style={styles.celulaNumero}>{textoDoValor(mes.valores[coluna.id], coluna.unidade, coluna.sufixo)}</Text></View>)}
           </View>
         ))}
         <View style={[styles.linhaTabela, styles.linhaTotal]} wrap={false}>
           <View style={[styles.celula, styles.celulaPrimeira]}><Text style={styles.celulaNome}>{textoPdf(evolucao.total.rotulo)}</Text></View>
-          {evolucao.colunas.map((coluna) => <View key={coluna.id} style={styles.celula}><Text style={[styles.celulaNumero, styles.celulaNome]}>{evolucao.total.valores[coluna.id] ? textoDoValor(evolucao.total.valores[coluna.id], coluna.unidade, coluna.sufixo) : '-'}</Text></View>)}
+          {colunas.map((coluna) => <View key={coluna.id} style={styles.celula}><Text style={[styles.celulaNumero, styles.celulaNome]}>{evolucao.total.valores[coluna.id] ? textoDoValor(evolucao.total.valores[coluna.id], coluna.unidade, coluna.sufixo) : '-'}</Text></View>)}
         </View>
       </View>
       <Notas itens={evolucao.definicoes} />

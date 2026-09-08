@@ -37,6 +37,18 @@ function nomeDoMes(competencia: string): string {
   return extenso.charAt(0).toUpperCase() + extenso.slice(1);
 }
 
+/**
+ * As colunas que a página desenha.
+ *
+ * ⚠️ Uma coluna pode existir no snapshot e não ser desenhada: o investimento
+ * por conversão da evolução do ano é o DENOMINADOR do custo por resultado
+ * daquela conversão, e viaja para o total do ano poder dividir os dois lados do
+ * mesmo recorte. Desenhá-lo dobraria os painéis sem acrescentar leitura.
+ */
+function colunasVisiveis(evolucao: EvolucaoMensal) {
+  return evolucao.colunas.filter((coluna) => !coluna.oculta);
+}
+
 interface Props {
   evolucao: EvolucaoMensal;
   config: BlocoB3;
@@ -57,7 +69,7 @@ interface Props {
 function GraficoPorMetrica({ evolucao, theme }: { evolucao: EvolucaoMensal; theme: ChartTheme }) {
   return (
     <div className="dc-paineis-metrica">
-      {evolucao.colunas.map((coluna) => (
+      {colunasVisiveis(evolucao).map((coluna) => (
         <ComparacaoEntreCanais
           key={coluna.id}
           pergunta={coluna.rotulo}
@@ -93,7 +105,7 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
      * de olho — no caso do CPC, somar nem faria sentido. Vai como linha de
      * texto, com o mesmo rótulo que a tabela usaria.
      */
-    const totais = evolucao.colunas
+    const totais = colunasVisiveis(evolucao)
       .map((coluna) => ({ coluna, valor: evolucao.total.valores[coluna.id] }))
       .filter((t): t is { coluna: (typeof evolucao.colunas)[number]; valor: NonNullable<typeof t.valor> } =>
         Boolean(t.valor),
@@ -134,7 +146,7 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
           <thead>
             <tr>
               <th scope="col">Mês</th>
-              {evolucao.colunas.map((coluna) => (
+              {colunasVisiveis(evolucao).map((coluna) => (
                 <th key={coluna.id} scope="col" className="dc-num">
                   {coluna.rotulo}
                 </th>
@@ -150,7 +162,7 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
                     <span className="dc-mes__observacao">{mes.observacao}</span>
                   )}
                 </th>
-                {evolucao.colunas.map((coluna) => {
+                {colunasVisiveis(evolucao).map((coluna) => {
                   const valor = mes.valores[coluna.id];
                   return (
                     <td key={coluna.id} className="dc-num">
@@ -170,7 +182,7 @@ export default function B3EvolucaoMensal({ evolucao, config, theme }: Props) {
           <tfoot>
             <tr>
               <th scope="row">{evolucao.total.rotulo}</th>
-              {evolucao.colunas.map((coluna) => {
+              {colunasVisiveis(evolucao).map((coluna) => {
                 const valor = evolucao.total.valores[coluna.id];
                 return (
                   <td key={coluna.id} className="dc-num">

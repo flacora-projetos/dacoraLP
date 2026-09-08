@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "prebuild": "npm run lint && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento && npm run verifica:cliente-enxuto && npm run verifica:analises-publicadas && npm run verifica:pdf-dedicado && npm run verifica:ra4 && npm run verifica:data-hub-diretriz",
+    "prebuild": "npm run lint && npm run verifica:evolucao-conversao && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento && npm run verifica:cliente-enxuto && npm run verifica:analises-publicadas && npm run verifica:pdf-dedicado && npm run verifica:ra4 && npm run verifica:data-hub-diretriz",
     "build": "vite build && npm run build:ssr && npm run prerender && npm run verifica:casca && npm run sitemap && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr --emptyOutDir",
     "prerender": "node scripts/prerender.mjs",
@@ -33,6 +33,7 @@
     "verifica:funil": "tsx scripts/verifica-relatorio-funil.mts",
     "verifica:linguagem": "tsx scripts/verifica-linguagem-relatorio.mts",
     "verifica:karyne-conversao": "tsx scripts/verifica-karyne-conversao-governada.mts",
+    "verifica:evolucao-conversao": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-relatorio-evolucao-por-conversao.mts",
     "verifica:refoco": "tsx scripts/verifica-painel-refoco.mts",
     "carrega:relatorio": "tsx scripts/carrega-relatorio.mts",
     "start": "node dist/server.cjs",
