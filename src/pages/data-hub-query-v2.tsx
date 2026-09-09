@@ -28,28 +28,49 @@ function valorCelula(row: Record<string, unknown>, field: string) {
   return String(value);
 }
 
+function termoNormalizado(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
 export function ConsultaQueryV2({ catalogo, aoExecutar }: {
   catalogo: Catalogo;
   aoExecutar: (payload: ConsultaV2Payload) => Promise<ResultadoV2>;
 }) {
   const v2 = catalogo.queryEngineV2;
-  const campos = useMemo(() => {
-    const executaveis = new Set(v2?.executableFieldKeys ?? []);
-    return (v2?.fields ?? []).filter((field) => executaveis.has(field.id));
-  }, [v2]);
-  const defaults = ['ad_name', 'insights.quality_ranking', 'spend'].filter((id) => campos.some((field) => field.id === id));
+  const executaveis = useMemo(() => new Set(v2?.executableFieldKeys ?? []), [v2]);
+  const descobriveis = useMemo(() => new Set(v2?.discoverableFieldKeys ?? []), [v2]);
+  const campos = useMemo(() => (v2?.fields ?? []).filter((field) => executaveis.has(field.id) || descobriveis.has(field.id)), [v2, executaveis, descobriveis]);
+  const defaults = ['ad_name', 'insights.quality_ranking', 'spend'].filter((id) => executaveis.has(id));
   const [contaId, setContaId] = useState('');
   const [dateStart, setDateStart] = useState('');
   const [dateStop, setDateStop] = useState('');
   const [selectedFields, setSelectedFields] = useState<readonly string[]>(defaults);
+  const [busca, setBusca] = useState('');
   const [resultado, setResultado] = useState<ResultadoV2 | null>(null);
   const [executando, setExecutando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  const camposFiltrados = useMemo(() => {
+    const termo = termoNormalizado(busca);
+    if (!termo) return campos;
+    return campos.filter((field) => termoNormalizado(`${field.nome} ${field.id} ${field.categoria ?? ''}`).includes(termo));
+  }, [busca, campos]);
+  const selecionadosParaDiscovery = selectedFields.filter((field) => descobriveis.has(field) && !executaveis.has(field));
+
   if (!v2 || !v2.executableFieldKeys.includes('insights.quality_ranking')) return null;
 
   function alternarCampo(id: string) {
-    setSelectedFields((atuais) => atuais.includes(id) ? atuais.filter((field) => field !== id) : [...atuais, id]);
+    if (selectedFields.includes(id)) {
+      setSelectedFields((atuais) => atuais.filter((field) => field !== id));
+      setErro(null);
+      return;
+    }
+    if (descobriveis.has(id) && !executaveis.has(id) && selecionadosParaDiscovery.length >= 3) {
+      setErro('Escolha no máximo 3 campos ainda não validados por consulta. Isso limita o número de probes feitos na Meta.');
+      return;
+    }
+    setSelectedFields((atuais) => [...atuais, id]);
+    setErro(null);
   }
 
   const valido = contaId !== '' && dateStart !== '' && dateStop !== '' && dateStart <= dateStop && selectedFields.length > 0;
@@ -73,7 +94,7 @@ export function ConsultaQueryV2({ catalogo, aoExecutar }: {
       <p className="dcp-eyebrow">Query Engine V2</p>
       <h2 id="query-v2-titulo" className="dcp-secao__titulo">Consulta direta por campos</h2>
       <p className="dcp-secao__apoio">
-        Este caminho usa somente campos que o backend já marcou como executáveis no V2. Ele não altera suas extrações 1.x salvas.
+        Campos já comprovados executam direto. Campos marcados como “verificar nesta conta” passam por discovery real antes da consulta e só seguem se a Meta devolver evidência compatível.
       </p>
 
       <div className="dch-query-v2__controles">
@@ -91,16 +112,24 @@ export function ConsultaQueryV2({ catalogo, aoExecutar }: {
         </label>
       </div>
 
+      <label className="dch-campo dch-query-v2__busca" htmlFor="query-v2-busca"><span>Buscar campos V2</span>
+        <input id="query-v2-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Ex.: outbound, ranking, spend…" />
+      </label>
+
       <fieldset className="dch-query-v2__campos">
-        <legend>Campos executáveis no V2</legend>
-        {campos.map((campo) => (
-          <label key={campo.id} className="dch-opcao">
-            <input type="checkbox" checked={selectedFields.includes(campo.id)} onChange={() => alternarCampo(campo.id)} />
-            <span>{campo.nome}</span>
-          </label>
-        ))}
+        <legend>Campos do catálogo V2</legend>
+        {camposFiltrados.map((campo) => {
+          const requerDiscovery = descobriveis.has(campo.id) && !executaveis.has(campo.id);
+          return (
+            <label key={campo.id} className="dch-opcao">
+              <input type="checkbox" checked={selectedFields.includes(campo.id)} onChange={() => alternarCampo(campo.id)} />
+              <span>{campo.nome}<small className="dch-query-v2__estado">{requerDiscovery ? 'Verificar nesta conta' : 'Executável'}</small></span>
+            </label>
+          );
+        })}
       </fieldset>
 
+      {selecionadosParaDiscovery.length > 0 ? <p className="dcp-secao__apoio">Discovery nesta execução: {selecionadosParaDiscovery.length}/3 campo(s).</p> : null}
       <button type="button" className="dcp-botao dcp-botao--primario" disabled={!valido || executando} onClick={() => void executar()}>
         {executando ? 'Consultando…' : 'Executar consulta V2'}
       </button>

@@ -67,7 +67,7 @@ assert.deepEqual(filtrarCampos([
         combinations: [{ entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] }],
       } }],
     creativeFields: [{ key: 'thumbnail_url', name: 'Miniatura', description: 'URL da imagem de prévia' }],
-    queryEngineV2: { schemaVersion: '2.0-spike', executableFieldKeys: ['ad_name', 'insights.quality_ranking', 'spend'], fields: [
+    queryEngineV2: { schemaVersion: '2.0-spike', executableFieldKeys: ['ad_name', 'insights.quality_ranking', 'spend'], discoverableFieldKeys: ['insights.quality_ranking', 'insights.outbound_clicks'], fields: [
       { key: 'ad_name', label: 'Anúncio', category: 'dimensions', valueType: 'string' },
       { key: 'insights.quality_ranking', label: 'Quality Ranking', category: 'dimensions_structure', valueType: 'string' },
       { key: 'insights.outbound_clicks', label: 'Outbound Clicks', category: 'metrics', valueType: 'number' },
@@ -117,6 +117,7 @@ assert.deepEqual(filtrarCampos([
   assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
   assert.equal(real.queryEngineV2?.schemaVersion, '2.0-spike');
   assert.deepEqual(real.queryEngineV2?.executableFieldKeys, ['ad_name', 'insights.quality_ranking', 'spend']);
+  assert.deepEqual(real.queryEngineV2?.discoverableFieldKeys, ['insights.quality_ranking', 'insights.outbound_clicks']);
   assert.equal(real.queryEngineV2?.fields.find(({ id }) => id === 'insights.quality_ranking')?.nome, 'Quality Ranking');
   assert.equal(real.queryEngineV2?.executableFieldKeys.includes('insights.outbound_clicks'), false, 'campo não promovido não pode vazar para execução V2');
 }
@@ -254,6 +255,9 @@ assert.match(pagina, /chamarDataHub\('\/query-v2'/, 'Portal precisa executar V2 
 assert.match(bffDataHub, /path === '\/query-v2' && method === 'POST'/, 'BFF precisa rotear a consulta V2 explicitamente');
 assert.match(bffDataHub, /endpoint: `\$\{base\}\/query-v2`/, 'BFF V2 só pode apontar para a rota portal privada do Hub');
 assert.match(queryV2, /executableFieldKeys/, 'UI V2 precisa derivar disponibilidade do backend');
+assert.match(queryV2, /discoverableFieldKeys/, 'UI V2 precisa derivar discovery do backend');
+assert.match(queryV2, /Verificar nesta conta/, 'campos account-scoped precisam explicar o discovery antes da execução');
+assert.match(queryV2, /selecionadosParaDiscovery\.length >= 3/, 'UI precisa respeitar o limite de fan-out do discovery');
 assert.match(queryV2, /Object\.hasOwn\(row, field\)/, 'UI V2 precisa distinguir campo ausente de null');
 assert.match(queryV2, /value === null/, 'UI V2 precisa preservar null explícito');
 assert.match(queryV2, /insights\.quality_ranking/, 'primeiro campo dinâmico promovido precisa estar protegido pelo gate V2');

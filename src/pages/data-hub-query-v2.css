@@ -2,6 +2,8 @@
 .dch-query-v2__controles { display: grid; grid-template-columns: minmax(14rem, 2fr) repeat(2, minmax(10rem, 1fr)); gap: 1rem; align-items: end; }
 .dch-query-v2__campos { margin: 1rem 0; padding: 1rem; border: 1px solid currentColor; border-radius: .5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .5rem 1rem; }
 .dch-query-v2__campos legend { padding: 0 .35rem; font-weight: 700; }
+.dch-query-v2__busca { margin-top: 1rem; max-width: 32rem; }
+.dch-query-v2__estado { display: block; margin-top: .15rem; font-size: .78rem; opacity: .72; }
 .dch-query-v2__resultado { margin-top: 1rem; }
 .dch-query-v2__tabela-wrap { overflow-x: auto; }
 .dch-query-v2__tabela { width: 100%; border-collapse: collapse; }
