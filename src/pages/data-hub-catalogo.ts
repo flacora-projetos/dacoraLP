@@ -145,6 +145,19 @@ export type Template = {
   readonly campos?: readonly string[];
   readonly creativeFields?: readonly string[];
 };
+export type CampoQueryV2 = {
+  readonly id: string;
+  readonly nome: string;
+  readonly categoria?: string;
+  readonly valueType?: string;
+};
+
+export type QueryEngineV2Catalogo = {
+  readonly schemaVersion: string;
+  readonly executableFieldKeys: readonly string[];
+  readonly fields: readonly CampoQueryV2[];
+};
+
 export type Catalogo = {
   readonly contas: readonly Conta[];
   readonly niveis: readonly { id: NivelEntidade; nome: string }[];
@@ -154,6 +167,7 @@ export type Catalogo = {
   readonly periodos: readonly Periodo[];
   readonly granularidades: readonly { id: Granularidade; nome: string; dias: number }[];
   readonly templates: readonly Template[];
+  readonly queryEngineV2?: QueryEngineV2Catalogo;
 };
 
 export const CATALOGO_PADRAO: Catalogo = {
@@ -165,6 +179,7 @@ export const CATALOGO_PADRAO: Catalogo = {
   periodos: PERIODOS,
   granularidades: GRANULARIDADES,
   templates: [],
+  queryEngineV2: undefined,
 };
 
 function lista<T>(value: unknown): T[] { return Array.isArray(value) ? value as T[] : []; }
@@ -269,7 +284,20 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
   }).filter((item) => ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada'].includes(item.id));
   const periodosRemotos = lista<any>(raw.periods ?? raw.periodos).map((item) => ({ id: String(item.id ?? item.key ?? ''), nome: String(item.name ?? item.nome ?? item.id ?? ''), dias: Number(item.days ?? item.dias ?? 0) })).filter((item) => item.id && item.nome && item.dias > 0);
   const periodos = periodosRemotos.length ? periodosRemotos : [...PERIODOS];
-  return { contas, niveis, campos, creativeFields, breakdowns, periodos, granularidades, templates };
+  const rawV2 = raw.queryEngineV2;
+  const queryEngineV2 = rawV2 && typeof rawV2 === 'object' && !Array.isArray(rawV2)
+    ? {
+      schemaVersion: String(rawV2.schemaVersion ?? ''),
+      executableFieldKeys: lista<string>(rawV2.executableFieldKeys).map(String),
+      fields: lista<any>(rawV2.fields).map((item) => ({
+        id: String(item.key ?? item.id ?? ''),
+        nome: String(item.label ?? item.name ?? item.key ?? item.id ?? ''),
+        categoria: typeof item.category === 'string' ? item.category : undefined,
+        valueType: typeof item.valueType === 'string' ? item.valueType : undefined,
+      })).filter((item) => item.id && item.nome),
+    }
+    : undefined;
+  return { contas, niveis, campos, creativeFields, breakdowns, periodos, granularidades, templates, queryEngineV2 };
 }
 
 export const RASCUNHO_INICIAL: Rascunho = {
