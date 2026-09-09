@@ -67,6 +67,12 @@ assert.deepEqual(filtrarCampos([
         combinations: [{ entityLevels: ['campaign', 'adset', 'ad'], breakdownSelections: [['age', 'gender']] }],
       } }],
     creativeFields: [{ key: 'thumbnail_url', name: 'Miniatura', description: 'URL da imagem de prévia' }],
+    queryEngineV2: { schemaVersion: '2.0-spike', executableFieldKeys: ['ad_name', 'insights.quality_ranking', 'spend'], fields: [
+      { key: 'ad_name', label: 'Anúncio', category: 'dimensions', valueType: 'string' },
+      { key: 'insights.quality_ranking', label: 'Quality Ranking', category: 'dimensions_structure', valueType: 'string' },
+      { key: 'insights.outbound_clicks', label: 'Outbound Clicks', category: 'metrics', valueType: 'number' },
+      { key: 'spend', label: 'Investimento', category: 'metrics', valueType: 'number' },
+    ] },
     breakdowns: ['age', 'gender'], granularities: ['day', 'week', 'month', 'all_days', 'custom'],
     templates: [
       { key: 'meta_campaign_daily', entityLevels: ['account', 'campaign'], breakdownSelections: [[]],
@@ -109,6 +115,10 @@ assert.deepEqual(filtrarCampos([
   assert.deepEqual(legado.removidos, ['campo_antigo', 'url_antiga']);
   assert.deepEqual(real.granularidades.map(({ id }) => id), ['diaria', 'semanal', 'mensal', 'periodo-inteiro', 'personalizada']);
   assert.equal(real.periodos.length, 4, 'períodos são contrato do produto quando o provedor não os publica');
+  assert.equal(real.queryEngineV2?.schemaVersion, '2.0-spike');
+  assert.deepEqual(real.queryEngineV2?.executableFieldKeys, ['ad_name', 'insights.quality_ranking', 'spend']);
+  assert.equal(real.queryEngineV2?.fields.find(({ id }) => id === 'insights.quality_ranking')?.nome, 'Quality Ranking');
+  assert.equal(real.queryEngineV2?.executableFieldKeys.includes('insights.outbound_clicks'), false, 'campo não promovido não pode vazar para execução V2');
 }
 
 /* Criativos deixam de pedir nível manual: a própria seleção deduz grão Anúncio. */
@@ -206,6 +216,8 @@ assert.deepEqual(filtrarCampos([
 
 const pagina = fs.readFileSync(new URL('../src/pages/DataHub.tsx', import.meta.url), 'utf8');
 const componentes = fs.readFileSync(new URL('../src/pages/data-hub-extracoes.tsx', import.meta.url), 'utf8');
+const queryV2 = fs.readFileSync(new URL('../src/pages/data-hub-query-v2.tsx', import.meta.url), 'utf8');
+const bffDataHub = fs.readFileSync(new URL('../api/_data-hub.ts', import.meta.url), 'utf8');
 
 /* Navegação entre as duas seções privadas, com a atual marcada por aria-current. */
 assert.match(pagina, /to="\/painel-de-relatorios"/, 'falta a navegação para Relatórios');
@@ -238,6 +250,13 @@ const fetches = pagina.match(/fetch\(/g) ?? [];
 assert.ok(fetches.length >= 2, 'PWI2 precisa consultar o catálogo e as extrações');
 assert.match(pagina, /fetch\('\/api\/data-hub-spike'/);
 assert.match(pagina, /fetch\(`\/api\/data-hub\$\{path\}`/);
+assert.match(pagina, /chamarDataHub\('\/query-v2'/, 'Portal precisa executar V2 pelo mesmo BFF autenticado');
+assert.match(bffDataHub, /path === '\/query-v2' && method === 'POST'/, 'BFF precisa rotear a consulta V2 explicitamente');
+assert.match(bffDataHub, /endpoint: `\$\{base\}\/query-v2`/, 'BFF V2 só pode apontar para a rota portal privada do Hub');
+assert.match(queryV2, /executableFieldKeys/, 'UI V2 precisa derivar disponibilidade do backend');
+assert.match(queryV2, /Object\.hasOwn\(row, field\)/, 'UI V2 precisa distinguir campo ausente de null');
+assert.match(queryV2, /value === null/, 'UI V2 precisa preservar null explícito');
+assert.match(queryV2, /insights\.quality_ranking/, 'primeiro campo dinâmico promovido precisa estar protegido pelo gate V2');
 assert.match(pagina, /Conectar Google Drive/);
 assert.match(pagina, /\/google\/status/);
 assert.match(pagina, /\/google\/callback/);

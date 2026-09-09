@@ -5,7 +5,7 @@ import {
   type RequisicaoDataHub,
 } from './_data-hub-spike.js';
 
-type Operacao = 'catalog' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'run' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
+type Operacao = 'catalog' | 'query-v2' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'run' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
 
 function jsonBody(req: Request): unknown {
   return req.body == null ? {} : req.body;
@@ -25,6 +25,9 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   const base = `${config.cloudRunAudience}/internal/v1/portal`;
   if (path === '/catalog' && method === 'GET') {
     return { operation: 'catalog', request: { endpoint: `${base}/catalog`, method: 'GET' } };
+  }
+  if (path === '/query-v2' && method === 'POST') {
+    return { operation: 'query-v2', request: { endpoint: `${base}/query-v2`, method: 'POST', body: jsonBody(req) } };
   }
   if (path === '/extractions' && method === 'GET') {
     return { operation: 'list', request: { endpoint: `${base}/extractions`, method: 'GET' } };

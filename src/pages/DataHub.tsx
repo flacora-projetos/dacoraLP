@@ -6,9 +6,11 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
+import { ConsultaQueryV2, type ConsultaV2Payload } from './data-hub-query-v2';
 import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, preservarGraoLegadoNosCampos, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
+import './data-hub-query-v2.css';
 
 type EstadoConexao =
   | { tipo: 'inicial' }
@@ -68,6 +70,10 @@ function DataHubInicio() {
 
   async function chamarDataHub(path: string, init: RequestInit = {}) {
     return (await requisitarDataHub(path, init)).corpo;
+  }
+
+  async function executarQueryV2(payload: ConsultaV2Payload) {
+    return chamarDataHub('/query-v2', { method: 'POST', body: JSON.stringify(payload) });
   }
 
   useEffect(() => {
@@ -342,6 +348,8 @@ function DataHubInicio() {
           />
         )}
         {erroSalvar ? <p className="dch-status dch-status--erro" role="alert">{erroSalvar}</p> : null}
+
+        {!carregando && !erroDados ? <ConsultaQueryV2 catalogo={catalogo} aoExecutar={executarQueryV2} /> : null}
 
         <section className="dch-conexao" aria-labelledby="google-titulo">
           <div>
