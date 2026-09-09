@@ -155,6 +155,7 @@ export type CampoQueryV2 = {
 export type QueryEngineV2Catalogo = {
   readonly schemaVersion: string;
   readonly executableFieldKeys: readonly string[];
+  readonly discoverableFieldKeys: readonly string[];
   readonly fields: readonly CampoQueryV2[];
 };
 
@@ -289,6 +290,7 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
     ? {
       schemaVersion: String(rawV2.schemaVersion ?? ''),
       executableFieldKeys: lista<string>(rawV2.executableFieldKeys).map(String),
+      discoverableFieldKeys: lista<string>(rawV2.discoverableFieldKeys).map(String),
       fields: lista<any>(rawV2.fields).map((item) => ({
         id: String(item.key ?? item.id ?? ''),
         nome: String(item.label ?? item.name ?? item.key ?? item.id ?? ''),
