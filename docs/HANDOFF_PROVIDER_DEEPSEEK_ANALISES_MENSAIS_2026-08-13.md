@@ -1,5 +1,8 @@
 # Handoff — provider das análises mensais: Flash, Pro e Sonnet
 
+> ⚠️ **O DEGRAU DO PRO SAIU DO PADRÃO EM 10/09/2026 — este documento descreve a cadeia até 09/09.** A DeepSeek lançou o V4.1 Flash e adiou o fim do V4 Pro para 14/09/2026 12:00 (Pequim), com toda requisição ao Pro passando a ser atendida pelo V4.1 Flash e cobrada como Flash. A cadeia viraria `Flash → Flash → Sonnet`: o degrau do meio gastaria uma tentativa repetindo o MESMO modelo com o MESMO pedido, e o campo auditável registraria `deepseek-v4-pro` para uma resposta que não veio do Pro. **O padrão passou a ser `Flash → Sonnet`.** O `pro` continua SUPORTADO — volta pela ordem no ambiente — e o modo manual `deepseek_pro` continua alcançando-o direto para comparação isolada. ⚠️ **MEDIDO: `api.deepseek.com/models` devolve apenas `deepseek-flash` e `deepseek-v4-pro`; `deepseek-v4-flash` ainda responde mas se identifica como `deepseek-flash`, sem versão, e `deepseek-v4.1-flash` é recusado — não existe id versionado do Flash para fixar.** ⚠️ E `verifica:analise` **existia e não estava no `prebuild`**; entrou nessa rodada. Detalhe na fábrica: `docs/HANDOFF_CADEIA_MODELOS_SEM_PRO_2026-09-10.md`.
+
+
 **Frente:** paralela à RA3; não é uma fase RA3.
 **Branch original do provider:** `codex/ra-deepseek-provider`
 **Branch do refino atual:** `codex/ra-contexto-formatacao`
