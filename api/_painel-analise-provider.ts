@@ -46,7 +46,38 @@ const SONNET_URL = 'https://api.anthropic.com/v1/messages';
 const DEEPSEEK_MAX_TOKENS_PADRAO = 16_384;
 const SONNET_MAX_TOKENS_PADRAO = 4_000;
 const TIMEOUT_MS_PADRAO = 50_000;
-const ORDEM_PADRAO: EtapaRoteamento[] = ['flash', 'pro', 'sonnet'];
+/**
+ * Etapas que a cadeia SABE executar. Separada da ordem padrão de propósito: sem
+ * essa separação, uma etapa fora do padrão declarada em
+ * `MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER` seria tratada como nome inválido e a
+ * ordem inteira cairia no padrão EM SILÊNCIO.
+ */
+const ETAPAS_SUPORTADAS: EtapaRoteamento[] = ['flash', 'pro', 'sonnet'];
+
+/**
+ * ⚠️ **O `pro` SAIU DO PADRÃO EM 10/09/2026 porque deixou de ser um modelo
+ * diferente do `flash`, não por custo nem por qualidade.** A DeepSeek anunciou
+ * o fim do V4 Pro para 14/09/2026 12:00 (Pequim): toda requisição ao Pro passa
+ * a ser atendida pelo V4.1 Flash e cobrada como Flash. A cadeia viraria
+ * `flash -> flash -> sonnet` — o degrau do meio gastando uma tentativa para
+ * repetir o MESMO modelo com o MESMO pedido, e a auditoria registrando
+ * `deepseek-v4-pro` para uma resposta que não veio do Pro.
+ *
+ * ⚠️ **A consequência de manter era a pior das duas:** repetição não é segunda
+ * chance, então a subida ao Sonnet aconteceria com a mesma frequência, só mais
+ * devagar e pagando uma chamada a mais no caminho.
+ *
+ * ⚠️ **MEDIDO em 10/09/2026 contra a API viva:** `api.deepseek.com/models`
+ * devolve apenas `deepseek-flash` e `deepseek-v4-pro`; o id `deepseek-v4-flash`
+ * ainda responde mas se identifica como `deepseek-flash`, um nome SEM VERSÃO, e
+ * `deepseek-v4.1-flash` é RECUSADO. Não existe id versionado do Flash para
+ * fixar — a etapa rápida troca de modelo sem ninguém declarar, e o campo
+ * auditável guarda o nome pedido, nunca a versão que atendeu.
+ *
+ * O `pro` continua SUPORTADO: volta pela ordem no ambiente, e o modo manual
+ * `deepseek_pro` continua alcançando-o direto para comparação isolada.
+ */
+const ORDEM_PADRAO: EtapaRoteamento[] = ['flash', 'sonnet'];
 
 function inteiroDoEnv(nome: string, padrao: number, minimo: number, maximo: number): number {
   const valor = Number(process.env[nome]);
@@ -63,7 +94,7 @@ function ordemConfigurada(): EtapaRoteamento[] {
   if (provedorPrimario() === 'sonnet') return ['sonnet'];
   const configurada = String(process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER ?? '').trim();
   if (!configurada) return ORDEM_PADRAO;
-  const permitidas = new Set<EtapaRoteamento>(ORDEM_PADRAO);
+  const permitidas = new Set<EtapaRoteamento>(ETAPAS_SUPORTADAS);
   const etapas = configurada.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean) as EtapaRoteamento[];
   if (etapas.length === 0 || etapas.some((etapa) => !permitidas.has(etapa)) || new Set(etapas).size !== etapas.length) return ORDEM_PADRAO;
   return etapas;

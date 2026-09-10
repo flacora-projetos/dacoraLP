@@ -223,4 +223,49 @@ for (const [nome, primeira] of [
   assert.match(urls[0], /anthropic/, 'modo manual Sonnet nao tenta DeepSeek');
 }
 
-console.log('OK - provider mensal: Flash primario, Pro fallback 1, Sonnet fallback 2, condensacao limitada, rollback e telemetria segura.');
+{
+  // O PADRAO (sem ordem declarada) precisa pular o Pro desde 10/09/2026: a
+  // DeepSeek atende toda requisicao ao Pro com o V4.1 Flash a partir de
+  // 14/09/2026, entao aquele degrau repetiria o MESMO modelo com o MESMO pedido
+  // e a auditoria registraria `deepseek-v4-pro` para uma resposta que nao veio
+  // do Pro. Sem esta prova, devolver o Pro ao padrao nao reprova nada: todos os
+  // blocos acima declaram a ordem no ambiente.
+  const anterior = process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
+  delete process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
+  const modelos: string[] = [];
+  const resposta = await gerarAnaliseAssistida(pedido, {
+    fetch: (async (entrada: any, init?: RequestInit) => {
+      if (String(entrada).includes('anthropic')) { modelos.push('sonnet'); return sonnet(); }
+      modelos.push(JSON.parse(String(init?.body)).model);
+      return deepseek('INCOMPLETA: cortou.', 'length');
+    }) as typeof fetch,
+    telemetria() {},
+  });
+  assert.equal(resposta.ok && resposta.provider, 'sonnet');
+  assert.ok(!modelos.includes('deepseek-v4-pro'), 'o padrao nao pode passar pelo Pro');
+  assert.equal(modelos.at(-1), 'sonnet', 'o ultimo degrau do padrao continua sendo o Sonnet');
+  if (anterior === undefined) delete process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
+  else process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = anterior;
+}
+
+{
+  // Prova negativa da separacao entre etapa SUPORTADA e ordem PADRAO: uma ordem
+  // que declara o Pro tem de ser respeitada, nao tratada como nome invalido.
+  // Sem a separacao, a linha abaixo cairia no padrao EM SILENCIO e ninguem
+  // descobriria que a declaracao foi ignorada.
+  const anterior = process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
+  process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = 'pro,flash';
+  const modelos: string[] = [];
+  await gerarAnaliseAssistida(pedido, {
+    fetch: (async (_entrada: any, init?: RequestInit) => {
+      modelos.push(JSON.parse(String(init?.body)).model);
+      return deepseek('INCOMPLETA: cortou.', 'length');
+    }) as typeof fetch,
+    telemetria() {},
+  });
+  assert.equal(modelos[0], 'deepseek-v4-pro', 'ordem declarada com o Pro precisa ser respeitada');
+  if (anterior === undefined) delete process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
+  else process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = anterior;
+}
+
+console.log('OK - provider mensal: padrao Flash -> Sonnet (Pro fora desde 10/09/2026, ainda declaravel), condensacao limitada, rollback e telemetria segura.');
