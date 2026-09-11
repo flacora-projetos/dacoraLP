@@ -10,7 +10,6 @@ import { ConsultaQueryV2, type ConsultaV2Payload } from './data-hub-query-v2';
 import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, preservarGraoLegadoNosCampos, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
-import './data-hub-query-v2.css';
 
 type EstadoConexao =
   | { tipo: 'inicial' }
