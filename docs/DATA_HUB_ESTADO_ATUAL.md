@@ -2,7 +2,7 @@
 
 # Data Hub no portal Dácora — estado atual
 
-**Atualizado em 2026-09-07.** Este documento trata somente da rota `/data-hub`, seus módulos e o BFF correspondente. O portal também serve outras aplicações; trabalho de Data Hub não autoriza alterações nelas.
+**Atualizado em 2026-09-10.** Este documento trata somente da rota `/data-hub`, seus módulos e o BFF correspondente. O portal também serve outras aplicações; trabalho de Data Hub não autoriza alterações nelas.
 
 ## Papel do portal
 
@@ -16,12 +16,13 @@ O portal é a superfície de escolha e operação; o repositório `Dacora Data H
 
 | Componente | Estado |
 | --- | --- |
-| Portal | Vercel Production automático a cada merge em `main`; commit funcional Data Hub `fa244dc` |
+| Portal | `origin/main` revalidado em `87cad2caa70e133a3ed88bfad159a9a1138acba2`; Field Picker V2 implementado apenas na branch local `feat/data-hub-field-picker-v2-ux-2026-09-10`, ainda sem push/merge/deploy |
 | URL | `https://www.dacora.com.br/data-hub` |
-| Backend | PR #91 mesclado em `2a034551d0ca301f12286208052084567ff513b0`; Cloud Run `dacora-data-hub-00035-5qn`, Ready, 100% do tráfego; build `663446cb-d964-4bc5-a99f-44dacf75e01f`, digest `sha256:3347b10b579f9bee552f38e981d3f8872f22928f4aaca295c55893ec38fdc975` |
-| Rollbacks backend | `dacora-data-hub-00060-zip` (`pre-core-expansion`) e `dacora-data-hub-00031-fzv` (`pre-meta-expansion`) |
-| Hub Data API Meta | Saldos no commit `eed756a`, revisão `api-00090-yok`; health 200 em `https://api-wviue4ksza-uc.a.run.app/api/health` |
-| Scheduler | `PAUSED` |
+| Backend Query Engine V2 | runtime funcional `bcfb4860e43795ad577d7db544a15835c61c0528`; Cloud Run `dacora-data-hub-00041-nwj`, Ready, 100% do tráfego |
+| Catálogo V2 | **543 campos deduplicados**: 69 canônicos + 144 direct Insights novos + 330 Actions novos |
+| Actions V2 | execução provada em produção; o Portal pode usar `sourceActionType`/`sourceProjection` quando publicados, sem inferir metadata ausente |
+| Hub Data API Meta | fonte analítica do Data Hub permanece separada do Saldos MCP, conforme diretriz do Hub |
+| Scheduler | `ENABLED`; o único schedule persistido está `disabled`, portanto não há recorrência due ativa |
 
 Como merges documentais também geram deployment Vercel, **não fixe ID de deployment como estado canônico**; consulte `vercel inspect https://www.dacora.com.br` para o deployment corrente.
 
@@ -118,7 +119,7 @@ As frentes que antes eram gates deixaram de ser apenas plano e foram confirmadas
 - edições concorrentes usam a revisão da extração e falham com conflito, em vez de sobrescrever silenciosamente uma definição mais nova;
 - a UI continua derivando campos e compatibilidades do catálogo devolvido pelo backend.
 
-Essas provas históricas não significam que todas as variações de actions ou todos os campos criativos do Stract já estejam cobertos. Elas comprovam compatibilidade do motor 1.x; **não autorizam repetir projeção wide por campo**. Para o Query Engine V2, o smoke autenticado novo até Sheets/read-back **ainda não foi verificado**; portanto não se deve afirmar que o novo motor está comprovado ponta a ponta.
+Essas provas históricas não significam que todas as variações de actions ou todos os campos criativos do Stract já estejam cobertos. Elas comprovam compatibilidade do motor 1.x; **não autorizam repetir projeção wide por campo**. Desde 10/09/2026, o Query Engine V2 está publicado no runtime funcional `bcfb4860e43795ad577d7db544a15835c61c0528`, e Actions V2 foi provado em produção. Isso não transforma metadata ausente em contrato: o Portal só pode agrupar conceitualmente Actions quando `sourceActionType`/`sourceProjection` vierem publicados pelo catálogo.
 
 ## Correções backend descobertas pelos smokes
 
@@ -150,7 +151,9 @@ Nenhum módulo de relatórios/RA, Supabase, envio ou outra aplicação do portal
 
 ## Validação do portal
 
-Última validação funcional da frente Data Hub, sem tocar em outras aplicações:
+### Baseline integrada anterior ao Field Picker V2
+
+A última validação funcional integrada da frente Data Hub, sem tocar em outras aplicações, registrou:
 
 - `npm run verifica:data-hub-casca`: OK;
 - `npm run verifica:data-hub-spike`: OK;
@@ -159,6 +162,21 @@ Nenhum módulo de relatórios/RA, Supabase, envio ou outra aplicação do portal
 - `git diff --check`: OK.
 
 A tentativa com heap padrão pode morrer por OOM no `prebuild`; a evidência canônica usa heap ampliado.
+
+### Branch local do Field Picker V2 — 10/09/2026
+
+A branch `feat/data-hub-field-picker-v2-ux-2026-09-10`, baseada diretamente em `origin/main = 87cad2caa70e133a3ed88bfad159a9a1138acba2`, implementa a nova UX search-first sem alterar cards de query nem contrato backend:
+
+- busca por nome publicado, ID técnico e categoria, com ranking `exact → starts-with → word-start → substring`;
+- exploração em quatro grupos humanos derivados da metadata: Métricas de performance, Ações e conversões, Dimensões e estrutura, Criativos;
+- Actions com `sourceActionType` + `sourceProjection` reais são agrupadas conceitualmente, por exemplo `Video View → Quantidade / Valor / Custo`; campos sem essa metadata permanecem independentes;
+- resultados recortados a 16 entradas por vez; área de selecionados paginada em 8 campos, preservando a ordem de `selectedFields`;
+- estados `Pronto` e `Verificar nesta conta`, com limite de discovery sempre visível em `0/3` a `3/3` antes do erro;
+- combobox/listbox com `aria-activedescendant`, multiseleção, setas, Enter, Escape, remoção nomeada, `focus-visible` e sheet de tela ampla no mobile;
+- metadata do catálogo preservada no normalizador: `family`, `source`, `upstreamField`, `sourceActionType`, `sourceProjection` e `aggregation`;
+- verificador focado criado em `scripts/verifica-data-hub-field-picker-v2.mts`, exposto como `verifica:data-hub-field-picker-v2`, sem alterar o `prebuild` global das outras frentes.
+
+Prova executada nesta rodada: `git diff --check` = OK, com apenas o aviso de conversão LF→CRLF da worktree. A execução Node ainda **não foi comprovada nesta branch**: o Dácora Local Bridge recusou `npm ci` com `CLI não autorizada pela allowlist: npm`; pelas regras operacionais, essa negativa não foi contornada por PowerShell/outro executor. Portanto `verifica:data-hub-*`, TypeScript, build e Playwright desktop/mobile continuam pendentes até a capability de CLI ser restaurada. Não houve push, merge ou deploy.
 
 ## Norte vigente — Query Engine V2
 
@@ -172,16 +190,16 @@ Esses números medem cobertura observada; **não são backlog de colunas nem de 
 
 O Portal deve continuar derivando catálogo e compatibilidades do backend. Não manter segunda lista manual de centenas de campos e não esconder capability só porque o warehouse 1.x ainda não possui coluna wide correspondente.
 
-## Próximos gates — Query Engine V2
+## Próximo gate do Portal — aprovar o Field Picker V2
 
-1. no Hub, inventariar os gates físicos que ainda amarram `selectedFields` a registry/schema wide;
-2. implementar catálogo base + discovery contextual, planner por adaptadores e row builder dinâmico/esparso;
-3. provar uma query representativa em Meta → Hub → BigQuery → Sheets → read-back **sem migration global por campo**;
-4. só então adaptar/ampliar o Portal para consumir o catálogo e resultado do V2, mantendo a UI derivada do backend;
-5. preservar definições 1.x legadas enquanto a transição não estiver comprovada;
-6. manter `business.*` adiado até contrato/fonte próprios; billing não entra por analogia;
-7. reavaliar PAR5/piloto e Scheduler somente no gate operacional separado.
+O backend Query Engine V2 está fechado para esta frente. O gate atual é exclusivamente a UX do seletor no Portal:
+
+1. restaurar a capability autorizada de Node/npm na worktree e executar o verificador focado + `verifica:data-hub-*` pertinentes;
+2. executar TypeScript/lint e build com heap ampliado;
+3. validar visualmente com Playwright em desktop e mobile, sem mutações externas;
+4. corrigir eventuais achados, registrar as evidências e só então considerar o seletor aprovado;
+5. **depois da aprovação do seletor**, abrir em frente separada a revisão dos cards de query. Não alterar esses cards nesta fase.
+
+Push, merge e deploy continuam sujeitos ao GO explícito do PO. Scheduler central permanece `ENABLED`, com o único schedule persistido `disabled`.
 
 **LEGADO:** não retomar como plano “expandir hierarquia e 98 métricas”, “completar 160 actions” ou qualquer outro lote `capability → coluna → migration/view`. Essas listas antigas podem orientar probes/famílias do planner, mas não implementação física.
-
-Scheduler permanece `PAUSED`.

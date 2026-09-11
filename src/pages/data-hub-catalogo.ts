@@ -150,6 +150,12 @@ export type CampoQueryV2 = {
   readonly nome: string;
   readonly categoria?: string;
   readonly valueType?: string;
+  readonly family?: string;
+  readonly source?: string;
+  readonly upstreamField?: string;
+  readonly sourceActionType?: string;
+  readonly sourceProjection?: string;
+  readonly aggregation?: string;
 };
 
 export type QueryEngineV2Catalogo = {
@@ -296,6 +302,12 @@ export function normalizarCatalogo(payload: unknown): Catalogo {
         nome: String(item.label ?? item.name ?? item.key ?? item.id ?? ''),
         categoria: typeof item.category === 'string' ? item.category : undefined,
         valueType: typeof item.valueType === 'string' ? item.valueType : undefined,
+        family: typeof item.family === 'string' ? item.family : undefined,
+        source: typeof item.source === 'string' ? item.source : undefined,
+        upstreamField: typeof item.upstreamField === 'string' ? item.upstreamField : undefined,
+        sourceActionType: typeof item.sourceActionType === 'string' ? item.sourceActionType : undefined,
+        sourceProjection: typeof item.sourceProjection === 'string' ? item.sourceProjection : undefined,
+        aggregation: typeof item.aggregation === 'string' ? item.aggregation : undefined,
       })).filter((item) => item.id && item.nome),
     }
     : undefined;
