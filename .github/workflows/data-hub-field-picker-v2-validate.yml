@@ -1,0 +1,200 @@
+name: Data Hub Field Picker V2 validation
+
+on:
+  push:
+    branches:
+      - feat/data-hub-field-picker-v2-ux-2026-09-10
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+      GEMINI_API_KEY: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Confirm Node version
+        run: node --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Data Hub focused verifiers
+        run: |
+          npm run verifica:data-hub-field-picker-v2
+          npm run verifica:data-hub-spike
+          npm run verifica:data-hub-casca
+          npm run verifica:data-hub-diretriz
+
+      - name: TypeScript lint
+        run: npm run lint
+
+      - name: Build with expanded heap
+        run: npm run build
+
+      - name: Install Playwright Chromium for visual smoke
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Create isolated Field Picker visual harness
+        run: |
+          cat > visual-field-picker.html <<'EOF'
+          <!doctype html>
+          <html lang="pt-BR">
+            <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Field Picker V2 visual smoke</title></head>
+            <body><div id="root"></div><script type="module" src="/visual-field-picker.tsx"></script></body>
+          </html>
+          EOF
+          cat > visual-field-picker.tsx <<'EOF'
+          import React from 'react';
+          import { createRoot } from 'react-dom/client';
+          import { ConsultaQueryV2 } from './src/pages/data-hub-query-v2';
+          import { normalizarCatalogo } from './src/pages/data-hub-catalogo';
+          import './src/painel/painel.css';
+          import './src/pages/data-hub.css';
+
+          const canonical = [
+            { key: 'ad_name', label: 'Nome do anúncio', category: 'dimension', valueType: 'string' },
+            { key: 'insights.quality_ranking', label: 'Quality Ranking', category: 'dimensions_structure', valueType: 'string' },
+            { key: 'spend', label: 'Investimento', category: 'metric', valueType: 'number' },
+            { key: 'creative.title', label: 'Título do criativo', category: 'creative', source: 'meta_creative_structure', valueType: 'string' },
+            ...Array.from({ length: 65 }, (_, index) => ({
+              key: `canonical_${index + 1}`,
+              label: `Campo canônico ${index + 1}`,
+              category: index % 3 === 0 ? 'metric' : index % 3 === 1 ? 'dimension' : 'creative',
+              valueType: index % 3 === 0 ? 'number' : 'string',
+            })),
+          ];
+          const directInsights = Array.from({ length: 144 }, (_, index) => ({
+            key: `insights.direct_field_${String(index + 1).padStart(3, '0')}`,
+            label: `Direct Insight ${index + 1}`,
+            category: index % 4 === 0 ? 'dimensions_structure' : 'metrics',
+            family: 'insights',
+            source: 'meta_insights',
+            valueType: index % 4 === 0 ? 'string' : 'number',
+          }));
+          const actionTypes = ['video_view', ...Array.from({ length: 109 }, (_, index) => `action_${String(index + 1).padStart(3, '0')}`)];
+          const actions = actionTypes.flatMap((sourceActionType, index) => {
+            const label = index === 0 ? 'Video View' : `Ação ${index}`;
+            return [
+              { key: `action.${sourceActionType}.count`, label: `Action ${label}`, category: 'actions_conversions', family: 'action', source: 'meta_insights_actions', sourceActionType, sourceProjection: 'count', valueType: 'number' },
+              { key: `action.${sourceActionType}.value`, label: `Action Value ${label}`, category: 'actions_conversions', family: 'action', source: 'meta_insights_action_values', sourceActionType, sourceProjection: 'value', valueType: 'number' },
+              { key: `action.${sourceActionType}.cost`, label: `Cost Per Action ${label}`, category: 'actions_conversions', family: 'action', source: 'meta_insights_cost_per_action_type', sourceActionType, sourceProjection: 'cost', valueType: 'number' },
+            ];
+          });
+          const fields = [...canonical, ...directInsights, ...actions];
+          const executableFieldKeys = canonical.map(({ key }) => key);
+          const discoverableFieldKeys = [...directInsights, ...actions].map(({ key }) => key);
+          const catalogo = normalizarCatalogo({ data: {
+            accounts: [{ id: 'account-demo', name: 'Conta demonstração', isQueryable: true }],
+            fields: [], granularities: ['day'], templates: [],
+            queryEngineV2: { schemaVersion: '2.0.0-visual', executableFieldKeys, discoverableFieldKeys, fields },
+          } });
+
+          createRoot(document.getElementById('root')!).render(
+            <div className="dc-painel dc-data-hub">
+              <main style={{ maxWidth: 1180, margin: '0 auto', padding: '32px 16px 80px' }}>
+                <ConsultaQueryV2 catalogo={catalogo} aoExecutar={async () => ({ queryRunId: 'visual-smoke', result: { columns: [], rows: [], resolvedGrain: 'ad', sourceComplete: true, pagingComplete: true } })} />
+              </main>
+            </div>,
+          );
+          EOF
+          cat > visual-field-picker-smoke.mjs <<'EOF'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs/promises';
+          import { chromium } from 'playwright';
+
+          await fs.mkdir('field-picker-visual-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const url = 'http://127.0.0.1:4173/visual-field-picker.html';
+
+          async function assertNoHorizontalOverflow(page, label) {
+            const sizes = await page.evaluate(() => ({ innerWidth: window.innerWidth, scrollWidth: document.documentElement.scrollWidth }));
+            assert.ok(sizes.scrollWidth <= sizes.innerWidth + 1, `${label}: horizontal overflow ${sizes.scrollWidth} > ${sizes.innerWidth}`);
+          }
+
+          async function desktopSmoke() {
+            const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+            await page.goto(url, { waitUntil: 'networkidle' });
+            assert.equal(await page.locator('[role="option"]').count(), 0, 'desktop: catálogo não pode renderizar opções com picker fechado');
+            assert.match(await page.locator('.dch-field-picker__explore-heading').innerText(), /543 campos/);
+            const combo = page.getByRole('combobox');
+            await combo.fill('video');
+            await page.getByRole('listbox').waitFor({ state: 'visible' });
+            assert.equal(await page.getByText('Video View', { exact: true }).count(), 1);
+            assert.equal(await page.getByText('Quantidade', { exact: true }).count(), 1);
+            assert.equal(await page.getByText('Valor', { exact: true }).count(), 1);
+            assert.equal(await page.getByText('Custo', { exact: true }).count(), 1);
+            await combo.press('ArrowDown');
+            await combo.press('Enter');
+            await page.getByText('1/3', { exact: true }).waitFor({ state: 'visible' });
+            assert.ok((await page.locator('.dch-field-picker__selected-list li').count()) <= 8, 'desktop: seleção deve permanecer recortada');
+            await assertNoHorizontalOverflow(page, 'desktop');
+            await page.screenshot({ path: 'field-picker-visual-artifacts/desktop-1440x1000.png', fullPage: true });
+            await page.close();
+          }
+
+          async function mobileSmoke() {
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+            await page.goto(url, { waitUntil: 'networkidle' });
+            const combo = page.getByRole('combobox');
+            await combo.fill('video');
+            const dialog = page.getByRole('dialog', { name: 'Buscar e escolher campos' });
+            await dialog.waitFor({ state: 'visible' });
+            const box = await dialog.boundingBox();
+            assert.ok(box, 'mobile: sheet precisa ter caixa visível');
+            assert.ok(box.width >= 389 && box.height >= 843, `mobile: sheet não ocupa viewport (${box.width}x${box.height})`);
+            assert.equal(await dialog.getByText('Video View', { exact: true }).count(), 1);
+            const close = dialog.getByRole('button', { name: 'Fechar' });
+            const closeBox = await close.boundingBox();
+            assert.ok(closeBox && closeBox.height >= 44, 'mobile: Fechar precisa de alvo >= 44px');
+            await combo.press('ArrowDown');
+            await combo.press('Enter');
+            await page.getByText('1/3', { exact: true }).waitFor({ state: 'visible' });
+            await assertNoHorizontalOverflow(page, 'mobile');
+            await page.screenshot({ path: 'field-picker-visual-artifacts/mobile-390x844.png', fullPage: false });
+            await close.click();
+            assert.equal(await page.getByRole('dialog', { name: 'Buscar e escolher campos' }).count(), 0, 'mobile: sheet precisa fechar');
+            await page.close();
+          }
+
+          try {
+            await desktopSmoke();
+            await mobileSmoke();
+            console.log('Playwright visual smoke: OK — 543 fields, search-first, Action projections, keyboard, discovery, desktop/mobile, no horizontal overflow');
+          } finally {
+            await browser.close();
+          }
+          EOF
+
+      - name: Run Playwright visual smoke
+        run: |
+          npx vite --host 127.0.0.1 --port 4173 > /tmp/field-picker-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/visual-field-picker.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node visual-field-picker-smoke.mjs
+
+      - name: Upload visual artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-hub-field-picker-v2-visual
+          path: field-picker-visual-artifacts
+          if-no-files-found: warn
