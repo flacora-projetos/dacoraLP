@@ -131,7 +131,7 @@ jobs:
             await page.goto(url, { waitUntil: 'networkidle' });
             assert.equal(await page.locator('[role="option"]').count(), 0, 'desktop: catálogo não pode renderizar opções com picker fechado');
             assert.match(await page.locator('.dch-field-picker__explore-heading').innerText(), /543 campos/);
-            const combo = page.getByRole('combobox');
+            const combo = page.getByRole('combobox', { name: 'Buscar no catálogo V2' });
             await combo.fill('video');
             await page.getByRole('listbox').waitFor({ state: 'visible' });
             assert.equal(await page.getByText('Video View', { exact: true }).count(), 1);
@@ -150,7 +150,7 @@ jobs:
           async function mobileSmoke() {
             const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
             await page.goto(url, { waitUntil: 'networkidle' });
-            const combo = page.getByRole('combobox');
+            const combo = page.getByRole('combobox', { name: 'Buscar no catálogo V2' });
             await combo.fill('video');
             const dialog = page.getByRole('dialog', { name: 'Buscar e escolher campos' });
             await dialog.waitFor({ state: 'visible' });
