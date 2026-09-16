@@ -96,3 +96,34 @@ O Hub garante que célula sem dado chega **em branco** na planilha, e que zero m
 - **`ownerId` de origem errada**, descrito na seção 6;
 - **tela reintroduzindo zero** onde o Hub preservou ausência;
 - planilha operacional escolhida por engano durante o teste: usar planilha descartável, como no smoke do Hub.
+
+## 10. Lacuna levantada pelo PO em 2026-09-16 — planilha dedicada por cliente
+
+O plano acima resolve "exportar esta consulta para uma planilha escolhida agora". O PO pediu mais: **uma planilha fixa por cliente**, em vez de escolher destino a cada execução.
+
+Estado real:
+
+- o contrato de destino já suporta isso. O seletor escolhe uma planilha **existente** e o destino grava aba e célula inicial; nada obriga a criar planilha nova a cada consulta;
+- extrações salvas **já guardam** seu destino na definição e o reutilizam;
+- a consulta V2 ad-hoc **não tem memória**: não existe hoje nenhum vínculo persistido entre conta e planilha, então o usuário reescolheria o destino a cada execução.
+
+Portanto, "planilha dedicada por cliente" **não é uma limitação técnica, é uma funcionalidade ausente**: falta guardar o vínculo conta → destino e oferecê-lo como padrão na próxima consulta, com troca explícita.
+
+Duas decisões de produto que precisam do PO antes de implementar:
+
+1. **Onde mora o vínculo.** Preferência por conta, por usuário, ou por ambos? Duas pessoas consultando a mesma conta devem cair na mesma planilha?
+2. **O que acontece com o conteúdo anterior.** O destino aceita `replace` e `append`. Com `replace`, cada consulta substitui a aba — bom para "relatório sempre atual", ruim para histórico. Com aba nova por execução, acumula — bom para histórico, cresce sem limite. O benchmark usa célula de destino dentro da planilha em que o usuário já está; nosso equivalente web precisa dessa escolha explícita, não de um padrão silencioso.
+
+Enquanto essas duas decisões não existirem, implementar apenas a escolha de destino por execução e **não** inventar um padrão de memória.
+
+## 11. Acesso às planilhas geradas — restrição real de permissão
+
+O acesso concedido ao Google é o mínimo (`drive.file`): o Hub só enxerga arquivos que ele mesmo criou ou que o usuário escolheu explicitamente pelo seletor. Ele **não** tem visão do Drive inteiro.
+
+Consequências práticas que a interface precisa deixar claras:
+
+- planilha criada pelo Hub nasce no Drive da **conta Google conectada**, não numa conta da equipe;
+- compartilhar com o time é ação manual no Drive, ou escolher uma planilha que já viva num drive compartilhado;
+- se a conexão Google for trocada, o Hub perde o alcance sobre as planilhas criadas pela conexão anterior.
+
+Recomendação para o fluxo por cliente: **escolher uma planilha que já esteja no drive compartilhado do cliente** em vez de deixar o Hub criar, porque assim o acesso da equipe já existe desde o começo.
