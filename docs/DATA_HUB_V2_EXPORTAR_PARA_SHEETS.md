@@ -127,3 +127,50 @@ Consequências práticas que a interface precisa deixar claras:
 - se a conexão Google for trocada, o Hub perde o alcance sobre as planilhas criadas pela conexão anterior.
 
 Recomendação para o fluxo por cliente: **escolher uma planilha que já esteja no drive compartilhado do cliente** em vez de deixar o Hub criar, porque assim o acesso da equipe já existe desde o começo.
+
+## 12. Decisão do PO em 2026-09-16 — planilha por cliente, aba por consulta
+
+Esta seção **resolve** as duas perguntas abertas da seção 10. Não reabrir sem nova decisão.
+
+**Decisão:**
+
+1. **O vínculo é por cliente (conta), não por usuário.** Duas pessoas consultando a mesma conta caem na mesma planilha.
+2. **A consulta sobrescreve a anterior** na mesma aba (`replace`). Concatenar (`append`) é evolução futura, não agora.
+3. **Uma planilha por cliente, com várias abas** — uma por tipo de consulta: diário, mensal, criativos, posicionamentos, e assim por diante.
+4. **A tela da consulta deve permitir escolher a aba e a célula inicial.**
+
+**Razão registrada, porque ela restringe o desenho:** o destino precisa ser **estável** para o Looker Studio atualizar sozinho. Se cada execução criar planilha nova, aba nova ou mudar de lugar, a fonte do Looker quebra e alguém tem que reapontar à mão toda vez. Destino estável não é conveniência: é o que faz o relatório se atualizar sem intervenção. Qualquer proposta futura que gere destino novo por execução contraria esta decisão.
+
+### 12.1 O que já suporta isso
+
+O contrato de destino do Data Hub **já aceita** tudo o que a decisão exige:
+
+- qualquer aba, por `sheetId` + `sheetTitle`;
+- qualquer célula inicial — a validação aceita de `A1` até três letras e sete dígitos;
+- `replace` e `append`.
+
+Ou seja, a capacidade existe na camada profunda. O que está travado é a superfície.
+
+### 12.2 O que está travado hoje — três pontos concretos
+
+1. **A resolução de planilha devolve sempre a primeira aba.** No Data Hub, `publicSpreadsheet` monta o destino com `sheets[0]` e fixa `startCell: "A1"` e `writeMode: "replace"`. Não existe hoje um jeito de o portal oferecer as demais abas: a lista de abas nem chega até ele.
+2. **O portal endurece `startCell === 'A1'`** na validação de destino. Mesmo que a aba certa chegasse, a célula inicial seria recusada.
+3. **Não existe criar aba.** O serviço de Sheets cria planilha, resolve planilha e escreve; não cria aba nova. "Uma aba por tipo de consulta" exige que as abas já existam, ou que essa capacidade seja adicionada.
+
+### 12.3 Trabalho que a decisão acrescenta
+
+Cross-repo, no Data Hub:
+
+- expor a **lista de abas** da planilha resolvida, em vez de devolver só a primeira;
+- aceitar `sheetId`, `startCell` e `writeMode` escolhidos, em vez de fixá-los na resolução;
+- decidir se o Hub passa a **criar aba** quando o usuário quiser uma nova, sob a mesma disciplina de destino validado.
+
+No portal:
+
+- remover o travamento de `A1` e passar a escolher aba e célula inicial na tela da consulta;
+- guardar o vínculo **conta → planilha** e oferecê-lo como padrão, com troca explícita;
+- guardar também a **aba sugerida por tipo de consulta**, já que a decisão prevê abas distintas para granularidades e recortes diferentes.
+
+### 12.4 Efeito na idempotência
+
+A chave de exportação inclui o destino. Com aba e célula escolhidas, mudar de aba passa a ser **outra entrega**, o que é o comportamento correto: diário e mensal não podem colidir. A regra da seção 5 continua valendo — o mesmo resultado, para o mesmo destino, escreve uma vez só.
