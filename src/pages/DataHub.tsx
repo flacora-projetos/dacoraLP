@@ -12,6 +12,31 @@ import '../painel/painel.css';
 import './data-hub.css';
 import './data-hub-query-v2.css';
 
+const CELULA = /^[A-Z]{1,3}[1-9][0-9]{0,6}$/;
+const MEMORIA_DESTINO = 'dacora.datahub.destinoPorConta.v1';
+
+export type AbaPlanilha = { sheetId: number; title: string };
+
+/**
+ * O vinculo e por cliente (conta), nao por pessoa: a decisao de produto e que o
+ * destino fique parado no lugar, senao o Looker Studio nunca atualiza sozinho.
+ * Guardar so a preferencia local; a autoridade do destino continua sendo o
+ * Data Hub, que revalida tudo antes de escrever.
+ */
+function lerMemoriaDestino(): Record<string, DestinoGoogleSheets> {
+  try {
+    const bruto = window.localStorage.getItem(MEMORIA_DESTINO);
+    const valor = bruto ? JSON.parse(bruto) : null;
+    return valor && typeof valor === 'object' && !Array.isArray(valor) ? valor : {};
+  } catch { return {}; }
+}
+
+function gravarMemoriaDestino(accountId: string, destino: DestinoGoogleSheets) {
+  try {
+    window.localStorage.setItem(MEMORIA_DESTINO, JSON.stringify({ ...lerMemoriaDestino(), [accountId]: destino }));
+  } catch { /* preferencia e conveniencia: sem ela a tela continua funcionando */ }
+}
+
 type EstadoConexao =
   | { tipo: 'inicial' }
   | { tipo: 'testando' }
@@ -157,7 +182,7 @@ function DataHubInicio() {
   function destinoDaExtracao(extracao: ExtracaoLocal): DestinoGoogleSheets | null {
     const value: any = extracao.definition?.destination;
     return value?.provider === 'google_sheets' && typeof value.spreadsheetId === 'string' && Number.isInteger(value.sheetId)
-      && typeof value.spreadsheetName === 'string' && typeof value.sheetTitle === 'string' && value.startCell === 'A1'
+      && typeof value.spreadsheetName === 'string' && typeof value.sheetTitle === 'string' && CELULA.test(value.startCell ?? '')
       && ['append', 'replace'].includes(value.writeMode) ? value as DestinoGoogleSheets : null;
   }
 
@@ -185,8 +210,8 @@ function DataHubInicio() {
     const destino = resposta?.data?.destination;
     if (destino?.provider !== 'google_sheets' || typeof destino.spreadsheetId !== 'string' || !destino.spreadsheetId.trim()
       || typeof destino.spreadsheetName !== 'string' || !destino.spreadsheetName.trim()
-      || !Number.isInteger(destino.sheetId) || typeof destino.sheetTitle !== 'string' || !destino.sheetTitle.trim() || destino.startCell !== 'A1'
-      || !['append', 'replace'].includes(destino.writeMode)) {
+      || !Number.isInteger(destino.sheetId) || typeof destino.sheetTitle !== 'string' || !destino.sheetTitle.trim()
+      || !CELULA.test(destino.startCell ?? '') || !['append', 'replace'].includes(destino.writeMode)) {
       throw new Error('O Data Hub não confirmou uma planilha válida.');
     }
     return {
@@ -195,9 +220,18 @@ function DataHubInicio() {
       spreadsheetName: destino.spreadsheetName,
       sheetId: destino.sheetId,
       sheetTitle: destino.sheetTitle,
-      startCell: 'A1',
+      startCell: destino.startCell,
       writeMode: destino.writeMode,
     };
+  }
+
+  /** O Data Hub passou a devolver todas as abas; sem elas so a primeira seria oferecida. */
+  function abasDaResposta(resposta: any): AbaPlanilha[] {
+    const abas = resposta?.data?.sheets;
+    if (!Array.isArray(abas)) return [];
+    return abas
+      .filter((aba: any) => Number.isInteger(aba?.sheetId) && typeof aba?.title === 'string' && aba.title.trim() !== '')
+      .map((aba: any) => ({ sheetId: aba.sheetId, title: aba.title }));
   }
 
   async function criarPlanilha(title: string) {
@@ -208,6 +242,61 @@ function DataHubInicio() {
   async function resolverPlanilha(valor: string) {
     const body = /^https?:\/\//i.test(valor) ? { url: valor } : { spreadsheetId: valor };
     return destinoDaResposta(await chamarDataHub('/google/spreadsheets/resolve', { method: 'POST', body: JSON.stringify(body) }));
+  }
+
+  /** Resolve a planilha ja pedindo a aba e a celula escolhidas, e devolve todas as abas. */
+  async function resolverDestinoCompleto(
+    valor: string, selecao: { sheetId?: number; startCell?: string } = {},
+  ): Promise<{ destino: DestinoGoogleSheets; abas: AbaPlanilha[] }> {
+    const alvo = /^https?:\/\//i.test(valor) ? { url: valor } : { spreadsheetId: valor };
+    const resposta = await chamarDataHub('/google/spreadsheets/resolve', {
+      method: 'POST',
+      body: JSON.stringify({ ...alvo, ...(selecao.sheetId == null ? {} : { sheetId: selecao.sheetId }),
+        ...(selecao.startCell == null ? {} : { startCell: selecao.startCell }) }),
+    });
+    return { destino: destinoDaResposta(resposta), abas: abasDaResposta(resposta) };
+  }
+
+  async function criarAba(spreadsheetId: string, title: string, startCell: string) {
+    const resposta = await chamarDataHub('/google/spreadsheets/sheets', {
+      method: 'POST', body: JSON.stringify({ spreadsheetId, title, startCell }),
+    });
+    return { destino: destinoDaResposta(resposta), abas: abasDaResposta(resposta) };
+  }
+
+  async function escolherPlanilhaNoDrive() {
+    const sessaoPicker = await chamarDataHub('/google/picker/session', { method: 'POST', body: '{}' });
+    const spreadsheetId = await escolherPlanilhaGoogle(String(sessaoPicker?.data?.accessToken ?? ''));
+    return spreadsheetId ? resolverDestinoCompleto(spreadsheetId) : null;
+  }
+
+  /**
+   * Manda entregar um resultado V2 ja persistido. So o queryRunId viaja: a tabela
+   * da tela nao e enviada, para o Hub projetar do resultado real e a celula sem
+   * dado continuar chegando em branco, nunca zero.
+   */
+  async function exportarQueryV2(entrada: {
+    queryRunId: string; accountId: string; destino: DestinoGoogleSheets; dateStart: string; dateStop: string;
+  }) {
+    const snapshot = {
+      schemaVersion: '1.0.0',
+      // Placeholder: o bridge sobrescreve pelo ator da sessao antes de sair do servidor.
+      ownerId: 'portal-user:00000000-0000-4000-8000-000000000000',
+      extractionId: `query-v2:${entrada.accountId}`,
+      definitionRevision: 1,
+      // Deriva da execucao: dois cliques no mesmo resultado sao a mesma entrega,
+      // uma nova execucao e entrega nova. Nunca usar o horario do clique.
+      occurrenceId: entrada.queryRunId,
+      destination: entrada.destino,
+      queryRunId: entrada.queryRunId,
+      runDateStart: entrada.dateStart,
+      runDateStop: entrada.dateStop,
+    };
+    const resposta = await chamarDataHub('/query-v2/export', { method: 'POST', body: JSON.stringify({ snapshot }) });
+    const status = String(resposta?.status ?? '');
+    if (!['enqueued', 'duplicate'].includes(status)) throw new Error('O Data Hub não confirmou a entrega.');
+    gravarMemoriaDestino(entrada.accountId, entrada.destino);
+    return status as 'enqueued' | 'duplicate';
   }
 
   async function escolherNoDrive() {
@@ -349,7 +438,15 @@ function DataHubInicio() {
         )}
         {erroSalvar ? <p className="dch-status dch-status--erro" role="alert">{erroSalvar}</p> : null}
 
-        {!carregando && !erroDados ? <ConsultaQueryV2 catalogo={catalogo} aoExecutar={executarQueryV2} /> : null}
+        {!carregando && !erroDados ? <ConsultaQueryV2
+          catalogo={catalogo}
+          aoExecutar={executarQueryV2}
+          aoEscolherPlanilha={escolherPlanilhaNoDrive}
+          aoResolverDestino={resolverDestinoCompleto}
+          aoCriarAba={criarAba}
+          aoExportar={exportarQueryV2}
+          destinoLembrado={(accountId) => lerMemoriaDestino()[accountId] ?? null}
+        /> : null}
 
         <section className="dch-conexao" aria-labelledby="google-titulo">
           <div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Catalogo } from './data-hub-catalogo';
 
 type ResultadoV2 = {
@@ -32,9 +32,36 @@ function termoNormalizado(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
-export function ConsultaQueryV2({ catalogo, aoExecutar }: {
+export type AbaPlanilha = { sheetId: number; title: string };
+export type DestinoPlanilha = {
+  provider: 'google_sheets';
+  spreadsheetId: string;
+  spreadsheetName: string;
+  sheetId: number;
+  sheetTitle: string;
+  startCell: string;
+  writeMode: 'append' | 'replace';
+};
+type DestinoResolvido = { destino: DestinoPlanilha; abas: readonly AbaPlanilha[] };
+type EstadoEntrega =
+  | { tipo: 'ocioso' }
+  | { tipo: 'entregando' }
+  | { tipo: 'entregue' }
+  | { tipo: 'repetida' }
+  | { tipo: 'erro'; mensagem: string };
+
+const CELULA = /^[A-Z]{1,3}[1-9][0-9]{0,6}$/;
+
+export function ConsultaQueryV2({
+  catalogo, aoExecutar, aoEscolherPlanilha, aoResolverDestino, aoCriarAba, aoExportar, destinoLembrado,
+}: {
   catalogo: Catalogo;
   aoExecutar: (payload: ConsultaV2Payload) => Promise<ResultadoV2>;
+  aoEscolherPlanilha?: () => Promise<DestinoResolvido | null>;
+  aoResolverDestino?: (valor: string, selecao?: { sheetId?: number; startCell?: string }) => Promise<DestinoResolvido>;
+  aoCriarAba?: (spreadsheetId: string, title: string, startCell: string) => Promise<DestinoResolvido>;
+  aoExportar?: (entrada: { queryRunId: string; accountId: string; destino: DestinoPlanilha; dateStart: string; dateStop: string }) => Promise<'enqueued' | 'duplicate'>;
+  destinoLembrado?: (accountId: string) => DestinoPlanilha | null;
 }) {
   const v2 = catalogo.queryEngineV2;
   const executaveis = useMemo(() => new Set(v2?.executableFieldKeys ?? []), [v2]);
@@ -49,6 +76,60 @@ export function ConsultaQueryV2({ catalogo, aoExecutar }: {
   const [resultado, setResultado] = useState<ResultadoV2 | null>(null);
   const [executando, setExecutando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [destino, setDestino] = useState<DestinoPlanilha | null>(null);
+  const [abas, setAbas] = useState<readonly AbaPlanilha[]>([]);
+  const [celula, setCelula] = useState('A1');
+  const [novaAba, setNovaAba] = useState('');
+  const [entrega, setEntrega] = useState<EstadoEntrega>({ tipo: 'ocioso' });
+  const [ocupadoDestino, setOcupadoDestino] = useState(false);
+
+  const entregaDisponivel = Boolean(aoExportar && aoEscolherPlanilha && aoResolverDestino);
+
+  // O vinculo e por cliente: ao trocar de conta, o destino lembrado dela volta sozinho.
+  useEffect(() => {
+    setEntrega({ tipo: 'ocioso' });
+    if (!contaId) { setDestino(null); setAbas([]); return; }
+    const lembrado = destinoLembrado?.(contaId) ?? null;
+    setDestino(lembrado);
+    setCelula(lembrado?.startCell ?? 'A1');
+    setAbas([]);
+    if (lembrado && aoResolverDestino) {
+      void aoResolverDestino(lembrado.spreadsheetId, { sheetId: lembrado.sheetId, startCell: lembrado.startCell })
+        .then((resolvido) => { setDestino(resolvido.destino); setAbas(resolvido.abas); })
+        .catch(() => { /* planilha lembrada pode ter sumido: escolher de novo resolve */ });
+    }
+  }, [contaId]);
+
+  async function comDestino(acao: () => Promise<DestinoResolvido | null>) {
+    setOcupadoDestino(true);
+    setEntrega({ tipo: 'ocioso' });
+    try {
+      const resolvido = await acao();
+      if (!resolvido) return;
+      setDestino(resolvido.destino);
+      setAbas(resolvido.abas);
+      setCelula(resolvido.destino.startCell);
+      setNovaAba('');
+    } catch (error) {
+      setEntrega({ tipo: 'erro', mensagem: error instanceof Error ? error.message : 'Não foi possível preparar o destino.' });
+    } finally {
+      setOcupadoDestino(false);
+    }
+  }
+
+  async function entregar() {
+    if (!resultado || !destino || !aoExportar) return;
+    setEntrega({ tipo: 'entregando' });
+    try {
+      const status = await aoExportar({
+        queryRunId: resultado.queryRunId, accountId: contaId, destino: { ...destino, startCell: celula },
+        dateStart, dateStop,
+      });
+      setEntrega({ tipo: status === 'duplicate' ? 'repetida' : 'entregue' });
+    } catch (error) {
+      setEntrega({ tipo: 'erro', mensagem: error instanceof Error ? error.message : 'Não foi possível entregar na planilha.' });
+    }
+  }
 
   const camposFiltrados = useMemo(() => {
     const termo = termoNormalizado(busca);
@@ -148,6 +229,76 @@ export function ConsultaQueryV2({ catalogo, aoExecutar }: {
               </tbody>
             </table>
           </div>
+
+          {entregaDisponivel ? (
+            <div className="dch-entrega">
+              <span className="dch-etapa">Entregar na planilha</span>
+              <p className="dcp-secao__apoio">
+                Uma planilha por cliente, uma aba por tipo de consulta. O destino fica guardado para esta conta e a
+                consulta seguinte substitui a anterior na mesma aba — é isso que deixa o Looker Studio se atualizar sozinho.
+              </p>
+
+              <div className="dch-entrega__linha">
+                <button type="button" className="dcp-botao" disabled={ocupadoDestino}
+                  onClick={() => void comDestino(() => aoEscolherPlanilha!())}>
+                  {destino ? 'Trocar planilha' : 'Escolher planilha'}
+                </button>
+                {destino ? <span className="dch-entrega__planilha">{destino.spreadsheetName}</span> : null}
+              </div>
+
+              {destino ? (
+                <div className="dch-entrega__linha">
+                  <label className="dch-entrega__campo">
+                    <span>Aba</span>
+                    <select value={destino.sheetId} disabled={ocupadoDestino || abas.length === 0}
+                      onChange={(evento) => void comDestino(() => aoResolverDestino!(destino.spreadsheetId, {
+                        sheetId: Number(evento.target.value), startCell: celula,
+                      }))}>
+                      {(abas.length > 0 ? abas : [{ sheetId: destino.sheetId, title: destino.sheetTitle }])
+                        .map((aba) => <option key={aba.sheetId} value={aba.sheetId}>{aba.title}</option>)}
+                    </select>
+                  </label>
+                  <label className="dch-entrega__campo">
+                    <span>Começar em</span>
+                    <input value={celula} inputMode="text" aria-describedby="dch-celula-ajuda"
+                      onChange={(evento) => setCelula(evento.target.value.toUpperCase().trim())} />
+                  </label>
+                </div>
+              ) : null}
+
+              {destino && aoCriarAba ? (
+                <div className="dch-entrega__linha">
+                  <label className="dch-entrega__campo">
+                    <span>Criar aba</span>
+                    <input value={novaAba} placeholder="Mensal, Criativos, Posicionamentos…"
+                      onChange={(evento) => setNovaAba(evento.target.value)} />
+                  </label>
+                  <button type="button" className="dcp-botao" disabled={ocupadoDestino || novaAba.trim() === ''}
+                    onClick={() => void comDestino(() => aoCriarAba(destino.spreadsheetId, novaAba.trim(), celula))}>
+                    Criar e usar
+                  </button>
+                </div>
+              ) : null}
+
+              <p id="dch-celula-ajuda" className="dcp-secao__apoio">
+                Célula como A1 ou B3. Linhas sem dado chegam em branco na planilha — não viram zero.
+              </p>
+
+              <button type="button" className="dcp-botao dcp-botao--primario"
+                disabled={!destino || !CELULA.test(celula) || entrega.tipo === 'entregando'}
+                onClick={() => void entregar()}>
+                {entrega.tipo === 'entregando' ? 'Entregando…' : 'Entregar nesta aba'}
+              </button>
+
+              {!CELULA.test(celula) ? <p className="dcp-erro" role="alert">Célula inválida. Use algo como A1.</p> : null}
+              {entrega.tipo === 'entregue'
+                ? <p className="dch-status dch-status--ok" role="status">Entregue em {destino?.sheetTitle} a partir de {celula}.</p> : null}
+              {entrega.tipo === 'repetida'
+                ? <p className="dch-status dch-status--ok" role="status">Esta mesma entrega já tinha sido feita. Nada foi escrito de novo.</p> : null}
+              {entrega.tipo === 'erro'
+                ? <p className="dch-status dch-status--erro" role="alert">{entrega.mensagem}</p> : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

@@ -38,7 +38,8 @@ export type DestinoGoogleSheets = {
   spreadsheetName: string;
   sheetId: number;
   sheetTitle: string;
-  startCell: 'A1';
+  // Uma planilha por cliente guarda varias abas; a celula inicial deixa de ser fixa.
+  startCell: string;
   writeMode: 'append' | 'replace';
 };
 
