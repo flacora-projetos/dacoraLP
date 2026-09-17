@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
 import type { Catalogo } from './data-hub-catalogo';
 
 type ResultadoV2 = {
@@ -76,6 +77,8 @@ export function ConsultaQueryV2({
   const [resultado, setResultado] = useState<ResultadoV2 | null>(null);
   const [executando, setExecutando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
+  const [ativo, setAtivo] = useState(-1);
   const [destino, setDestino] = useState<DestinoPlanilha | null>(null);
   const [abas, setAbas] = useState<readonly AbaPlanilha[]>([]);
   const [celula, setCelula] = useState('A1');
@@ -131,11 +134,6 @@ export function ConsultaQueryV2({
     }
   }
 
-  const camposFiltrados = useMemo(() => {
-    const termo = termoNormalizado(busca);
-    if (!termo) return campos;
-    return campos.filter((field) => termoNormalizado(`${field.nome} ${field.id} ${field.categoria ?? ''}`).includes(termo));
-  }, [busca, campos]);
   const selecionadosParaDiscovery = selectedFields.filter((field) => descobriveis.has(field) && !executaveis.has(field));
 
   if (!v2 || !v2.executableFieldKeys.includes('insights.quality_ranking')) return null;
@@ -154,6 +152,42 @@ export function ConsultaQueryV2({
     setErro(null);
   }
 
+  // Com o catalogo em centenas de chaves, abrir tudo ao focar e uma parede.
+  // Ao focar sem termo, mostramos um recorte util: primeiro os campos prontos
+  // para usar. O resto continua alcancavel digitando.
+  const LIMITE_SUGESTOES = 60;
+  const sugestoes = useMemo(() => {
+    const termo = termoNormalizado(busca);
+    const base = termo
+      ? campos.filter((campo) => termoNormalizado(`${campo.nome} ${campo.id} ${campo.categoria ?? ''}`).includes(termo))
+      : [...campos].sort((um, outro) => Number(executaveis.has(outro.id)) - Number(executaveis.has(um.id)));
+    return { itens: base.slice(0, LIMITE_SUGESTOES), total: base.length };
+  }, [busca, campos, executaveis]);
+
+  const escolhidos = useMemo(
+    () => selectedFields.map((id) => campos.find((campo) => campo.id === id) ?? { id, nome: id, categoria: undefined }),
+    [selectedFields, campos],
+  );
+
+  function aoTeclar(evento: React.KeyboardEvent<HTMLInputElement>) {
+    const total = sugestoes.itens.length;
+    if (evento.key === 'Escape') { setAberto(false); setAtivo(-1); return; }
+    if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
+      evento.preventDefault();
+      if (!aberto) { setAberto(true); setAtivo(0); return; }
+      if (total === 0) return;
+      const passo = evento.key === 'ArrowDown' ? 1 : -1;
+      setAtivo((atual) => (atual + passo + total) % total);
+      return;
+    }
+    if (evento.key === 'Home' && aberto) { evento.preventDefault(); setAtivo(0); return; }
+    if (evento.key === 'End' && aberto) { evento.preventDefault(); setAtivo(total - 1); return; }
+    if (evento.key === 'Enter' && aberto && ativo >= 0 && ativo < total) {
+      evento.preventDefault();
+      alternarCampo(sugestoes.itens[ativo].id);
+    }
+  }
+
   const valido = contaId !== '' && dateStart !== '' && dateStop !== '' && dateStart <= dateStop && selectedFields.length > 0;
 
   async function executar() {
@@ -164,7 +198,7 @@ export function ConsultaQueryV2({
     try {
       setResultado(await aoExecutar({ accountId: contaId, selectedFields, dateStart, dateStop, granularity: 'day' }));
     } catch (error) {
-      setErro(error instanceof Error ? error.message : 'Não foi possível executar a consulta V2.');
+      setErro(error instanceof Error ? error.message : 'Não foi possível executar a consulta.');
     } finally {
       setExecutando(false);
     }
@@ -172,10 +206,10 @@ export function ConsultaQueryV2({
 
   return (
     <section className="dcp-secao dch-query-v2" aria-labelledby="query-v2-titulo">
-      <p className="dcp-eyebrow">Query Engine V2</p>
-      <h2 id="query-v2-titulo" className="dcp-secao__titulo">Consulta direta por campos</h2>
+      <p className="dcp-eyebrow">Consulta</p>
+      <h2 id="query-v2-titulo" className="dcp-secao__titulo">Montar consulta por campos</h2>
       <p className="dcp-secao__apoio">
-        Campos já comprovados executam direto. Campos marcados como “verificar nesta conta” passam por discovery real antes da consulta e só seguem se a Meta devolver evidência compatível.
+        Campos já comprovados nesta conta consultam direto. Os marcados como “verificar nesta conta” são conferidos na Meta antes da consulta e só entram se houver dado compatível.
       </p>
 
       <div className="dch-query-v2__controles">
@@ -193,34 +227,86 @@ export function ConsultaQueryV2({
         </label>
       </div>
 
-      <label className="dch-campo dch-query-v2__busca" htmlFor="query-v2-busca"><span>Buscar campos V2</span>
-        <input id="query-v2-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Ex.: outbound, ranking, spend…" />
-      </label>
+      <div className="dch-query-v2__busca-grupo">
+        <label className="dch-campo dch-query-v2__busca" htmlFor="query-v2-busca"><span>Buscar campos</span>
+          <input
+            id="query-v2-busca" type="text" role="combobox" autoComplete="off" spellCheck={false}
+            aria-expanded={aberto} aria-controls="query-v2-lista" aria-autocomplete="list"
+            aria-activedescendant={aberto && ativo >= 0 ? `query-v2-opcao-${ativo}` : undefined}
+            value={busca}
+            placeholder="Investimento, cliques, compras…"
+            onFocus={() => setAberto(true)}
+            onBlur={(evento) => { if (!evento.currentTarget.closest('.dch-query-v2__busca-grupo')?.contains(evento.relatedTarget as Node)) setAberto(false); }}
+            onChange={(evento) => { setBusca(evento.target.value); setAberto(true); setAtivo(0); }}
+            onKeyDown={aoTeclar}
+          />
+        </label>
 
-      <fieldset className="dch-query-v2__campos">
-        <legend>Campos do catálogo V2</legend>
-        {camposFiltrados.map((campo) => {
-          const requerDiscovery = descobriveis.has(campo.id) && !executaveis.has(campo.id);
-          return (
-            <label key={campo.id} className="dch-opcao">
-              <input type="checkbox" checked={selectedFields.includes(campo.id)} onChange={() => alternarCampo(campo.id)} />
-              <span>{campo.nome}<small className="dch-query-v2__estado">{requerDiscovery ? 'Verificar nesta conta' : 'Executável'}</small></span>
-            </label>
-          );
-        })}
-      </fieldset>
+        {aberto ? (
+          <div className="dch-query-v2__lista" id="query-v2-lista" role="listbox" aria-label="Campos disponíveis" aria-multiselectable="true">
+            {sugestoes.itens.length === 0 ? (
+              <p className="dch-query-v2__vazio">Nenhum campo com esse nome. Tente outra palavra, como “compra” ou “clique”.</p>
+            ) : (
+              <>
+                {sugestoes.itens.map((campo, indice) => {
+                  const porVerificar = descobriveis.has(campo.id) && !executaveis.has(campo.id);
+                  const marcado = selectedFields.includes(campo.id);
+                  return (
+                    <div
+                      key={campo.id} id={`query-v2-opcao-${indice}`} role="option" aria-selected={marcado}
+                      className={`dch-query-v2__opcao${indice === ativo ? ' dch-query-v2__opcao--ativa' : ''}`}
+                      onMouseDown={(evento) => { evento.preventDefault(); alternarCampo(campo.id); }}
+                      onMouseEnter={() => setAtivo(indice)}
+                    >
+                      <span className="dch-query-v2__marca" aria-hidden="true">{marcado ? '✓' : ''}</span>
+                      <span className="dch-query-v2__rotulo">
+                        {campo.nome}
+                        <small className="dch-query-v2__estado">{porVerificar ? 'Verificar nesta conta' : 'Pronto para usar'}</small>
+                      </span>
+                    </div>
+                  );
+                })}
+                {sugestoes.total > sugestoes.itens.length ? (
+                  <p className="dch-query-v2__vazio">
+                    Mostrando {sugestoes.itens.length} de {sugestoes.total}. Digite para encontrar o resto.
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
 
-      {selecionadosParaDiscovery.length > 0 ? <p className="dcp-secao__apoio">Discovery nesta execução: {selecionadosParaDiscovery.length}/3 campo(s).</p> : null}
-      <button type="button" className="dcp-botao dcp-botao--primario" disabled={!valido || executando} onClick={() => void executar()}>
-        {executando ? 'Consultando…' : 'Executar consulta V2'}
-      </button>
+      {escolhidos.length > 0 ? (
+        <ul className="dch-query-v2__escolhidos" aria-label="Campos escolhidos">
+          {escolhidos.map((campo) => (
+            <li key={campo.id}>
+              <button type="button" className="dch-query-v2__chip" onClick={() => alternarCampo(campo.id)}
+                aria-label={`Remover ${campo.nome}`}>
+                {campo.nome}<span aria-hidden="true">×</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="dch-query-v2__acoes">
+        <p className="dch-query-v2__resumo">
+          {escolhidos.length === 0 ? 'Nenhum campo escolhido ainda.' : `${escolhidos.length} campo(s) escolhido(s).`}
+          {selecionadosParaDiscovery.length > 0 ? ` ${selecionadosParaDiscovery.length} de 3 serão conferidos na Meta.` : ''}
+        </p>
+        <button type="button" className="dcp-botao dcp-botao--primario" disabled={!valido || executando} onClick={() => void executar()}>
+          {executando ? 'Consultando…' : 'Executar consulta'}
+        </button>
+      </div>
+
       {dateStart && dateStop && dateStart > dateStop ? <p className="dcp-erro" role="alert">A data inicial não pode ser posterior à final.</p> : null}
       {erro ? <p className="dch-status dch-status--erro" role="alert">{erro}</p> : null}
 
       {resultado ? (
         <div className="dch-query-v2__resultado" aria-live="polite">
-          <p className="dch-status dch-status--ok">Consulta V2 concluída. Referência: <code>{resultado.queryRunId}</code></p>
-          <p className="dcp-secao__apoio">Grão: {resultado.result.resolvedGrain} · Fonte completa: {resultado.result.sourceComplete ? 'sim' : 'não'} · Paginação completa: {resultado.result.pagingComplete ? 'sim' : 'não'}</p>
+          <p className="dch-status dch-status--ok">Consulta concluída. Referência desta consulta: <code>{resultado.queryRunId}</code></p>
+          <p className="dcp-secao__apoio">Nível dos dados: {resultado.result.resolvedGrain} · Dados completos: {resultado.result.sourceComplete && resultado.result.pagingComplete ? 'sim' : 'não'}</p>
           <div className="dch-query-v2__tabela-wrap">
             <table className="dch-query-v2__tabela">
               <thead><tr>{resultado.result.columns.map((field) => <th key={field} scope="col">{field}</th>)}</tr></thead>
