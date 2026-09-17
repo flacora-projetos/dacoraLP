@@ -80,4 +80,23 @@ const camadaLista = Number(/\.dch-query-v2__lista\s*\{[^}]*z-index:\s*(\d+)/.exe
 assert.ok(camadaNav > camadaLista && camadaLista > camadaAcoes,
   `camadas fora de ordem: nav ${camadaNav}, lista ${camadaLista}, acoes ${camadaAcoes}`);
 
+// --- 5. Ordem das colunas e motivo da recusa -----------------------------
+// A ordem dos escolhidos e a ordem das colunas na saida, entao ela e editavel.
+assert.ok(tsx.includes('function mover('), 'faltam os controles de ordem dos campos escolhidos');
+assert.ok(tsx.includes('para antes') && tsx.includes('para depois'), 'os botoes de mover precisam de rotulo acessivel');
+assert.ok(tsx.includes('a ordem das colunas no resultado'), 'a tela precisa dizer que a ordem importa');
+// Nao pode virar so arrastar: precisa funcionar no teclado e no toque.
+assert.ok(/<button[^>]*dch-query-v2__mover/.test(tsx), 'mover precisa ser botao, nao so arrastar');
+
+// Recusa por campo sem dado tem de nomear os campos e oferecer saida.
+assert.ok(tsx.includes('camposRecusados'), 'a tela precisa guardar os campos recusados');
+assert.ok(tsx.includes('Tirar '), 'falta a acao de remover os campos recusados');
+assert.ok(tsx.includes('Não inventamos zero'), 'o texto precisa explicar por que nao vem zero');
+
+const alvos = /\.dch-query-v2__(mover|remover)[^}]*width:\s*(\d+)px/g;
+let alvo;
+while ((alvo = alvos.exec(css)) !== null) {
+  assert.ok(Number(alvo[2]) >= 32, `alvo de toque pequeno demais em ${alvo[1]}`);
+}
+
 console.log('verifica:data-hub-seletor OK');

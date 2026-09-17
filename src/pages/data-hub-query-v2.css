@@ -54,15 +54,29 @@
 /* ---- Campos escolhidos ---- */
 
 .dch-query-v2__escolhidos { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.dch-query-v2__ordem-aviso { margin: 1rem 0 .4rem; }
+.dch-query-v2__escolhidos { counter-reset: coluna; }
 .dch-query-v2__chip {
-  display: inline-flex; align-items: center; gap: .45rem;
-  max-width: 22rem; min-height: 36px; padding: .25rem .6rem;
+  display: inline-flex; align-items: center; gap: .2rem;
+  max-width: 24rem; min-height: 40px; padding: .15rem .3rem .15rem .6rem;
   border: 1px solid var(--dc-filete-forte); border-radius: 999px;
-  background: transparent; color: var(--dc-tinta); font: inherit; font-size: .85rem;
-  cursor: pointer; touch-action: manipulation; overflow-wrap: anywhere; text-align: left;
+  color: var(--dc-tinta); font-size: .85rem; overflow-wrap: anywhere;
 }
-.dch-query-v2__chip:hover { border-color: var(--dc-verde); }
-.dch-query-v2__chip span { flex: 0 0 auto; color: var(--dc-cinza); font-size: 1rem; line-height: 1; }
+.dch-query-v2__chip:focus-within { border-color: var(--dc-verde); }
+.dch-query-v2__chip-nome { min-width: 0; padding-inline: .15rem; }
+.dch-query-v2__mover, .dch-query-v2__remover {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 999px; background: transparent;
+  color: var(--dc-cinza); font: inherit; font-size: .95rem; line-height: 1;
+  cursor: pointer; touch-action: manipulation;
+}
+.dch-query-v2__mover:hover:not(:disabled), .dch-query-v2__remover:hover { color: var(--dc-tinta); background: color-mix(in srgb, var(--dc-tinta) 8%, transparent); }
+.dch-query-v2__mover:disabled { opacity: .3; cursor: default; }
+
+.dch-query-v2__erro { margin-top: 1rem; }
+.dch-query-v2__erro .dcp-secao__apoio { max-width: 62ch; }
+.dch-query-v2__erro .dcp-botao { margin-top: .6rem; }
 
 /* ---- Barra de acao: o que esta escolhido e o botao acompanham a rolagem ---- */
 
