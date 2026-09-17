@@ -20,7 +20,11 @@
 
 /* ---- PWI1: navegação, lista e criador ---- */
 
-.dch-nav { display: flex; gap: .35rem; width: min(100%, 1180px); margin-inline: auto; padding: .6rem clamp(1rem, 4vw, 2.5rem) 0; }
+/* A navegacao acompanha a rolagem: a pagina do Data Hub e longa e o usuario
+   precisa saber onde esta sem voltar ao topo. Fundo proprio para o conteudo
+   nao transparecer por baixo. */
+.dch-nav { position: sticky; top: 0; z-index: 30; display: flex; gap: .35rem; width: min(100%, 1180px); margin-inline: auto; padding: .6rem clamp(1rem, 4vw, 2.5rem) 0; background: var(--dc-superficie); }
+.dch-nav::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 1px; background: var(--dc-filete-forte); }
 .dch-nav__item { display: inline-flex; align-items: center; min-height: 44px; padding-inline: .9rem; border-bottom: 2px solid transparent; color: var(--dc-cinza); font-size: .9rem; font-weight: 600; text-decoration: none; touch-action: manipulation; }
 /* Ativo é marcado por cor, peso e régua ao mesmo tempo: cor sozinha não serve. */
 .dch-nav__item--ativo { color: var(--dc-verde); font-weight: 700; border-bottom-color: var(--dc-verde); }

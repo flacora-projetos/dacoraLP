@@ -43,7 +43,8 @@
     "verifica:analises-publicadas": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-analises-publicadas.mts",
     "verifica:pdf-dedicado": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-relatorio-pdf-dedicado.mts",
     "pdf:prototipos": "tsx scripts/gerar-prototipos-pdf.mts",
-    "verifica:data-hub-exportacao": "tsx scripts/verifica-data-hub-exportacao.mts"
+    "verifica:data-hub-exportacao": "tsx scripts/verifica-data-hub-exportacao.mts",
+    "verifica:data-hub-seletor": "tsx scripts/verifica-data-hub-seletor.mts"
   },
   "dependencies": {
     "@expo-google-fonts/red-hat-display": "^0.4.1",
