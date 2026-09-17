@@ -9,3 +9,17 @@
 .dch-query-v2__tabela { width: 100%; border-collapse: collapse; }
 .dch-query-v2__tabela th, .dch-query-v2__tabela td { padding: .65rem; border-bottom: 1px solid currentColor; text-align: left; vertical-align: top; }
 @media (max-width: 720px) { .dch-query-v2__controles { grid-template-columns: 1fr; } }
+
+/* ---- Entrega na planilha ---- */
+
+.dch-entrega { margin-top: clamp(1.5rem, 4vw, 2.5rem); padding-top: clamp(1.2rem, 3vw, 1.8rem); border-top: 1px solid var(--dc-filete-forte); }
+.dch-entrega > .dcp-secao__apoio { max-width: 62ch; }
+.dch-entrega__linha { display: flex; align-items: flex-end; flex-wrap: wrap; gap: .9rem; margin-top: 1rem; }
+.dch-entrega__campo { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.dch-entrega__campo > span { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dc-cinza); }
+.dch-entrega__campo select, .dch-entrega__campo input { min-height: 44px; padding: 0 .7rem; border: 1px solid var(--dc-filete-forte); border-radius: 2px; background: transparent; color: var(--dc-tinta); font: inherit; font-size: .92rem; }
+.dch-entrega__campo select { min-width: 12rem; }
+.dch-entrega__campo input { width: 10rem; }
+.dch-entrega__planilha { align-self: center; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dc-tinta); font-size: .92rem; font-weight: 600; }
+.dch-entrega .dcp-botao--primario { margin-top: 1.2rem; }
+@media (max-width: 700px) { .dch-entrega__campo input, .dch-entrega__campo select { width: 100%; min-width: 0; } .dch-entrega__linha { gap: .7rem; } }

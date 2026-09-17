@@ -5,7 +5,7 @@ import {
   type RequisicaoDataHub,
 } from './_data-hub-spike.js';
 
-type Operacao = 'catalog' | 'query-v2' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'run' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
+type Operacao = 'catalog' | 'query-v2' | 'query-v2-export' | 'sheet-create' | 'list' | 'create' | 'get' | 'update' | 'delete' | 'run' | 'google-status' | 'google-connect' | 'google-callback' | 'google-disconnect' | 'google-spreadsheet-create' | 'google-spreadsheet-resolve' | 'google-picker-session';
 
 function jsonBody(req: Request): unknown {
   return req.body == null ? {} : req.body;
@@ -28,6 +28,9 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   }
   if (path === '/query-v2' && method === 'POST') {
     return { operation: 'query-v2', request: { endpoint: `${base}/query-v2`, method: 'POST', body: jsonBody(req) } };
+  }
+  if (path === '/query-v2/export' && method === 'POST') {
+    return { operation: 'query-v2-export', request: { endpoint: `${base}/query-v2/export`, method: 'POST', body: jsonBody(req) } };
   }
   if (path === '/extractions' && method === 'GET') {
     return { operation: 'list', request: { endpoint: `${base}/extractions`, method: 'GET' } };
@@ -52,6 +55,9 @@ function resolver(req: Request): { request: RequisicaoDataHub; operation: Operac
   }
   if (path === '/google/spreadsheets/resolve' && method === 'POST') {
     return { operation: 'google-spreadsheet-resolve', request: { endpoint: `${base}/google/spreadsheets/resolve`, method: 'POST', body: jsonBody(req) } };
+  }
+  if (path === '/google/spreadsheets/sheets' && method === 'POST') {
+    return { operation: 'sheet-create', request: { endpoint: `${base}/google/spreadsheets/sheets`, method: 'POST', body: jsonBody(req) } };
   }
   if (path === '/google/picker/session' && method === 'POST') {
     return { operation: 'google-picker-session', request: { endpoint: `${base}/google/picker/session`, method: 'POST', body: {} } };
@@ -88,6 +94,17 @@ export async function atenderDataHub(
   res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
   const resolvido = resolver(req);
   if ('error' in resolvido) return res.status(resolvido.error === 'metodo_nao_permitido' ? 405 : 400).json({ erro: resolvido.error });
+  if (resolvido.operation === 'query-v2-export') {
+    // O ownerId decide QUAL conexao Google escreve na planilha. Ele e imposto aqui,
+    // pela sessao, e nunca aceito do navegador: confiar no corpo permitiria escrever
+    // usando a conexao de outra pessoa.
+    const corpo: any = resolvido.request.body;
+    if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo) || !corpo.snapshot
+      || typeof corpo.snapshot !== 'object' || Array.isArray(corpo.snapshot)) {
+      return res.status(400).json({ erro: 'snapshot_invalido' });
+    }
+    resolvido.request.body = { ...corpo, snapshot: { ...corpo.snapshot, ownerId: `portal-user:${ator.id}` } };
+  }
   try {
     const resultado = await (dependencias.executar ?? executarRequisicaoDataHub)(resolvido.request, ator);
     return res.status(resultado.status).json(resultado.corpo);
