@@ -89,7 +89,17 @@ function DataHubInicio() {
       headers: { Authorization: `Bearer ${sessao.access_token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
     });
     const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.'));
+    if (!resposta.ok) {
+      // O Data Hub explica a recusa quando ela e sobre a consulta: mensagem e,
+      // quando existe, a lista de campos sem dado. Sem isso o usuario via uma
+      // falha generica de canal no lugar do motivo real.
+      const motivo = String(corpo?.mensagem ?? corpo?.message ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.');
+      const falha = new Error(motivo) as Error & { codigo?: string; campos?: readonly string[] };
+      if (typeof corpo?.error === 'string') falha.codigo = corpo.error;
+      const campos = corpo?.details?.fields;
+      if (Array.isArray(campos)) falha.campos = campos.filter((campo: unknown) => typeof campo === 'string');
+      throw falha;
+    }
     return { status: resposta.status, corpo };
   }
 
