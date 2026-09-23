@@ -49,13 +49,13 @@ export default function PrivacyPolicy() {
           </motion.div>
 
           <motion.div variants={fadeInUp} className="max-w-none text-dacora-gray font-light leading-relaxed">
-            <p className="mb-8">Última atualização: 15 de maio de 2026</p>
+            <p className="mb-8">Última atualização: 23 de setembro de 2026</p>
 
             <p className="mb-10">
               A Dácora Performance Digital respeita a sua privacidade e se compromete a tratar os seus dados pessoais com responsabilidade, transparência e segurança.
             </p>
             <p className="mb-12">
-              Esta Política de Privacidade explica quais dados podem ser coletados nesta página, para quais finalidades eles são usados, com quem podem ser compartilhados e quais são os seus direitos como titular dos dados.
+              Esta Política de Privacidade explica quais dados podem ser coletados nesta página e nos demais endereços ligados ao domínio dacora.com.br, incluindo subdomínios como quiz.dacora.com.br, para quais finalidades eles são usados, com quem podem ser compartilhados e quais são os seus direitos como titular dos dados.
             </p>
 
             <div className="space-y-12">
@@ -79,6 +79,7 @@ export default function PrivacyPolicy() {
                   <li>telefone/WhatsApp;</li>
                   <li>e-mail;</li>
                   <li>nome da empresa;</li>
+                  <li>respostas enviadas em questionários, quizzes, diagnósticos e formulários disponibilizados em dacora.com.br ou em seus subdomínios;</li>
                   <li>informações enviadas voluntariamente durante o contato, briefing, diagnóstico ou solicitação de proposta.</li>
                 </ul>
                 <p className="mb-4">Também podemos coletar dados de navegação e interação com a página, como:</p>
@@ -101,6 +102,7 @@ export default function PrivacyPolicy() {
                   <li>iniciar contato comercial via WhatsApp, e-mail ou outro canal informado;</li>
                   <li>entender se o serviço da Dácora faz sentido para o seu momento;</li>
                   <li>realizar diagnóstico comercial ou estratégico;</li>
+                  <li>apurar e apresentar o resultado de questionários e quizzes respondidos por você;</li>
                   <li>enviar propostas, informações ou orientações relacionadas ao serviço solicitado;</li>
                   <li>melhorar a experiência de navegação na página;</li>
                   <li>mensurar desempenho de campanhas de tráfego pago;</li>
@@ -185,13 +187,20 @@ export default function PrivacyPolicy() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold text-dacora-dark mb-4">11. Alterações nesta Política</h2>
+                <h2 className="text-2xl font-bold text-dacora-dark mb-4">11. Páginas em subdomínios operadas por parceiros</h2>
+                <p className="mb-4">Alguns endereços ligados a dacora.com.br, como quiz.dacora.com.br, podem ser publicados e mantidos por parceiros da Dácora em ambiente próprio deles, sob orientação da Dácora.</p>
+                <p className="mb-4">Nesses casos, os dados informados por você podem ser recebidos e armazenados também pelo parceiro responsável pela página, exclusivamente para as finalidades descritas nesta Política.</p>
+                <p>Se quiser saber qual parceiro é responsável por um endereço específico, ou exercer seus direitos sobre esses dados, entre em contato pelo e-mail indicado no item 13.</p>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-bold text-dacora-dark mb-4">12. Alterações nesta Política</h2>
                 <p className="mb-4">Esta Política de Privacidade poderá ser atualizada a qualquer momento para refletir mudanças na página, nas ferramentas utilizadas, nos serviços oferecidos ou em exigências legais.</p>
                 <p>A data da última atualização será sempre indicada no início deste documento.</p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold text-dacora-dark mb-4">12. Contato</h2>
+                <h2 className="text-2xl font-bold text-dacora-dark mb-4">13. Contato</h2>
                 <p className="mb-4">Em caso de dúvidas sobre esta Política de Privacidade ou sobre o tratamento dos seus dados pessoais, entre em contato:</p>
                 <ul className="list-disc pl-5 space-y-2 marker:text-dacora-sage/50">
                   <li><strong>E-mail:</strong> contato@nandacora.com.br</li>
