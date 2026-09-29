@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/relatorio-publico.ts": {
-      "includeFiles": "node_modules/pdfkit/js/{standard-fonts,data}/**"
+      "includeFiles": "node_modules/pdfkit/js/{standard-fonts,data}/**",
+      "maxDuration": 60
     }
   },
   "routes": [
