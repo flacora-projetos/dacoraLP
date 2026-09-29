@@ -1,6 +1,6 @@
 /* ⚠️ Imports relativos com `.js`: este módulo roda numa função da Vercel, que compila arquivo por arquivo e não completa extensão (ver api/painel-sessao.ts). */
 /**
- * Monta o arquivo PDF do relatório. Roda no servidor (`api/relatorio-pdf.ts`)
+ * Monta o arquivo PDF do relatório. Roda no servidor (`api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`))
  * e nos scripts de conferência — nunca no navegador.
  *
  * Três coisas que só o servidor faz bem, e por isso moram aqui:

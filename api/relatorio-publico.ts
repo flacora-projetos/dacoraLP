@@ -141,6 +141,13 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ erro: 'metodo_nao_permitido' });
   }
 
+  /* O PDF mora nesta mesma função (limite de 12 funções do plano) e só é
+     carregado quando pedido — ver `api/_relatorio-pdf.ts`. */
+  if (new URL(req.url, 'https://relatorio.dacora.local').searchParams.get('formato') === 'pdf') {
+    const { atenderPdfDoRelatorio } = await import('./_relatorio-pdf.js');
+    return atenderPdfDoRelatorio(req, res);
+  }
+
   const leitura = await lerRelatorioPublico(tokenDaRequisicao(req));
   return res.status(leitura.status).json(leitura.corpo);
 }
@@ -154,7 +161,7 @@ export function tokenDaRequisicao(req: Request): string {
 
 /**
  * A leitura pública inteira, sem HTTP em volta. É a MESMA para a página e para
- * o PDF (`api/relatorio-pdf.ts`): o arquivo nunca pode mostrar algo que o link
+ * o PDF (`api/_relatorio-pdf.ts`): o arquivo nunca pode mostrar algo que o link
  * não mostraria — nem versão não liberada, nem análise não publicada.
  */
 export async function lerRelatorioPublico(token: string): Promise<LeituraPublica> {

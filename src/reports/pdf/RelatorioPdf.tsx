@@ -10,7 +10,7 @@
  * topo, título de seção sozinho no pé da folha. O cliente recebia um no link e
  * outro na pasta. Decisão do PO: *"não era pra ter dois geradores de PDF"*.
  *
- * Hoje o documento é montado no servidor (`api/relatorio-pdf.ts`), e o botão da
+ * Hoje o documento é montado no servidor (`api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)), e o botão da
  * página e a rotina do Drive baixam o MESMO arquivo. A impressão da página pelo
  * navegador não é caminho de PDF de ninguém. Quem precisar mexer no PDF mexe
  * AQUI — não reative a impressão do Chrome, nem gere PDF no navegador.

@@ -120,7 +120,7 @@ do cliente e baixa o arquivo do servidor (ver "PDF do relatório mensal" abaixo)
 
 ## PDF do relatório mensal — UM gerador só (29/09/2026)
 
-**O PDF nasce num lugar só: `api/relatorio-pdf.ts`**, que monta
+**O PDF nasce num lugar só: `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)**, que monta
 `src/reports/pdf/RelatorioPdf.tsx` no servidor (fontes e logos embutidos em
 `recursos-embutidos.ts`, miniaturas baixadas antes, duas passadas para o
 sumário da capa). O botão "Exportar PDF" do link **baixa** esse arquivo, e a
@@ -145,7 +145,14 @@ rotina do Drive da fábrica (`OpenClaw-Dacora/src/lib/relatorio-pdf.js`)
   medição do que vem depois, e cabeçalho de tabela `fixed` falha — tabela
   longa é cortada em blocos com o próprio cabeçalho. Seção = título grampeado
   ao primeiro pedaço do conteúdo (`wrap={false}`), nunca `minPresenceAhead`.
-- **Imports relativos com `.js`** em toda a cadeia de `api/relatorio-pdf.ts`
+- ⚠️ **O plano Hobby da Vercel aceita no máximo 12 funções** (arquivos de
+  `api/` sem `_` no início) e já são 12. A prévia desta entrega falhou com
+  `exceeded_serverless_functions_per_deployment` quando o PDF virou a 13ª; por
+  isso ele mora em `api/_relatorio-pdf.ts` e é servido pela função
+  `relatorio-publico` (encaminhamento no `vercel.json`, carregado sob
+  demanda). **Endpoint novo entra como `_arquivo` despachado por uma função
+  existente**, nunca como arquivo novo em `api/`.
+- **Imports relativos com `.js`** em toda a cadeia de `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)
   (a Vercel compila arquivo por arquivo).
 - Conferência visual: `npm run pdf:prototipos` gera os PDFs das fixtures em
   `output/pdf/` pelo mesmo caminho do servidor.

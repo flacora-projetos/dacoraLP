@@ -2,7 +2,7 @@
  * O botão "Exportar PDF" do link do cliente.
  *
  * ⚠️ ELE NÃO GERA PDF — BAIXA O QUE O SERVIDOR GEROU (29/09/2026). O arquivo
- * vem de `api/relatorio-pdf.ts`, o mesmo endereço de onde a rotina do Drive
+ * vem de `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`), o mesmo endereço de onde a rotina do Drive
  * baixa. Antes o botão montava o documento no navegador e oferecia "Usar
  * impressão" como plano B; eram dois PDFs diferentes do mesmo relatório, e a
  * decisão do PO foi um gerador só. Não volte a gerar no navegador nem a

@@ -14,7 +14,7 @@
  *     porque o comentário que documenta a regra também contém a palavra.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -106,5 +106,12 @@ assert.equal((documento.match(/\bfixed\b/g) ?? []).length, 3, 'só cabeçalho, f
 const pagina = documento.slice(documento.indexOf('pagina: {'), documento.indexOf('cabecalho: {'));
 assert.ok(pagina.length > 50, 'a fatia do estilo da folha veio vazia');
 assert.doesNotMatch(pagina, /lineHeight/, 'entrelinha na folha é herdada e remultiplicada a cada folha nova');
+
+/* ---- 5) o limite de funções da Vercel ---- */
+const funcoes = readdirSync(new URL('../api/', import.meta.url)).filter((nome) => /\.ts$/.test(nome) && !nome.startsWith('_'));
+assert.ok(funcoes.length <= 12, `o plano Hobby aceita 12 funções e há ${funcoes.length}: a publicação falha inteira (exceeded_serverless_functions_per_deployment)`);
+const rotas = readFileSync(new URL('../vercel.json', import.meta.url), 'utf8');
+assert.match(rotas, /"src":\s*"\/api\/relatorio-pdf",\s*"dest":\s*"\/api\/relatorio-publico\?formato=pdf"/, 'o endereço do PDF é encaminhado para a função do relatório público');
+assert.ok(rotas.indexOf('/api/relatorio-pdf') < rotas.indexOf('"/api/(.*)"'), 'o encaminhamento do PDF vem antes da regra genérica de /api');
 
 console.log('verifica-relatorio-pdf-dedicado: ok');

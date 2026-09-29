@@ -12,7 +12,6 @@ import painelRelatorioHandler from "./api/painel-relatorio";
 import painelRelatorioInternoHandler from "./api/painel-relatorio-interno";
 import painelSessaoHandler from "./api/painel-sessao";
 import relatorioPublicoHandler from "./api/relatorio-publico";
-import relatorioPdfHandler from "./api/relatorio-pdf";
 
 /**
  * Variáveis de ambiente do desenvolvimento na máquina. Na Vercel elas vêm do
@@ -50,7 +49,11 @@ async function startServer() {
   app.all("/api/painel-analise-introducao", painelAnaliseIntroducaoHandler);
   app.all("/api/painel-envio", painelEnvioHandler);
   app.all("/api/relatorio-publico", relatorioPublicoHandler);
-  app.all("/api/relatorio-pdf", relatorioPdfHandler);
+  /* Mesmo encaminhamento do vercel.json: o PDF mora na função do relatório público. */
+  app.all("/api/relatorio-pdf", (req, res) => {
+    req.url = req.url.includes("?") ? req.url.replace("?", "?formato=pdf&") : `${req.url}?formato=pdf`;
+    return relatorioPublicoHandler(req, res);
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

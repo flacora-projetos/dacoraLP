@@ -3,7 +3,7 @@
 Leia [`AGENTS.md`](AGENTS.md) por inteiro antes de qualquer ação; ele é a fonte
 de verdade compartilhada com Codex.
 
-**PDF do relatório mensal: um gerador só, `api/relatorio-pdf.ts` (desde
+**PDF do relatório mensal: um gerador só, `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`) (desde
 29/09/2026).** O botão do link e o Drive baixam o mesmo arquivo; não gere PDF
 no navegador nem imprima a página. Marca (Dácora ou Allgrotech) sai da
 carteira, em `src/reports/marcas.ts`. Detalhe na seção própria do `AGENTS.md`. Em trabalho no painel de relatórios, leia

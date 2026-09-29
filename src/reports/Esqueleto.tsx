@@ -163,7 +163,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
           </div>
 
           {/* ⚠️ UM GERADOR DE PDF SÓ (29/09/2026). O link público injeta aqui
-              o botão que baixa o arquivo de `api/relatorio-pdf.ts` — o mesmo
+              o botão que baixa o arquivo de `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`) — o mesmo
               que vai para o Drive. Sem ele (demonstração, revisão interna)
               não há botão: a impressão da página pelo navegador deixou de
               ser caminho de PDF, porque produzia um segundo documento,

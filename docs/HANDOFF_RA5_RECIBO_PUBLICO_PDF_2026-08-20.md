@@ -1,6 +1,6 @@
 > ⚠️ **SUPERADO NA PARTE DO PDF (29/09/2026).** Este documento descreve o PDF
 > como a impressão da página. Desde 29/09/2026 o PDF é gerado só no servidor
-> (`api/relatorio-pdf.ts`) e o botão e o Drive baixam o mesmo arquivo — ver a
+> (`api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)) e o botão e o Drive baixam o mesmo arquivo — ver a
 > seção "PDF do relatório mensal" do `AGENTS.md`. O recibo AV4 descrito aqui
 > continua valendo, e o PDF usa a mesma leitura pública.
 

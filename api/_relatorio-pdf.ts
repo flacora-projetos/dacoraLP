@@ -1,6 +1,14 @@
 /**
  * `GET /api/relatorio-pdf?token=<credencial>` — o PDF do relatório mensal.
  *
+ * ⚠️ NÃO É UMA FUNÇÃO PRÓPRIA DA VERCEL, e o `_` no nome é de propósito: o
+ * plano Hobby aceita no máximo 12 funções por publicação, e a prévia desta
+ * entrega falhou com `exceeded_serverless_functions_per_deployment` quando o
+ * PDF tentou ser a 13ª. O endereço público continua `/api/relatorio-pdf`, que
+ * o `vercel.json` encaminha para `api/relatorio-publico.ts` com
+ * `formato=pdf`; lá o pedido é despachado para cá, carregado sob demanda para
+ * não pesar a abertura do link.
+ *
  * ---------------------------------------------------------------------------
  * ESTE É O ÚNICO LUGAR QUE PRODUZ O PDF DE UM RELATÓRIO (29/09/2026)
  *
@@ -23,7 +31,7 @@ import { gerarPdfDoRelatorio } from '../src/reports/pdf/gerarPdf.js';
 import { nomeDoArquivoPdf } from '../src/reports/pdf/nomeDoArquivo.js';
 import type { SnapshotMontado } from '../src/reports/blocos/tipos.js';
 
-export default async function handler(req: Request, res: Response) {
+export async function atenderPdfDoRelatorio(req: Request, res: Response) {
   res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   res.setHeader('Referrer-Policy', 'no-referrer');
