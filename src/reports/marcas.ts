@@ -7,8 +7,9 @@
  *
  * Decisão do PO em 29/09/2026: *"os clientes allgrotech devem ter a ID visual
  * e logo da Allgrotech nos mensais"*. Ela SUBSTITUI a de 04/08/2026 ("nenhum
- * relatório leva identidade visual da Allgrotech"); o registro das duas mora em
- * `cerebro/decisoes/` no repositório da fábrica.
+ * relatório leva identidade visual da Allgrotech"). A nova está em
+ * `cerebro/decisoes/2026-09-29-marca-allgrotech-nos-mensais.md` no repositório
+ * da fábrica; a antiga, em `docs/HANDOFF_RELATORIOS_WEB_2026-08-04.md` (item 1).
  *
  * A carteira já viaja dentro de todo snapshot (`identidade.carteira`), gravada
  * pela fábrica a partir do cadastro. Resolver por ela tem duas consequências
