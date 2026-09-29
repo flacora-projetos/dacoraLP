@@ -1,7 +1,12 @@
 # Instruções para Claude Code — SITE DÁCORA LP
 
 Leia [`AGENTS.md`](AGENTS.md) por inteiro antes de qualquer ação; ele é a fonte
-de verdade compartilhada com Codex. Em trabalho no painel de relatórios, leia
+de verdade compartilhada com Codex.
+
+**PDF do relatório mensal: um gerador só, `api/relatorio-pdf.ts` (desde
+29/09/2026).** O botão do link e o Drive baixam o mesmo arquivo; não gere PDF
+no navegador nem imprima a página. Marca (Dácora ou Allgrotech) sai da
+carteira, em `src/reports/marcas.ts`. Detalhe na seção própria do `AGENTS.md`. Em trabalho no painel de relatórios, leia
 também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
 **Em qualquer tarefa de `/data-hub`, leia `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md` antes de editar.** O Query Engine V2 query-first/field-centric é o norte; schema-first/wide permanece só como compatibilidade do backend e não pode voltar como plano de expansão do Portal.

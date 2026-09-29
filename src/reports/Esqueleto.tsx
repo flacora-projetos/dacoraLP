@@ -22,7 +22,8 @@
 import { useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import type { CompetenciaDisponivel, Marca, SnapshotBase } from './snapshot';
+import type { CompetenciaDisponivel, SnapshotBase } from './snapshot';
+import { marcaDoRelatorio } from './marcas';
 import {
   formatarCarimbo,
   formatarCompetencia,
@@ -54,15 +55,10 @@ interface Props {
   demo?: { rotulo: string; href: string; descricao: string };
   /** Só a revisão autenticada entrega a caneta; relatórios públicos nunca a montam. */
   introducaoDaRevisao?: ReactNode;
-  /** A página pública injeta o download dedicado; demos mantêm a impressão como fallback. */
+  /** A página pública injeta o botão que baixa o PDF do servidor; sem ele não há botão. */
   acaoPdf?: ReactNode;
 }
 
-const MARCA_DACORA: Marca = {
-  id: 'dacora',
-  nome: 'Dácora',
-  assinatura: 'Dácora Performance Digital',
-};
 
 const ESTADO_PUBLICACAO: Record<string, { texto: string; tom: 'ok' | 'atencao' | 'neutro' }> = {
   gerado: { texto: 'Gerado, aguardando liberação', tom: 'atencao' },
@@ -121,7 +117,8 @@ const indice = (posicao: number) => String(posicao).padStart(2, '0');
 
 export default function Esqueleto({ snapshot, competencias, proposta, secoes, demo, introducaoDaRevisao, acaoPdf }: Props) {
   const { identidade, publicacao, leitura } = snapshot;
-  const marca = identidade.marca ?? MARCA_DACORA;
+  /* A carteira decide a marca (Allgrotech ou Dácora) — ver `marcas.ts`. */
+  const marca = marcaDoRelatorio(identidade);
 
   const competenciaTexto = formatarCompetencia(identidade.competencia);
   usaPaginaPrivada(`Relatório ${competenciaTexto} — ${identidade.clienteNome} | ${marca.nome}`);
@@ -145,7 +142,11 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
       {/* 1 — cabeçalho discreto ------------------------------------- */}
       <header className="dc-topo">
         <div className="dc-largura dc-topo__conteudo">
-          <span className="dc-topo__marca">{marca.nome}</span>
+          <span className="dc-topo__marca">
+            {marca.logoWeb
+              ? <img className="dc-topo__logo" src={marca.logoWeb} alt={marca.nome} width={113} height={24} />
+              : marca.nome}
+          </span>
           <span className="dc-topo__separador" aria-hidden="true" />
           <span className="dc-topo__cliente">{identidade.clienteNome}</span>
 
@@ -161,20 +162,13 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
             </select>
           </div>
 
-          {/* O link público injeta aqui o gerador dedicado, alimentado pelo
-              MESMO snapshot e pelas mesmas camadas aprovadas que montam a
-              página. Demos e revisão conservam a impressão antiga como
-              fallback. O controle continua com a mesma classe para manter a
-              posição aprovada e continuar fora do papel em `@media print`. */}
-          {acaoPdf ?? (
-            <button
-              type="button"
-              className="dc-topo__imprimir"
-              onClick={() => window.print()}
-            >
-              Exportar PDF
-            </button>
-          )}
+          {/* ⚠️ UM GERADOR DE PDF SÓ (29/09/2026). O link público injeta aqui
+              o botão que baixa o arquivo de `api/relatorio-pdf.ts` — o mesmo
+              que vai para o Drive. Sem ele (demonstração, revisão interna)
+              não há botão: a impressão da página pelo navegador deixou de
+              ser caminho de PDF, porque produzia um segundo documento,
+              diferente, do mesmo relatório. */}
+          {acaoPdf ?? null}
         </div>
       </header>
 

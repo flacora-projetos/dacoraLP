@@ -119,12 +119,18 @@ function fechamentoConfere(linha: LinhaPublica, fechamento: FechamentoEditorial 
     && fechamento.aprovado_checksum === linha.aprovado_checksum;
 }
 
-function indisponivel(res: Response) {
-  return res.status(404).json({
+export interface LeituraPublica {
+  status: number;
+  corpo: Record<string, unknown>;
+}
+
+const INDISPONIVEL: LeituraPublica = {
+  status: 404,
+  corpo: {
     erro: 'relatorio_indisponivel',
     mensagem: 'Este relatório não está disponível. Peça um novo link à Dácora.',
-  });
-}
+  },
+};
 
 export default async function handler(req: Request, res: Response) {
   res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
@@ -135,19 +141,36 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ erro: 'metodo_nao_permitido' });
   }
 
+  const leitura = await lerRelatorioPublico(tokenDaRequisicao(req));
+  return res.status(leitura.status).json(leitura.corpo);
+}
+
+/** O token da URL, só quando vier exatamente um. */
+export function tokenDaRequisicao(req: Request): string {
   const parametros = new URL(req.url, 'https://relatorio.dacora.local').searchParams;
   const tokens = parametros.getAll('token');
-  const token = tokens.length === 1 ? tokens[0] : '';
-  if (!TOKEN_VALIDO.test(token)) return indisponivel(res);
+  return tokens.length === 1 ? tokens[0] : '';
+}
+
+/**
+ * A leitura pública inteira, sem HTTP em volta. É a MESMA para a página e para
+ * o PDF (`api/relatorio-pdf.ts`): o arquivo nunca pode mostrar algo que o link
+ * não mostraria — nem versão não liberada, nem análise não publicada.
+ */
+export async function lerRelatorioPublico(token: string): Promise<LeituraPublica> {
+  if (!TOKEN_VALIDO.test(token)) return INDISPONIVEL;
 
   const urlSupabase = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const chaveDeServico = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!urlSupabase || !chaveDeServico) {
     console.error('[relatorio-publico] Faltam URL ou service role no ambiente.');
-    return res.status(503).json({
-      erro: 'leitura_indisponivel',
-      mensagem: 'O relatório está temporariamente indisponível. Tente novamente em instantes.',
-    });
+    return {
+      status: 503,
+      corpo: {
+        erro: 'leitura_indisponivel',
+        mensagem: 'O relatório está temporariamente indisponível. Tente novamente em instantes.',
+      },
+    };
   }
 
   try {
@@ -161,7 +184,7 @@ export default async function handler(req: Request, res: Response) {
     if (!doToken.ok) throw new Error(`token HTTP ${doToken.status}`);
     const [dono] = (await doToken.json()) as Array<{ cliente_slug: string; competencia: string }>;
     if (!dono || typeof dono.cliente_slug !== 'string' || typeof dono.competencia !== 'string') {
-      return indisponivel(res);
+      return INDISPONIVEL;
     }
 
     /**
@@ -195,12 +218,12 @@ export default async function handler(req: Request, res: Response) {
     if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
 
     const [linha] = (await resposta.json()) as LinhaPublica[];
-    if (!linha || !linhaPodeSerPublicada(linha)) return indisponivel(res);
+    if (!linha || !linhaPodeSerPublicada(linha)) return INDISPONIVEL;
     /* Cinto e suspensório: a versão servida tem de ser mesmo do dono do token.
        O filtro acima já garante isso; esta conferência existe para o dia em que
        alguém mexer no filtro. */
     if (linha.cliente_slug !== dono.cliente_slug || linha.competencia !== dono.competencia) {
-      return indisponivel(res);
+      return INDISPONIVEL;
     }
 
     const respostaFechamento = await fetch(
@@ -215,10 +238,10 @@ export default async function handler(req: Request, res: Response) {
     );
     if (!respostaFechamento.ok) throw new Error(`fechamento HTTP ${respostaFechamento.status}`);
     const [fechamento] = (await respostaFechamento.json()) as FechamentoEditorial[];
-    if (!fechamentoConfere(linha, fechamento)) return indisponivel(res);
+    if (!fechamentoConfere(linha, fechamento)) return INDISPONIVEL;
 
     const relatorio = montarRelatorioParaRevisao(linha as any);
-    if (!relatorio) return indisponivel(res);
+    if (!relatorio) return INDISPONIVEL;
 
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,
@@ -265,25 +288,31 @@ export default async function handler(req: Request, res: Response) {
       throw new Error('observacoes_publicas_invalidas');
     }
 
-    return res.status(200).json({
-      relatorio: {
+    return {
+      status: 200,
+      corpo: {
+        relatorio: {
         clienteNome: relatorio.clienteNome,
         competencia: relatorio.competencia,
         versao: relatorio.versao,
         conteudoCarregado: true,
         snapshot: relatorio.snapshot,
         analisesPublicadas,
-        observacoesPublicas,
+          observacoesPublicas,
+        },
       },
-    });
+    };
   } catch (erro) {
     console.error(
       '[relatorio-publico] Falha ao ler o relatório:',
       erro instanceof Error ? erro.message : erro,
     );
-    return res.status(502).json({
-      erro: 'leitura_indisponivel',
-      mensagem: 'O relatório está temporariamente indisponível. Tente novamente em instantes.',
-    });
+    return {
+      status: 502,
+      corpo: {
+        erro: 'leitura_indisponivel',
+        mensagem: 'O relatório está temporariamente indisponível. Tente novamente em instantes.',
+      },
+    };
   }
 }

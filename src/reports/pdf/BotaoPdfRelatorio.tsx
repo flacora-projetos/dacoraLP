@@ -1,31 +1,27 @@
+/**
+ * O botão "Exportar PDF" do link do cliente.
+ *
+ * ⚠️ ELE NÃO GERA PDF — BAIXA O QUE O SERVIDOR GEROU (29/09/2026). O arquivo
+ * vem de `api/relatorio-pdf.ts`, o mesmo endereço de onde a rotina do Drive
+ * baixa. Antes o botão montava o documento no navegador e oferecia "Usar
+ * impressão" como plano B; eram dois PDFs diferentes do mesmo relatório, e a
+ * decisão do PO foi um gerador só. Não volte a gerar no navegador nem a
+ * oferecer a impressão da página como PDF.
+ */
 import { useState } from 'react';
 
-import fonteRegular from '@expo-google-fonts/red-hat-display/400Regular/RedHatDisplay_400Regular.ttf?url';
-import fonteMedia from '@expo-google-fonts/red-hat-display/500Medium/RedHatDisplay_500Medium.ttf?url';
-import fonteNegrita from '@expo-google-fonts/red-hat-display/700Bold/RedHatDisplay_700Bold.ttf?url';
-
-import type { AnalisePublicada } from '../analisePublicada';
 import type { SnapshotMontado } from '../blocos/tipos';
+import { nomeDoArquivoPdf } from './nomeDoArquivo';
+
+export { nomeDoArquivoPdf };
 
 interface Props {
+  /** Token do link; é a credencial que o servidor confere. */
+  token: string;
   snapshot: SnapshotMontado;
-  analisesPublicadas: AnalisePublicada[];
-  observacoesPublicas: Array<{ secao: string; texto: string }>;
 }
 
-const semAcento = (valor: string) => valor
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^a-zA-Z0-9]+/g, '-')
-  .replace(/^-+|-+$/g, '');
-
-export function nomeDoArquivoPdf(snapshot: SnapshotMontado): string {
-  const cliente = semAcento(snapshot.identidade.clienteNome) || 'Cliente';
-  const competencia = semAcento(snapshot.identidade.competencia) || 'periodo';
-  return `Dacora-${cliente}-${competencia}-v${snapshot.publicacao.versao}.pdf`;
-}
-
-export default function BotaoPdfRelatorio({ snapshot, analisesPublicadas, observacoesPublicas }: Props) {
+export default function BotaoPdfRelatorio({ token, snapshot }: Props) {
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState(false);
 
@@ -34,17 +30,14 @@ export default function BotaoPdfRelatorio({ snapshot, analisesPublicadas, observ
     setGerando(true);
     setErro(false);
     try {
-      const [{ pdf }, modulo] = await Promise.all([
-        import('@react-pdf/renderer'),
-        import('./RelatorioPdf'),
-      ]);
-      modulo.registrarFontesDoRelatorioPdf({
-        regular: fonteRegular,
-        medium: fonteMedia,
-        bold: fonteNegrita,
+      const resposta = await fetch(`/api/relatorio-pdf?token=${encodeURIComponent(token)}`, {
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
       });
-      const documento = modulo.default({ snapshot, analisesPublicadas, observacoesPublicas });
-      const arquivo = await pdf(documento).toBlob();
+      if (!resposta.ok || !(resposta.headers.get('content-type') ?? '').includes('application/pdf')) {
+        throw new Error(`HTTP ${resposta.status}`);
+      }
+      const arquivo = await resposta.blob();
       const url = URL.createObjectURL(arquivo);
       const link = document.createElement('a');
       link.href = url;
@@ -55,7 +48,7 @@ export default function BotaoPdfRelatorio({ snapshot, analisesPublicadas, observ
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1_000);
     } catch (falha) {
-      console.error('[relatorio-pdf] Falha ao gerar o documento.', falha);
+      console.error('[relatorio-pdf] Falha ao baixar o documento.', falha);
       setErro(true);
     } finally {
       setGerando(false);
@@ -75,10 +68,7 @@ export default function BotaoPdfRelatorio({ snapshot, analisesPublicadas, observ
       </button>
       {erro && (
         <span className="dc-topo__pdf-erro" role="alert">
-          Não foi possível gerar agora.{' '}
-          <button type="button" className="dc-topo__pdf-fallback" onClick={() => window.print()}>
-            Usar impressão
-          </button>
+          Não foi possível gerar agora. Tente de novo em instantes.
         </span>
       )}
     </div>

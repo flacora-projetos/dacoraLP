@@ -12,6 +12,7 @@ import painelRelatorioHandler from "./api/painel-relatorio";
 import painelRelatorioInternoHandler from "./api/painel-relatorio-interno";
 import painelSessaoHandler from "./api/painel-sessao";
 import relatorioPublicoHandler from "./api/relatorio-publico";
+import relatorioPdfHandler from "./api/relatorio-pdf";
 
 /**
  * Variáveis de ambiente do desenvolvimento na máquina. Na Vercel elas vêm do
@@ -49,6 +50,7 @@ async function startServer() {
   app.all("/api/painel-analise-introducao", painelAnaliseIntroducaoHandler);
   app.all("/api/painel-envio", painelEnvioHandler);
   app.all("/api/relatorio-publico", relatorioPublicoHandler);
+  app.all("/api/relatorio-pdf", relatorioPdfHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
