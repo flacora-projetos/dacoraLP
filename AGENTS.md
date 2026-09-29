@@ -158,6 +158,11 @@ rotina do Drive da fábrica (`OpenClaw-Dacora/src/lib/relatorio-pdf.js`)
   VERSIONADO. **Mexeu em `src/reports/pdf/` ou em `marcas.ts`? Reempacote e
   versione** — `verifica:pdf-dedicado` reempacota e compara, e derruba o build
   se o pacote estiver velho.
+- ⚠️ **O pdfkit carrega as fontes-padrão por caminho dinâmico** e a Vercel
+  não as leva sozinha (terceira prévia: `Cannot find module
+  .../pdfkit/js/standard-fonts/Helvetica.cjs`, com a função inteira caindo).
+  O `vercel.json` declara `includeFiles` para `api/relatorio-publico.ts`; não
+  tire, e se o PDF mudar de função, leve a declaração junto.
 - **Imports relativos com `.js`** em toda a cadeia de `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)
   (a Vercel compila arquivo por arquivo).
 - Conferência visual: `npm run pdf:prototipos` gera os PDFs das fixtures em

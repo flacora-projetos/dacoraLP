@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/relatorio-publico.ts": {
+      "includeFiles": "node_modules/pdfkit/js/{standard-fonts,data}/**"
+    }
+  },
   "routes": [
     { "src": "/api/data-hub-spike", "dest": "/api/painel-sessao?modo=data-hub-spike" },
     { "src": "/api/data-hub(?:/(.*))?", "dest": "/api/painel-sessao?modo=data-hub&path=/$1" },

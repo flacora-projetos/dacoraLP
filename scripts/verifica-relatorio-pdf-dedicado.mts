@@ -118,6 +118,12 @@ assert.ok(funcoes.length <= 12, `o plano Hobby aceita 12 funções e há ${funco
 const rotas = readFileSync(new URL('../vercel.json', import.meta.url), 'utf8');
 assert.match(rotas, /"src":\s*"\/api\/relatorio-pdf",\s*"dest":\s*"\/api\/relatorio-publico\?formato=pdf"/, 'o endereço do PDF é encaminhado para a função do relatório público');
 assert.ok(rotas.indexOf('/api/relatorio-pdf') < rotas.indexOf('"/api/(.*)"'), 'o encaminhamento do PDF vem antes da regra genérica de /api');
+const configuracao = JSON.parse(rotas);
+assert.match(
+  String(configuracao.functions?.['api/relatorio-publico.ts']?.includeFiles ?? ''),
+  /node_modules\/pdfkit\/js\/.*standard-fonts/,
+  'as fontes-padrão do pdfkit precisam ir junto da função, senão ela cai inteira na Vercel',
+);
 
 /* ---- 6) o pacote que a função usa é o código-fonte de hoje ---- */
 {
