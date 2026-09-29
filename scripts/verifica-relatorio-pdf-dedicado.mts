@@ -82,6 +82,11 @@ assert.equal(
   'Allgrotech-Karyne-Magalhaes-2026-07-v1.pdf',
   'o arquivo de cliente Allgrotech abre com o nome da Allgrotech',
 );
+assert.equal(
+  nomeDoArquivoPdf({ ...karyneMontada202607, identidade: { ...id, clienteNome: 'AllgroTech', carteira: 'ALLGROTECH' } }),
+  'Allgrotech-2026-07-v1.pdf',
+  'o relatório da própria agência não repete o nome dela',
+);
 
 /* ---- 3) o arquivo ---- */
 for (const carteira of ['DACORA', 'ALLGROTECH']) {
@@ -113,5 +118,14 @@ assert.ok(funcoes.length <= 12, `o plano Hobby aceita 12 funções e há ${funco
 const rotas = readFileSync(new URL('../vercel.json', import.meta.url), 'utf8');
 assert.match(rotas, /"src":\s*"\/api\/relatorio-pdf",\s*"dest":\s*"\/api\/relatorio-publico\?formato=pdf"/, 'o endereço do PDF é encaminhado para a função do relatório público');
 assert.ok(rotas.indexOf('/api/relatorio-pdf') < rotas.indexOf('"/api/(.*)"'), 'o encaminhamento do PDF vem antes da regra genérica de /api');
+
+/* ---- 6) o pacote que a função usa é o código-fonte de hoje ---- */
+{
+  const { empacotar, DESTINO } = await import('./empacotar-pdf.mjs');
+  const versionado = readFileSync(DESTINO, 'utf8').replace(/\r\n/g, '\n');
+  assert.equal(versionado, await empacotar(), 'api/_pdf-empacotado.js está velho: rode `node scripts/empacotar-pdf.mjs` e versione o resultado');
+  const funcao = semComentarios(readFileSync(new URL('../api/_relatorio-pdf.ts', import.meta.url), 'utf8'));
+  assert.match(funcao, /from '\.\/_pdf-empacotado\.js'/, 'a função usa o gerador empacotado, nunca o .tsx direto (a Vercel não compila .tsx)');
+}
 
 console.log('verifica-relatorio-pdf-dedicado: ok');

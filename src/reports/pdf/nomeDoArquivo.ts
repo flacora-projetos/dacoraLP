@@ -16,5 +16,7 @@ export function nomeDoArquivoPdf(snapshot: SnapshotMontado): string {
   const marca = marcaDoRelatorio(snapshot.identidade).prefixoArquivo;
   const cliente = semAcento(snapshot.identidade.clienteNome) || 'Cliente';
   const competencia = semAcento(snapshot.identidade.competencia) || 'periodo';
-  return `${marca}-${cliente}-${competencia}-v${snapshot.publicacao.versao}.pdf`;
+  /* O relatório da própria agência não repete o nome: "Allgrotech-2026-08", não "Allgrotech-AllgroTech-2026-08". */
+  const prefixo = cliente.toLowerCase() === marca.toLowerCase() ? marca : `${marca}-${cliente}`;
+  return `${prefixo}-${competencia}-v${snapshot.publicacao.versao}.pdf`;
 }

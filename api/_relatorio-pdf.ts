@@ -27,7 +27,8 @@
 import type { Request, Response } from 'express';
 
 import { lerRelatorioPublico, tokenDaRequisicao } from './relatorio-publico.js';
-import { gerarPdfDoRelatorio } from '../src/reports/pdf/gerarPdf.js';
+/* O gerador chega EMPACOTADO: a Vercel não compila `.tsx` (ver scripts/empacotar-pdf.mjs). */
+import { gerarPdfDoRelatorio } from './_pdf-empacotado.js';
 import { nomeDoArquivoPdf } from '../src/reports/pdf/nomeDoArquivo.js';
 import type { SnapshotMontado } from '../src/reports/blocos/tipos.js';
 

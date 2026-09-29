@@ -152,6 +152,12 @@ rotina do Drive da fábrica (`OpenClaw-Dacora/src/lib/relatorio-pdf.js`)
   `relatorio-publico` (encaminhamento no `vercel.json`, carregado sob
   demanda). **Endpoint novo entra como `_arquivo` despachado por uma função
   existente**, nunca como arquivo novo em `api/`.
+- ⚠️ **A Vercel não compila `.tsx` dentro de função.** A segunda prévia caiu
+  com `ERR_MODULE_NOT_FOUND: .../RelatorioPdf.js`. Por isso a função usa
+  `api/_pdf-empacotado.js`, gerado por `node scripts/empacotar-pdf.mjs` e
+  VERSIONADO. **Mexeu em `src/reports/pdf/` ou em `marcas.ts`? Reempacote e
+  versione** — `verifica:pdf-dedicado` reempacota e compara, e derruba o build
+  se o pacote estiver velho.
 - **Imports relativos com `.js`** em toda a cadeia de `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)
   (a Vercel compila arquivo por arquivo).
 - Conferência visual: `npm run pdf:prototipos` gera os PDFs das fixtures em
