@@ -4066,3 +4066,24 @@
 @page {
   margin: 14mm;
 }
+
+/* ------------------------------------------------------------------ */
+/* Marca Allgrotech (29/09/2026)                                        */
+/* ------------------------------------------------------------------ */
+/* Clientes da carteira ALLGROTECH saem com a identidade da Allgrotech —
+   decisão do PO de 29/09/2026, que substituiu o "só Dácora" de 04/08. Quem
+   escolhe é `marcaDoRelatorio` (src/reports/marcas.ts), pela carteira; aqui só
+   se trocam as cores. As cores foram medidas no logo oficial. */
+.dc-report[data-marca='allgrotech'] {
+  --dc-canvas: #f1f5ee;
+  --dc-verde: #112d1d;
+  --dc-verde-medio: #1d9323;
+  --dc-tinta: #112d1d;
+  --dc-favoravel: #1d7a2a;
+}
+
+.dc-topo__logo {
+  display: block;
+  height: 24px;
+  width: auto;
+}

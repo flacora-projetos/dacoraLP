@@ -15,7 +15,7 @@ interface RelatorioExterno {
   observacoesPublicas?: Array<{ secao: string; texto: string }>;
 }
 
-export function RelatorioPublicoApresentado({ relatorio }: { relatorio: RelatorioExterno }) {
+export function RelatorioPublicoApresentado({ relatorio, token }: { relatorio: RelatorioExterno; token: string }) {
   return (
     <RelatorioMontado
       snapshot={relatorio.snapshot}
@@ -28,11 +28,7 @@ export function RelatorioPublicoApresentado({ relatorio }: { relatorio: Relatori
       analisesPublicadas={relatorio.analisesPublicadas ?? []}
       observacoesPublicas={relatorio.observacoesPublicas ?? []}
       acaoPdf={(
-        <BotaoPdfRelatorio
-          snapshot={relatorio.snapshot}
-          analisesPublicadas={relatorio.analisesPublicadas ?? []}
-          observacoesPublicas={relatorio.observacoesPublicas ?? []}
-        />
+        <BotaoPdfRelatorio token={token} snapshot={relatorio.snapshot} />
       )}
     />
   );
@@ -74,7 +70,7 @@ export default function RelatorioPublico() {
     return () => controle.abort();
   }, [token, tentativa]);
 
-  if (relatorio) return <RelatorioPublicoApresentado relatorio={relatorio} />;
+  if (relatorio) return <RelatorioPublicoApresentado relatorio={relatorio} token={token} />;
 
   return (
     <main className="dc-publico-estado" role={erro ? 'alert' : 'status'} aria-live="polite">

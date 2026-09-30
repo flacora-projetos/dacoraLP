@@ -114,9 +114,59 @@ sessão: falha idêntico. **Não atribua essa falha à sua rodada nem tente
 "consertá-la" de passagem.**
 
 **`npm run verifica:cliente-enxuto`** (no `prebuild` desde 01/09/2026) fixa o
-contrato do documento do cliente e da impressão: as duas seções suspensas, a
-presença do dado no snapshot, a numeração sem buraco, o botão de PDF, o sumiço
-dele no papel, o gráfico virando tabela e as regras de quebra de página.
+contrato do documento do cliente: as duas seções suspensas, a presença do dado
+no snapshot, a numeração sem buraco e o botão de PDF — que existe só no link
+do cliente e baixa o arquivo do servidor (ver "PDF do relatório mensal" abaixo).
+
+## PDF do relatório mensal — UM gerador só (29/09/2026)
+
+**O PDF nasce num lugar só: `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)**, que monta
+`src/reports/pdf/RelatorioPdf.tsx` no servidor (fontes e logos embutidos em
+`recursos-embutidos.ts`, miniaturas baixadas antes, duas passadas para o
+sumário da capa). O botão "Exportar PDF" do link **baixa** esse arquivo, e a
+rotina do Drive da fábrica (`OpenClaw-Dacora/src/lib/relatorio-pdf.js`)
+**baixa o mesmo**. Decisão do PO: *"não era pra ter dois geradores de PDF"*.
+
+- ⚠️ **Não volte a gerar PDF no navegador, nem a oferecer `window.print()`
+  como PDF, nem a imprimir a página com o Chrome.** Os dois caminhos antigos
+  (react-pdf no navegador desde 08/09 e impressão do Chrome no Drive desde
+  21/09) foram removidos por produzirem dois documentos diferentes do mesmo
+  relatório. Melhoria de layout do PDF mexe em `RelatorioPdf.tsx` e vale para
+  o botão e para o Drive ao mesmo tempo. O `@media print` de `report.css`
+  continua existindo só para quem apertar Ctrl+P na tela — não é produto.
+- **Marca pela carteira** (`src/reports/marcas.ts`): `identidade.carteira ===
+  'ALLGROTECH'` sai com logo e cores da Allgrotech, na página e no PDF;
+  o resto é Dácora. Decisão do PO de 29/09/2026, que substituiu o "só Dácora"
+  de 04/08. Nunca decida marca pelo nome do cliente.
+- **Três armadilhas do motor `@react-pdf` medidas em 29/09**, travadas por
+  `verifica:pdf-dedicado`: (1) `minHeight` em peça que o motor move de folha
+  explode para milhões de pontos; (2) `lineHeight` na folha ou em peça `fixed`
+  é remultiplicada a cada folha; (3) texto dentro de `<Svg>` corrompe a
+  medição do que vem depois, e cabeçalho de tabela `fixed` falha — tabela
+  longa é cortada em blocos com o próprio cabeçalho. Seção = título grampeado
+  ao primeiro pedaço do conteúdo (`wrap={false}`), nunca `minPresenceAhead`.
+- ⚠️ **O plano Hobby da Vercel aceita no máximo 12 funções** (arquivos de
+  `api/` sem `_` no início) e já são 12. A prévia desta entrega falhou com
+  `exceeded_serverless_functions_per_deployment` quando o PDF virou a 13ª; por
+  isso ele mora em `api/_relatorio-pdf.ts` e é servido pela função
+  `relatorio-publico` (encaminhamento no `vercel.json`, carregado sob
+  demanda). **Endpoint novo entra como `_arquivo` despachado por uma função
+  existente**, nunca como arquivo novo em `api/`.
+- ⚠️ **A Vercel não compila `.tsx` dentro de função.** A segunda prévia caiu
+  com `ERR_MODULE_NOT_FOUND: .../RelatorioPdf.js`. Por isso a função usa
+  `api/_pdf-empacotado.js`, gerado por `node scripts/empacotar-pdf.mjs` e
+  VERSIONADO. **Mexeu em `src/reports/pdf/` ou em `marcas.ts`? Reempacote e
+  versione** — `verifica:pdf-dedicado` reempacota e compara, e derruba o build
+  se o pacote estiver velho.
+- ⚠️ **O pdfkit carrega as fontes-padrão por caminho dinâmico** e a Vercel
+  não as leva sozinha (terceira prévia: `Cannot find module
+  .../pdfkit/js/standard-fonts/Helvetica.cjs`, com a função inteira caindo).
+  O `vercel.json` declara `includeFiles` para `api/relatorio-publico.ts`; não
+  tire, e se o PDF mudar de função, leve a declaração junto.
+- **Imports relativos com `.js`** em toda a cadeia de `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`)
+  (a Vercel compila arquivo por arquivo).
+- Conferência visual: `npm run pdf:prototipos` gera os PDFs das fixtures em
+  `output/pdf/` pelo mesmo caminho do servidor.
 
 ⚠️ **Ao conferir algo publicado, olhe o artefato que o NAVEGADOR aplica.** As
 rotas de relatório são montadas no cliente: `curl` na página devolve só a casca,

@@ -1,7 +1,14 @@
 {
+  "functions": {
+    "api/relatorio-publico.ts": {
+      "includeFiles": "node_modules/pdfkit/js/{standard-fonts,data}/**",
+      "maxDuration": 60
+    }
+  },
   "routes": [
     { "src": "/api/data-hub-spike", "dest": "/api/painel-sessao?modo=data-hub-spike" },
     { "src": "/api/data-hub(?:/(.*))?", "dest": "/api/painel-sessao?modo=data-hub&path=/$1" },
+    { "src": "/api/relatorio-pdf", "dest": "/api/relatorio-publico?formato=pdf" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     {
       "src": "/img/(.*)",

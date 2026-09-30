@@ -49,6 +49,11 @@ async function startServer() {
   app.all("/api/painel-analise-introducao", painelAnaliseIntroducaoHandler);
   app.all("/api/painel-envio", painelEnvioHandler);
   app.all("/api/relatorio-publico", relatorioPublicoHandler);
+  /* Mesmo encaminhamento do vercel.json: o PDF mora na função do relatório público. */
+  app.all("/api/relatorio-pdf", (req, res) => {
+    req.url = req.url.includes("?") ? req.url.replace("?", "?formato=pdf&") : `${req.url}?formato=pdf`;
+    return relatorioPublicoHandler(req, res);
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
