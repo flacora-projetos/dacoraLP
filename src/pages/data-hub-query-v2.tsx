@@ -77,6 +77,7 @@ export function ConsultaQueryV2({
   const [resultado, setResultado] = useState<ResultadoV2 | null>(null);
   const [executando, setExecutando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [camposRecusados, setCamposRecusados] = useState<readonly string[]>([]);
   const [aberto, setAberto] = useState(false);
   const [ativo, setAtivo] = useState(-1);
   const [destino, setDestino] = useState<DestinoPlanilha | null>(null);
@@ -169,6 +170,22 @@ export function ConsultaQueryV2({
     [selectedFields, campos],
   );
 
+  /**
+   * A ordem dos campos escolhidos e a ordem das colunas no resultado e na
+   * planilha. Por isso ela e editavel, e por botao: funciona no teclado, no
+   * leitor de tela e no toque, sem depender de arrastar.
+   */
+  function mover(id: string, passo: -1 | 1) {
+    setSelectedFields((atuais) => {
+      const indice = atuais.indexOf(id);
+      const destino = indice + passo;
+      if (indice < 0 || destino < 0 || destino >= atuais.length) return atuais;
+      const proximo = [...atuais];
+      [proximo[indice], proximo[destino]] = [proximo[destino], proximo[indice]];
+      return proximo;
+    });
+  }
+
   function aoTeclar(evento: React.KeyboardEvent<HTMLInputElement>) {
     const total = sugestoes.itens.length;
     if (evento.key === 'Escape') { setAberto(false); setAtivo(-1); return; }
@@ -194,11 +211,14 @@ export function ConsultaQueryV2({
     if (!valido || executando) return;
     setExecutando(true);
     setErro(null);
+    setCamposRecusados([]);
     setResultado(null);
     try {
       setResultado(await aoExecutar({ accountId: contaId, selectedFields, dateStart, dateStop, granularity: 'day' }));
     } catch (error) {
-      setErro(error instanceof Error ? error.message : 'Não foi possível executar a consulta.');
+      const falha = error as Error & { campos?: readonly string[] };
+      setErro(falha instanceof Error ? falha.message : 'Não foi possível executar a consulta.');
+      setCamposRecusados(Array.isArray(falha?.campos) ? falha.campos : []);
     } finally {
       setExecutando(false);
     }
@@ -278,16 +298,30 @@ export function ConsultaQueryV2({
       </div>
 
       {escolhidos.length > 0 ? (
-        <ul className="dch-query-v2__escolhidos" aria-label="Campos escolhidos">
-          {escolhidos.map((campo) => (
-            <li key={campo.id}>
-              <button type="button" className="dch-query-v2__chip" onClick={() => alternarCampo(campo.id)}
-                aria-label={`Remover ${campo.nome}`}>
-                {campo.nome}<span aria-hidden="true">×</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="dcp-secao__apoio dch-query-v2__ordem-aviso">
+            A ordem abaixo e a ordem das colunas no resultado e na planilha.
+          </p>
+          <ol className="dch-query-v2__escolhidos" aria-label="Campos escolhidos, na ordem das colunas">
+            {escolhidos.map((campo, indice) => (
+              <li key={campo.id} className="dch-query-v2__chip">
+                <button type="button" className="dch-query-v2__mover" disabled={indice === 0}
+                  onClick={() => mover(campo.id, -1)} aria-label={`Mover ${campo.nome} para antes`}>
+                  <span aria-hidden="true">←</span>
+                </button>
+                <span className="dch-query-v2__chip-nome">{campo.nome}</span>
+                <button type="button" className="dch-query-v2__mover" disabled={indice === escolhidos.length - 1}
+                  onClick={() => mover(campo.id, 1)} aria-label={`Mover ${campo.nome} para depois`}>
+                  <span aria-hidden="true">→</span>
+                </button>
+                <button type="button" className="dch-query-v2__remover" onClick={() => alternarCampo(campo.id)}
+                  aria-label={`Remover ${campo.nome}`}>
+                  <span aria-hidden="true">×</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </>
       ) : null}
 
       <div className="dch-query-v2__acoes">
@@ -301,7 +335,25 @@ export function ConsultaQueryV2({
       </div>
 
       {dateStart && dateStop && dateStart > dateStop ? <p className="dcp-erro" role="alert">A data inicial não pode ser posterior à final.</p> : null}
-      {erro ? <p className="dch-status dch-status--erro" role="alert">{erro}</p> : null}
+      {erro ? (
+        <div className="dch-query-v2__erro" role="alert">
+          <p className="dch-status dch-status--erro">{erro}</p>
+          {camposRecusados.length > 0 ? (
+            <>
+              <p className="dcp-secao__apoio">
+                Esses campos não têm dado nesta conta e período. Não inventamos zero: ou eles saem da consulta, ou o período muda.
+              </p>
+              <button type="button" className="dcp-botao" onClick={() => {
+                setSelectedFields((atuais) => atuais.filter((id) => !camposRecusados.includes(id)));
+                setCamposRecusados([]);
+                setErro(null);
+              }}>
+                Tirar {camposRecusados.length} campo(s) da consulta
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       {resultado ? (
         <div className="dch-query-v2__resultado" aria-live="polite">
