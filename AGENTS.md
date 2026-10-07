@@ -167,6 +167,15 @@ rotina do Drive da fábrica (`OpenClaw-Dacora/src/lib/relatorio-pdf.js`)
   (a Vercel compila arquivo por arquivo).
 - Conferência visual: `npm run pdf:prototipos` gera os PDFs das fixtures em
   `output/pdf/` pelo mesmo caminho do servidor.
+- **A capa soma as plataformas (07/10/2026, pedido do PO).** "O mês em
+  números" era a primeira faixa da montagem — no relatório de leads, só o Meta
+  (Karyne, setembro: R$ 886,23 e 24 leads, com o Google fora). Hoje
+  `src/reports/pdf/capa.ts` decide: investimento soma sempre; resultado soma só
+  em `servicos_leads`/`small_cap` e quando as plataformas usam o mesmo nome
+  (Leads + Leads); venda nunca soma; plataforma "não se aplica" não conta; uma
+  plataforma só mantém a capa antiga. É a única conta feita no PDF — exceção
+  declarada à regra "matemática vem pronta do snapshot", porque o PO pediu sem
+  regerar relatório. Regressão e mutações em `verifica:pdf-dedicado`, seção 7.
 
 ⚠️ **Ao conferir algo publicado, olhe o artefato que o NAVEGADOR aplica.** As
 rotas de relatório são montadas no cliente: `curl` na página devolve só a casca,
