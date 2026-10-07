@@ -92,8 +92,21 @@ export function RevisaoApresentada({
     return carimbos.reduce((maisRecente, atual) =>
       Date.parse(atual) > Date.parse(maisRecente) ? atual : maisRecente);
   }, [relatorio]);
+  /* Aprovado, a página mostra o que o cliente lê — sem isso, as análises
+     pareciam ter sumido (07/10/2026). Enquanto há decisão, quem desenha a
+     análise são os editores abaixo, e o aprovado não entra para não duplicar. */
+  const aprovado = relatorio && !relatorio.podeDecidir && relatorio.documentoAprovado?.disponivel === true
+    ? relatorio.documentoAprovado
+    : null;
+  const avisoAprovadoIndisponivel = relatorio && !relatorio.podeDecidir && relatorio.documentoAprovado?.disponivel === false ? (
+    <p className="dcp-estado__apoio" role="status">
+      Não foi possível carregar as análises aprovadas agora. Elas continuam salvas — recarregue a página para vê-las.
+    </p>
+  ) : null;
   const documento = relatorio ? (
     <RelatorioMontado
+      analisesPublicadas={aprovado?.analisesPublicadas ?? []}
+      observacoesPublicas={aprovado?.observacoesPublicas ?? []}
       snapshot={snapshotDaRevisao ?? relatorio.snapshot}
       proposta="B"
       competencias={[{
@@ -137,7 +150,7 @@ export function RevisaoApresentada({
     aoDescartarRetencao={aoDescartarRetencao}
     aoRegistrarObservacao={aoRegistrarObservacao}
     historicoAnalises={historicoAnalises}
-  ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
+  ><>{seletorDeModelo}{avisoAprovadoIndisponivel}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
     <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} historico={historicoAnalises} aoAcionar={aoAnalisarSecoes}>
       {documento}
     </AnalisesSecaoProvider>
