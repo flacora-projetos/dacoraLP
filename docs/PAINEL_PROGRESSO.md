@@ -20,6 +20,18 @@ organizada em
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
 A introdução é o primeiro e mais importante alvo da caneta mágica.
 
+**Revisão aprovada mostra as análises aprovadas (07/10/2026, pedido do PO).**
+Depois de aprovar, a bancada escondia os editores e não punha nada no lugar: a
+página ficava sem análise nenhuma e o Flávio achou que o trabalho tinha sumido
+(Dácora · setembro v2 — as nove análises estavam gravadas e o link do cliente
+já as mostrava). Agora `/api/painel-relatorio` devolve `documentoAprovado`,
+lido das MESMAS views da rota pública (`relatorio_analises_publicadas` e
+`relatorio_observacoes_publicas_liberadas`, amarradas a id + checksum), e a
+tela as desenha só para leitura quando `podeDecidir` é falso. Falha de leitura
+não vira página vazia: a tela diz que não conseguiu carregar. Regressão:
+`verifica:analises-aprovadas-painel` (no `prebuild`, provada por mutação na
+tela e na ligação do endpoint).
+
 > **Correção de 2026-08-16 — a limpeza C1/C2/C3 JÁ ESTÁ NA `main`, e este
 > parágrafo dizia o contrário.** Ele afirmava que ela "continua sem publicação"
 > e "não deve ser integrada nem publicada isoladamente". Conferido por dois
