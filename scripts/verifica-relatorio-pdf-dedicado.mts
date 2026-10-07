@@ -23,6 +23,7 @@ import { nomeDoArquivoPdf } from '../src/reports/pdf/nomeDoArquivo.ts';
 import { marcaDoRelatorio } from '../src/reports/marcas.ts';
 import { gerarPdfDoRelatorio } from '../src/reports/pdf/gerarPdf.ts';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
+import { destaquesDaCapa } from '../src/reports/pdf/capa.ts';
 
 const analisesPublicadas = [
   { secao: 'introducao', texto: 'Introdução aprovada para o cliente.' },
@@ -132,6 +133,65 @@ assert.match(
   assert.equal(versionado, await empacotar(), 'api/_pdf-empacotado.js está velho: rode `node scripts/empacotar-pdf.mjs` e versione o resultado');
   const funcao = semComentarios(readFileSync(new URL('../api/_relatorio-pdf.ts', import.meta.url), 'utf8'));
   assert.match(funcao, /from '\.\/_pdf-empacotado\.js'/, 'a função usa o gerador empacotado, nunca o .tsx direto (a Vercel não compila .tsx)');
+}
+
+/* ---- 7) a capa soma as plataformas (07/10/2026) ---- */
+{
+  // Até 07/10 a capa era a primeira faixa: "O mês em números" com o Meta só.
+  const k = karyneMontada202607;
+  const trocar = (faixa: string, id: string, muda: (m: any) => any) => ({
+    ...k,
+    dados: {
+      ...k.dados,
+      faixas: {
+        ...k.dados.faixas,
+        [faixa]: { ...k.dados.faixas[faixa], metricas: k.dados.faixas[faixa].metricas.map((m: any) => (m.id === id ? muda(m) : m)) },
+      },
+    },
+  });
+  const numero = (d: any) => (d.valor.estado === 'ok' ? d.valor.numero : d.valor.estado);
+
+  const leads = destaquesDaCapa(k);
+  assert.deepEqual(leads.map((d) => d.rotulo), ['Investimento', 'Leads'], 'leads: investimento total + leads totais');
+  assert.equal(numero(leads[0]), 1864.89, 'investimento = Meta 863,91 + Google 1.000,98');
+  assert.equal(numero(leads[1]), 38, 'leads = Meta 22 + Google 16');
+  assert.deepEqual(leads[0].detalhe?.map((linha) => linha.replace(/\s/g, ' ')), ['Meta Ads R$ 863,91', 'Google Ads R$ 1.000,98'], 'a capa diz de onde a soma veio');
+  assert.equal(leads[1].comparativo?.valorBase?.estado === 'ok' && leads[1].comparativo.valorBase.numero, 121, 'a base também é a soma: 85 + 36');
+  assert.ok(Math.abs((leads[0].comparativo?.variacao ?? 0) - (1864.89 / 1923.35 - 1)) < 1e-9, 'variação da soma contra a soma das bases');
+
+  const nomesDiferentes = destaquesDaCapa(trocar('faixa_google', 'google_conversoes', (m) => ({ ...m, rotulo: 'Conversões' })));
+  assert.deepEqual(nomesDiferentes.map((d) => d.rotulo), ['Investimento', 'Leads · Meta Ads', 'Conversões · Google Ads'], 'nome diferente não soma');
+
+  const venda = destaquesDaCapa({ ...k, identidade: { ...k.identidade, tipoRelatorio: 'ecommerce' } });
+  assert.deepEqual(venda.map((d) => d.rotulo), ['Investimento', 'Leads · Meta Ads', 'Leads · Google Ads'], 'e-commerce nunca soma resultado');
+
+  const semBase = destaquesDaCapa(trocar('faixa_google', 'google_investimento', (m) => ({ ...m, comparativo: { permitido: false, motivo: 'x' } })));
+  assert.equal(semBase[0].comparativo, undefined, 'parte sem base: a soma não inventa variação');
+  const outroMes = destaquesDaCapa(trocar('faixa_google', 'google_investimento', (m) => ({ ...m, comparativo: { ...m.comparativo, competenciaBase: '2026-05' } })));
+  assert.equal(outroMes[0].comparativo, undefined, 'bases de meses diferentes não se somam');
+  const fracionado = destaquesDaCapa(trocar('faixa_google', 'google_conversoes', (m) => ({ ...m, rotulo: 'Compras', unidade: 'decimal', valor: { estado: 'ok', numero: 16.5 } })));
+  assert.equal(fracionado[2].unidade, 'decimal', '16,5 compras continua decimal');
+
+  const googleParado = trocar('faixa_google', 'google_investimento', (m) => ({ ...m, valor: { estado: 'nao_aplicavel', motivo: 'sem campanha' } }));
+  assert.deepEqual(destaquesDaCapa(googleParado).map((d) => d.id), ['meta_investimento', 'meta_cpm', 'meta_cpc', 'meta_resultado'], 'plataforma sem campanha não conta: volta a ser a primeira faixa');
+
+  const faltou = destaquesDaCapa(trocar('faixa_google', 'google_investimento', (m) => ({ ...m, valor: { estado: 'ausente', motivo: 'não veio' } })));
+  assert.deepEqual(faltou.map((d) => d.rotulo), ['Investimento · Meta Ads', 'Investimento · Google Ads'], 'investimento que não veio não vira zero numa soma');
+
+  const mista = trocar('faixa_meta', 'meta_resultado', (m) => ({ ...m, id: 'meta_resultado_grupo_1' }));
+  mista.dados.faixas.faixa_meta.metricas.push({ ...mista.dados.faixas.faixa_meta.metricas.find((m: any) => m.id === 'meta_resultado_grupo_1'), id: 'meta_resultado_grupo_2', rotulo: 'Conversas' });
+  mista.dados.faixas.faixa_meta.metricas.push({ ...mista.dados.faixas.faixa_meta.metricas.find((m: any) => m.id === 'meta_resultado_grupo_1'), id: 'meta_resultado_grupo_3', rotulo: 'Visitas' });
+  assert.deepEqual(
+    destaquesDaCapa(mista).map((d) => d.rotulo),
+    ['Investimento', 'Leads · Meta Ads', 'Leads · Google Ads', 'Conversas · Meta Ads'],
+    'conta mista do Meta não empurra o Google para fora da capa',
+  );
+
+  const decimal = destaquesDaCapa(trocar('faixa_google', 'google_conversoes', (m) => ({ ...m, rotulo: 'Compras', unidade: 'decimal' })));
+  assert.equal(decimal[2].unidade, 'inteiro', '16 compras não se escrevem "16,00"');
+
+  const umaSo = { ...k, montagem: k.montagem.filter((m: any) => m.bloco !== 'B1' || m.faixa !== 'faixa_google') };
+  assert.deepEqual(destaquesDaCapa(umaSo).map((d) => d.id), ['meta_investimento', 'meta_cpm', 'meta_cpc', 'meta_resultado'], 'uma plataforma só: a capa não muda');
 }
 
 console.log('verifica-relatorio-pdf-dedicado: ok');

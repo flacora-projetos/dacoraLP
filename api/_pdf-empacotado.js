@@ -434,6 +434,125 @@ function AneisDecorativos({ tamanho, cor }) {
   ] });
 }
 
+// src/reports/pdf/capa.ts
+var PLATAFORMAS_DE_MIDIA = [
+  { plataforma: "meta", investimento: "meta_investimento", resultado: "meta_resultado" },
+  { plataforma: "google", investimento: "google_investimento", resultado: "google_conversoes" },
+  { plataforma: "pinterest", investimento: "pinterest_investimento", resultado: "pinterest_resultado" }
+];
+var TIPOS_QUE_SOMAM_RESULTADO = /* @__PURE__ */ new Set(["servicos_leads", "small_cap"]);
+var ok = (valor) => valor?.estado === "ok" && Number.isFinite(valor.numero);
+var arredondar = (numero, casas) => Math.round(numero * 10 ** casas) / 10 ** casas;
+var normalizar = (texto) => texto.trim().toLocaleLowerCase("pt-BR");
+function primeiraFaixa(snapshot) {
+  const primeira = snapshot.montagem.find((config) => config.bloco === "B1" && !config.indisponivel);
+  if (!primeira || primeira.bloco !== "B1") return [];
+  return (snapshot.dados.faixas[primeira.faixa]?.metricas ?? []).slice(0, 4);
+}
+function midiasPublicadas(snapshot) {
+  const midias = [];
+  for (const config of snapshot.montagem) {
+    if (config.bloco !== "B1" || config.indisponivel) continue;
+    const metricas = snapshot.dados.faixas[config.faixa]?.metricas ?? [];
+    for (const def of PLATAFORMAS_DE_MIDIA) {
+      if (midias.some((midia) => midia.plataforma === def.plataforma)) continue;
+      const investimento = metricas.find((metrica) => metrica.id === def.investimento);
+      if (!investimento || investimento.valor.estado === "nao_aplicavel") continue;
+      const rotulo = snapshot.fontes.find((fonte) => fonte.plataforma === def.plataforma)?.rotulo ?? def.plataforma;
+      midias.push({
+        plataforma: def.plataforma,
+        rotulo,
+        investimento,
+        resultado: metricas.find((metrica) => metrica.id === def.resultado),
+        resultadosPorConversao: metricas.filter((metrica) => metrica.id.startsWith(`${def.resultado}_grupo_`))
+      });
+    }
+  }
+  return midias;
+}
+function comparativoDaSoma(metricas, total, casas) {
+  const comparativos = metricas.map((metrica) => metrica.comparativo);
+  if (comparativos.some((comp) => !comp?.permitido || !ok(comp.valorBase) || !comp.competenciaBase)) return void 0;
+  const competenciaBase = comparativos[0].competenciaBase;
+  if (comparativos.some((comp) => comp.competenciaBase !== competenciaBase)) return void 0;
+  const base = arredondar(
+    comparativos.reduce((soma, comp) => soma + comp.valorBase.numero, 0),
+    casas
+  );
+  if (base <= 0) return void 0;
+  return {
+    permitido: true,
+    competenciaBase,
+    valorBase: { estado: "ok", numero: base },
+    variacao: (total - base) / base
+  };
+}
+function unidadeLegivel(metrica) {
+  if (metrica.unidade !== "decimal") return metrica.unidade;
+  const inteiros = [metrica.valor, metrica.comparativo?.valorBase].filter((valor) => Boolean(valor)).every((valor) => !ok(valor) || Number.isInteger(valor.numero));
+  return inteiros ? "inteiro" : "decimal";
+}
+function detalheDe(midias, escolher) {
+  return midias.map((midia) => {
+    const metrica = escolher(midia);
+    return `${midia.rotulo} ${formatarNumero(metrica.valor.numero, unidadeLegivel(metrica))}`;
+  });
+}
+function somar(midias, escolher, id, rotulo) {
+  const metricas = midias.map(escolher);
+  const brl2 = metricas.every((metrica) => metrica.unidade === "brl");
+  const casas = brl2 ? 2 : 6;
+  const bruto = arredondar(metricas.reduce((soma, metrica) => soma + metrica.valor.numero, 0), casas);
+  const unidade = brl2 ? "brl" : Number.isInteger(bruto) ? "inteiro" : "decimal";
+  return {
+    id,
+    rotulo,
+    unidade,
+    valor: { estado: "ok", numero: bruto },
+    origem: {
+      tipo: "calculado",
+      fontes: midias.map((midia) => midia.plataforma),
+      formula: `soma de ${midias.map((midia) => midia.rotulo).join(" e ")}`
+    },
+    direcaoFavoravel: metricas[0].direcaoFavoravel,
+    comparativo: comparativoDaSoma(metricas, bruto, casas),
+    detalhe: detalheDe(midias, escolher)
+  };
+}
+function daPlataforma(metrica, midia) {
+  return { ...metrica, unidade: unidadeLegivel(metrica), rotulo: `${metrica.rotulo} \xB7 ${midia.rotulo}` };
+}
+function destaquesDaCapa(snapshot) {
+  const midias = midiasPublicadas(snapshot);
+  if (midias.length < 2) return primeiraFaixa(snapshot);
+  if (!midias.every((midia) => ok(midia.investimento.valor))) {
+    return midias.slice(0, 4).map((midia) => daPlataforma(midia.investimento, midia));
+  }
+  const destaques = [
+    somar(midias, (midia) => midia.investimento, "capa_investimento_total", "Investimento")
+  ];
+  const resultados = midias.map((midia) => midia.resultado);
+  const mesmoNome = resultados.every(
+    (resultado) => resultado && normalizar(resultado.rotulo) === normalizar(resultados[0].rotulo)
+  );
+  const somaResultado = TIPOS_QUE_SOMAM_RESULTADO.has(String(snapshot.identidade.tipoRelatorio)) && mesmoNome && resultados.every((resultado) => ok(resultado?.valor));
+  if (somaResultado) {
+    destaques.push(somar(midias, (midia) => midia.resultado, "capa_resultado_total", resultados[0].rotulo));
+    return destaques;
+  }
+  const filas = midias.map((midia) => ({
+    midia,
+    resultados: midia.resultado ? [midia.resultado] : [...midia.resultadosPorConversao]
+  }));
+  while (destaques.length < 4 && filas.some((fila) => fila.resultados.length > 0)) {
+    for (const fila of filas) {
+      const resultado = fila.resultados.shift();
+      if (resultado && destaques.length < 4) destaques.push(daPlataforma(resultado, fila.midia));
+    }
+  }
+  return destaques;
+}
+
 // src/reports/pdf/RelatorioPdf.tsx
 import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 var FOLHA = { largura: 841.89, altura: 595.28 };
@@ -1200,7 +1319,8 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }) {
         /* @__PURE__ */ jsx2(View2, { style: { flexDirection: "row", marginHorizontal: -5 }, children: destaques.map((metrica) => /* @__PURE__ */ jsx2(View2, { style: { flex: 1, paddingHorizontal: 5 }, children: /* @__PURE__ */ jsxs2(View2, { style: { borderTopWidth: 2.4, borderTopColor: c.primaria, paddingTop: 8 }, children: [
           /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 6.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: c.cinza, marginBottom: 4 }, children: t(metrica.rotulo) }),
           /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 17, fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }, children: tv(metrica.valor, metrica.unidade, metrica.sufixo) }),
-          /* @__PURE__ */ jsx2(Variacao, { metrica, ctx })
+          /* @__PURE__ */ jsx2(Variacao, { metrica, ctx }),
+          metrica.detalhe && /* @__PURE__ */ jsx2(View2, { style: { marginTop: 5 }, children: metrica.detalhe.map((linha) => /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 6.6, color: c.cinza, lineHeight: 1.4 }, children: t(linha) }, linha)) })
         ] }) }, metrica.id)) })
       ] }),
       /* @__PURE__ */ jsxs2(View2, { children: [
@@ -1220,11 +1340,6 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }) {
       ] })
     ] })
   ] });
-}
-function destaquesDaCapa(snapshot) {
-  const primeira = snapshot.montagem.find((config) => config.bloco === "B1" && !config.indisponivel);
-  if (!primeira || primeira.bloco !== "B1") return [];
-  return (snapshot.dados.faixas[primeira.faixa]?.metricas ?? []).slice(0, 4);
 }
 function RelatorioPdf({
   snapshot,

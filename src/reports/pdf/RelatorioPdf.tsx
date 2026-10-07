@@ -68,6 +68,7 @@ import type {
   TabelaEntidades,
 } from '../blocos/tipos';
 import { GraficoBarras, GraficoLinha, SetaFunil, SetaVariacao, AneisDecorativos, type PontoBarra } from './graficosPdf.js';
+import { destaquesDaCapa, type DestaqueDaCapa } from './capa.js';
 
 /* ------------------------------------------------------------------ */
 /* Página                                                              */
@@ -1026,7 +1027,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
   snapshot: SnapshotMontado;
   secoes: BlocoConfigurado[];
   paginas?: Record<string, number>;
-  destaques: Metrica[];
+  destaques: DestaqueDaCapa[];
   ctx: Contexto;
   logos?: LogosDaMarca;
 }) {
@@ -1086,6 +1087,13 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
                     <Text style={{ fontSize: 6.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: c.cinza, marginBottom: 4 }}>{t(metrica.rotulo)}</Text>
                     <Text style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }}>{tv(metrica.valor, metrica.unidade, metrica.sufixo)}</Text>
                     <Variacao metrica={metrica} ctx={ctx} />
+                    {metrica.detalhe && (
+                      <View style={{ marginTop: 5 }}>
+                        {metrica.detalhe.map((linha) => (
+                          <Text key={linha} style={{ fontSize: 6.6, color: c.cinza, lineHeight: 1.4 }}>{t(linha)}</Text>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 </View>
               ))}
@@ -1136,12 +1144,6 @@ export interface RelatorioPdfProps {
   paginasDasSecoes?: Record<string, number>;
   /** Chamada durante a paginação com a página em que cada seção começou. */
   aoPaginarSecao?: (id: string, pagina: number) => void;
-}
-
-function destaquesDaCapa(snapshot: SnapshotMontado): Metrica[] {
-  const primeira = snapshot.montagem.find((config) => config.bloco === 'B1' && !config.indisponivel);
-  if (!primeira || primeira.bloco !== 'B1') return [];
-  return (snapshot.dados.faixas[primeira.faixa]?.metricas ?? []).slice(0, 4);
 }
 
 export default function RelatorioPdf({

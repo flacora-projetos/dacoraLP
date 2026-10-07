@@ -2136,3 +2136,19 @@ link real já liberado de Sementes Santa Fé, clicou no mesmo botão e baixou
 `Dacora-Sementes-Santa-Fe-2026-08-v3.pdf`, sem erro de console ou de página.
 Foi leitura e download: nenhuma versão, aprovação, decisão ou entrega foi criada
 ou alterada.
+
+## 2026-10-07 — A capa do PDF soma as plataformas
+
+O Flávio notou no PDF de setembro da Karyne que "O mês em números" mostrava só o
+Meta. Causa: a capa pegava a primeira faixa de indicadores da montagem, e no
+relatório de leads o Meta vem primeiro. Ninguém tinha decidido isso.
+
+Correção só no portal (sem regerar relatório): `src/reports/pdf/capa.ts` soma o
+investimento de todas as plataformas e, no relatório de leads, os resultados de
+mesmo nome; mostra embaixo de cada soma quanto veio de cada plataforma. Venda
+não soma (cada plataforma reivindica a mesma compra), nome diferente não soma,
+plataforma sem campanha no mês não conta, e cliente de uma plataforma só fica
+com a capa de antes. Conferido sobre os 75 relatórios correntes de agosto e
+setembro: 19 têm capa nova (17 liberados); os demais não mudam. Os PDFs já
+gravados nas pastas do Drive foram regravados pela fábrica no mesmo dia.
+
