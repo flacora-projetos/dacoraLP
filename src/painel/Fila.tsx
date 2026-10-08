@@ -36,6 +36,7 @@ type EstadoNaTela =
   | 'liberado'
   | 'enviado'
   | 'substituido'
+  | 'arquivado'
   | 'desconhecido';
 
 type EstadoDaNotificacaoInterna =
@@ -96,6 +97,8 @@ interface ItemDaFila {
   } | null;
   enviadoEm: string | null;
   enviadoPara: string | null;
+  /** Decisão de que este documento não sai. Respostas antigas não trazem o campo. */
+  arquivado?: { em: string; por: string | null; motivo: string | null } | null;
   investimento: number | null;
   investimentoPorPlataforma: NumeroDaFila[];
   resultados: NumeroDaFila[];
@@ -139,6 +142,13 @@ type Aba = 'visao-geral' | 'fila';
  */
 export function aplicarFiltros(itens: ItemDaFila[], filtros: Filtros): ItemDaFila[] {
   return itens.filter((item) => {
+    // Arquivado fica fora das fatias de cobertura e de sinal da visão geral; o
+    // filtro precisa concordar, senão o cartão diz 30 e a fila filtrada mostra
+    // 31. Ele continua na lista inteira e no filtro do próprio estado.
+    if (
+      item.estado === 'arquivado' &&
+      (filtros.carteira || filtros.produto || filtros.formato || filtros.sinal)
+    ) return false;
     if (filtros.carteira && item.carteira !== filtros.carteira) return false;
     if (filtros.produto && item.produto !== filtros.produto) return false;
     if (filtros.formato && (item.formato ?? 'NAO_DECLARADO') !== filtros.formato) return false;
@@ -248,6 +258,10 @@ function textoDoEstado(item: ItemDaFila): string {
     }
     case 'substituido':
       return 'substituído por uma versão nova';
+    case 'arquivado': {
+      const quando = diaEMes(item.arquivado?.em ?? null);
+      return quando ? `arquivado · não vai sair · ${quando}` : 'arquivado · não vai sair';
+    }
     default:
       return 'estado desconhecido';
   }
@@ -262,6 +276,12 @@ function textoDoEstado(item: ItemDaFila): string {
  * em vez de exigir abrir o relatório.
  */
 function detalheDoEstado(item: ItemDaFila): string | undefined {
+  if (item.estado === 'arquivado') {
+    const quem = item.arquivado?.por ? ` por ${item.arquivado.por}` : '';
+    const motivo = (item.arquivado?.motivo ?? '').trim();
+    return `Arquivado${quem}. ${motivo ? `Motivo: ${motivo}` : 'Sem motivo legível no registro.'} ` +
+      'O documento continua guardado para auditoria, mas não espera revisão, não pode ser enviado e o link não abre.';
+  }
   if (item.estado !== 'recusado' && !(item.estado === 'gerado' && item.correcao?.ehNovaVersao)) return undefined;
   if (item.estado === 'gerado' && item.correcao?.ehNovaVersao) {
     return `Esta é a versão ${item.correcao.novaVersao ?? 'nova'} gerada para atender uma recusa anterior. Ela voltou para revisão humana e não foi aprovada, fechada nem enviada automaticamente.`;

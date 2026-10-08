@@ -82,6 +82,15 @@ export interface LinhaDoBanco {
   enviado_em: string | null;
   enviado_para: string | null;
   substituido_por: string | null;
+  /**
+   * Arquivado: a decisão de que este documento não sai (cliente pausado,
+   * conta que passou para o mensal de outro cliente). É a revogação que existe
+   * no banco desde a 0001 — o link não abre, o envio não sai, a edição recusa —
+   * agora com quem e por quê. Opcionais pelo mesmo motivo das colunas do "não".
+   */
+  revogado_em?: string | null;
+  revogado_por?: string | null;
+  revogado_motivo?: string | null;
   /** O snapshot, sem o bloco `publicacao` — ver o carregador. */
   conteudo: any;
 }
@@ -109,6 +118,7 @@ export type EstadoNaTela =
   | 'liberado'
   | 'enviado'
   | 'substituido'
+  | 'arquivado'
   | 'desconhecido';
 
 export type TipoSinal =
@@ -187,6 +197,7 @@ export interface ItemDaFila {
   } | null;
   enviadoEm: string | null;
   enviadoPara: string | null;
+  arquivado: { em: string; por: string | null; motivo: string | null } | null;
   /** Soma dos investimentos das plataformas. `null` quando nenhum veio. */
   investimento: number | null;
   investimentoPorPlataforma: NumeroDaFila[];
@@ -412,6 +423,10 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
 
 function estadoNaTela(linha: LinhaDoBanco): EstadoNaTela {
   if (linha.estado === 'substituido') return 'substituido';
+  // Antes de `enviado` não faz diferença (o banco recusa arquivar o que já
+  // saiu), mas antes de `liberado` e `gerado` faz: um documento arquivado não
+  // espera revisão nem envio de ninguém.
+  if (linha.revogado_em) return 'arquivado';
   if (linha.enviado_em) return 'enviado';
   if (linha.estado === 'liberado') return 'liberado';
   if (linha.estado === 'recusado') return 'recusado';
@@ -447,6 +462,7 @@ const FAIXA_POR_ESTADO: Record<EstadoNaTela, number> = {
   liberado: 3,
   enviado: 4,
   substituido: 5,
+  arquivado: 6,
 };
 
 export function montarItem(linha: LinhaDoBanco): ItemDaFila {
@@ -535,6 +551,9 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
         : null,
     enviadoEm: linha.enviado_em,
     enviadoPara: linha.enviado_para,
+    arquivado: linha.revogado_em
+      ? { em: linha.revogado_em, por: linha.revogado_por ?? null, motivo: linha.revogado_motivo ?? null }
+      : null,
     // Ausência não vira zero: sem nenhum investimento apurado o campo é `null`,
     // e a tela escreve "—". Zero aqui diria que o cliente não gastou nada.
     investimento:

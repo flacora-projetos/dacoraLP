@@ -447,6 +447,8 @@ interface Chamada {
 }
 
 let chamadasAoBanco: Chamada[] = [];
+/** O que a visão do envio devolve. Vazia por padrão, como nos testes antigos. */
+let linhasP5DoTeste: any[] = [];
 
 function dublarSupabase(usuario: unknown | null, linhasDoBanco: any[] = []) {
   chamadasAoBanco = [];
@@ -467,8 +469,10 @@ function dublarSupabase(usuario: unknown | null, linhasDoBanco: any[] = []) {
     const corpo = url.includes('select=competencia&')
       ? linhasDoBanco.map((l) => ({ competencia: l.competencia }))
       : url.includes('/rest/v1/relatorio_p5_portal?')
-        ? []
-        : linhasDoBanco;
+        ? linhasP5DoTeste
+        : /relatorio_(ordens_correcao|ordem_causas|envios)\?/.test(url)
+          ? []
+          : linhasDoBanco;
     return new Response(JSON.stringify(corpo), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -1043,6 +1047,70 @@ function desenhar(dados: any): string {
 
   /* A fila e a tela de detalhe precisam concordar por CONSTRUCAO. */
   assert.match(codigo, /montarEstadoSeguroDoEnvio/, 'a fila deve reusar a regra da tela de detalhe');
+}
+
+/* ================================================================== */
+/* O mês em que o painel abre, e o arquivado (08/10/2026)              */
+/* ================================================================== */
+
+import { competenciaPadrao, mesCorrenteEmSaoPaulo } from '../api/painel-fila.ts';
+
+/* O defeito: o painel abria no mês em andamento (que a cadência gera todo
+   dia), dizendo "32 esperando revisão" e "0 liberados" para um mês que
+   ninguém revisa ainda. Abre no último mês FECHADO. */
+assert.equal(competenciaPadrao(['2026-08', '2026-10', '2026-09'], '2026-10'), '2026-09');
+assert.equal(
+  competenciaPadrao(['2026-10'], '2026-10'),
+  '2026-10',
+  'sem mês fechado, mostrar o em andamento é melhor que tela vazia',
+);
+assert.equal(competenciaPadrao([], '2026-10'), null);
+/* A virada do mês é no fuso da operação, não no do servidor da Vercel. */
+assert.equal(mesCorrenteEmSaoPaulo(new Date('2026-11-01T02:00:00Z')), '2026-10');
+assert.equal(mesCorrenteEmSaoPaulo(new Date('2026-11-01T04:00:00Z')), '2026-11');
+
+/* Arquivado: sem ação, sem aviso de "envio indisponível", com motivo. */
+{
+  const arquivado = {
+    ...linha({ slug: 'pausado', nome: 'Cliente Pausado', estado: 'liberado' }),
+    // Identificador de verdade: a regra do envio recusa linha sem UUID, e o
+    // teste precisa que ela ACEITE, para o arquivado ter um botão a perder.
+    id: '22222222-2222-4222-8222-222222222222',
+    aprovado_por: 'Fulano de Tal',
+    aprovado_em: '2026-08-02T10:00:00Z',
+    revogado_em: '2026-08-08T10:00:00Z',
+    revogado_por: 'Fulano de Tal',
+    revogado_motivo: 'Cliente pausado, este relatório não vai sair.',
+  };
+  /* O pior caso: a visão do envio ainda oferece o envio (por exemplo, numa
+     versão do banco que não a filtre). O arquivado não pode herdar o botão. */
+  const CHECKSUM_P5 = 'abc123def456abc123def456abc123de';
+  linhasP5DoTeste = [{
+    relatorio_id: arquivado.id, cliente_nome: 'Cliente Pausado', competencia: '2026-07', relatorio_versao: 1,
+    checksum: CHECKSUM_P5, relatorio_estado: 'liberado', aprovado_por: 'Fulano de Tal',
+    aprovado_em: '2026-08-02T10:00:00Z', aprovado_checksum: CHECKSUM_P5, enviado_em: null, ja_enviado: false,
+    destino_referencia: 'agenda.client_recipients.cliente_pausado', destinatario_nome: 'Cliente Pausado × Dácora',
+    destinatario_habilitado: true, destinatario_sincronizado_em: '2026-08-02T10:00:00Z', envio_id: null,
+    envio_estado: null, solicitado_por: null, solicitado_em: null, confirmado_em: null, erro_codigo: null,
+    pode_solicitar_envio: true,
+  }];
+  const r = await chamarFila('Bearer t', googlada('flacora@gmail.com'), [arquivado, linha({ slug: 'ativo' })]);
+  linhasP5DoTeste = [];
+  assert.equal(r.status, 200);
+  const item = r.corpo.itens.find((i: any) => i.clienteSlug === 'pausado');
+  assert.equal(item.estado, 'arquivado');
+  assert.equal(item.podeSolicitarEnvio, false);
+  assert.equal(item.podeVoltarEdicao, false);
+  assert.equal(item.envioIndisponibilidade, null, 'arquivado não pode parecer envio quebrado');
+  assert.deepEqual(item.arquivado, {
+    em: '2026-08-08T10:00:00Z',
+    por: 'Fulano de Tal',
+    motivo: 'Cliente pausado, este relatório não vai sair.',
+  });
+  assert.equal(r.corpo.itens[r.corpo.itens.length - 1].clienteSlug, 'pausado', 'arquivado desce para o fim');
+  const leitura = chamadasAoBanco.find((c) => c.url.includes('painel_relatorios_com_correcao'));
+  assert.ok(leitura?.url.includes('revogado_motivo'), 'a fila precisa pedir quem arquivou e por quê');
+  globalThis.fetch = fetchOriginal;
 }
 
 console.log(
