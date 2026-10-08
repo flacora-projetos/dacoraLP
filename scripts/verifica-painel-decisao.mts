@@ -46,7 +46,8 @@ import DecisaoDaRevisao, {
 const ID = '22222222-2222-4222-8222-222222222222';
 const CHECKSUM = 'abc123def456abc123def456abc123de';
 const MOTIVO = 'Métrica obrigatória ausente';
-const CATALOGO = '2026-09-01.v1';
+// A versão corrente do catálogo — a tela só recusa por ela (v2 desde 08/10/2026).
+const CATALOGO = '2026-10-08.v2';
 const CAUSAS = [{
   causeId: 'metrica_obrigatoria_ausente' as const,
   parameters: { section_id: 'bloco:meta', platform: 'google', metric_id: 'google_resultado' },
@@ -1360,11 +1361,13 @@ const linhas = [
   // humano de análise, antes da aprovação. Abrir ordem de regeração para isso
   // regeraria um documento cujos números já estão certos.
   const ids = OPCOES_CAUSA_RECUSA.map((opcao) => opcao.id);
-  assert.equal(ids.length, 6);
+  // Catálogo v2 (08/10/2026): quatro causas manuais novas, todas antes de
+  // "Outra coisa", para ela voltar a ser o resto e não a regra.
+  assert.equal(ids.length, 10);
   assert.ok(!ids.includes('analise_interpretativa_incorreta' as never));
   assert.deepEqual(
     OPCOES_CAUSA_RECUSA.filter((opcao) => opcao.manual).map((opcao) => opcao.id),
-    ['apresentacao_visual', 'outra_causa'],
+    ['apresentacao_visual', 'retirar_secao', 'faltou_informacao', 'trocar_ou_reorganizar', 'texto_ou_grafia', 'outra_causa'],
   );
   assert.equal(MAXIMO_CAUSAS_RECUSA, 5);
 

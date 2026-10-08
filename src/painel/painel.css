@@ -776,6 +776,17 @@
 }
 
 /* Desconhecido: quadrado de sinal — estado que não devia existir aparece. */
+/* Arquivado: decisão de que não sai. Mesma voz discreta do substituído, com
+   forma própria (quadrado vazado) para não depender só da cor. */
+.dcp-estado--arquivado {
+  color: var(--dc-cinza);
+}
+.dcp-estado--arquivado .dcp-estado__forma {
+  border: 1.5px dashed currentColor;
+  border-radius: 2px;
+  background: transparent;
+}
+
 .dcp-estado--desconhecido .dcp-estado__forma {
   background: var(--dc-sinal);
 }
@@ -1648,6 +1659,37 @@
   height: 100%;
   background: var(--dc-verde-medio);
   border-radius: 2px;
+}
+
+/* Fatia que só informa: motivos de recusa e partes do relatório não filtram a
+   fila, então não têm cara de botão. */
+.dcp-fatia--estatica {
+  cursor: default;
+}
+
+.dcp-fatia--estatica:hover {
+  background: none;
+}
+
+/* ---------- Correções e erros ---------------------------------------- */
+
+.dcp-distribuicao--larga {
+  grid-column: 1 / -1;
+}
+
+.dcp-correcoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+
+.dcp-correcoes__subtitulo {
+  margin: 0.9rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dc-cinza);
 }
 
 /* ---------- Retrabalho ------------------------------------------------ */
