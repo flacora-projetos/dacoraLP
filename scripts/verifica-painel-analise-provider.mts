@@ -223,29 +223,76 @@ for (const [nome, primeira] of [
   assert.match(urls[0], /anthropic/, 'modo manual Sonnet nao tenta DeepSeek');
 }
 
+function haiku(texto = 'COMPLETA: Haiku encerrou a sugestao.', stopReason = 'end_turn') {
+  return new Response(JSON.stringify({
+    content: [{ type: 'thinking', thinking: '', signature: 'assinatura' }, { type: 'text', text: texto }], stop_reason: stopReason,
+    usage: { input_tokens: 900, output_tokens: 150 },
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+}
+
 {
-  // O PADRAO (sem ordem declarada) precisa pular o Pro desde 10/09/2026: a
-  // DeepSeek atende toda requisicao ao Pro com o V4.1 Flash a partir de
-  // 14/09/2026, entao aquele degrau repetiria o MESMO modelo com o MESMO pedido
-  // e a auditoria registraria `deepseek-v4-pro` para uma resposta que nao veio
-  // do Pro. Sem esta prova, devolver o Pro ao padrao nao reprova nada: todos os
-  // blocos acima declaram a ordem no ambiente.
+  // O PADRAO (sem ordem declarada) desde 10/10/2026 e Haiku 5.5 -> DeepSeek Flash
+  // (decisao do PO). Pro e Sonnet ficam fora do padrao e continuam declaraveis.
+  // Sem esta prova, nenhum bloco acima reprova uma volta ao padrao antigo: todos
+  // declaram a ordem no ambiente.
   const anterior = process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
   delete process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
-  const modelos: string[] = [];
-  const resposta = await gerarAnaliseAssistida(pedido, {
-    fetch: (async (entrada: any, init?: RequestInit) => {
-      if (String(entrada).includes('anthropic')) { modelos.push('sonnet'); return sonnet(); }
-      modelos.push(JSON.parse(String(init?.body)).model);
-      return deepseek('INCOMPLETA: cortou.', 'length');
-    }) as typeof fetch,
+  try {
+    const corpos: any[] = [];
+    const resposta = await gerarAnaliseAssistida(pedido, {
+      fetch: (async (entrada: any, init?: RequestInit) => {
+        assert.match(String(entrada), /anthropic/);
+        corpos.push(JSON.parse(String(init?.body)));
+        return haiku();
+      }) as typeof fetch,
+      telemetria() {},
+    });
+    assert.equal(resposta.ok && resposta.provider, 'haiku');
+    assert.equal(resposta.ok && resposta.modeloAuditavel, 'automatico/haiku/claude-haiku-5-5');
+    assert.equal(resposta.ok && resposta.resultado, 'COMPLETA: Haiku encerrou a sugestao.', 'texto lido pelo tipo, depois do bloco de pensamento');
+    assert.equal(corpos.length, 1);
+    assert.equal(corpos[0].model, 'claude-haiku-5-5');
+    assert.deepEqual(corpos[0].output_config, { effort: 'low' });
+    assert.equal(corpos[0].max_tokens, 16_000, 'teto largo: o pensamento gasta o mesmo teto');
+
+    const modelos: string[] = [];
+    const reserva = await gerarAnaliseAssistida(pedido, {
+      fetch: (async (entrada: any, init?: RequestInit) => {
+        const corpo = JSON.parse(String(init?.body));
+        modelos.push(corpo.model);
+        if (String(entrada).includes('anthropic')) return new Response('{}', { status: 529 });
+        return deepseek('INCOMPLETA: cortou.', 'length');
+      }) as typeof fetch,
+      telemetria() {},
+    });
+    assert.equal(reserva.ok, false);
+    assert.deepEqual(modelos, ['claude-haiku-5-5', 'deepseek-v4-flash', 'deepseek-v4-flash'], 'Haiku cai no Flash; o padrao nao passa pelo Pro nem pelo Sonnet');
+
+    const teto: string[] = [];
+    const condensada = await gerarAnaliseAssistida(pedido, {
+      fetch: (async (_entrada: any, init?: RequestInit) => {
+        const corpo = JSON.parse(String(init?.body));
+        teto.push(corpo.model);
+        return teto.length === 1 ? haiku('PARCIAL', 'max_tokens') : haiku('COMPLETA: condensada.');
+      }) as typeof fetch,
+      telemetria() {},
+    });
+    assert.equal(condensada.ok && condensada.provider, 'haiku');
+    assert.deepEqual(teto, ['claude-haiku-5-5', 'claude-haiku-5-5'], 'Haiku no teto tem uma unica condensacao');
+  } finally {
+    if (anterior === undefined) delete process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
+    else process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = anterior;
+  }
+}
+
+{
+  const urls: string[] = [];
+  const resposta = await gerarAnaliseAssistida({ ...pedido, modo: 'haiku' }, {
+    fetch: (async (entrada: any) => { urls.push(String(entrada)); return new Response('{}', { status: 500 }); }) as typeof fetch,
     telemetria() {},
   });
-  assert.equal(resposta.ok && resposta.provider, 'sonnet');
-  assert.ok(!modelos.includes('deepseek-v4-pro'), 'o padrao nao pode passar pelo Pro');
-  assert.equal(modelos.at(-1), 'sonnet', 'o ultimo degrau do padrao continua sendo o Sonnet');
-  if (anterior === undefined) delete process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER;
-  else process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = anterior;
+  assert.equal(resposta.ok, false);
+  assert.equal(urls.length, 1, 'modo manual Haiku nao tem reserva');
 }
 
 {
@@ -268,4 +315,4 @@ for (const [nome, primeira] of [
   else process.env.MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER = anterior;
 }
 
-console.log('OK - provider mensal: padrao Flash -> Sonnet (Pro fora desde 10/09/2026, ainda declaravel), condensacao limitada, rollback e telemetria segura.');
+console.log('OK - provider mensal: padrao Haiku 5.5 -> Flash (10/10/2026; Pro e Sonnet declaraveis), condensacao limitada, rollback e telemetria segura.');

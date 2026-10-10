@@ -1,7 +1,8 @@
-export type ModoAnaliseUI = 'automatico' | 'deepseek_flash' | 'deepseek_pro' | 'sonnet';
+export type ModoAnaliseUI = 'automatico' | 'haiku' | 'deepseek_flash' | 'deepseek_pro' | 'sonnet';
 
 export const OPCOES_MODO_ANALISE: Array<{ valor: ModoAnaliseUI; rotulo: string }> = [
-  { valor: 'automatico', rotulo: 'Automatico (Flash > Pro > Sonnet)' },
+  { valor: 'automatico', rotulo: 'Automatico (Haiku 5.5 > DeepSeek Flash)' },
+  { valor: 'haiku', rotulo: 'Claude Haiku 5.5 (sem fallback)' },
   { valor: 'deepseek_flash', rotulo: 'DeepSeek V4 Flash (sem fallback)' },
   { valor: 'deepseek_pro', rotulo: 'DeepSeek V4 Pro (sem fallback)' },
   { valor: 'sonnet', rotulo: 'Claude Sonnet (sem fallback)' },

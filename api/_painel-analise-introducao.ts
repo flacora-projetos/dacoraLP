@@ -4,7 +4,7 @@ import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provi
 export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v4_janela_declarada';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACOES = new Set(['gerar', 'aplicar', 'editar', 'desfazer']);
-const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
+const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'haiku', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 const LIMIAR_RELEVANTE = 0.05;
 
 export type AcaoEditorial = 'gerar' | 'aplicar' | 'editar' | 'desfazer';

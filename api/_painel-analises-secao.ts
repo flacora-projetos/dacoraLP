@@ -11,7 +11,7 @@ const ACOES = new Set([
   'dispensar', 'reverter_dispensa',
   'registrar_observacao_publica',
 ]);
-const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
+const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'haiku', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 
 /**
  * "Revisada sem análise" também vale para a introdução, que não é um bloco e
