@@ -177,8 +177,13 @@ export interface JanelaDoRelatorio {
   inicio?: string;
   fim?: string;
   dias?: number;
-  /** Verdadeiro = o mês ainda não fechou e os números vão crescer. */
+  /** Verdadeiro = o período cobre só parte do mês. */
   parcial?: boolean;
+  /**
+   * Dia em que o cliente saiu da carteira, quando o documento é do mês da
+   * saída: o período para na véspera e é FINAL — não vai crescer.
+   */
+  saidaDaCarteiraEm?: string;
   emAndamento?: boolean;
   temDiaFechado?: boolean;
   /** A frase que o modelo lê. É ela que proíbe falar do mês como fechado. */
@@ -208,6 +213,30 @@ export function descreverJanelaDoRelatorio(identidade: any, competencia: string)
   const ultimoDia = ultimoDiaDaCompetencia(competencia);
   const parcial = declarados.emAndamento === true || (ultimoDia !== null && fim < ultimoDia);
   const intervalo = `${formatarDia(inicio)} a ${formatarDia(fim)}`;
+  const saida = diaValido(identidade?.saidaDaCarteiraEm);
+
+  /**
+   * Mês em que o cliente saiu da carteira (Nutrifol, 16/10/2026): o documento
+   * cobre até a véspera da saída e é o ÚLTIMO. Ler isso como "mês em andamento,
+   * os números vão crescer" seria afirmar um futuro que não existe.
+   */
+  if (saida && parcial) {
+    return {
+      declarada: true,
+      inicio,
+      fim,
+      dias,
+      parcial,
+      saidaDaCarteiraEm: saida,
+      ...declarados,
+      texto:
+        `ATENÇÃO: este é o relatório FINAL do cliente. Ele cobre ${intervalo}, ou seja ${dias} ${dias === 1 ? "dia" : "dias"} do mês, ` +
+        `porque o cliente saiu da carteira em ${formatarDia(saida)}; não haverá mais dados deste mês. ` +
+        "Todo número aqui é o acumulado desse período. Não escreva \"no mês\" como se fosse o mês inteiro, não diga que o mês " +
+        "está em andamento nem que os números vão crescer, e não projete resultado futuro. A comparação, quando existir, já é " +
+        "contra o mesmo intervalo de dias do mês anterior.",
+    };
+  }
 
   return {
     declarada: true,

@@ -20,6 +20,14 @@ organizada em
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
 A introdução é o primeiro e mais importante alvo da caneta mágica.
 
+**Mês em que o cliente sai da carteira (13/10/2026, pedido do PO).** O mensal
+de outubro da Nutrifol cobre 01 a 15/10 e é o último: o snapshot declara
+`identidade.saidaDaCarteiraEm`, e a janela que a IA da análise lê passa a dizer
+"relatório FINAL" em vez de "o mês ainda está em andamento e os números vão
+crescer". Data malformada cai no texto de parcial de sempre. Verificação em
+`scripts/verifica-painel-analise-introducao.mts`, provada por mutação. Gerador
+do lado do OpenClaw: `corteDaSaidaDaCarteira` em `src/lib/report-period.js`.
+
 **Revisão aprovada mostra as análises aprovadas (07/10/2026, pedido do PO).**
 Depois de aprovar, a bancada escondia os editores e não punha nada no lugar: a
 página ficava sem análise nenhuma e o Flávio achou que o trabalho tinha sumido
