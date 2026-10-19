@@ -20,6 +20,11 @@ const sugestao: ContextoSugerido = {
   versao: 1, clienteSlug: 'cliente-sintetico', competencia: '2026-07', desde: '2026-07-01', ate: '2026-07-31',
   geradoEm: new Date().toISOString(), itens, avisos: [], total: 3, omitidos: 0,
 };
+async function aguardarCondicao(condicao: () => boolean, descricao: string) {
+  const limite = Date.now() + 2_000;
+  while (!condicao() && Date.now() < limite) await new Promise(resolve => setTimeout(resolve, 5));
+  assert.ok(condicao(), `tempo excedido aguardando ${descricao}`);
+}
 const relatorio: any = {
   id: ID, cliente_slug: 'cliente-sintetico', competencia: '2026-07', versao: 1, estado: 'gerado', checksum: CHECKSUM,
   substituido_por: null, revogado_em: null, conteudo: {
@@ -158,7 +163,7 @@ trocarChecksumNoProvider = false;
   assert.equal(dom.window.document.querySelectorAll('input[type=checkbox]').length, 3, 'retirar não apaga o registro da fonte');
   const organizarBtn = [...dom.window.document.querySelectorAll('button')].find(b => b.textContent?.includes('Organizar com IA')) as HTMLButtonElement;
   flushSync(() => organizarBtn.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await aguardarCondicao(() => /Prévia organizada · ainda não salva/.test(dom.window.document.body.textContent ?? ''), 'prévia organizada no DOM');
   assert.match(dom.window.document.body.textContent ?? '', /Prévia organizada · ainda não salva/);
   assert.equal(usos.length, 0);
   const acrescentar = [...dom.window.document.querySelectorAll('button')].find(b => b.textContent?.includes('Acrescentar ao contexto')) as HTMLButtonElement;
@@ -188,7 +193,8 @@ trocarChecksumNoProvider = false;
   };
   const root = createRoot(dom.window.document.getElementById('root')!);
   flushSync(() => root.render(createElement(AnalisesSecaoProvider, { podeRevisar: true, espacos: [], aoAcionar, children: createElement('div') })));
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await aguardarCondicao(() => recebidas.some(r => r.acao === 'carregar') && Boolean(dom.window.document.querySelector('#dcp-contexto-mes')), 'contexto manual carregado pelo provider');
+  await aguardarCondicao(() => Boolean(dom.window.document.querySelector('.dcp-contexto-automatico input[type=checkbox]')), `itens sugeridos carregados pelo provider (${(recebidas.map(r => r.acao)).join(', ')})`);
   assert.deepEqual(recebidas.map(r => r.acao), ['carregar']);
   const checks = [...dom.window.document.querySelectorAll('.dcp-contexto-automatico input[type=checkbox]')] as HTMLInputElement[];
   flushSync(() => checks[0].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
@@ -203,7 +209,7 @@ trocarChecksumNoProvider = false;
   assert.deepEqual(recebidas.map(r => r.acao), ['carregar'], 'acrescentar não salva nem gera análises');
   const salvar = [...dom.window.document.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Salvar contexto') as HTMLButtonElement;
   flushSync(() => salvar.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await aguardarCondicao(() => recebidas.some(r => r.acao === 'salvar_contexto') && dom.window.document.body.textContent?.includes('Contexto interno salvo.'), 'confirmação do salvamento explícito');
   assert.deepEqual(recebidas.map(r => r.acao), ['carregar', 'salvar_contexto'], 'somente clique explícito persiste o rascunho');
   assert.equal(recebidas.at(-1)?.contexto, textarea.value);
   flushSync(() => root.unmount());
