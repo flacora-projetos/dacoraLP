@@ -3,6 +3,8 @@ import { rotuloDaAuditoria } from './modoAnalise';
 import { paragrafosDaAnaliseEditorial } from './analiseEditorial';
 import { VersaoDaAnalise, type HistoricoEditorialInterno, type RevisaoDoHistorico } from './HistoricoAnalises';
 import { formatarCarimbo } from '../reports/format';
+import { ContextoAutomatico } from './ContextoAutomatico';
+import { acrescentarContexto, type ContextoSugerido } from './contextoSugerido';
 
 /**
  * O aviso de validade da análise (AV2).
@@ -33,11 +35,14 @@ export interface EspacoAnaliticoSeguro { secao: string; blocoId: string; titulo:
 export interface SugestaoSecao { id: string; secao: string; estado: string; texto: string; checksum: string; modelo?: string | null; }
 export interface ContextoMesSeguro { texto: string; atualizadoPor?: string; atualizadoEm?: string; }
 export type AcaoAnalisesUI =
-  | 'carregar' | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
+  | 'carregar' | 'salvar_contexto' | 'organizar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
   | 'dispensar' | 'reverter_dispensa';
 /** Quem revisou a seção e decidiu não publicar análise nenhuma. */
 export interface DispensaDeSecao { secao: string; por?: string | null; em?: string | null }
 export interface ResultadoAnalisesUI {
+  contextoSugerido?: ContextoSugerido | null;
+  avisoContextoSugerido?: string | null;
+  contextoOrganizado?: string;
   contexto?: ContextoMesSeguro | null;
   sugestoes?: SugestaoSecao[];
   sugestao?: SugestaoSecao | null;
@@ -58,7 +63,7 @@ interface EstadoAnalises {
   historicoPorSecao: Map<string, RevisaoDoHistorico[]>;
   ocupada: boolean;
   mensagem: string;
-  agir: (acao: Exclude<AcaoAnalisesUI, 'carregar' | 'salvar_contexto' | 'gerar_todas'>, secao: string, texto?: string) => Promise<void>;
+  agir: (acao: Exclude<AcaoAnalisesUI, 'carregar' | 'salvar_contexto' | 'organizar_contexto' | 'gerar_todas'>, secao: string, texto?: string) => Promise<void>;
 }
 
 const ContextoAnalises = createContext<EstadoAnalises | null>(null);
@@ -81,13 +86,15 @@ export function AnalisesSecaoProvider({
   coletadoEm?: string | null;
   /** Linha do tempo editorial AV3, já carregada pela tela de revisão. */
   historico?: HistoricoEditorialInterno | null;
-  aoAcionar: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
+  aoAcionar: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string; itensIds?: string[] }) => Promise<ResultadoAnalisesUI>;
   children: ReactNode;
 }) {
   const [sugestoes, setSugestoes] = useState<Map<string, SugestaoSecao>>(new Map());
   const [dispensas, setDispensas] = useState<Map<string, DispensaDeSecao>>(new Map());
   const [contexto, setContexto] = useState('');
   const [contextoSalvo, setContextoSalvo] = useState('');
+  const [contextoSugerido, setContextoSugerido] = useState<ContextoSugerido | null>(null);
+  const [avisoContextoSugerido, setAvisoContextoSugerido] = useState<string | null>(null);
   const [editandoContexto, setEditandoContexto] = useState(true);
   const [ocupada, setOcupada] = useState(false);
   const [mensagem, setMensagem] = useState('');
@@ -115,6 +122,8 @@ export function AnalisesSecaoProvider({
       const texto = resultado.contexto?.texto ?? '';
       setContexto(texto);
       setContextoSalvo(texto);
+      setContextoSugerido(resultado.contextoSugerido ?? null);
+      setAvisoContextoSugerido(resultado.avisoContextoSugerido ?? null);
       setEditandoContexto(!texto);
       setSugestoes(mapaDeSugestoes(resultado.sugestoes ?? []));
       setDispensas(new Map((resultado.dispensas ?? []).map((item) => [item.secao, item])));
@@ -185,7 +194,7 @@ export function AnalisesSecaoProvider({
             <strong>Análises das seções</strong>
             <p>Preenche as análises ao longo do relatório. A introdução continua no botão “Melhorar análise”.</p>
           </div>
-          <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada} onClick={() => void gerarTodas()}>
+          <button type="button" className="dcp-botao dcp-botao--discreto" disabled={ocupada || contexto !== contextoSalvo} onClick={() => void gerarTodas()}>
             Gerar análises do relatório
           </button>
         </div>
@@ -193,7 +202,20 @@ export function AnalisesSecaoProvider({
             texto de método repetido antes do primeiro número, e quinze cópias
             do mesmo aviso viram parede que ninguém lê. */}
         <AvisoDeValidadeDaAnalise coletadoEm={coletadoEm} />
-        <details className="dcp-contexto-mes">
+        <ContextoAutomatico
+          key={contextoSugerido?.geradoEm ?? 'sem-historico'}
+          sugestao={contextoSugerido}
+          aviso={avisoContextoSugerido}
+          ocupada={ocupada}
+          aoUsar={(texto) => { setContexto(atual => acrescentarContexto(atual, texto)); setEditandoContexto(true); setMensagem('Sugestão acrescentada ao rascunho. Confira e salve o contexto antes de gerar análises.'); }}
+          aoOrganizar={async (itensIds) => {
+            const r = await aoAcionar('organizar_contexto', { itensIds });
+            if (!r.contextoOrganizado) throw new Error('A organização não voltou confirmada. Use os registros originais.');
+            return r.contextoOrganizado;
+          }}
+        />
+        {contexto !== contextoSalvo && <p role="status">Há mudanças no contexto ainda não salvas. Salve antes de gerar novas análises.</p>}
+        <details className="dcp-contexto-mes" open={contexto !== contextoSalvo ? true : undefined}>
           <summary>
             <span><strong>Contexto do mês</strong><small>Opcional · usado nas próximas sugestões da introdução e das seções</small></span>
           </summary>

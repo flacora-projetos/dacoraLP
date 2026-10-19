@@ -11,6 +11,7 @@ import {
 import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.js';
 import { lerDispensasVigentes } from './_painel-estado-editorial.js';
 import { registrarRevisaoViva, salvarContextoVivo } from './_painel-revisao-viva.js';
+import { lerContextoSugerido, organizarContexto } from './_painel-contexto-sugerido.js';
 
 const COLUNAS = 'id,cliente_slug,competencia,versao,estado,checksum,checksum_factual_editorial,substituido_por,revogado_em,conteudo';
 const FALHAS_DE_CONCORRENCIA = new Set(['checksum_divergente', 'versao_fora_de_revisao', 'sugestao_nao_encontrada']);
@@ -145,17 +146,37 @@ export default async function handler(req: Request, res: Response) {
     }
 
     if (req.method === 'GET') {
-      const [contexto, sugestoes, dispensas] = await Promise.all([
+      const [contexto, sugestoes, dispensas, automatico] = await Promise.all([
         lerContextoMes(pedido.id, pedido.checksum, config),
         lerSugestoes(pedido.id, pedido.checksum, config),
         lerDispensasVigentes(pedido.id, pedido.checksum, config),
+        lerContextoSugerido(relatorio, config),
       ]);
       return res.status(200).json({
         contexto: contexto ? { texto: contexto.contexto, atualizadoPor: contexto.atualizado_por, atualizadoEm: contexto.atualizado_em } : null,
         sugestoes,
         dispensas,
+        contextoSugerido: automatico.sugestao,
+        avisoContextoSugerido: automatico.aviso,
         espacos: espacos.map(({ secao, blocoId, titulo, objetivo }) => ({ secao, blocoId, titulo, objetivo })),
       });
+    }
+
+    if (pedido.acao === 'organizar_contexto') {
+      const automatico = await lerContextoSugerido(relatorio, config);
+      const ids = new Set(pedido.itensIds);
+      const itens = automatico.sugestao?.itens.filter(i => ids.has(i.id)) ?? [];
+      if (!itens.length || itens.length !== ids.size) {
+        return res.status(409).json({ erro: 'contexto_desatualizado', mensagem: 'O histórico mudou. Reabra a revisão antes de organizar os registros.' });
+      }
+      const resposta = await organizarContexto(itens);
+      if (resposta.ok === false) return res.status(resposta.status).json(resposta);
+      // A coleta pode mudar durante a chamada ao modelo; o resultado não vale
+      // para um documento que o revisor já não está vendo.
+      const atual = await lerRelatorio(pedido.id, config);
+      const valida = validarLinhaParaAnalise(atual, pedido.checksum);
+      if (!valida.ok) return res.status(valida.status).json(valida);
+      return res.status(200).json({ contextoOrganizado: resposta.texto, modeloContexto: resposta.modelo });
     }
 
     if (dispensavel) {

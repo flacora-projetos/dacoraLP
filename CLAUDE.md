@@ -44,6 +44,10 @@ Saída de executor sem acesso real ao repositório/testes é proposta a revalida
 
 ## Ferramentas de uso preferencial
 
+Contexto do segundo cérebro nos mensais (19/10/2026): contrato no `AGENTS.md`
+e evidência no handoff canônico da fábrica. A sugestão é privada e não publica
+nem salva contexto sem ação editorial explícita.
+
 - **Context7:** consultar documentação oficial e atual, conferindo a versão
   efetiva em `package.json`/lockfile quando isso afetar a implementação.
 - **Serena:** piloto global estritamente somente leitura para navegar por

@@ -66,7 +66,7 @@ export function RevisaoApresentada({
   aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
   aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
   aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
-  aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
+  aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string; itensIds?: string[] }) => Promise<ResultadoAnalisesUI>;
   modoAnalise?: ModoAnaliseUI;
   aoMudarModoAnalise?: (modo: ModoAnaliseUI) => void;
 }) {
@@ -516,7 +516,7 @@ export function RevisaoComSessao({
 
   const analisarSecoes = useCallback(async (
     acao: AcaoAnalisesUI,
-    dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string },
+    dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string; itensIds?: string[] },
   ): Promise<ResultadoAnalisesUI> => {
     const sessaoAtual = sessaoAtualRef.current;
     const relatorioAtual = relatorio;
@@ -535,6 +535,7 @@ export function RevisaoComSessao({
             sugestaoId: dados?.sugestao?.id,
             texto: dados?.texto,
             contexto: dados?.contexto,
+            itensIds: dados?.itensIds,
             ...((acao === 'gerar_todas' || acao === 'gerar_secao') ? { modo: modoAnalise } : {}),
           }),
         });
@@ -547,7 +548,7 @@ export function RevisaoComSessao({
        sentidos — inclusive `desfazer`, `reverter_dispensa` e as gerações, que
        podem devolver a seção para "sugerida" e derrubar a prontidão de volta.
        `salvar_contexto` não decide seção nenhuma e fica de fora. */
-    if (acao !== 'carregar' && acao !== 'salvar_contexto') await revalidarProntidao();
+    if (acao !== 'carregar' && acao !== 'salvar_contexto' && acao !== 'organizar_contexto') await revalidarProntidao();
     return corpo ?? {};
   }, [modoAnalise, relatorio, revalidarProntidao, usuarioId]);
 
