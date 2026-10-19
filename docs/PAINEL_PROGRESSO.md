@@ -1,11 +1,16 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
-**Contexto do segundo cérebro (19/10/2026, GO do PO):** implementado e em validação.
+**Contexto do segundo cérebro (19/10/2026, GO do PO):** em produção pela PR #61.
 Cartão interno com decisões, mudanças e relatos do período; data/fonte/avisos,
 seleção, acréscimo ao contexto preservando o existente e organização por IA
 opcional. Modelo só ordena IDs; fatos vêm dos registros. Sem IA no carregamento,
 sem salvamento/publicação automática. `verifica:contexto-sugerido` no prebuild.
 Fonte canônica: `OpenClaw-Dacora/docs/HANDOFF_CONTEXTO_MENSAL_CEREBRO_2026-10-19.md`.
+Production `dpl_FPuTsa6DdEoWQFLm2cJu9oRz9pBa` READY; smoke autenticado do PO
+em 1440×900 e 390×844, incluindo retirada de itens e organização por IA de dois
+registros da VetSell, sem salvar contexto nem mudar aprovação/entrega.
+Primeiro Preview barrou um wait fixo do teste; foi trocado por espera de condição,
+mantendo a regressão no prebuild. Contextos humanos e envios permaneceram intactos.
 
 **Rota:** `/painel-de-relatorios`
 **Fases concluídas e publicadas:** P0 (fundação e login) · **P1 inteira —
