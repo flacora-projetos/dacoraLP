@@ -5,6 +5,7 @@ import { createServer as createViteServer } from "vite";
 import metaCapiHandler from "./api/meta-capi";
 import painelDecisaoHandler from "./api/painel-decisao";
 import painelAnaliseIntroducaoHandler from "./api/painel-analise-introducao";
+import painelAnalisesSecaoHandler from "./api/painel-analises-secao";
 import painelEnvioHandler from "./api/painel-envio";
 import painelFilaHandler from "./api/painel-fila";
 import painelHistoricoAnalisesHandler from "./api/painel-historico-analises";
@@ -47,6 +48,7 @@ async function startServer() {
   app.all("/api/painel-relatorio-interno", painelRelatorioInternoHandler);
   app.all("/api/painel-decisao", painelDecisaoHandler);
   app.all("/api/painel-analise-introducao", painelAnaliseIntroducaoHandler);
+  app.all("/api/painel-analises-secao", painelAnalisesSecaoHandler);
   app.all("/api/painel-envio", painelEnvioHandler);
   app.all("/api/relatorio-publico", relatorioPublicoHandler);
   /* Mesmo encaminhamento do vercel.json: o PDF mora na função do relatório público. */

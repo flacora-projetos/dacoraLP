@@ -7,7 +7,7 @@ export const ANALISES_SECAO_PROMPT_VERSAO = 'ra3_secoes_v2_contexto_mes_conciso'
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SECAO_VALIDA = /^bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/;
 const ACOES = new Set([
-  'salvar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer',
+  'salvar_contexto', 'organizar_contexto', 'gerar_todas', 'gerar_secao', 'aplicar', 'editar', 'desfazer',
   'dispensar', 'reverter_dispensa',
   'registrar_observacao_publica',
 ]);
@@ -22,7 +22,7 @@ const SECAO_DISPENSAVEL = /^(introducao|bloco:[A-Za-z0-9][A-Za-z0-9_.:-]{0,119})
 const ACOES_DE_DISPENSA = new Set(['dispensar', 'reverter_dispensa']);
 
 export type AcaoAnaliseSecao =
-  | 'salvar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
+  | 'salvar_contexto' | 'organizar_contexto' | 'gerar_todas' | 'gerar_secao' | 'aplicar' | 'editar' | 'desfazer'
   | 'dispensar' | 'reverter_dispensa' | 'registrar_observacao_publica';
 export interface PedidoAnaliseSecao {
   id: string;
@@ -32,6 +32,7 @@ export interface PedidoAnaliseSecao {
   sugestaoId?: string;
   texto?: string;
   contexto?: string;
+  itensIds?: string[];
   modo?: ModoAnalise;
 }
 
@@ -49,6 +50,11 @@ export function lerPedidoAnaliseSecao(bruto: unknown):
   const sugestaoId = typeof valor.sugestaoId === 'string' ? valor.sugestaoId.trim() : undefined;
   const texto = typeof valor.texto === 'string' ? valor.texto.trim() : undefined;
   const contexto = typeof valor.contexto === 'string' ? valor.contexto.trim() : undefined;
+  const itensIds = valor.itensIds;
+  if (acao === 'organizar_contexto' && (!Array.isArray(itensIds) || itensIds.length < 1 || itensIds.length > 30 ||
+      itensIds.some(i => typeof i !== 'string' || i.length > 500) || new Set(itensIds).size !== itensIds.length)) {
+    return { ok: false, erro: 'itens_invalidos', mensagem: 'Selecione os registros que deseja organizar.' };
+  }
   const modoBruto = typeof valor.modo === 'string' ? valor.modo.trim() : undefined;
   if (!UUID_VALIDO.test(id) || !checksum || checksum.length > 200 || !ACOES.has(acao)) {
     return { ok: false, erro: 'pedido_invalido', mensagem: 'A solicitação das análises não é válida.' };
@@ -79,7 +85,7 @@ export function lerPedidoAnaliseSecao(bruto: unknown):
     : undefined;
   return {
     ok: true,
-    pedido: { id, checksum, acao: acao as AcaoAnaliseSecao, secao, sugestaoId, texto, contexto, modo },
+    pedido: { id, checksum, acao: acao as AcaoAnaliseSecao, secao, sugestaoId, texto, contexto, modo, itensIds: itensIds as string[] | undefined },
   };
 }
 

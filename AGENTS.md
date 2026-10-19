@@ -49,6 +49,12 @@ intactos. Handoff canônico na fábrica:
 
 ## Escopo e segurança
 
+**Contexto do segundo cérebro (GO de 19/10/2026):** cartão interno na revisão
+mensal, fora do snapshot/página pública/PDF. Sugestão por cliente, competência,
+checksum e janela factual; acrescentar não sobrescreve contexto e não salva.
+IA opcional organiza IDs, sem criar texto factual. Fonte canônica:
+`OpenClaw-Dacora/docs/HANDOFF_CONTEXTO_MENSAL_CEREBRO_2026-10-19.md`.
+
 - Preserve alterações de outras frentes e trabalhe em branch própria; não faça
   commit direto em `main`, push, publicação, alteração no Supabase ou envio de
   mensagem sem autorização explícita do PO.
