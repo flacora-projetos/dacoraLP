@@ -47,7 +47,7 @@ small{color:#4A5E55}
   if(!convite){mostrar('Este link precisa de um convite. Peça o link correto à Dácora.','erro');return;}
 
   window.addEventListener('message',function(ev){
-    if(!/facebook\.com$/.test(new URL(ev.origin).hostname))return;
+    if(!/^https:\/\/([a-z0-9-]+\.)*facebook\.com$/.test(ev.origin))return;
     try{var d=JSON.parse(ev.data);}catch(e){return;}
     if(d.type!=='WA_EMBEDDED_SIGNUP')return;
     if(d.event==='CANCEL'){mostrar('Conexão interrompida'+(d.data&&d.data.current_step?' na etapa '+d.data.current_step:'')+(d.data&&d.data.error_message?': '+d.data.error_message:'')+'. Você pode tentar de novo.','erro');btn.disabled=false;return;}
