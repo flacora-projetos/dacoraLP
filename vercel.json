@@ -48,7 +48,7 @@
       },
       "continue": true
     },
-    { "src": "/crm/conectar(\.html)?/?", "headers": { "Content-Security-Policy": "frame-ancestors 'none'", "X-Frame-Options": "DENY", "X-Robots-Tag": "noindex, nofollow" }, "continue": true },
+    { "src": "/crm/conectar(\\.html)?/?", "headers": { "Content-Security-Policy": "frame-ancestors 'none'", "X-Frame-Options": "DENY", "X-Robots-Tag": "noindex, nofollow" }, "continue": true },
     { "handle": "filesystem" },
     { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
     { "src": "/data-hub(/.*)?", "dest": "/app.html" },
