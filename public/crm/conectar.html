@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Conectar WhatsApp — CRM de Campanhas | Dácora</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#F2EFEB;color:#0D1F18;font-family:'Red Hat Display',system-ui,sans-serif;line-height:1.6}
+header{background:#014029;color:#F2EFEB;padding:28px 16px}header .w{max-width:640px;margin:0 auto}header a{color:#F2EFEB;text-decoration:none;font-weight:700}
+header p{margin:6px 0 0;color:#cfd8d3;font-size:14px}main{max-width:640px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:clamp(26px,5vw,34px);line-height:1.2;margin:0 0 12px;color:#014029}p,li{font-size:16px}
+ol{padding-left:20px}li{margin-bottom:6px}
+button{font:inherit;font-weight:700;background:#014029;color:#F2EFEB;border:0;border-radius:10px;padding:14px 22px;font-size:17px;cursor:pointer;margin:16px 0}
+button:disabled{opacity:.5;cursor:not-allowed}
+#status{margin-top:16px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #d9d3cb;white-space:pre-line;display:none}
+#status.ok{border-color:#02593A}#status.erro{border-color:#b3261e;color:#7a1a14}
+small{color:#4A5E55}
+</style>
+</head>
+<body>
+<header><div class="w"><a href="/">Dácora</a><p>CRM de Campanhas</p></div></header>
+<main>
+<h1>Conectar o WhatsApp da sua empresa</h1>
+<p>Você continua atendendo pelo WhatsApp Business no celular. O CRM passa a receber as conversas e a origem dos contatos que chegam pelos anúncios.</p>
+<ol>
+<li>Deixe o <strong>WhatsApp Business aberto no celular</strong> (versão atualizada).</li>
+<li>Clique no botão abaixo e entre com o seu Facebook.</li>
+<li>Escolha <strong>conectar o número que já usa no WhatsApp Business</strong> e confirme no celular quando ele pedir.</li>
+<li>Aceite compartilhar o histórico das conversas.</li>
+</ol>
+<button id="conectar" disabled>Conectar WhatsApp</button>
+<div id="status"></div>
+<p><small>Ao conectar, você concorda com os <a href="/crm/termos">Termos de Uso</a> e a <a href="/crm/privacidade">Política de Privacidade</a> do CRM de Campanhas.</small></p>
+</main>
+<script>
+(function(){
+  var APP_ID='4786835024880838', CONFIG_ID='956373593760704';
+  var ENDPOINT='https://eivbhfdjpykvzatcysyn.supabase.co/functions/v1/conectar-whatsapp';
+  var convite=new URLSearchParams(location.search).get('convite');
+  var btn=document.getElementById('conectar'), st=document.getElementById('status');
+  var sessao=null, codigo=null, enviado=false;
+  function mostrar(txt,classe){st.textContent=txt;st.className=classe||'';st.style.display='block';}
+  if(!convite){mostrar('Este link precisa de um convite. Peça o link correto à Dácora.','erro');return;}
+
+  window.addEventListener('message',function(ev){
+    if(!/facebook\.com$/.test(new URL(ev.origin).hostname))return;
+    try{var d=JSON.parse(ev.data);}catch(e){return;}
+    if(d.type!=='WA_EMBEDDED_SIGNUP')return;
+    if(d.event==='CANCEL'){mostrar('Conexão interrompida'+(d.data&&d.data.current_step?' na etapa '+d.data.current_step:'')+(d.data&&d.data.error_message?': '+d.data.error_message:'')+'. Você pode tentar de novo.','erro');btn.disabled=false;return;}
+    sessao={evento:d.event,waba_id:d.data&&d.data.waba_id,phone_number_id:d.data&&d.data.phone_number_id};
+    enviar();
+  });
+
+  function enviar(){
+    if(enviado||!codigo)return;
+    // espera até 8 s pelo aviso da sessão; o código vale 30 s
+    if(!sessao&&!enviar.esperando){enviar.esperando=setTimeout(function(){enviar.esperando=-1;enviar();},8000);return;}
+    if(!sessao&&enviar.esperando!==-1)return;
+    enviado=true;
+    mostrar('Concluindo a conexão… não feche esta página.');
+    fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({convite:convite,code:codigo,evento:sessao&&sessao.evento,waba_id:sessao&&sessao.waba_id,phone_number_id:sessao&&sessao.phone_number_id})})
+      .then(function(r){return r.json();})
+      .then(function(r){
+        if(r.ok){mostrar('Pronto! WhatsApp '+(r.numero||'')+' conectado ao CRM.\n'+(r.coexistencia?'Você continua usando o WhatsApp Business no celular normalmente.':'')+'\n\nEtapas: '+(r.passos||[]).join(' · '),'ok');}
+        else{mostrar('Não deu certo: '+r.erro+'\n'+(r.passos||[]).join(' · '),'erro');btn.disabled=false;enviado=false;}
+      })
+      .catch(function(e){mostrar('Falha de comunicação: '+e.message,'erro');btn.disabled=false;enviado=false;});
+  }
+
+  window.fbAsyncInit=function(){
+    FB.init({appId:APP_ID,autoLogAppEvents:true,xfbml:true,version:'v23.0'});
+    btn.disabled=false;
+  };
+  btn.addEventListener('click',function(){
+    btn.disabled=true;sessao=null;codigo=null;enviado=false;enviar.esperando=null;
+    mostrar('Abrindo a janela da Meta…');
+    FB.login(function(resp){
+      if(resp.authResponse&&resp.authResponse.code){codigo=resp.authResponse.code;enviar();}
+      else if(!sessao){mostrar('A janela foi fechada sem concluir. Tente de novo.','erro');btn.disabled=false;}
+    },{config_id:CONFIG_ID,response_type:'code',override_default_response_type:true,
+       extras:{setup:{},featureType:'whatsapp_business_app_onboarding'}});
+  });
+})();
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+</body>
+</html>
