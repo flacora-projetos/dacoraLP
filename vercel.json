@@ -55,6 +55,7 @@
     { "src": "/negocios-servicos/?", "dest": "/negocios-servicos.html" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },
+    { "src": "/crm/conectar/?", "headers": { "Content-Security-Policy": "frame-ancestors 'none'", "X-Frame-Options": "DENY", "X-Robots-Tag": "noindex, nofollow" }, "continue": true },
     { "src": "/crm/(privacidade|termos|exclusao-de-dados|conectar)/?", "dest": "/crm/$1.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
