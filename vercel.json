@@ -55,6 +55,7 @@
     { "src": "/negocios-servicos/?", "dest": "/negocios-servicos.html" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },
+    { "src": "/crm/(privacidade|termos|exclusao-de-dados)/?", "dest": "/crm/$1.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
