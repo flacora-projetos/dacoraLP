@@ -45,11 +45,15 @@ small{color:#4A5E55}
   var sessao=null, codigo=null, enviado=false, eventos=[];
   function mostrar(txt,classe){st.textContent=txt;st.className=classe||'';st.style.display='block';}
   if(!convite){mostrar('Este link precisa de um convite. Peça o link correto à Dácora.','erro');return;}
+  // O SDK usa o endereço da página como redirect_uri do diálogo: precisa ser
+  // exatamente o cadastrado no app (sem ?convite=). O convite fica só na memória.
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
 
   window.addEventListener('message',function(ev){
     if(!/^https:\/\/([a-z0-9-]+\.)*facebook\.com$/.test(ev.origin))return;
-    var d=ev.data; if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){return;}}
+    var d=ev.data; if(typeof d==='string'){try{d=JSON.parse(d);}catch(e){eventos.push({origem:ev.origin,texto:String(ev.data).slice(0,300)});return;}}
     if(!d||typeof d!=='object')return;
+    if(d.type!=='WA_EMBEDDED_SIGNUP'){eventos.push({origem:ev.origin,tipo:d.type||null,resumo:JSON.stringify(d).slice(0,300)});return;}
     if(d.type!=='WA_EMBEDDED_SIGNUP')return;
     eventos.push({event:d.event,data:d.data,version:d.version});
     if(d.event==='CANCEL'){mostrar('Conexão interrompida'+(d.data&&d.data.current_step?' na etapa '+d.data.current_step:'')+(d.data&&d.data.error_message?': '+d.data.error_message:'')+'. Você pode tentar de novo.','erro');btn.disabled=false;return;}
