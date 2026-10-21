@@ -17,7 +17,7 @@ ol{padding-left:20px}li{margin-bottom:6px}
 button{font:inherit;font-weight:700;background:#014029;color:#F2EFEB;border:0;border-radius:10px;padding:14px 22px;font-size:17px;cursor:pointer;margin:16px 0}
 button:disabled{opacity:.5;cursor:not-allowed}
 #status{margin-top:16px;padding:14px 16px;border-radius:10px;background:#fff;border:1px solid #d9d3cb;white-space:pre-line;display:none}
-#status.ok{border-color:#02593A}#status.erro{border-color:#b3261e;color:#7a1a14}
+#status.ok{border-color:#02593A}#status.pendente{border-color:#b7791f;color:#5c3d07}#status.erro{border-color:#b3261e;color:#7a1a14}
 small{color:#4A5E55}
 </style>
 </head>
@@ -71,7 +71,8 @@ small{color:#4A5E55}
     fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({convite:convite,code:codigo,pagina:location.href,sessao_bruta:eventos,evento:sessao&&sessao.evento,waba_id:sessao&&sessao.waba_id,phone_number_id:sessao&&sessao.phone_number_id})})
       .then(function(r){return r.json();})
       .then(function(r){
-        if(r.ok){mostrar('Pronto! WhatsApp '+(r.numero||'')+' conectado ao CRM.\n'+(r.coexistencia?'Você continua usando o WhatsApp Business no celular normalmente.':'')+'\n\nEtapas: '+(r.passos||[]).join(' · '),'ok');}
+        if(r.ok&&r.completo!==false){mostrar('Pronto! WhatsApp '+(r.numero||'')+' conectado ao CRM.\n'+(r.coexistencia?'Você continua usando o WhatsApp Business no celular normalmente.':''),'ok');}
+        else if(r.ok){mostrar('WhatsApp '+(r.numero||'')+' conectado, com pendências:\n• '+(r.pendencias||[]).join('\n• ')+'\n\nAs mensagens novas já chegam ao CRM. A Dácora vai cuidar do que ficou pendente.','pendente');}
         else{mostrar('Não deu certo: '+r.erro+'\n'+(r.passos||[]).join(' · '),'erro');btn.disabled=false;enviado=false;}
       })
       .catch(function(e){mostrar('Falha de comunicação: '+e.message,'erro');btn.disabled=false;enviado=false;});
