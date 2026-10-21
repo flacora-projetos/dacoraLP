@@ -34,7 +34,7 @@ export default function PainelInicio() {
               {email}
             </span>
             <a className="dcp-botao dcp-botao--discreto" href="https://crm.dacora.com.br" target="_blank" rel="noreferrer">
-              CRM de Campanhas ↗
+              Dácora Fluxo ↗
             </a>
             <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => void sair()}>
               Sair
