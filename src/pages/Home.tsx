@@ -539,6 +539,13 @@ export default function App() {
             >
               Política de Privacidade
             </Link>
+            {/* Página de vendas do Dácora Fluxo: projeto próprio, servido em /fluxo/ pelo vercel.json */}
+            <a
+              href="/fluxo/"
+              className="text-dacora-offwhite/80 hover:text-dacora-offwhite transition-colors text-sm tracking-wide font-medium"
+            >
+              Dácora Fluxo
+            </a>
           </div>
 
           <a 

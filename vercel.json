@@ -49,6 +49,8 @@
       "continue": true
     },
     { "src": "/crm/conectar(\\.html)?/?", "headers": { "Content-Security-Policy": "frame-ancestors 'none'", "X-Frame-Options": "DENY", "X-Robots-Tag": "noindex, nofollow" }, "continue": true },
+    { "src": "/fluxo", "status": 308, "headers": { "Location": "/fluxo/" } },
+    { "src": "/fluxo/(.*)", "dest": "https://dacora-fluxo-vitrine.vercel.app/$1" },
     { "handle": "filesystem" },
     { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
     { "src": "/data-hub(/.*)?", "dest": "/app.html" },
