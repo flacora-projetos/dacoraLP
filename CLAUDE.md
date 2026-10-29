@@ -44,6 +44,8 @@ Saída de executor sem acesso real ao repositório/testes é proposta a revalida
 
 ## Ferramentas de uso preferencial
 
+Reuniões: leia `docs/REUNIOES.md` e o registro `docs/HANDOFF_REUNIOES_ABERTURA_2026-10-29.md` antes de alterar a apresentação ou o escopo de acesso.
+
 Contexto do segundo cérebro nos mensais (19/10/2026): contrato no `AGENTS.md`
 e evidência no handoff canônico da fábrica. A sugestão é privada e não publica
 nem salva contexto sem ação editorial explícita.

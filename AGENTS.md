@@ -49,6 +49,8 @@ intactos. Handoff canônico na fábrica:
 
 ## Escopo e segurança
 
+**Reuniões:** contrato em `docs/REUNIOES.md`; correção da abertura e prova em `docs/HANDOFF_REUNIOES_ABERTURA_2026-10-29.md`. A visão inicial acompanha a identidade, sem compartilhar roteiro interno com convidados.
+
 **Contexto do segundo cérebro (GO de 19/10/2026):** cartão interno na revisão
 mensal, fora do snapshot/página pública/PDF. Sugestão por cliente, competência,
 checksum e janela factual; acrescentar não sobrescreve contexto e não salva.
