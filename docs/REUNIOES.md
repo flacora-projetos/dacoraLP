@@ -2,8 +2,7 @@
 
 ## Estado e escopo
 
-Implementado em `codex/reunioes-20261029`, a partir de `origin/main/d5da466`.
-Preparação local; sem push, merge, publicação ou mudança no Supabase remoto.
+Serviço original publicado em 29/10/2026 pelo PR #75, com importação inicial VetSell no Dácora Reports. A preparação original está descrita abaixo. A correção da abertura para a equipe está validada localmente e segue o [registro de publicação](HANDOFF_REUNIOES_ABERTURA_2026-10-29.md); não implica compartilhar conteúdo interno.
 O PO pediu equipe e clientes convidados, começando apenas com
 `flacora@gmail.com` e `contato@nandacora.com.br`, com campo para convidar.
 

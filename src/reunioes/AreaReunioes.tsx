@@ -65,7 +65,8 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
   const [feedback, setFeedback] = useState('');
   const [busca, setBusca] = useState('');
   const [nova, setNova] = useState(false);
-  const [modo, setModo] = useState<'compartilhado' | 'interno'>('compartilhado');
+  const [modoEscolhido, setModo] = useState<'compartilhado' | 'interno' | null>(null);
+  const modo = usuario.equipe ? (modoEscolhido ?? 'interno') : 'compartilhado';
   const [aba, setAba] = useState<'roteiro' | 'duvidas' | 'acessos'>('roteiro');
   const [indice, setIndice] = useState(0);
   const [atualizado, setAtualizado] = useState('');
@@ -131,7 +132,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     setCarregando(true);
     setIndice(0);
     setAba('roteiro');
-    setModo('compartilhado');
+    setModo(null);
     setBusca('');
     setFeedback('');
     void atualizar();
@@ -342,10 +343,14 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                         <p className="dcr-sobrancelha">
                           {secao ? `${indice + 1} DE ${secoes.length}` : 'PAUTA'}
                         </p>
-                        <h2>{secao?.titulo ?? 'Pauta a combinar'}</h2>
+                        <h2>{secao?.titulo ?? (modo === 'compartilhado' ? 'Pauta ainda não compartilhada' : 'Roteiro a preparar')}</h2>
                         <Texto
                           valor={
-                            secao?.texto ?? 'Registre os pontos da conversa nas anotações ao lado.'
+                            secao?.texto ?? (modo === 'compartilhado'
+                              ? usuario.equipe
+                                ? 'Consulte o Roteiro da equipe para ver o conteúdo interno. Esta visão mostra apenas o que foi preparado para os convidados.'
+                                : 'A equipe ainda está preparando o conteúdo que será compartilhado aqui.'
+                              : 'Registre os pontos da conversa nas anotações ao lado.')
                           }
                         />
                         <div className="dcr-passos">
