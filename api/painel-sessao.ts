@@ -33,14 +33,17 @@ import {
 } from './_painel-autorizacao.js';
 import { executarSpikeDataHub } from './_data-hub-spike.js';
 import { atenderDataHub, type DependenciasDataHubPortal } from './_data-hub.js';
+import { atenderReunioes, type DependenciasReunioes } from './_reunioes.js';
 
 export async function atenderPainelSessao(
   req: Request,
   res: Response,
-  dependencias: { spike?: typeof executarSpikeDataHub; dataHub?: DependenciasDataHubPortal } = {},
+  dependencias: { spike?: typeof executarSpikeDataHub; dataHub?: DependenciasDataHubPortal; reunioes?: DependenciasReunioes } = {},
 ) {
   // Resposta de autorização nunca pode ser guardada por cache intermediário.
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+  if (req.query?.modo === 'reunioes') return atenderReunioes(req, res, dependencias.reunioes);
 
   const dataHubMode = req.query?.modo === 'data-hub';
   if (dataHubMode
