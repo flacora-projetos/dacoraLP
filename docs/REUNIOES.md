@@ -2,7 +2,7 @@
 
 ## Estado e escopo
 
-Serviço original publicado em 29/10/2026 pelo PR #75, com importação inicial VetSell no Dácora Reports. A preparação original está descrita abaixo. A correção da abertura para a equipe está validada localmente e segue o [registro de publicação](HANDOFF_REUNIOES_ABERTURA_2026-10-29.md); não implica compartilhar conteúdo interno.
+Serviço original publicado em 29/10/2026 pelo PR #75, com importação inicial VetSell no Dácora Reports. A preparação original está descrita abaixo. A correção da abertura para a equipe foi publicada pelo PR #76 e conferida com acesso real em computador/celular: [prova](HANDOFF_REUNIOES_ABERTURA_2026-10-29.md). Não implica compartilhar conteúdo interno.
 O PO pediu equipe e clientes convidados, começando apenas com
 `flacora@gmail.com` e `contato@nandacora.com.br`, com campo para convidar.
 

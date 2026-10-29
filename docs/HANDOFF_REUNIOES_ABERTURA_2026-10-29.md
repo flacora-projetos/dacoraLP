@@ -26,7 +26,13 @@ React instalado pelo lockfile; referência oficial consultada para persistência
 
 ## Publicação e retorno
 
-Branch `codex/reunioes-abertura-equipe-20261029`, base `5b567eb`. Validado localmente, aguardando publicação neste registro inicial. Conferir commit/deployment/aliases após merge e abrir os encontros reais como equipe em computador/celular. Convidado/isolações locais não equivalem a login novo da Fernanda.
+Publicado em 29/10/2026 pelo PR #76, merge `648b7118dc11a9cece7b58b6bc5f0e0d4a162c38`. Vercel `dpl_6yu9RaT8RSHsLuhrqy6G7WZPXqTQ`, produção READY, commit exato e aliases `www.dacora.com.br`/`dacora.com.br` confirmados pelo conector. Branch `codex/reunioes-abertura-equipe-20261029`, base `5b567eb`.
+
+Browser interno com sessão real existente de Flávio: Cria abriu diretamente com quatro seções internas; escolha do compartilhado mostrou o aviso explícito; Avlon voltou ao interno ao mudar de encontro e mostrou a sugestão para o próximo encontro. Conferência em 1440×1000 e 390×844, sem rolagem horizontal. Sem edição ou salvamento, convite ou envio. Convidado/isolações locais não equivalem a login novo da Fernanda.
+
+Releitura do Dácora Reports: três encontros, zero convites; Cria/Avlon mantêm quatro seções internas e zero compartilhadas; VetSell mantém oito de cada lado. Hashes do roteiro interno/compartilhado VetSell e texto, autor e instante da nota humana original continuam iguais à prova anterior. Nota assistida adicional preservada. Não houve mutação de banco nesta correção.
+
+Mutação local restaurando o defeito da visão inicial foi detectada pelo teste; código restaurado e teste passou novamente. Registro final deste estado é documental, sem nova mudança de aplicação.
 
 Retorno: reverter somente o diff de apresentação e republicar se houver regressão; nenhuma restauração de banco/notas é necessária. A preparação da agenda/histórico está no OpenClaw, em frente separada, e não é ativada por esse deploy.
 
