@@ -13,6 +13,14 @@ type ResultadoV2 = {
   };
 };
 
+/** Recusa do Data Hub, como o portal a repassa: motivo e, quando existe, os campos sem dado. */
+export function erroDaConsulta(corpo: any) {
+  const falha = new Error(String(corpo?.mensagem ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.')) as Error & { campos?: readonly string[] };
+  const campos = corpo?.details?.fields;
+  if (Array.isArray(campos)) falha.campos = campos.filter((campo: unknown) => typeof campo === 'string');
+  return falha;
+}
+
 export type ConsultaV2Payload = {
   accountId: string;
   selectedFields: readonly string[];
@@ -337,7 +345,11 @@ export function ConsultaQueryV2({
       {dateStart && dateStop && dateStart > dateStop ? <p className="dcp-erro" role="alert">A data inicial não pode ser posterior à final.</p> : null}
       {erro ? (
         <div className="dch-query-v2__erro" role="alert">
-          <p className="dch-status dch-status--erro">{erro}</p>
+          <p className="dch-status dch-status--erro">
+            {camposRecusados.length > 0
+              ? `Sem dado para: ${camposRecusados.map((id) => campos.find((campo) => campo.id === id)?.nome ?? id).join(', ')}.`
+              : erro}
+          </p>
           {camposRecusados.length > 0 ? (
             <>
               <p className="dcp-secao__apoio">

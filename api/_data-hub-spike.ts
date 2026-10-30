@@ -94,6 +94,25 @@ async function accessTokenGoogle(oidc: string, config: ConfiguracaoDataHub): Pro
 
 function respostaSegura(status: number, corpo: unknown, requestId: string) {
   if (status >= 200 && status < 300) return { status, corpo };
+  // Recusa sobre a propria consulta: o Data Hub so manda este formato quando a
+  // mensagem foi escrita para o usuario. Qualquer outro corpo segue generico.
+  const recusa = corpo as any;
+  if (status >= 400 && status < 500 && typeof recusa?.error === 'string' && recusa.error.startsWith('META_QUERY_V2_')) {
+    const campos = Array.isArray(recusa.details?.fields)
+      ? recusa.details.fields.filter((campo: unknown) => typeof campo === 'string')
+      : [];
+    return {
+      status,
+      corpo: {
+        erro: recusa.error,
+        mensagem: typeof recusa.message === 'string' && recusa.message.length <= 300
+          ? recusa.message
+          : 'O Data Hub recusou esta consulta.',
+        ...(campos.length ? { details: { fields: campos } } : {}),
+        requestId,
+      },
+    };
+  }
   const codigo = (corpo as any)?.error?.code;
   const mensagem = (corpo as any)?.error?.message;
   return {

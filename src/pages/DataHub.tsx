@@ -6,7 +6,7 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
-import { ConsultaQueryV2, type ConsultaV2Payload } from './data-hub-query-v2';
+import { ConsultaQueryV2, erroDaConsulta, type ConsultaV2Payload } from './data-hub-query-v2';
 import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, preservarGraoLegadoNosCampos, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
@@ -90,15 +90,7 @@ function DataHubInicio() {
     });
     const corpo = await resposta.json().catch(() => null);
     if (!resposta.ok) {
-      // O Data Hub explica a recusa quando ela e sobre a consulta: mensagem e,
-      // quando existe, a lista de campos sem dado. Sem isso o usuario via uma
-      // falha generica de canal no lugar do motivo real.
-      const motivo = String(corpo?.mensagem ?? corpo?.message ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.');
-      const falha = new Error(motivo) as Error & { codigo?: string; campos?: readonly string[] };
-      if (typeof corpo?.error === 'string') falha.codigo = corpo.error;
-      const campos = corpo?.details?.fields;
-      if (Array.isArray(campos)) falha.campos = campos.filter((campo: unknown) => typeof campo === 'string');
-      throw falha;
+      throw erroDaConsulta(corpo);
     }
     return { status: resposta.status, corpo };
   }

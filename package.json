@@ -47,6 +47,7 @@
     "pdf:prototipos": "tsx scripts/gerar-prototipos-pdf.mts",
     "verifica:data-hub-exportacao": "tsx scripts/verifica-data-hub-exportacao.mts",
     "verifica:data-hub-seletor": "tsx scripts/verifica-data-hub-seletor.mts",
+    "verifica:data-hub-recusa": "tsx scripts/verifica-data-hub-recusa.mts",
     "verifica:analises-aprovadas-painel": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-painel-analises-aprovadas.mts"
   },
   "dependencies": {
