@@ -18,6 +18,11 @@ export interface Reuniao extends ResumoReuniao {
   compartilhado: ConteudoReuniao;
   interno?: ConteudoReuniao;
 }
+export interface Transcricao {
+  texto: string;
+  fonte_url: string;
+  lida_em: string;
+}
 export interface Anotacao {
   id: string;
   reuniao_id: string;

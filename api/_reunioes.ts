@@ -258,7 +258,28 @@ export async function atenderReunioes(
             order: 'email.asc',
           })
         : undefined;
-      return res.json({ reuniao, notas, ...(convites ? { convites } : {}) });
+      const transcricoes = usuario.equipe
+        ? await banco<any[]>('portal_reunioes_transcricoes', {
+            reuniao_id: `eq.${resumo.id}`,
+            select: 'reuniao_id',
+            limit: '1',
+          })
+        : [];
+      return res.json({
+        reuniao,
+        notas,
+        ...(convites ? { convites } : {}),
+        ...(usuario.equipe ? { tem_transcricao: transcricoes.length > 0 } : {}),
+      });
+    }
+    if (req.method === 'GET' && acao === 'transcricao') {
+      if (!usuario.equipe) throw new FalhaReunioes(403, 'A transcrição é apenas da equipe.');
+      const [transcricao] = await banco<any[]>('portal_reunioes_transcricoes', {
+        reuniao_id: `eq.${resumo.id}`,
+        select: 'texto,fonte_url,lida_em',
+        limit: '1',
+      });
+      return res.json({ transcricao: transcricao ?? null });
     }
     if (req.method === 'POST' && acao === 'anotar') {
       exigir(

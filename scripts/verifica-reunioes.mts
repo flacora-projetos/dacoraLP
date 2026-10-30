@@ -21,7 +21,12 @@ Object.assign(process.env, {
   SUPABASE_SERVICE_ROLE_KEY: 'servidor-teste',
   PAINEL_EMAILS_AUTORIZADOS: 'equipe@example.com,fernanda@example.com',
 });
-const tabelas = ['portal_reunioes', 'portal_reunioes_convites', 'portal_reunioes_notas'];
+const tabelas = [
+  'portal_reunioes',
+  'portal_reunioes_convites',
+  'portal_reunioes_notas',
+  'portal_reunioes_transcricoes',
+];
 function nome(n: string) {
   assert.match(n, /^[a-z_]+$/);
   return `"${n}"`;
@@ -142,6 +147,12 @@ try {
   await db.exec(
     await fs.readFile(
       new URL('../supabase/migrations/20261029131920_portal_reunioes.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await fs.readFile(
+      new URL('../supabase/migrations/20261030170000_portal_reunioes_transcricoes.sql', import.meta.url),
       'utf8',
     ),
   );
@@ -276,6 +287,26 @@ try {
     'O autor deve vir da sessão.',
   );
   assert.equal(convidado.dados.reuniao.interno, undefined);
+  assert.equal(convidado.dados.tem_transcricao, undefined);
+  assert.equal(
+    (await chamar('cliente', 'transcricao', reuniao.slug)).status,
+    403,
+    'Convidado não recebe transcrição nem pedindo direto.',
+  );
+  const semTranscricao = await chamar('equipe', 'abrir', reuniao.slug);
+  assert.equal(semTranscricao.dados.tem_transcricao, false);
+  assert.equal((await chamar('equipe', 'transcricao', reuniao.slug)).dados.transcricao, null);
+  await db.query(
+    `insert into portal_reunioes_transcricoes (reuniao_id, texto, fonte_url, lida_em)
+     values ($1, 'TRANSCRICAO_PRIVADA', 'https://docs.google.com/document/d/teste/edit', now())`,
+    [semTranscricao.dados.reuniao.id],
+  );
+  const comTranscricao = await chamar('equipe', 'abrir', reuniao.slug);
+  assert.equal(comTranscricao.dados.tem_transcricao, true);
+  assert.ok(!JSON.stringify(comTranscricao.dados).includes('TRANSCRICAO_PRIVADA'), 'O texto longo não viaja na atualização periódica.');
+  assert.equal((await chamar('equipe', 'transcricao', reuniao.slug)).dados.transcricao.texto, 'TRANSCRICAO_PRIVADA');
+  assert.ok(!JSON.stringify((await chamar('cliente', 'abrir', reuniao.slug)).dados).includes('TRANSCRICAO_PRIVADA'));
+  assert.equal((await chamar('cliente', 'transcricao', reuniao.slug)).status, 403);
   assert.equal(convidado.dados.convites, undefined);
   assert.ok(
     !/SEGREDO_NEGOCIACAO|ESTRATEGIA_PRIVADA|NOTA_PRIVADA|Fingindo ser equipe/.test(

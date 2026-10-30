@@ -5,6 +5,7 @@ import type {
   ConteudoReuniao,
   Convite,
   IdentidadeReunioes,
+  Transcricao,
   ResumoReuniao,
   Reuniao,
 } from './tipos';
@@ -59,6 +60,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     reuniao: Reuniao;
     notas: Anotacao[];
     convites?: Convite[];
+    tem_transcricao?: boolean;
   } | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -67,7 +69,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
   const [nova, setNova] = useState(false);
   const [modoEscolhido, setModo] = useState<'compartilhado' | 'interno' | null>(null);
   const modo = usuario.equipe ? (modoEscolhido ?? 'interno') : 'compartilhado';
-  const [aba, setAba] = useState<'roteiro' | 'duvidas' | 'acessos'>('roteiro');
+  const [aba, setAba] = useState<'roteiro' | 'duvidas' | 'acessos' | 'transcricao'>('roteiro');
   const [indice, setIndice] = useState(0);
   const [atualizado, setAtualizado] = useState('');
   const geracao = useRef(0);
@@ -301,6 +303,14 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                     Respostas rápidas
                   </button>
                 )}
+                {usuario.equipe && modo === 'interno' && (
+                  <button
+                    aria-current={aba === 'transcricao' ? 'page' : undefined}
+                    onClick={() => setAba('transcricao')}
+                  >
+                    🔒 Transcrição
+                  </button>
+                )}
                 {usuario.equipe && (
                   <button
                     aria-current={aba === 'acessos' ? 'page' : undefined}
@@ -322,6 +332,12 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                           'Acesso atualizado. Compartilhe o link com a pessoa; nenhum e-mail foi enviado.',
                         );
                       }}
+                    />
+                  ) : aba === 'transcricao' && usuario.equipe && modo === 'interno' ? (
+                    <PainelTranscricao
+                      key={slug}
+                      existe={detalhe.tem_transcricao === true}
+                      carregar={() => api('transcricao', undefined, slug)}
                     />
                   ) : aba === 'duvidas' ? (
                     <Duvidas conteudo={conteudo!} />
@@ -406,6 +422,80 @@ function Texto({ valor }: { valor: string }) {
     </div>
   );
 }
+function PainelTranscricao({
+  existe,
+  carregar,
+}: {
+  existe: boolean;
+  carregar: () => Promise<{ transcricao: Transcricao | null }>;
+}) {
+  const [transcricao, setTranscricao] = useState<Transcricao | null>(null);
+  const [falhou, setFalhou] = useState(false);
+  const [busca, setBusca] = useState('');
+  const carregarAtual = useRef(carregar);
+  useEffect(() => {
+    if (!existe) return;
+    let ativo = true;
+    carregarAtual
+      .current()
+      .then((dados) => {
+        if (ativo) setTranscricao(dados.transcricao);
+      })
+      .catch(() => {
+        if (ativo) setFalhou(true);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [existe]);
+  if (!existe)
+    return (
+      <section className="dcr-bloco">
+        <h2>Sem transcrição registrada.</h2>
+        <p>Esta reunião não tem transcrição guardada aqui. Isso não diz se ela aconteceu.</p>
+      </section>
+    );
+  if (falhou)
+    return (
+      <section className="dcr-bloco">
+        <h2>Não foi possível abrir a transcrição.</h2>
+        <p>Ela continua guardada. Tente novamente em instantes.</p>
+      </section>
+    );
+  if (!transcricao)
+    return (
+      <section className="dcr-bloco">
+        <p>Abrindo a transcrição…</p>
+      </section>
+    );
+  const termo = normalizar(busca);
+  const linhas = transcricao.texto.split(/\r?\n/).filter((l) => l.trim() && normalizar(l).includes(termo));
+  return (
+    <section className="dcr-bloco dcr-transcricao">
+      <h2>Transcrição da reunião</h2>
+      <p>
+        🔒 Só a equipe Dácora vê. Texto automático, não conferido com o áudio. Lida em{' '}
+        {new Date(transcricao.lida_em).toLocaleDateString('pt-BR')}.{' '}
+        <a href={transcricao.fonte_url} target="_blank" rel="noreferrer noopener">
+          Abrir o documento original ↗
+        </a>
+      </p>
+      <label>
+        Buscar na transcrição
+        <input
+          type="search"
+          placeholder="Ex.: orçamento, vendedor, prazo"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+      </label>
+      <div className="dcr-transcricao__texto" tabIndex={0}>
+        {linhas.length ? linhas.map((l, i) => <p key={i}>{l}</p>) : <p>Nenhum trecho com esse termo.</p>}
+      </div>
+    </section>
+  );
+}
+
 function Duvidas({ conteudo }: { conteudo: ConteudoReuniao }) {
   const [busca, setBusca] = useState('');
   const duvidas = conteudo.duvidas.filter((d) =>

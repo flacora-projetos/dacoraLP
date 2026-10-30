@@ -626,3 +626,14 @@
     transition: none !important;
   }
 }
+
+.dcr-transcricao__texto {
+  max-height: 65vh;
+  margin-top: 16px;
+  padding-right: 12px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.dcr-transcricao__texto p {
+  margin: 0 0 10px;
+}
