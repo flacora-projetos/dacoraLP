@@ -32,7 +32,13 @@ import type { Request, Response } from 'express';
 // extensão sozinho. Sem ela, todo pedido responde 500 só depois de publicado.
 import { conferirAcesso } from './_painel-autorizacao.js';
 import { montarFila, type LinhaDoBanco } from './_painel-fila-dados.js';
-import { montarVisaoGeral } from './_painel-visao-geral-dados.js';
+import {
+  montarVisaoGeral,
+  MESES_NO_COMPARATIVO_DO_PRAZO,
+  type EnvioDoMes,
+  type LinhaDoPrazo,
+  type OrdemDoMes,
+} from './_painel-visao-geral-dados.js';
 import { montarEstadoSeguroDoEnvio, type LinhaDoPortalP5 } from './_painel-envio-regras.js';
 
 /** As colunas que a fila lê. `token` e `conteudo` completo à parte — ver abaixo. */
@@ -66,6 +72,12 @@ const COLUNAS = [
   'enviado_em',
   'enviado_para',
   'substituido_por',
+  // Arquivado = revogado com autor e motivo (migration 20261008120000, no
+  // OpenClaw-Dacora). ⚠️ As duas últimas só existem DEPOIS dessa migration: o
+  // portal com esta linha não pode ir ao ar antes dela.
+  'revogado_em',
+  'revogado_por',
+  'revogado_motivo',
   /**
    * O `conteudo` inteiro vem junto, e o servidor extrai dele os poucos números
    * da linha. Dá para pedir só os pedaços (`conteudo->dados->faixas`), e um dia
@@ -82,6 +94,35 @@ const COLUNAS = [
 ].join(',');
 
 const COMPETENCIA_VALIDA = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** O mês de hoje no fuso da operação, `AAAA-MM`. */
+export function mesCorrenteEmSaoPaulo(agora: Date = new Date()): string {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(agora);
+  const ano = partes.find((p) => p.type === 'year')?.value;
+  const mes = partes.find((p) => p.type === 'month')?.value;
+  return `${ano}-${mes}`;
+}
+
+/**
+ * Qual mês o painel abre quando ninguém pediu um.
+ *
+ * O ÚLTIMO MÊS FECHADO, não o mais recente. A cadência das 07h gera o mês em
+ * andamento todo dia, então "o mais recente" é sempre um mês que ninguém
+ * revisa ainda — e o painel abria em outubro dizendo "32 esperando revisão" e
+ * "0 liberados", duas pendências que não existem. Quem abre o painel quer o
+ * mês que está sendo revisado e enviado. (Pedido do PO, 08/10/2026.)
+ *
+ * Sem nenhum mês fechado no banco, cai no mais recente — é melhor mostrar o
+ * mês em andamento do que uma tela vazia.
+ */
+export function competenciaPadrao(competencias: string[], mesCorrente: string): string | null {
+  const ordenadas = [...competencias].sort((a, b) => b.localeCompare(a));
+  return ordenadas.find((mes) => mes < mesCorrente) ?? ordenadas[0] ?? null;
+}
 
 /**
  * Se a fila deve oferecer o botão de voltar para edição.
@@ -168,7 +209,7 @@ export default async function handler(req: Request, res: Response) {
         mensagem: 'A competência precisa estar no formato AAAA-MM.',
       });
     }
-    const competencia = pedida || competencias[0] || null;
+    const competencia = pedida || competenciaPadrao(competencias, mesCorrenteEmSaoPaulo());
 
     if (!competencia) {
       return res.status(200).json({ competencia: null, competencias: [], itens: [] });
@@ -236,6 +277,19 @@ export default async function handler(req: Request, res: Response) {
       console.warn('[painel-fila] Estado P5 indisponível para ações:', erroAcoes instanceof Error ? erroAcoes.message : erroAcoes);
     }
     const itensDaFila = montarFila(linhas).map((item) => {
+      if (item.estado === 'arquivado') {
+        // Arquivado não oferece ação nenhuma, nem o aviso de "envio
+        // indisponível": a visão do envio não traz documento revogado, e o
+        // aviso genérico pareceria defeito onde há uma decisão.
+        return {
+          ...item,
+          podeVoltarEdicao: false,
+          podeSolicitarEnvio: false,
+          destinatarioNome: null,
+          envioIndisponibilidade: null,
+          envioEstado: null,
+        };
+      }
       const acao = acoesPorRelatorio.get(item.id);
       return {
         ...item,
@@ -253,6 +307,55 @@ export default async function handler(req: Request, res: Response) {
       };
     });
 
+    /* As leituras que alimentam só a visão geral: recusas, envios e o prazo dos
+     * meses anteriores. Cada uma falha SOZINHA e vira `null` — a tela escreve
+     * "não deu para ler" em vez de zero, e a fila continua de pé. */
+    const lerOuNulo = async <T,>(caminho: string, rotulo: string): Promise<T | null> => {
+      try {
+        const resposta = await fetch(`${urlSupabase}/rest/v1/${caminho}`, { headers: cabecalhos });
+        if (!resposta.ok) {
+          console.warn(`[painel-fila] ${rotulo} indisponível: HTTP ${resposta.status}.`);
+          return null;
+        }
+        return (await resposta.json()) as T;
+      } catch (erroLeitura) {
+        console.warn(`[painel-fila] ${rotulo} indisponível:`, erroLeitura instanceof Error ? erroLeitura.message : erroLeitura);
+        return null;
+      }
+    };
+
+    const anteriores = competencias.filter((mes) => mes < competencia).slice(0, MESES_NO_COMPARATIVO_DO_PRAZO);
+    const [ordensCruas, causasCruas, envios, prazoDeOutrosMeses] = await Promise.all([
+      lerOuNulo<Array<Omit<OrdemDoMes, 'causas'>>>(
+        `relatorio_ordens_correcao?competencia=eq.${competencia}` +
+          '&select=id,cliente_slug,relatorio_versao,estado,catalog_version,solicitado_em,fechada_manualmente_em,falha_automatica_codigo',
+        'Recusas',
+      ),
+      lerOuNulo<Array<{ ordem_correcao_id: string; ordinal: number; cause_id: string; catalog_version: string | null; parameters: any }>>(
+        // As causas não têm competência; o filtro é pela ordem, via a relação.
+        `relatorio_ordem_causas?select=ordem_correcao_id,ordinal,cause_id,catalog_version,parameters,relatorio_ordens_correcao!inner(competencia)` +
+          `&relatorio_ordens_correcao.competencia=eq.${competencia}`,
+        'Causas das recusas',
+      ),
+      lerOuNulo<EnvioDoMes[]>(`relatorio_envios?competencia=eq.${competencia}&select=relatorio_id,estado`, 'Envios'),
+      anteriores.length === 0
+        ? Promise.resolve([] as LinhaDoPrazo[])
+        : lerOuNulo<LinhaDoPrazo[]>(
+            `relatorios?competencia=in.(${anteriores.join(',')})&select=cliente_slug,competencia,versao,aprovado_em,revogado_em`,
+            'Prazo dos meses anteriores',
+          ),
+    ]);
+    const ordens: OrdemDoMes[] | null =
+      ordensCruas && causasCruas
+        ? ordensCruas.map((ordem) => ({
+            ...ordem,
+            causas: causasCruas
+              .filter((causa) => causa.ordem_correcao_id === ordem.id)
+              .sort((a, b) => a.ordinal - b.ordinal)
+              .map(({ cause_id, catalog_version, parameters }) => ({ cause_id, catalog_version, parameters })),
+          }))
+        : null;
+
     /* A visão geral sai da MESMA leitura, de propósito.
      *
      * Um endpoint separado significaria uma segunda consulta de ~2 MB ao
@@ -268,7 +371,11 @@ export default async function handler(req: Request, res: Response) {
       competencia,
       competencias,
       itens: itensDaFila,
-      visaoGeral: montarVisaoGeral(linhas, competencia, new Date().toISOString()),
+      visaoGeral: montarVisaoGeral(linhas, competencia, new Date().toISOString(), {
+        ordens,
+        envios,
+        prazoDeOutrosMeses,
+      }),
     });
   } catch (err) {
     console.error('[painel-fila] Falha ao ler os relatórios:', err instanceof Error ? err.message : err);

@@ -1,7 +1,14 @@
 {
+  "functions": {
+    "api/relatorio-publico.ts": {
+      "includeFiles": "node_modules/pdfkit/js/{standard-fonts,data}/**",
+      "maxDuration": 60
+    }
+  },
   "routes": [
     { "src": "/api/data-hub-spike", "dest": "/api/painel-sessao?modo=data-hub-spike" },
     { "src": "/api/data-hub(?:/(.*))?", "dest": "/api/painel-sessao?modo=data-hub&path=/$1" },
+    { "src": "/api/relatorio-pdf", "dest": "/api/relatorio-publico?formato=pdf" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     {
       "src": "/img/(.*)",
@@ -41,13 +48,18 @@
       },
       "continue": true
     },
+    { "src": "/crm/conectar(\\.html)?/?", "headers": { "Content-Security-Policy": "frame-ancestors 'none'", "X-Frame-Options": "DENY", "X-Robots-Tag": "noindex, nofollow" }, "continue": true },
+    { "src": "/fluxo", "status": 308, "headers": { "Location": "/fluxo/" } },
+    { "src": "/fluxo/(.*)", "dest": "https://dacora-fluxo-vitrine.vercel.app/$1" },
     { "handle": "filesystem" },
+    { "src": "/reunioes(/.*)?", "headers": { "X-Robots-Tag": "noindex, nofollow, noarchive", "Referrer-Policy": "no-referrer", "Cache-Control": "private, no-store, no-cache, must-revalidate" }, "dest": "/app.html" },
     { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
     { "src": "/data-hub(/.*)?", "dest": "/app.html" },
     { "src": "/relatorios/(.*)", "dest": "/app.html" },
     { "src": "/negocios-servicos/?", "dest": "/negocios-servicos.html" },
     { "src": "/proposta-landing-page/?", "dest": "/proposta-landing-page.html" },
     { "src": "/politica-de-privacidade/?", "dest": "/politica-de-privacidade.html" },
+    { "src": "/crm/(privacidade|termos|exclusao-de-dados|conectar)/?", "dest": "/crm/$1.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

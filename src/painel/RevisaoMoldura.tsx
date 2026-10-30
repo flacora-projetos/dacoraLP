@@ -62,6 +62,14 @@ export interface RelatorioDaRevisao {
     destinoReferencia: string;
   } | null;
   revisaoEditorial?: ResumoEditorialRA4;
+  /**
+   * Depois da aprovação: as análises e observações que o cliente lê, das mesmas
+   * views da rota pública. `null` enquanto o relatório não foi aprovado.
+   */
+  documentoAprovado?:
+    | { disponivel: true; analisesPublicadas: Array<{ secao: string; texto: string }>; observacoesPublicas: Array<{ secao: string; texto: string }> }
+    | { disponivel: false }
+    | null;
   diffDaRecusa?: { disponivel: boolean; secoes?: Array<{ secao: string; titulo: string; estado: 'alterada' | 'inalterada' | 'nao_comparavel' }> } | null;
 }
 

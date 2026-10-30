@@ -415,6 +415,7 @@ function DataHubInicio() {
       <nav className="dch-nav" aria-label="Seções do painel">
         <Link className="dch-nav__item" to="/painel-de-relatorios">Relatórios</Link>
         <span className="dch-nav__item dch-nav__item--ativo" aria-current="page">Data Hub</span>
+        <a className="dch-nav__item" href="https://crm.dacora.com.br" target="_blank" rel="noreferrer">Dácora Fluxo ↗</a>
       </nav>
 
       <main className="dch-corpo">

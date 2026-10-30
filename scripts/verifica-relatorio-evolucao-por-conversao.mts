@@ -99,10 +99,11 @@ for (const apresentacao of ['grafico', 'tabela'] as const) {
  *
  * A prova é do CÓDIGO e não do render: montar o PDF aqui exigiria o runtime do
  * `@react-pdf`, e o que precisa ficar amarrado é que a função de evolução filtre
- * as colunas antes de desenhar, nas três passagens (cabeçalho, meses, total).
+ * as colunas antes de desenhar — o gráfico, a tabela e o total leem a mesma
+ * lista já filtrada.
  */
 const pdf = readFileSync('src/reports/pdf/RelatorioPdf.tsx', 'utf8');
-const evolucaoPdf = pdf.slice(pdf.indexOf('function EvolucaoPdf'), pdf.indexOf('function RankingPdf'));
+const evolucaoPdf = pdf.slice(pdf.indexOf('function pedacosDaEvolucao'), pdf.indexOf('function pedacosDosCriativos'));
 assert.ok(evolucaoPdf.length > 200, 'a fatia do PDF veio vazia — toda asserção abaixo passaria por vacuidade');
 assert.match(
   evolucaoPdf,

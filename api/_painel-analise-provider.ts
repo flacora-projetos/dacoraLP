@@ -1,7 +1,8 @@
-export type ProvedorAnalise = 'deepseek' | 'sonnet';
-export type ModoAnalise = 'automatico' | 'deepseek_flash' | 'deepseek_pro' | 'sonnet';
+export type ProvedorAnalise = 'deepseek' | 'sonnet' | 'haiku';
+export type ModoAnalise = 'automatico' | 'deepseek_flash' | 'deepseek_pro' | 'sonnet' | 'haiku';
 type ModeloDeepSeek = 'flash' | 'pro';
-type EtapaRoteamento = ModeloDeepSeek | 'sonnet';
+type ModeloAnthropic = 'sonnet' | 'haiku';
+type EtapaRoteamento = ModeloDeepSeek | ModeloAnthropic;
 
 type UsoModelo = {
   entrada?: number;
@@ -45,6 +46,21 @@ const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const SONNET_URL = 'https://api.anthropic.com/v1/messages';
 const DEEPSEEK_MAX_TOKENS_PADRAO = 16_384;
 const SONNET_MAX_TOKENS_PADRAO = 4_000;
+/**
+ * Haiku 5.5 — primeiro degrau desde 10/10/2026, por decisão do PO ("ja troca sem o
+ * teste, confio no Haiku 5.5"; registro em OpenClaw-Dacora/cerebro/decisoes/
+ * 2026-10-10-haiku-5-5-nos-agentes.md). Custa US$ 0,10 / 0,50 por milhão de tokens
+ * até 100 mil de entrada.
+ *
+ * ⚠️ Ele PENSA por padrão e o pensamento conta no teto de saída: o teto é largo e o
+ * `effort` vai baixo, pela mesma razão que a redação do DeepSeek roda sem thinking
+ * (latência dentro do prazo da função). O texto se lê pelo tipo do bloco, porque o
+ * primeiro bloco pode ser pensamento.
+ */
+const HAIKU_MODELO_PADRAO = 'claude-haiku-5-5';
+const HAIKU_MAX_TOKENS_PADRAO = 16_000;
+const HAIKU_EFFORT_PADRAO = 'low';
+const NIVEIS_EFFORT = new Set(['low', 'medium', 'high']);
 const TIMEOUT_MS_PADRAO = 50_000;
 /**
  * Etapas que a cadeia SABE executar. Separada da ordem padrão de propósito: sem
@@ -52,7 +68,7 @@ const TIMEOUT_MS_PADRAO = 50_000;
  * `MONTHLY_REPORT_ANALYSIS_PROVIDER_ORDER` seria tratada como nome inválido e a
  * ordem inteira cairia no padrão EM SILÊNCIO.
  */
-const ETAPAS_SUPORTADAS: EtapaRoteamento[] = ['flash', 'pro', 'sonnet'];
+const ETAPAS_SUPORTADAS: EtapaRoteamento[] = ['haiku', 'flash', 'pro', 'sonnet'];
 
 /**
  * ⚠️ **O `pro` SAIU DO PADRÃO EM 10/09/2026 porque deixou de ser um modelo
@@ -77,7 +93,12 @@ const ETAPAS_SUPORTADAS: EtapaRoteamento[] = ['flash', 'pro', 'sonnet'];
  * O `pro` continua SUPORTADO: volta pela ordem no ambiente, e o modo manual
  * `deepseek_pro` continua alcançando-o direto para comparação isolada.
  */
-const ORDEM_PADRAO: EtapaRoteamento[] = ['flash', 'sonnet'];
+/**
+ * Desde 10/10/2026 o Haiku 5.5 abre a cadeia e o DeepSeek Flash vira a reserva — de
+ * OUTRO fornecedor, que é o único jeito de o segundo degrau significar alguma coisa.
+ * O Sonnet continua suportado pela ordem no ambiente e pelo modo manual.
+ */
+const ORDEM_PADRAO: EtapaRoteamento[] = ['haiku', 'flash'];
 
 function inteiroDoEnv(nome: string, padrao: number, minimo: number, maximo: number): number {
   const valor = Number(process.env[nome]);
@@ -104,6 +125,7 @@ function ordemDoModo(modo: ModoAnalise): EtapaRoteamento[] {
   if (modo === 'deepseek_flash') return ['flash'];
   if (modo === 'deepseek_pro') return ['pro'];
   if (modo === 'sonnet') return ['sonnet'];
+  if (modo === 'haiku') return ['haiku'];
   return ordemConfigurada();
 }
 
@@ -121,6 +143,16 @@ function modeloSonnet(operacao: PedidoAnaliseAssistida<unknown>['operacao']): st
       ? process.env.ANTHROPIC_MODEL_RA3 ?? process.env.ANTHROPIC_MODEL_RA2 ?? ''
       : process.env.ANTHROPIC_MODEL_RA2 ?? '',
   ).trim();
+}
+
+function configuracaoHaiku() {
+  const modelo = String(process.env.MONTHLY_REPORT_ANALYSIS_HAIKU_MODEL ?? '').trim() || HAIKU_MODELO_PADRAO;
+  const effortBruto = String(process.env.MONTHLY_REPORT_ANALYSIS_HAIKU_EFFORT ?? '').trim().toLowerCase();
+  return {
+    modelo,
+    maxTokens: inteiroDoEnv('MONTHLY_REPORT_ANALYSIS_HAIKU_MAX_TOKENS', HAIKU_MAX_TOKENS_PADRAO, 4_096, 64_000),
+    effort: NIVEIS_EFFORT.has(effortBruto) ? effortBruto : HAIKU_EFFORT_PADRAO,
+  };
 }
 
 function usoDeepSeek(bruto: any): UsoModelo | undefined {
@@ -198,34 +230,46 @@ async function chamarDeepSeek(
   }
 }
 
-async function chamarSonnet(
+async function chamarAnthropic(
   pedido: PedidoAnaliseAssistida<unknown>,
+  etapa: ModeloAnthropic,
+  condensar: boolean,
   deps: Required<Pick<Dependencias, 'fetch' | 'timeoutMs'>>,
 ): Promise<RespostaProvider> {
   const apiKey = String(process.env.ANTHROPIC_API_KEY ?? '').trim();
-  const modelo = modeloSonnet(pedido.operacao);
-  if (!apiKey || !/^claude-sonnet-/i.test(modelo)) return { ok: false, provider: 'sonnet', modelo: modelo || 'nao_configurado', falha: { motivo: 'configuracao_indisponivel' } };
-  const maxTokens = inteiroDoEnv('MONTHLY_REPORT_ANALYSIS_SONNET_MAX_TOKENS', SONNET_MAX_TOKENS_PADRAO, 1_600, 16_384);
+  const haiku = etapa === 'haiku' ? configuracaoHaiku() : null;
+  const modelo = haiku ? haiku.modelo : modeloSonnet(pedido.operacao);
+  const familia = haiku ? /^claude-haiku-/i : /^claude-sonnet-/i;
+  const provider: ProvedorAnalise = etapa;
+  if (!apiKey || !familia.test(modelo)) return { ok: false, provider, modelo: modelo || 'nao_configurado', falha: { motivo: 'configuracao_indisponivel' } };
+  const maxTokens = haiku
+    ? haiku.maxTokens
+    : inteiroDoEnv('MONTHLY_REPORT_ANALYSIS_SONNET_MAX_TOKENS', SONNET_MAX_TOKENS_PADRAO, 1_600, 16_384);
+  const system = condensar
+    ? `${pedido.system}\n\nA tentativa anterior alcançou o limite de saída. Refaça desde o início de forma mais condensada, preserve todos os itens obrigatórios e encerre a resposta completa.`
+    : pedido.system;
+  const corpoPedido: Record<string, unknown> = { model: modelo, max_tokens: maxTokens, system, messages: [{ role: 'user', content: pedido.conteudo }] };
+  if (haiku) corpoPedido.output_config = { effort: haiku.effort };
   try {
     const resposta = await comTimeout(deps.fetch, SONNET_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: modelo, max_tokens: maxTokens, system: pedido.system, messages: [{ role: 'user', content: pedido.conteudo }] }),
+      body: JSON.stringify(corpoPedido),
     }, deps.timeoutMs);
-    if (!resposta.ok) return { ok: false, provider: 'sonnet', modelo, falha: { motivo: 'http', statusHttp: resposta.status } };
+    if (!resposta.ok) return { ok: false, provider, modelo, falha: { motivo: 'http', statusHttp: resposta.status } };
     const corpo = await resposta.json() as any;
     const finishReason = typeof corpo?.stop_reason === 'string' ? corpo.stop_reason : 'desconhecido';
     const uso = usoSonnet(corpo?.usage);
-    if (finishReason !== 'end_turn') return { ok: false, provider: 'sonnet', modelo, falha: { motivo: 'finish_reason', finishReason }, uso };
+    if (finishReason !== 'end_turn') return { ok: false, provider, modelo, falha: { motivo: 'finish_reason', finishReason }, uso };
     const texto = (Array.isArray(corpo?.content) ? corpo.content : [])
       .filter((bloco: any) => bloco?.type === 'text' && typeof bloco.text === 'string')
       .map((bloco: any) => bloco.text.trim())
       .filter(Boolean)
       .join('\n\n');
-    if (!texto) return { ok: false, provider: 'sonnet', modelo, falha: { motivo: 'resposta_vazia', finishReason }, uso };
-    return { ok: true, provider: 'sonnet', modelo, texto, finishReason, uso };
+    if (!texto) return { ok: false, provider, modelo, falha: { motivo: 'resposta_vazia', finishReason }, uso };
+    return { ok: true, provider, modelo, texto, finishReason, uso };
   } catch (erro) {
-    return { ok: false, provider: 'sonnet', modelo, falha: { motivo: erro instanceof Error && erro.name === 'AbortError' ? 'timeout' : 'rede_ou_resposta_invalida' } };
+    return { ok: false, provider, modelo, falha: { motivo: erro instanceof Error && erro.name === 'AbortError' ? 'timeout' : 'rede_ou_resposta_invalida' } };
   }
 }
 
@@ -283,14 +327,16 @@ export async function gerarAnaliseAssistida<T>(
   let motivoFallback: string | undefined;
 
   for (const etapa of ordem) {
-    const provider: ProvedorAnalise = etapa === 'sonnet' ? 'sonnet' : 'deepseek';
-    const maxTentativas = provider === 'deepseek' ? 2 : 1;
+    const provider: ProvedorAnalise = etapa === 'sonnet' || etapa === 'haiku' ? etapa : 'deepseek';
+    // Uma condensação para quem bate no teto: DeepSeek e Haiku (o pensamento do
+    // Haiku gasta o mesmo teto). O Sonnet segue com uma tentativa só.
+    const maxTentativas = provider === 'sonnet' ? 1 : 2;
     for (let indice = 0; indice < maxTentativas; indice += 1) {
       tentativa += 1;
       const inicio = agora();
       const resposta = provider === 'deepseek'
         ? await chamarDeepSeek(pedido, etapa as ModeloDeepSeek, indice === 1, deps)
-        : await chamarSonnet(pedido, deps);
+        : await chamarAnthropic(pedido, etapa as ModeloAnthropic, indice === 1, deps);
       const latenciaMs = Math.max(0, agora() - inicio);
       telemetria({ ...eventoDaTentativa(resposta, pedido, tentativa, latenciaMs, motivoFallback), modoSelecionado: modo });
 
@@ -317,7 +363,9 @@ export async function gerarAnaliseAssistida<T>(
 
       const falha = resposta.falha;
       motivoFallback = `${provider}:${resposta.modelo}:${falha.motivo}${falha.finishReason ? `:${falha.finishReason}` : ''}`;
-      const deveCondensar = provider === 'deepseek' && indice === 0 && falha.motivo === 'finish_reason' && falha.finishReason === 'length';
+      const bateuNoTeto = falha.motivo === 'finish_reason'
+        && ((provider === 'deepseek' && falha.finishReason === 'length') || (provider === 'haiku' && falha.finishReason === 'max_tokens'));
+      const deveCondensar = provider !== 'sonnet' && indice === 0 && bateuNoTeto;
       if (!deveCondensar) break;
     }
   }

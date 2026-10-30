@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "prebuild": "npm run lint && npm run verifica:publico && npm run verifica:fila && npm run verifica:envio && npm run verifica:evolucao-conversao && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento && npm run verifica:cliente-enxuto && npm run verifica:analise-cadeia && npm run verifica:analises-publicadas && npm run verifica:pdf-dedicado && npm run verifica:ra4 && npm run verifica:data-hub-diretriz",
+    "verifica:reunioes": "tsx scripts/verifica-reunioes.mts && tsx scripts/verifica-reunioes-abertura.mts",
+    "prebuild": "npm run verifica:reunioes && npm run verifica:contexto-sugerido && npm run lint && npm run verifica:publico && npm run verifica:fila && npm run verifica:envio && npm run verifica:evolucao-conversao && npm run verifica:karyne-conversao && npm run verifica:linguagem && npm run verifica:vazamento && npm run verifica:cliente-enxuto && npm run verifica:analise-cadeia && npm run verifica:analises-publicadas && npm run verifica:analises-aprovadas-painel && npm run verifica:pdf-dedicado && npm run verifica:ra4 && npm run verifica:data-hub-diretriz",
     "build": "vite build && npm run build:ssr && npm run prerender && npm run verifica:casca && npm run sitemap && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "build:ssr": "vite build --ssr src/entry-server.tsx --outDir dist-ssr --emptyOutDir",
     "prerender": "node scripts/prerender.mjs",
@@ -14,6 +15,7 @@
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
     "verifica:painel": "tsx scripts/verifica-painel-autorizacao.mts",
+    "verifica:contexto-sugerido": "tsx scripts/verifica-contexto-sugerido.mts",
     "verifica:data-hub-spike": "tsx scripts/verifica-data-hub-spike.mts",
     "verifica:data-hub-casca": "tsx scripts/verifica-painel-data-hub-casca.mts",
     "verifica:data-hub-diretriz": "tsx scripts/verifica-data-hub-diretriz.mts",
@@ -44,7 +46,8 @@
     "verifica:pdf-dedicado": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-relatorio-pdf-dedicado.mts",
     "pdf:prototipos": "tsx scripts/gerar-prototipos-pdf.mts",
     "verifica:data-hub-exportacao": "tsx scripts/verifica-data-hub-exportacao.mts",
-    "verifica:data-hub-seletor": "tsx scripts/verifica-data-hub-seletor.mts"
+    "verifica:data-hub-seletor": "tsx scripts/verifica-data-hub-seletor.mts",
+    "verifica:analises-aprovadas-painel": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-painel-analises-aprovadas.mts"
   },
   "dependencies": {
     "@expo-google-fonts/red-hat-display": "^0.4.1",
@@ -67,6 +70,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.13",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.18",

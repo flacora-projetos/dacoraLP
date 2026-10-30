@@ -27,7 +27,8 @@ const EMAIL = 'pessoa.autorizada@exemplo.com';
 const MOTIVO = 'A seção de Meta precisa ser revista antes de gerar uma nova versão.';
 
 /**
- * A recusa por CAUSAS ESTRUTURADAS (catálogo `2026-09-01.v1`, 01/09/2026).
+ * A recusa por CAUSAS ESTRUTURADAS (catálogo `2026-09-01.v1` em 01/09/2026;
+ * `2026-10-08.v2` desde 08/10/2026, que acrescenta quatro causas manuais).
  *
  * ⚠️ Este bloco existe porque o teste ficou para trás quando a recusa mudou.
  * Até 04/09 ele ainda mandava só `motivo`, o servidor respondia — corretamente
@@ -36,7 +37,7 @@ const MOTIVO = 'A seção de Meta precisa ser revista antes de gerar uma nova ve
  * recusa de verdade não teria acusado, porque ninguém investiga um teste que
  * "já falhava antes".
  */
-const CATALOGO = '2026-09-01.v1';
+const CATALOGO = '2026-10-08.v2';
 /**
  * O que o banco devolve como causas gravadas. Normalmente é o espelho do que
  * foi confirmado; os testes de divergência trocam isto para provar que o
@@ -645,3 +646,34 @@ async function chamarReabrir(corpo: unknown) {
 globalThis.fetch = fetchOriginal;
 
 console.log('verifica-painel-ra4: ok');
+
+/* ================================================================== */
+/* Catálogo v2 (08/10/2026)                                            */
+/* ================================================================== */
+
+import { lerPedido as lerPedidoV2 } from '../api/_painel-decisao-regras.ts';
+import { causaEhManual, CATALOGO_CAUSAS_RECUSA, OPCOES_CAUSA_RECUSA } from '../src/painel/causasRecusa.ts';
+
+{
+  const ID = '11111111-1111-4111-8111-111111111111';
+  const recusa = (catalogVersion: string, causeId: string) => lerPedidoV2({
+    id: ID, decisao: 'recusar', checksum: CHECKSUM, motivo: MOTIVO, catalogVersion,
+    causas: [{ causeId, parameters: { description: 'Retirar a quebra por região deste cliente.' } }],
+  });
+
+  /* As quatro novas são aceitas pela versão corrente e são manuais. */
+  for (const causeId of ['retirar_secao', 'faltou_informacao', 'trocar_ou_reorganizar', 'texto_ou_grafia'] as const) {
+    assert.equal(recusa(CATALOGO_CAUSAS_RECUSA, causeId).ok, true, `${causeId} precisa ser aceita na v2`);
+    assert.equal(causaEhManual(causeId), true, `${causeId} nunca pode ir para a correção automática`);
+  }
+  /* Aba antiga, aberta antes da publicação, ainda manda a v1: o servidor
+     recusa e a tela pede para atualizar — nunca grava v2 com cara de v1. */
+  assert.equal(recusa('2026-09-01.v1', 'outra_causa').ok, false, 'a tela só pode recusar pela versão corrente');
+  /* Manual é derivado da lista, não de uma segunda lista escrita à mão. */
+  assert.deepEqual(
+    OPCOES_CAUSA_RECUSA.filter((o) => o.manual).map((o) => o.id).sort(),
+    OPCOES_CAUSA_RECUSA.map((o) => o.id).filter((id) => causaEhManual(id)).sort(),
+  );
+}
+
+console.log('OK — catálogo v2 de causas: quatro motivos novos, todos manuais, e a v1 recusada pela tela');

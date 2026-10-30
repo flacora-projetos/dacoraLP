@@ -111,6 +111,23 @@ assert.match(janelaParcial.texto, /PARCIAL/);
 assert.match(janelaParcial.texto, /14 dias/);
 assert.equal(janelaParcial.emAndamento, true);
 
+// Mês da saída do cliente: período final, nunca "em andamento" nem "vai crescer".
+const janelaDaSaida = descreverJanelaDoRelatorio(
+  { periodo: { inicio: "2026-10-01", fim: "2026-10-15" }, emAndamento: false, saidaDaCarteiraEm: "2026-10-16" },
+  "2026-10",
+);
+assert.equal(janelaDaSaida.parcial, true);
+assert.equal(janelaDaSaida.saidaDaCarteiraEm, "2026-10-16");
+assert.match(janelaDaSaida.texto, /FINAL/);
+assert.ok(janelaDaSaida.texto.includes("01/10/2026 a 15/10/2026"));
+assert.ok(janelaDaSaida.texto.includes("16/10/2026"));
+assert.doesNotMatch(janelaDaSaida.texto, /ainda está em andamento|vão crescer até/);
+// Data de saída malformada não muda nada: cai no texto de parcial de sempre.
+assert.match(
+  descreverJanelaDoRelatorio({ periodo: { inicio: "2026-10-01", fim: "2026-10-15" }, saidaDaCarteiraEm: "16/10" }, "2026-10").texto,
+  /PARCIAL/,
+);
+
 // Mês fechado não pode ganhar aviso de parcial: alarme falso ensina a ignorar o campo.
 const janelaFechada = descreverJanelaDoRelatorio({ periodo: { inicio: '2026-07-01', fim: '2026-07-31' } }, '2026-07');
 assert.equal(janelaFechada.parcial, false);

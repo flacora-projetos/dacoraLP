@@ -1,5 +1,17 @@
 # Painel de aprovação de relatórios — onde a obra parou
 
+**Contexto do segundo cérebro (19/10/2026, GO do PO):** em produção pela PR #61.
+Cartão interno com decisões, mudanças e relatos do período; data/fonte/avisos,
+seleção, acréscimo ao contexto preservando o existente e organização por IA
+opcional. Modelo só ordena IDs; fatos vêm dos registros. Sem IA no carregamento,
+sem salvamento/publicação automática. `verifica:contexto-sugerido` no prebuild.
+Fonte canônica: `OpenClaw-Dacora/docs/HANDOFF_CONTEXTO_MENSAL_CEREBRO_2026-10-19.md`.
+Production `dpl_FPuTsa6DdEoWQFLm2cJu9oRz9pBa` READY; smoke autenticado do PO
+em 1440×900 e 390×844, incluindo retirada de itens e organização por IA de dois
+registros da VetSell, sem salvar contexto nem mudar aprovação/entrega.
+Primeiro Preview barrou um wait fixo do teste; foi trocado por espera de condição,
+mantendo a regressão no prebuild. Contextos humanos e envios permaneceram intactos.
+
 **Rota:** `/painel-de-relatorios`
 **Fases concluídas e publicadas:** P0 (fundação e login) · **P1 inteira —
 carregador, fila e correção do refoco de janela** (seções 9, 11 e 11.7) ·
@@ -19,6 +31,26 @@ depois da frente **RA — Revisão Analítica Assistida dos Relatórios Mensais*
 organizada em
 `OpenClaw-Dacora/docs/FRENTE_RA_REVISAO_ANALITICA_ASSISTIDA_2026-08-13.md`.
 A introdução é o primeiro e mais importante alvo da caneta mágica.
+
+**Mês em que o cliente sai da carteira (13/10/2026, pedido do PO).** O mensal
+de outubro da Nutrifol cobre 01 a 15/10 e é o último: o snapshot declara
+`identidade.saidaDaCarteiraEm`, e a janela que a IA da análise lê passa a dizer
+"relatório FINAL" em vez de "o mês ainda está em andamento e os números vão
+crescer". Data malformada cai no texto de parcial de sempre. Verificação em
+`scripts/verifica-painel-analise-introducao.mts`, provada por mutação. Gerador
+do lado do OpenClaw: `corteDaSaidaDaCarteira` em `src/lib/report-period.js`.
+
+**Revisão aprovada mostra as análises aprovadas (07/10/2026, pedido do PO).**
+Depois de aprovar, a bancada escondia os editores e não punha nada no lugar: a
+página ficava sem análise nenhuma e o Flávio achou que o trabalho tinha sumido
+(Dácora · setembro v2 — as nove análises estavam gravadas e o link do cliente
+já as mostrava). Agora `/api/painel-relatorio` devolve `documentoAprovado`,
+lido das MESMAS views da rota pública (`relatorio_analises_publicadas` e
+`relatorio_observacoes_publicas_liberadas`, amarradas a id + checksum), e a
+tela as desenha só para leitura quando `podeDecidir` é falso. Falha de leitura
+não vira página vazia: a tela diz que não conseguiu carregar. Regressão:
+`verifica:analises-aprovadas-painel` (no `prebuild`, provada por mutação na
+tela e na ligação do endpoint).
 
 > **Correção de 2026-08-16 — a limpeza C1/C2/C3 JÁ ESTÁ NA `main`, e este
 > parágrafo dizia o contrário.** Ele afirmava que ela "continua sem publicação"
@@ -2136,3 +2168,19 @@ link real já liberado de Sementes Santa Fé, clicou no mesmo botão e baixou
 `Dacora-Sementes-Santa-Fe-2026-08-v3.pdf`, sem erro de console ou de página.
 Foi leitura e download: nenhuma versão, aprovação, decisão ou entrega foi criada
 ou alterada.
+
+## 2026-10-07 — A capa do PDF soma as plataformas
+
+O Flávio notou no PDF de setembro da Karyne que "O mês em números" mostrava só o
+Meta. Causa: a capa pegava a primeira faixa de indicadores da montagem, e no
+relatório de leads o Meta vem primeiro. Ninguém tinha decidido isso.
+
+Correção só no portal (sem regerar relatório): `src/reports/pdf/capa.ts` soma o
+investimento de todas as plataformas e, no relatório de leads, os resultados de
+mesmo nome; mostra embaixo de cada soma quanto veio de cada plataforma. Venda
+não soma (cada plataforma reivindica a mesma compra), nome diferente não soma,
+plataforma sem campanha no mês não conta, e cliente de uma plataforma só fica
+com a capa de antes. Conferido sobre os 75 relatórios correntes de agosto e
+setembro: 19 têm capa nova (17 liberados); os demais não mudam. Os PDFs já
+gravados nas pastas do Drive foram regravados pela fábrica no mesmo dia.
+

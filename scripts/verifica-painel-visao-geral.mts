@@ -28,6 +28,7 @@ import {
   dataLimiteDaCompetencia,
   medirPrazo,
   montarVisaoGeral,
+  type OrdemDoMes,
 } from '../api/_painel-visao-geral-dados.ts';
 import { separarPorVersaoCorrente } from '../api/_painel-versao-corrente.ts';
 
@@ -51,6 +52,9 @@ function linha(parcial: {
   formato?: string | null;
   montagem?: any[];
   fontes?: any[];
+  /** Versão nascida de uma recusa — a marca que o banco grava. */
+  porRecusa?: boolean;
+  revogadoEm?: string | null;
 }): LinhaDoBanco {
   contador += 1;
   return {
@@ -65,6 +69,10 @@ function linha(parcial: {
     enviado_em: parcial.enviadoEm ?? null,
     enviado_para: null,
     substituido_por: null,
+    correcao_eh_nova_versao: parcial.porRecusa ?? false,
+    revogado_em: parcial.revogadoEm ?? null,
+    revogado_por: parcial.revogadoEm ? 'Fulano de Tal' : null,
+    revogado_motivo: parcial.revogadoEm ? 'Cliente pausado, não vai sair.' : null,
     conteudo: {
       identidade: {
         clienteNome: parcial.nome ?? parcial.slug,
@@ -258,26 +266,35 @@ const fatia = (fatias: { chave: string; quantidade: number }[], chave: string) =
 /* 6. Retrabalho                                                       */
 /* ================================================================== */
 
+/* O DEFEITO DE 08/10/2026: setembro aparecia com 34 "refeitos" quando só 6
+   tinham sido corrigidos. O dia 1 refaz todo relatório com os dados finais, e
+   isso NÃO é retrabalho. Só a versão que o banco marca como nascida de uma
+   recusa conta. Os números são diferentes de propósito (1 por recusa, 2 sem),
+   para a asserção não passar trocando um pelo outro. */
 {
   const v = visao([
-    linha({ slug: 'refeito', nome: 'Cliente Refeito', versao: 1 }),
-    linha({ slug: 'refeito', nome: 'Cliente Refeito', versao: 2 }),
-    linha({ slug: 'refeito', nome: 'Cliente Refeito', versao: 3 }),
+    linha({ slug: 'corrigido', nome: 'Cliente Corrigido', versao: 1 }),
+    linha({ slug: 'corrigido', nome: 'Cliente Corrigido', versao: 2 }),
+    linha({ slug: 'corrigido', nome: 'Cliente Corrigido', versao: 3, porRecusa: true }),
+    linha({ slug: 'fechamento', versao: 1 }),
+    linha({ slug: 'fechamento', versao: 2 }),
     linha({ slug: 'primeira', versao: 1 }),
   ]);
 
-  assert.equal(v.totalCorrentes, 2);
-  assert.equal(v.retrabalho.relatoriosRefeitos, 1, 'só um cliente passou da versão 1');
-  assert.equal(v.retrabalho.versoesAnteriores, 2, 'duas versões ficaram para trás');
-  assert.deepEqual(v.retrabalho.maisRefeito, { clienteNome: 'Cliente Refeito', versao: 3 });
+  assert.equal(v.totalCorrentes, 3);
+  assert.equal(v.retrabalho.relatoriosCorrigidos, 1, 'só um cliente teve versão nascida de recusa');
+  assert.equal(v.retrabalho.versoesPorRecusa, 1);
+  assert.equal(v.retrabalho.versoesSemRecusa, 2, 'fechamento do mês e regra nova contam à parte');
+  assert.deepEqual(v.retrabalho.maisCorrigido, { clienteNome: 'Cliente Corrigido', correcoes: 1 });
 }
 
-/* Mês sem retrabalho nenhum não inventa um campeão. */
+/* Mês com fechamento mas sem recusa nenhuma não inventa um campeão. */
 {
-  const v = visao([linha({ slug: 'a' }), linha({ slug: 'b' })]);
-  assert.equal(v.retrabalho.relatoriosRefeitos, 0);
-  assert.equal(v.retrabalho.versoesAnteriores, 0);
-  assert.equal(v.retrabalho.maisRefeito, null);
+  const v = visao([linha({ slug: 'a' }), linha({ slug: 'a', versao: 2 }), linha({ slug: 'b' })]);
+  assert.equal(v.retrabalho.relatoriosCorrigidos, 0);
+  assert.equal(v.retrabalho.versoesPorRecusa, 0);
+  assert.equal(v.retrabalho.versoesSemRecusa, 1);
+  assert.equal(v.retrabalho.maisCorrigido, null);
 }
 
 /* ================================================================== */
@@ -423,9 +440,13 @@ function dublarSupabase(usuario: unknown | null, linhasDoBanco: any[]) {
       });
     }
 
+    // Recusas, causas e envios têm tabela própria; devolver as linhas de
+    // relatório para elas faria o teste contar relatório como recusa.
     const corpo = url.includes('select=competencia&')
       ? linhasDoBanco.map((l) => ({ competencia: l.competencia }))
-      : linhasDoBanco;
+      : /relatorio_(ordens_correcao|ordem_causas|envios)\?/.test(url)
+        ? []
+        : linhasDoBanco;
     return new Response(JSON.stringify(corpo), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -475,7 +496,9 @@ process.env.PAINEL_EMAILS_AUTORIZADOS = 'contato@nandacora.com.br,flacora@gmail.
     resposta.corpo.itens.length,
     'a visão geral e a fila da MESMA resposta discordaram',
   );
-  assert.equal(resposta.corpo.visaoGeral.retrabalho.versoesAnteriores, 1);
+  assert.equal(resposta.corpo.visaoGeral.retrabalho.versoesSemRecusa, 1);
+  assert.equal(resposta.corpo.visaoGeral.correcoes?.recusas, 0, 'as recusas lidas precisam chegar à visão geral');
+  assert.deepEqual(resposta.corpo.visaoGeral.envios, { confirmados: 0, emAndamento: 0, incertos: 0, falharam: 0 });
 
   /* O gate do handoff: zero escrita no Supabase. */
   assert.ok(metodosUsados.length > 0, 'nenhuma chamada foi feita — o teste não provou nada');
@@ -664,6 +687,155 @@ const linhasDeExemplo = [
     'a interseção precisa cruzar as duas dimensões, não ignorar uma',
   );
   assert.equal(aplicarFiltros(itens, {}).length, itens.length, 'sem filtro nada pode ser escondido');
+}
+
+/* ================================================================== */
+/* 12. Arquivado: a decisão de que o documento não sai (08/10/2026)    */
+/* ================================================================== */
+
+/* O caso real: Dr. Danilo (o Google dele foi para o mensal da Clínica) ficava
+   "esperando revisão" e "não liberado" para sempre, e a Otimiza (pausada)
+   liberada sem envio. Arquivado sai do total, dos sinais e do prazo, e aparece
+   só na própria fatia de "onde a fila parou". */
+{
+  const linhas = [
+    linha({ slug: 'ativo', estado: 'liberado', aprovadoEm: '2026-08-04T10:00:00Z' }),
+    linha({
+      slug: 'arquivado',
+      revogadoEm: '2026-08-10T10:00:00Z',
+      fontes: [{ plataforma: 'meta', rotulo: 'Meta Ads', situacao: 'erro' }],
+    }),
+  ];
+  const v = visao(linhas);
+  assert.equal(v.totalCorrentes, 1, 'arquivado não pode contar como relatório do mês');
+  assert.equal(v.arquivados, 1);
+  assert.equal(fatia(v.fila.porEstado, 'arquivado'), 1, 'o arquivado precisa aparecer na própria fatia');
+  assert.equal(fatia(v.fila.porEstado, 'gerado'), null, 'arquivado não pode aparecer como esperando revisão');
+  assert.equal(v.qualidade.comSinal, 0, 'o sinal do arquivado não pede atenção de ninguém');
+  assert.equal(v.prazo.naoLiberados, 0, 'arquivado não pode ficar "não liberado" para sempre');
+  assert.equal(v.prazo.liberadosNoPrazo, 1);
+
+  /* A prova positiva: SEM o arquivamento, o mesmo documento conta. */
+  const semArquivo = visao([linhas[0], linha({ slug: 'arquivado' })]);
+  assert.equal(semArquivo.totalCorrentes, 2);
+  assert.equal(semArquivo.prazo.naoLiberados, 1);
+
+  /* E o filtro da fila bate com o cartão mesmo com o arquivado presente. */
+  const itens = montarFila(linhas);
+  assert.equal(itens.length, 2, 'a fila continua mostrando o arquivado, no fim');
+  assert.equal(itens[itens.length - 1].estado, 'arquivado');
+  assert.equal(aplicarFiltros(itens, { carteira: 'DACORA' }).length, fatia(v.cobertura.porCarteira, 'DACORA'));
+  assert.equal(aplicarFiltros(itens, { estado: 'arquivado' }).length, 1);
+}
+
+/* ================================================================== */
+/* 13. Correções e erros                                               */
+/* ================================================================== */
+
+{
+  const montagem = [{ id: 'evolucao-meta', bloco: 'B3', titulo: 'Evolução do ano no Meta' }];
+  const linhas = [
+    linha({ slug: 'x', versao: 1, montagem }),
+    linha({ slug: 'x', versao: 2, porRecusa: true, montagem }),
+    linha({ slug: 'y', versao: 1, montagem }),
+  ];
+  const ordem = (parcial: Partial<OrdemDoMes>): OrdemDoMes => ({
+    id: `o-${Math.random()}`,
+    cliente_slug: 'x',
+    relatorio_versao: 1,
+    estado: 'nova_versao_gerada',
+    catalog_version: '2026-10-08.v2',
+    solicitado_em: '2026-08-02T10:00:00Z',
+    fechada_manualmente_em: '2026-08-03T10:00:00Z',
+    falha_automatica_codigo: null,
+    causas: [],
+    ...parcial,
+  });
+  const ordens: OrdemDoMes[] = [
+    ordem({
+      catalog_version: '2026-09-01.v1',
+      causas: [{ cause_id: 'outra_causa', catalog_version: '2026-09-01.v1', parameters: { description: 'x', section_ids: ['bloco:evolucao-meta'] } }],
+      falha_automatica_codigo: 'report_correction_agent_nao_integrou',
+    }),
+    ordem({
+      cliente_slug: 'y',
+      causas: [
+        { cause_id: 'retirar_secao', catalog_version: '2026-10-08.v2', parameters: { description: 'x', section_ids: ['bloco:evolucao-meta'] } },
+        { cause_id: 'outra_causa', catalog_version: '2026-10-08.v2', parameters: { description: 'x' } },
+      ],
+      estado: 'aguardando_nova_versao',
+      fechada_manualmente_em: null,
+    }),
+    ordem({ cliente_slug: 'y', causas: [], estado: 'falhou', fechada_manualmente_em: null }),
+  ];
+  const v = montarVisaoGeral(linhas, '2026-07', HOJE_DEPOIS_DO_PRAZO, { ordens, envios: [], prazoDeOutrosMeses: [] });
+  const c = v.correcoes!;
+  assert.equal(c.recusas, 3);
+  assert.equal(c.relatoriosRecusados, 2);
+
+  const motivos = Object.fromEntries(c.porMotivo.map((f) => [f.rotulo, f.quantidade]));
+  /* "Outra coisa" da lista antiga e da nova NÃO se somam: a antiga engolia o
+     que hoje tem nome. */
+  assert.equal(motivos['Outra coisa (lista antiga, antes de 08/10)'], 1);
+  assert.equal(motivos['Outra coisa'], 1);
+  assert.equal(motivos['Retirar uma parte'], 1);
+  assert.equal(motivos['Sem motivo classificado (recusa antiga)'], 1, 'recusa sem causa conta, sem motivo inventado');
+
+  assert.deepEqual(
+    c.partesMaisCitadas.map((f) => [f.rotulo, f.quantidade]),
+    [['Evolução do ano no Meta', 2]],
+    'a parte vem com o título que estava na versão recusada',
+  );
+  assert.deepEqual(c.desfecho, { automatica: 0, porUmaPessoa: 1, emAberto: 1, parada: 1, automacaoTentouAntes: 1 });
+
+  /* Ausência não vira zero: recusas que não puderam ser lidas são `null`. */
+  assert.equal(montarVisaoGeral(linhas, '2026-07', HOJE_DEPOIS_DO_PRAZO, { ordens: null }).correcoes, null);
+}
+
+/* Tempo até aprovar: mediana de 10 h e 30 h é 20 h, medido na PRIMEIRA
+   aprovação contra a geração daquela mesma versão. */
+{
+  const v = visao([
+    linha({ slug: 'a', geradoEm: '2026-08-01T00:00:00Z', aprovadoEm: '2026-08-01T10:00:00Z' }),
+    linha({ slug: 'b', geradoEm: '2026-08-01T00:00:00Z', aprovadoEm: '2026-08-02T06:00:00Z' }),
+    linha({ slug: 'c' }),
+  ]);
+  assert.equal(v.horasAteAprovar, 20);
+  assert.equal(v.aprovadosMedidos, 2);
+  assert.equal(visao([linha({ slug: 'z' })]).horasAteAprovar, null, 'sem aprovação não existe tempo, nem zero');
+}
+
+/* Envios: "sem confirmação" é dito separado de "falhou". */
+{
+  const v = montarVisaoGeral([linha({ slug: 'a' })], '2026-07', HOJE_DEPOIS_DO_PRAZO, {
+    envios: [
+      { relatorio_id: '1', estado: 'confirmado' },
+      { relatorio_id: '2', estado: 'confirmado' },
+      { relatorio_id: '3', estado: 'incerto' },
+      { relatorio_id: '4', estado: 'falhou' },
+      { relatorio_id: '5', estado: 'pendente' },
+    ],
+  });
+  assert.deepEqual(v.envios, { confirmados: 2, emAndamento: 1, incertos: 1, falharam: 1 });
+}
+
+/* Prazo mês a mês: só meses ANTERIORES, no máximo três, arquivado fora. */
+{
+  const v = montarVisaoGeral([linha({ slug: 'a' })], '2026-07', HOJE_DEPOIS_DO_PRAZO, {
+    prazoDeOutrosMeses: [
+      { cliente_slug: 'a', competencia: '2026-03', versao: 1, aprovado_em: '2026-04-02T10:00:00Z', revogado_em: null },
+      { cliente_slug: 'a', competencia: '2026-04', versao: 1, aprovado_em: '2026-05-02T10:00:00Z', revogado_em: null },
+      { cliente_slug: 'a', competencia: '2026-05', versao: 1, aprovado_em: '2026-06-09T10:00:00Z', revogado_em: null },
+      { cliente_slug: 'b', competencia: '2026-06', versao: 1, aprovado_em: null, revogado_em: '2026-07-08T10:00:00Z' },
+      { cliente_slug: 'a', competencia: '2026-06', versao: 1, aprovado_em: '2026-07-04T10:00:00Z', revogado_em: null },
+      { cliente_slug: 'a', competencia: '2026-08', versao: 1, aprovado_em: null, revogado_em: null },
+    ],
+  });
+  const meses = v.prazoDeOutrosMeses!;
+  assert.deepEqual(meses.map((m) => m.competencia), ['2026-04', '2026-05', '2026-06']);
+  assert.equal(meses[1].prazo.liberadosComAtraso, 1);
+  assert.equal(meses[2].prazo.naoLiberados, 0, 'o arquivado de junho não pode virar "não liberado"');
+  assert.equal(meses[2].prazo.liberadosNoPrazo, 1);
 }
 
 console.log(

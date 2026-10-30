@@ -30,6 +30,7 @@
  */
 import { montarItem, type ItemDaFila, type LinhaDoBanco } from './_painel-fila-dados.js';
 import { separarPorVersaoCorrente } from './_painel-versao-corrente.js';
+import { rotuloDaCausaGravada } from '../src/painel/causasRecusa.js';
 
 /* ------------------------------------------------------------------ */
 /* O que sai para a tela                                               */
@@ -62,10 +63,94 @@ export interface PrazoDaCompetencia {
   naoLiberados: number;
 }
 
+/* ------------------------------------------------------------------ */
+/* O que chega do banco além da fila                                   */
+/* ------------------------------------------------------------------ */
+
+/** Uma recusa do mês, com as causas estruturadas que ela registrou. */
+export interface OrdemDoMes {
+  id: string;
+  cliente_slug: string;
+  relatorio_versao: number;
+  estado: string;
+  catalog_version: string | null;
+  solicitado_em: string;
+  fechada_manualmente_em: string | null;
+  falha_automatica_codigo: string | null;
+  causas: Array<{ cause_id: string; catalog_version: string | null; parameters: any }>;
+}
+
+/** Um pedido de envio do mês. */
+export interface EnvioDoMes {
+  relatorio_id: string;
+  estado: string;
+}
+
+/** O mínimo de cada versão de outro mês para medir o prazo dele. */
+export interface LinhaDoPrazo {
+  cliente_slug: string;
+  competencia: string;
+  versao: number;
+  aprovado_em: string | null;
+  revogado_em: string | null;
+}
+
+/** Leituras além da fila. `null` = não deu para ler; ausência não vira zero. */
+export interface Extras {
+  ordens?: OrdemDoMes[] | null;
+  envios?: EnvioDoMes[] | null;
+  prazoDeOutrosMeses?: LinhaDoPrazo[] | null;
+}
+
+/* ------------------------------------------------------------------ */
+/* O que sai para a tela                                               */
+/* ------------------------------------------------------------------ */
+
+export interface Correcoes {
+  /** Quantas vezes alguém disse "não" neste mês. */
+  recusas: number;
+  /** Quantos relatórios diferentes levaram pelo menos um "não". */
+  relatoriosRecusados: number;
+  /** Uma fatia por motivo marcado. Uma recusa com dois motivos conta nos dois. */
+  porMotivo: Fatia[];
+  /** As partes do relatório que mais apareceram nas recusas. */
+  partesMaisCitadas: Fatia[];
+  desfecho: {
+    /** Versão nova gerada pela correção automática, sem ninguém fechar à mão. */
+    automatica: number;
+    /** Fechada por uma pessoa, com a declaração do que foi corrigido. */
+    porUmaPessoa: number;
+    /** Esperando nova versão ou em processamento agora. */
+    emAberto: number;
+    /** A correção parou com erro e ninguém fechou ainda. */
+    parada: number;
+    /** Das fechadas por uma pessoa, quantas a automação tentou antes e não conseguiu. */
+    automacaoTentouAntes: number;
+  };
+}
+
+export interface EnviosDoMes {
+  confirmados: number;
+  emAndamento: number;
+  /** Pode ter chegado ou não — nunca se repete sozinho. */
+  incertos: number;
+  falharam: number;
+}
+
+export interface PrazoDeOutroMes {
+  competencia: string;
+  prazo: PrazoDaCompetencia;
+}
+
 export interface VisaoGeral {
   competencia: string;
-  /** Relatórios correntes: a maior versão de cada cliente nesta competência. */
+  /**
+   * Relatórios correntes que contam: a maior versão de cada cliente nesta
+   * competência, sem os arquivados.
+   */
   totalCorrentes: number;
+  /** Correntes arquivados — decisão de que não saem. Ficam fora de todo o resto. */
+  arquivados: number;
   cobertura: {
     porCarteira: Fatia[];
     porProduto: Fatia[];
@@ -81,14 +166,30 @@ export interface VisaoGeral {
     porTipo: Fatia[];
   };
   retrabalho: {
-    /** Correntes que já não são a versão 1. */
-    relatoriosRefeitos: number;
-    /** Versões superadas que continuam no banco para auditoria. */
-    versoesAnteriores: number;
-    /** O caso extremo do mês, para dar escala ao número acima. */
-    maisRefeito: { clienteNome: string; versao: number } | null;
+    /** Relatórios que tiveram pelo menos uma versão nova por causa de uma recusa. */
+    relatoriosCorrigidos: number;
+    /** Versões que nasceram para atender uma recusa. */
+    versoesPorRecusa: number;
+    /**
+     * Versões novas SEM recusa: o fechamento do mês (o dia 1 refaz todos com os
+     * dados finais) e as regerações por regra nova. Não é erro de ninguém, e
+     * por isso não se soma ao número acima — até 08/10/2026 somava, e setembro
+     * aparecia com 34 "refeitos" quando só 6 tinham sido corrigidos.
+     */
+    versoesSemRecusa: number;
+    /** O caso extremo do mês: quem mais precisou de correção. */
+    maisCorrigido: { clienteNome: string; correcoes: number } | null;
   };
   prazo: PrazoDaCompetencia;
+  /** `null` quando as recusas não puderam ser lidas. */
+  correcoes: Correcoes | null;
+  /** Mediana, em horas, entre a versão ficar pronta e ser aprovada. `null` sem aprovação. */
+  horasAteAprovar: number | null;
+  /** Quantos relatórios entraram na mediana acima. */
+  aprovadosMedidos: number;
+  envios: EnviosDoMes | null;
+  /** O cartão de prazo dos meses anteriores, do mais antigo ao mais novo. */
+  prazoDeOutrosMeses: PrazoDeOutroMes[] | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -125,6 +226,7 @@ const ROTULO_ESTADO: Record<string, string> = {
   liberado: 'Liberado',
   enviado: 'Enviado',
   substituido: 'Substituído',
+  arquivado: 'Arquivado (não vai sair)',
   desconhecido: 'Estado desconhecido',
 };
 
@@ -147,7 +249,7 @@ const ROTULO_SINAL: Record<string, string> = {
 const ORDEM_CARTEIRA = ['DACORA', 'ALLGROTECH', 'NAO_IDENTIFICADA'];
 const ORDEM_PRODUTO = ['mensal_externo_cliente', 'mensal_interno_allgrotech', 'NAO_IDENTIFICADO'];
 const ORDEM_FORMATO = ['small_cap', 'ecommerce', 'servicos_leads'];
-const ORDEM_ESTADO = ['gerado', 'recusado', 'liberado', 'enviado', 'substituido', 'desconhecido'];
+const ORDEM_ESTADO = ['gerado', 'recusado', 'liberado', 'enviado', 'substituido', 'arquivado', 'desconhecido'];
 const ORDEM_SINAL = [
   'falha_de_fonte',
   'classificacao_ausente',
@@ -279,18 +381,29 @@ export function medirPrazo(
 /* A visão geral                                                       */
 /* ------------------------------------------------------------------ */
 
+/** Uma linha de qualquer forma que tenha o que o prazo precisa. */
+type LinhaComLiberacao = Pick<LinhaDoPrazo, 'cliente_slug' | 'competencia' | 'aprovado_em'>;
+
 /**
  * Quando cada relatório foi liberado pela primeira vez — `null` se nunca foi.
  *
  * Percorre TODAS as versões, e não só a corrente: a liberação pode ter
  * acontecido numa versão que depois foi substituída, e aquela liberação
  * aconteceu de verdade.
+ *
+ * `fora` são os relatórios arquivados: a decisão de que não saem tira o
+ * documento da conta do prazo. Sem isso, um cliente pausado aparecia como
+ * "ainda não liberado" para sempre.
  */
-function primeiraLiberacaoPorRelatorio(linhas: LinhaDoBanco[]): Array<string | null> {
+function primeiraLiberacaoPorRelatorio(
+  linhas: LinhaComLiberacao[],
+  fora: Set<string> = new Set(),
+): Array<string | null> {
   const porChave = new Map<string, string | null>();
 
   for (const linha of linhas) {
     const chave = `${linha.cliente_slug} ${linha.competencia}`;
+    if (fora.has(chave)) continue;
     const anterior = porChave.get(chave);
     const atual = linha.aprovado_em;
 
@@ -305,13 +418,176 @@ function primeiraLiberacaoPorRelatorio(linhas: LinhaDoBanco[]): Array<string | n
   return [...porChave.values()];
 }
 
+type LinhaComArquivo = Pick<LinhaDoPrazo, 'cliente_slug' | 'competencia' | 'versao' | 'revogado_em'>;
+
+/** Os relatórios cuja versão CORRENTE está arquivada. */
+function chavesArquivadas(linhas: LinhaComArquivo[]): Set<string> {
+  const corrente = new Map<string, { versao: number; arquivada: boolean }>();
+  for (const linha of linhas) {
+    const chave = `${linha.cliente_slug} ${linha.competencia}`;
+    const atual = corrente.get(chave);
+    if (!atual || linha.versao > atual.versao) {
+      corrente.set(chave, { versao: linha.versao, arquivada: Boolean(linha.revogado_em) });
+    }
+  }
+  return new Set([...corrente].filter(([, valor]) => valor.arquivada).map(([chave]) => chave));
+}
+
+function mediana(valores: number[]): number | null {
+  if (valores.length === 0) return null;
+  const ordenados = [...valores].sort((a, b) => a - b);
+  const meio = Math.floor(ordenados.length / 2);
+  return ordenados.length % 2 === 1 ? ordenados[meio] : (ordenados[meio - 1] + ordenados[meio]) / 2;
+}
+
+/**
+ * Horas entre a versão ficar pronta e ser aprovada, na mediana.
+ *
+ * Mede a PRIMEIRA aprovação de cada relatório contra o momento em que aquela
+ * mesma versão foi gerada. Da aprovação ao envio leva minutos; é aqui que o
+ * prazo se perde, e é isto que o cartão do prazo sozinho não mostra.
+ */
+function horasAteAprovar(linhas: LinhaDoBanco[], fora: Set<string>): { horas: number | null; medidos: number } {
+  const primeira = new Map<string, LinhaDoBanco>();
+  for (const linha of linhas) {
+    if (!linha.aprovado_em || !linha.gerado_em) continue;
+    const chave = `${linha.cliente_slug} ${linha.competencia}`;
+    if (fora.has(chave)) continue;
+    const atual = primeira.get(chave);
+    if (!atual || String(linha.aprovado_em) < String(atual.aprovado_em)) primeira.set(chave, linha);
+  }
+  const horas = [...primeira.values()]
+    .map((linha) => (Date.parse(String(linha.aprovado_em)) - Date.parse(String(linha.gerado_em))) / 3_600_000)
+    .filter((valor) => Number.isFinite(valor) && valor >= 0);
+  const valor = mediana(horas);
+  return { horas: valor === null ? null : Math.round(valor * 10) / 10, medidos: horas.length };
+}
+
+/** As partes de um relatório citadas numa causa, no formato da recusa. */
+function partesDaCausa(parametros: any): string[] {
+  const partes: string[] = [];
+  if (typeof parametros?.section_id === 'string') partes.push(parametros.section_id);
+  for (const secao of Array.isArray(parametros?.section_ids) ? parametros.section_ids : []) {
+    if (typeof secao === 'string') partes.push(secao);
+  }
+  for (const bloco of Array.isArray(parametros?.block_ids) ? parametros.block_ids : []) {
+    if (typeof bloco === 'string') partes.push(`bloco:${bloco}`);
+  }
+  return [...new Set(partes)];
+}
+
+const ROTULO_DE_PARTE_FIXA: Record<string, string> = {
+  introducao: 'Introdução',
+  relatorio_inteiro: 'O relatório inteiro',
+};
+
+/**
+ * As recusas do mês, contadas pelo que foi REGISTRADO.
+ *
+ * O motivo é a causa estruturada que a pessoa marcou — nunca o texto livre. A
+ * parte do relatório é o título que estava na versão recusada, que é o que
+ * estava na tela de quem recusou; a chave é o id da parte, estável entre
+ * clientes.
+ */
+function montarCorrecoes(ordens: OrdemDoMes[], linhas: LinhaDoBanco[]): Correcoes {
+  const titulos = new Map<string, string>();
+  const tituloDa = (clienteSlug: string, versao: number, parte: string): string => {
+    if (ROTULO_DE_PARTE_FIXA[parte]) return ROTULO_DE_PARTE_FIXA[parte];
+    const id = parte.startsWith('bloco:') ? parte.slice('bloco:'.length) : parte;
+    const linha = linhas.find((l) => l.cliente_slug === clienteSlug && l.versao === versao);
+    const bloco = (linha?.conteudo?.montagem ?? []).find((b: any) => b?.id === id);
+    return typeof bloco?.titulo === 'string' && bloco.titulo.trim() ? bloco.titulo.trim() : id;
+  };
+
+  const motivos: string[] = [];
+  const rotulosMotivo: Record<string, string> = {};
+  const partes: string[] = [];
+
+  for (const ordem of ordens) {
+    const causas = ordem.causas ?? [];
+    for (const causa of causas) {
+      const catalogo = causa.catalog_version ?? ordem.catalog_version;
+      const chave = `${catalogo ?? 'sem_catalogo'}:${causa.cause_id}`;
+      motivos.push(chave);
+      rotulosMotivo[chave] = rotuloDaCausaGravada(causa.cause_id, catalogo);
+      for (const parte of partesDaCausa(causa.parameters)) {
+        partes.push(parte);
+        if (!titulos.has(parte)) titulos.set(parte, tituloDa(ordem.cliente_slug, ordem.relatorio_versao, parte));
+      }
+    }
+    if (causas.length === 0) {
+      // Recusa de antes das causas estruturadas: ela existe e conta, mas não
+      // tem motivo classificado — e não é o painel que vai inventar um.
+      motivos.push('sem_causa');
+      rotulosMotivo.sem_causa = 'Sem motivo classificado (recusa antiga)';
+    }
+  }
+
+  const porQuantidade = (a: Fatia, b: Fatia) =>
+    b.quantidade - a.quantidade || a.rotulo.localeCompare(b.rotulo, 'pt-BR');
+
+  const fechadas = ordens.filter((o) => o.estado === 'nova_versao_gerada');
+  return {
+    recusas: ordens.length,
+    relatoriosRecusados: new Set(ordens.map((o) => o.cliente_slug)).size,
+    porMotivo: contar(motivos, [], rotulosMotivo).sort(porQuantidade),
+    partesMaisCitadas: contar(partes, [], Object.fromEntries(titulos)).sort(porQuantidade).slice(0, 6),
+    desfecho: {
+      automatica: fechadas.filter((o) => !o.fechada_manualmente_em).length,
+      porUmaPessoa: fechadas.filter((o) => o.fechada_manualmente_em).length,
+      emAberto: ordens.filter((o) => o.estado === 'aguardando_nova_versao' || o.estado === 'em_processamento').length,
+      parada: ordens.filter((o) => o.estado === 'falhou').length,
+      automacaoTentouAntes: fechadas.filter((o) => o.fechada_manualmente_em && o.falha_automatica_codigo).length,
+    },
+  };
+}
+
+function montarEnvios(envios: EnvioDoMes[]): EnviosDoMes {
+  return {
+    confirmados: envios.filter((e) => e.estado === 'confirmado').length,
+    emAndamento: envios.filter((e) => ['pendente', 'reservado', 'enviando'].includes(e.estado)).length,
+    incertos: envios.filter((e) => e.estado === 'incerto').length,
+    falharam: envios.filter((e) => e.estado === 'falhou').length,
+  };
+}
+
+/** Quantos meses anteriores entram no comparativo do prazo. */
+export const MESES_NO_COMPARATIVO_DO_PRAZO = 3;
+
+function montarPrazoDeOutrosMeses(linhas: LinhaDoPrazo[], competencia: string, hojeISO: string): PrazoDeOutroMes[] {
+  const competencias = [...new Set(linhas.map((l) => l.competencia))]
+    .filter((c) => c < competencia)
+    .sort()
+    .slice(-MESES_NO_COMPARATIVO_DO_PRAZO);
+  return competencias.map((mes) => {
+    const doMes = linhas.filter((l) => l.competencia === mes);
+    return {
+      competencia: mes,
+      prazo: medirPrazo(primeiraLiberacaoPorRelatorio(doMes, chavesArquivadas(doMes)), mes, hojeISO),
+    };
+  });
+}
+
 export function montarVisaoGeral(
   linhas: LinhaDoBanco[],
   competencia: string,
   hojeISO: string,
+  extras: Extras = {},
 ): VisaoGeral {
-  const { correntes, anteriores } = separarPorVersaoCorrente(linhas);
-  const itens: ItemDaFila[] = correntes.map(montarItem);
+  const { correntes } = separarPorVersaoCorrente(linhas);
+  const todosOsItens: ItemDaFila[] = correntes.map(montarItem);
+  /* Arquivado sai de tudo — cobertura, sinais, prazo — e aparece só na própria
+     fatia de "onde a fila parou". Contá-lo como "esperando" ou "com sinal" é
+     cobrar trabalho de um documento que foi decidido que não sai. */
+  const itens = todosOsItens.filter((item) => item.estado !== 'arquivado');
+  const fora = chavesArquivadas(
+    linhas.map((l) => ({
+      cliente_slug: l.cliente_slug,
+      competencia: l.competencia,
+      versao: l.versao,
+      revogado_em: l.revogado_em ?? null,
+    })),
+  );
 
   /* Quantos relatórios têm cada tipo de sinal. Um relatório com duas seções
      indisponíveis conta UMA vez em "seções indisponíveis": a pergunta é
@@ -322,14 +598,24 @@ export function montarVisaoGeral(
 
   const comSinal = itens.filter((item) => item.sinais.length > 0).length;
 
-  const maisRefeito = itens.reduce<ItemDaFila | null>(
-    (maior, item) => (!maior || item.versao > maior.versao ? item : maior),
-    null,
-  );
+  /* Retrabalho: a versão nascida de uma recusa é marcada pelo próprio banco
+     (`correcao_eh_nova_versao`). Versão nova sem essa marca é o fechamento do
+     mês ou regra nova, e não é contada como correção. */
+  const porRecusa = linhas.filter((linha) => linha.correcao_eh_nova_versao === true);
+  const correcoesPorCliente = new Map<string, number>();
+  for (const linha of porRecusa) {
+    correcoesPorCliente.set(linha.cliente_slug, (correcoesPorCliente.get(linha.cliente_slug) ?? 0) + 1);
+  }
+  const maisCorrigido = [...correcoesPorCliente].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  const nomeDoCliente = (slug: string) =>
+    todosOsItens.find((item) => item.clienteSlug === slug)?.clienteNome ?? slug;
+
+  const aprovacao = horasAteAprovar(linhas, fora);
 
   return {
     competencia,
     totalCorrentes: itens.length,
+    arquivados: todosOsItens.length - itens.length,
     cobertura: {
       porCarteira: contar(
         itens.map((item) => item.carteira),
@@ -349,7 +635,7 @@ export function montarVisaoGeral(
     },
     fila: {
       porEstado: contar(
-        itens.map((item) => item.estado),
+        todosOsItens.map((item) => item.estado),
         ORDEM_ESTADO,
         ROTULO_ESTADO,
       ),
@@ -360,13 +646,20 @@ export function montarVisaoGeral(
       porTipo: contar(tiposPorRelatorio, ORDEM_SINAL, ROTULO_SINAL),
     },
     retrabalho: {
-      relatoriosRefeitos: itens.filter((item) => item.versao > 1).length,
-      versoesAnteriores: anteriores.length,
-      maisRefeito:
-        maisRefeito && maisRefeito.versao > 1
-          ? { clienteNome: maisRefeito.clienteNome, versao: maisRefeito.versao }
-          : null,
+      relatoriosCorrigidos: correcoesPorCliente.size,
+      versoesPorRecusa: porRecusa.length,
+      versoesSemRecusa: linhas.filter((l) => l.versao > 1 && l.correcao_eh_nova_versao !== true).length,
+      maisCorrigido: maisCorrigido
+        ? { clienteNome: nomeDoCliente(maisCorrigido[0]), correcoes: maisCorrigido[1] }
+        : null,
     },
-    prazo: medirPrazo(primeiraLiberacaoPorRelatorio(linhas), competencia, hojeISO),
+    prazo: medirPrazo(primeiraLiberacaoPorRelatorio(linhas, fora), competencia, hojeISO),
+    correcoes: extras.ordens ? montarCorrecoes(extras.ordens, linhas) : null,
+    horasAteAprovar: aprovacao.horas,
+    aprovadosMedidos: aprovacao.medidos,
+    envios: extras.envios ? montarEnvios(extras.envios) : null,
+    prazoDeOutrosMeses: extras.prazoDeOutrosMeses
+      ? montarPrazoDeOutrosMeses(extras.prazoDeOutrosMeses, competencia, hojeISO)
+      : null,
   };
 }

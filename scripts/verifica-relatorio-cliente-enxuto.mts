@@ -9,8 +9,10 @@
  *  2. **Os dados das duas continuam no snapshot.** A decisão é sobre publicar,
  *     não sobre coletar; quem "resolver" isso apagando `leitura.destaques` ou
  *     `fontes` quebra auditoria e contexto analítico.
- *  3. **O botão "Exportar PDF" existe** — a capacidade sempre existiu (o PDF é
- *     a impressão desta página), mas só quem conhecia Ctrl+P a alcançava.
+ *  3. **O botão "Exportar PDF" existe no link do cliente** — e só lá. Desde
+ *     29/09/2026 ele baixa o PDF gerado no servidor; sem o botão injetado
+ *     (demonstração, revisão) não há botão nenhum, porque a impressão da
+ *     página deixou de ser caminho de PDF.
  *  4. **O botão não sai dentro do próprio PDF.**
  *
  * A numeração das seções é posicional, então tem de continuar sem buraco.
@@ -20,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import RelatorioMontado from '../src/reports/RelatorioMontado.tsx';
+import BotaoPdfRelatorio from '../src/reports/pdf/BotaoPdfRelatorio.tsx';
 import { SECOES_SUSPENSAS_PARA_O_CLIENTE } from '../src/reports/Esqueleto.tsx';
 import { karyneMontada202607 } from '../src/reports/fixtures/karyne-montada-2026-07.ts';
 
@@ -95,9 +98,18 @@ if (indices.length > 0) {
   );
 }
 
-/* ---- 5) o botão de PDF existe ---- */
-assert.match(html, /Exportar PDF/, 'o botão de exportar PDF precisa existir na página');
-assert.match(html, /dc-topo__imprimir/, 'e carregar a classe que a regra de impressão esconde');
+/* ---- 5) o botão de PDF existe no link do cliente, e só nele ---- */
+{
+  const comBotao = renderToStaticMarkup(createElement(RelatorioMontado, {
+    snapshot,
+    proposta: 'B',
+    competencias: [{ competencia: snapshot.identidade.competencia, rotulo: 'julho de 2026', publicada: true }],
+    acaoPdf: createElement(BotaoPdfRelatorio, { token: 'x'.repeat(40), snapshot }),
+  } as any));
+  assert.match(comBotao, /Exportar PDF/, 'o botão de exportar PDF precisa existir no link do cliente');
+  assert.match(comBotao, /dc-topo__imprimir/, 'e carregar a classe que a regra de impressão esconde');
+  assert.doesNotMatch(html, /Exportar PDF/, 'sem o botão do servidor não pode haver botão: a impressão da página não é mais caminho de PDF');
+}
 
 /* ---- 6) o botão não sai dentro do PDF ---- */
 {

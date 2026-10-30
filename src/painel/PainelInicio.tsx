@@ -33,6 +33,9 @@ export default function PainelInicio() {
             <span className="dcp-topo__email" title={email}>
               {email}
             </span>
+            <a className="dcp-botao dcp-botao--discreto" href="https://crm.dacora.com.br" target="_blank" rel="noreferrer">
+              Dácora Fluxo ↗
+            </a>
             <button type="button" className="dcp-botao dcp-botao--discreto" onClick={() => void sair()}>
               Sair
             </button>

@@ -73,6 +73,42 @@ async function diffDaRecusa(linha: LinhaDoRelatorio, config: { urlSupabase: stri
   } catch { return { disponivel: false as const }; }
 }
 
+/**
+ * O que o cliente lê, para o painel mostrar depois da aprovação (07/10/2026).
+ *
+ * Depois de aprovado, a tela some com os campos de edição — e, até aqui, não
+ * punha nada no lugar: quem aprovava via a página sem análise nenhuma e achava
+ * que tinha perdido o trabalho (caso real: Dácora, setembro v2). Lê as MESMAS
+ * duas views que a rota pública usa, com as mesmas travas de fechamento AV4,
+ * para a tela mostrar exatamente o que saiu para o cliente — nem mais (histórico
+ * interno), nem menos.
+ *
+ * Falha aqui não derruba a revisão: volta `disponivel: false` e a tela diz que
+ * não conseguiu carregar, em vez de mostrar a página vazia como se não houvesse
+ * análise.
+ */
+export async function lerDocumentoAprovado(
+  linha: { id: string; checksum: string; estado: string },
+  config: { urlSupabase: string; chaveDeServico: string },
+) {
+  if (linha.estado !== 'liberado' && linha.estado !== 'enviado') return null;
+  try {
+    const cabecalhos = { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` };
+    const filtro = `relatorio_id=eq.${encodeURIComponent(linha.id)}&relatorio_checksum=eq.${encodeURIComponent(linha.checksum)}&select=secao,texto`;
+    const [analises, observacoes] = await Promise.all([
+      fetch(`${config.urlSupabase}/rest/v1/relatorio_analises_publicadas?${filtro}`, { headers: cabecalhos }),
+      fetch(`${config.urlSupabase}/rest/v1/relatorio_observacoes_publicas_liberadas?${filtro}`, { headers: cabecalhos }),
+    ]);
+    if (!analises.ok || !observacoes.ok) return { disponivel: false as const };
+    const analisesPublicadas = await analises.json() as Array<{ secao: string; texto: string }>;
+    const observacoesPublicas = await observacoes.json() as Array<{ secao: string; texto: string }>;
+    const valido = (lista: unknown) => Array.isArray(lista)
+      && lista.every((item) => typeof item?.secao === 'string' && typeof item?.texto === 'string');
+    if (!valido(analisesPublicadas) || !valido(observacoesPublicas)) return { disponivel: false as const };
+    return { disponivel: true as const, analisesPublicadas, observacoesPublicas };
+  } catch { return { disponivel: false as const }; }
+}
+
 export function montarRelatorioParaRevisao(linha: LinhaDoRelatorio) {
   if (!linha.conteudo || typeof linha.conteudo !== 'object') return null;
   if (!linha.gerado_em || !linha.checksum) return null;
@@ -217,7 +253,12 @@ export default async function handler(req: Request, res: Response) {
       );
     }
 
-    const relatorio = { ...relatorioBase, revisaoEditorial, diffDaRecusa: await diffDaRecusa(linha, { urlSupabase, chaveDeServico }) };
+    const relatorio = {
+      ...relatorioBase,
+      revisaoEditorial,
+      diffDaRecusa: await diffDaRecusa(linha, { urlSupabase, chaveDeServico }),
+      documentoAprovado: await lerDocumentoAprovado(linha, { urlSupabase, chaveDeServico }),
+    };
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,
       { clienteSlug: linha.cliente_slug, competencia: linha.competencia },

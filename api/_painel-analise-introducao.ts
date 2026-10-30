@@ -4,7 +4,7 @@ import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provi
 export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v4_janela_declarada';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACOES = new Set(['gerar', 'aplicar', 'editar', 'desfazer']);
-const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
+const MODOS_ANALISE = new Set<ModoAnalise>(['automatico', 'haiku', 'deepseek_flash', 'deepseek_pro', 'sonnet']);
 const LIMIAR_RELEVANTE = 0.05;
 
 export type AcaoEditorial = 'gerar' | 'aplicar' | 'editar' | 'desfazer';
@@ -177,8 +177,13 @@ export interface JanelaDoRelatorio {
   inicio?: string;
   fim?: string;
   dias?: number;
-  /** Verdadeiro = o mês ainda não fechou e os números vão crescer. */
+  /** Verdadeiro = o período cobre só parte do mês. */
   parcial?: boolean;
+  /**
+   * Dia em que o cliente saiu da carteira, quando o documento é do mês da
+   * saída: o período para na véspera e é FINAL — não vai crescer.
+   */
+  saidaDaCarteiraEm?: string;
   emAndamento?: boolean;
   temDiaFechado?: boolean;
   /** A frase que o modelo lê. É ela que proíbe falar do mês como fechado. */
@@ -208,6 +213,30 @@ export function descreverJanelaDoRelatorio(identidade: any, competencia: string)
   const ultimoDia = ultimoDiaDaCompetencia(competencia);
   const parcial = declarados.emAndamento === true || (ultimoDia !== null && fim < ultimoDia);
   const intervalo = `${formatarDia(inicio)} a ${formatarDia(fim)}`;
+  const saida = diaValido(identidade?.saidaDaCarteiraEm);
+
+  /**
+   * Mês em que o cliente saiu da carteira (Nutrifol, 16/10/2026): o documento
+   * cobre até a véspera da saída e é o ÚLTIMO. Ler isso como "mês em andamento,
+   * os números vão crescer" seria afirmar um futuro que não existe.
+   */
+  if (saida && parcial) {
+    return {
+      declarada: true,
+      inicio,
+      fim,
+      dias,
+      parcial,
+      saidaDaCarteiraEm: saida,
+      ...declarados,
+      texto:
+        `ATENÇÃO: este é o relatório FINAL do cliente. Ele cobre ${intervalo}, ou seja ${dias} ${dias === 1 ? "dia" : "dias"} do mês, ` +
+        `porque o cliente saiu da carteira em ${formatarDia(saida)}; não haverá mais dados deste mês. ` +
+        "Todo número aqui é o acumulado desse período. Não escreva \"no mês\" como se fosse o mês inteiro, não diga que o mês " +
+        "está em andamento nem que os números vão crescer, e não projete resultado futuro. A comparação, quando existir, já é " +
+        "contra o mesmo intervalo de dias do mês anterior.",
+    };
+  }
 
   return {
     declarada: true,

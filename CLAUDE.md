@@ -1,7 +1,12 @@
 # Instruções para Claude Code — SITE DÁCORA LP
 
 Leia [`AGENTS.md`](AGENTS.md) por inteiro antes de qualquer ação; ele é a fonte
-de verdade compartilhada com Codex. Em trabalho no painel de relatórios, leia
+de verdade compartilhada com Codex.
+
+**PDF do relatório mensal: um gerador só, `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`) (desde
+29/09/2026).** O botão do link e o Drive baixam o mesmo arquivo; não gere PDF
+no navegador nem imprima a página. Marca (Dácora ou Allgrotech) sai da
+carteira, em `src/reports/marcas.ts`. Detalhe na seção própria do `AGENTS.md`. Em trabalho no painel de relatórios, leia
 também `docs/PAINEL_PROGRESSO.md` e o handoff da fábrica que ele aponta.
 
 **Em qualquer tarefa de `/data-hub`, leia `docs/DATA_HUB_DIRETRIZ_QUERY_FIRST.md` antes de editar.** O Query Engine V2 query-first/field-centric é o norte; schema-first/wide permanece só como compatibilidade do backend e não pode voltar como plano de expansão do Portal.
@@ -38,6 +43,12 @@ escopo novo e registre branch, `HEAD`, diff, testes, efeitos e próximo gate.
 Saída de executor sem acesso real ao repositório/testes é proposta a revalidar.
 
 ## Ferramentas de uso preferencial
+
+Reuniões: leia `docs/REUNIOES.md` e o registro `docs/HANDOFF_REUNIOES_ABERTURA_2026-10-29.md` antes de alterar a apresentação ou o escopo de acesso.
+
+Contexto do segundo cérebro nos mensais (19/10/2026): contrato no `AGENTS.md`
+e evidência no handoff canônico da fábrica. A sugestão é privada e não publica
+nem salva contexto sem ação editorial explícita.
 
 - **Context7:** consultar documentação oficial e atual, conferindo a versão
   efetiva em `package.json`/lockfile quando isso afetar a implementação.

@@ -66,7 +66,7 @@ export function RevisaoApresentada({
   aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
   aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
   aoAnalisarIntroducao?: (acao: AcaoDaIntroducao, sugestao?: SugestaoDaIntroducao, texto?: string) => Promise<SugestaoDaIntroducao | null>;
-  aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string }) => Promise<ResultadoAnalisesUI>;
+  aoAnalisarSecoes?: (acao: AcaoAnalisesUI, dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string; itensIds?: string[] }) => Promise<ResultadoAnalisesUI>;
   modoAnalise?: ModoAnaliseUI;
   aoMudarModoAnalise?: (modo: ModoAnaliseUI) => void;
 }) {
@@ -92,8 +92,21 @@ export function RevisaoApresentada({
     return carimbos.reduce((maisRecente, atual) =>
       Date.parse(atual) > Date.parse(maisRecente) ? atual : maisRecente);
   }, [relatorio]);
+  /* Aprovado, a página mostra o que o cliente lê — sem isso, as análises
+     pareciam ter sumido (07/10/2026). Enquanto há decisão, quem desenha a
+     análise são os editores abaixo, e o aprovado não entra para não duplicar. */
+  const aprovado = relatorio && !relatorio.podeDecidir && relatorio.documentoAprovado?.disponivel === true
+    ? relatorio.documentoAprovado
+    : null;
+  const avisoAprovadoIndisponivel = relatorio && !relatorio.podeDecidir && relatorio.documentoAprovado?.disponivel === false ? (
+    <p className="dcp-estado__apoio" role="status">
+      Não foi possível carregar as análises aprovadas agora. Elas continuam salvas — recarregue a página para vê-las.
+    </p>
+  ) : null;
   const documento = relatorio ? (
     <RelatorioMontado
+      analisesPublicadas={aprovado?.analisesPublicadas ?? []}
+      observacoesPublicas={aprovado?.observacoesPublicas ?? []}
       snapshot={snapshotDaRevisao ?? relatorio.snapshot}
       proposta="B"
       competencias={[{
@@ -137,7 +150,7 @@ export function RevisaoApresentada({
     aoDescartarRetencao={aoDescartarRetencao}
     aoRegistrarObservacao={aoRegistrarObservacao}
     historicoAnalises={historicoAnalises}
-  ><>{seletorDeModelo}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
+  ><>{seletorDeModelo}{avisoAprovadoIndisponivel}{relatorio && aoAnalisarSecoes && relatorio.podeDecidir ? (
     <AnalisesSecaoProvider podeRevisar espacos={espacosAnaliticos} coletadoEm={coletadoEm} historico={historicoAnalises} aoAcionar={aoAnalisarSecoes}>
       {documento}
     </AnalisesSecaoProvider>
@@ -503,7 +516,7 @@ export function RevisaoComSessao({
 
   const analisarSecoes = useCallback(async (
     acao: AcaoAnalisesUI,
-    dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string },
+    dados?: { secao?: string; sugestao?: SugestaoSecao; texto?: string; contexto?: string; itensIds?: string[] },
   ): Promise<ResultadoAnalisesUI> => {
     const sessaoAtual = sessaoAtualRef.current;
     const relatorioAtual = relatorio;
@@ -522,6 +535,7 @@ export function RevisaoComSessao({
             sugestaoId: dados?.sugestao?.id,
             texto: dados?.texto,
             contexto: dados?.contexto,
+            itensIds: dados?.itensIds,
             ...((acao === 'gerar_todas' || acao === 'gerar_secao') ? { modo: modoAnalise } : {}),
           }),
         });
@@ -534,7 +548,7 @@ export function RevisaoComSessao({
        sentidos — inclusive `desfazer`, `reverter_dispensa` e as gerações, que
        podem devolver a seção para "sugerida" e derrubar a prontidão de volta.
        `salvar_contexto` não decide seção nenhuma e fica de fora. */
-    if (acao !== 'carregar' && acao !== 'salvar_contexto') await revalidarProntidao();
+    if (acao !== 'carregar' && acao !== 'salvar_contexto' && acao !== 'organizar_contexto') await revalidarProntidao();
     return corpo ?? {};
   }, [modoAnalise, relatorio, revalidarProntidao, usuarioId]);
 

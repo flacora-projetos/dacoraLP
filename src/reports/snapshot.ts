@@ -39,15 +39,14 @@ export interface Periodo {
 /**
  * De quem é o relatório na capa e no rodapé.
  *
- * Não é dado e não é bloco: é parâmetro de montagem, que chega pronto do
- * cadastro da fábrica — a página nunca decide marca pelo nome do cliente.
+ * Não é dado e não é bloco: é parâmetro de montagem. A página nunca decide
+ * marca pelo nome do cliente.
  *
- * **Hoje só existe um valor em uso: a Dácora.** Decisão do Flávio em
- * 2026-08-04: nenhum relatório leva identidade visual da Allgrotech, nem os
- * clientes daquela carteira, que antes saíam com a marca deles. Quem omite
- * `marca` cai na Dácora, e é o que todas as montagens fazem. O campo continua
- * existindo porque a fábrica tem relação de agência parceira no cadastro, mas
- * preenchê-lo de novo é decisão do PO, não conveniência de montagem.
+ * ⚠️ Desde 29/09/2026 a marca é resolvida pela CARTEIRA (`carteira` abaixo),
+ * em `src/reports/marcas.ts`: clientes da carteira ALLGROTECH saem com a
+ * identidade da Allgrotech, por decisão do PO que substituiu a de 04/08/2026
+ * ("só Dácora"). Este campo explícito continua no contrato e, quando vier
+ * preenchido, ganha da carteira — hoje nenhuma montagem o preenche.
  */
 export interface Marca {
   id: string;
@@ -69,8 +68,13 @@ export interface Identidade {
   periodo: Periodo;
   fusoHorario: string;
   tipoRelatorio: TipoRelatorio;
-  /** Ausente = Dácora. Presente quando o relatório sai com outra marca. */
+  /** Explícito ganha da carteira; ausente, a carteira decide (ver `marcas.ts`). */
   marca?: Marca;
+  /**
+   * Carteira do cliente no cadastro da fábrica (`DACORA`, `ALLGROTECH`).
+   * Opcional porque snapshots antigos não a gravavam; sem ela, a marca é Dácora.
+   */
+  carteira?: string;
   versaoSchema: string;
 }
 

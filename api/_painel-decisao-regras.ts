@@ -26,14 +26,15 @@
 import { isDeepStrictEqual } from 'node:util';
 
 export type Decisao = 'aprovar' | 'recusar';
-export const CATALOGO_CAUSAS_RECUSA = '2026-09-01.v1';
-export type IdCausaRecusa =
-  | 'metrica_obrigatoria_ausente'
-  | 'periodo_medicao_incorreto'
-  | 'resultado_fora_do_contrato'
-  | 'inconsistencia_entre_blocos'
-  | 'apresentacao_visual'
-  | 'outra_causa';
+// O catálogo mora em UM lugar só, que a tela também lê. A extensão `.js` é
+// obrigatória nos imports relativos de `api/`.
+import {
+  CATALOGO_CAUSAS_RECUSA,
+  IDS_CAUSA_RECUSA,
+  causaEhManual,
+  type IdCausaRecusa,
+} from '../src/painel/causasRecusa.js';
+export { CATALOGO_CAUSAS_RECUSA, type IdCausaRecusa };
 export interface CausaRecusaEstruturada {
   causeId: IdCausaRecusa;
   parameters: Record<string, unknown>;
@@ -101,10 +102,6 @@ function lerEscopo(valor: unknown): string[] | null {
   return secoes;
 }
 
-const IDS_CAUSA = new Set<IdCausaRecusa>([
-  'metrica_obrigatoria_ausente', 'periodo_medicao_incorreto', 'resultado_fora_do_contrato',
-  'inconsistencia_entre_blocos', 'apresentacao_visual', 'outra_causa',
-]);
 const PLATAFORMAS = new Set(['meta', 'google', 'instagram', 'ga4', 'crm', 'ecommerce', 'pinterest']);
 const IDENTIFICADOR = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/;
 
@@ -131,7 +128,7 @@ function lerCausas(valor: unknown, catalogVersion: string): CausaRecusaEstrutura
     if (!bruto || !chavesExatas(bruto, ['causeId', 'parameters'])) return null;
     const causeId = texto(bruto.causeId) as IdCausaRecusa;
     const p = objeto(bruto.parameters);
-    if (!IDS_CAUSA.has(causeId) || !p) return null;
+    if (!IDS_CAUSA_RECUSA.has(causeId) || !p) return null;
     let parameters: Record<string, unknown>;
     if (causeId === 'metrica_obrigatoria_ausente') {
       if (!chavesExatas(p, ['metric_id', 'platform', 'section_id'])) return null;
@@ -499,7 +496,7 @@ export function conferirLeituraDeVolta(
   if (linha.correcao_catalog_version !== pedido.catalogVersion) {
     return { ok: false, motivo: 'a versão do catálogo gravada não é a que foi confirmada' };
   }
-  const esperadoManual = (pedido.causas ?? []).some((causa) => causa.causeId === 'apresentacao_visual' || causa.causeId === 'outra_causa');
+  const esperadoManual = (pedido.causas ?? []).some((causa) => causaEhManual(causa.causeId));
   if (linha.correcao_routing_mode !== (esperadoManual ? 'manual' : 'automatic')) {
     return { ok: false, motivo: 'o roteamento da ordem não corresponde às causas confirmadas' };
   }
