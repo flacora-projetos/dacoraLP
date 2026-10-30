@@ -308,7 +308,7 @@ export function ConsultaQueryV2({
       {escolhidos.length > 0 ? (
         <>
           <p className="dcp-secao__apoio dch-query-v2__ordem-aviso">
-            A ordem abaixo e a ordem das colunas no resultado e na planilha.
+            A ordem abaixo é a ordem das colunas no resultado e na planilha.
           </p>
           <ol className="dch-query-v2__escolhidos" aria-label="Campos escolhidos, na ordem das colunas">
             {escolhidos.map((campo, indice) => (
