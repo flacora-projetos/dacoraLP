@@ -21,11 +21,17 @@ let atual = { ...pessoa };
 let trocarPessoa: (pessoa: IdentidadeReunioes) => void;
 let trocarToken: (token: string) => void;
 let consultas = 0;
+let pedidosTranscricao = 0;
 const internas = { secoes: [{ id: 'resumo', titulo: 'Resumo interno', texto: 'CONTEUDO_PRIVADO_TESTE' }], duvidas: [] };
 const compartilhado = { secoes: [], duvidas: [] };
 globalThis.fetch = (async (entrada, init) => {
   assert.equal(init?.method, 'GET', 'O smoke de abertura não pode gravar dados.');
   const url = new URL(String(entrada), 'https://exemplo.test');
+  if (url.searchParams.get('acao') === 'transcricao') {
+    assert.ok(atual.equipe, 'Convidado não pode pedir transcrição.');
+    pedidosTranscricao++;
+    return Response.json({ transcricao: { texto: 'Trecho sobre orçamento\nTrecho sobre prazo', fonte_url: 'https://docs.google.com/document/d/teste/edit', lida_em: '2026-10-30T12:00:00Z' } });
+  }
   assert.equal(url.searchParams.get('acao'), 'abrir');
   consultas++;
   const slug = url.searchParams.get('slug');
@@ -35,6 +41,7 @@ globalThis.fetch = (async (entrada, init) => {
       compartilhado, ...(atual.equipe ? { interno: internas } : {}),
     },
     notas: [],
+    ...(atual.equipe ? { tem_transcricao: slug === 'teste-a' } : {}),
   });
 }) as typeof fetch;
 
@@ -64,7 +71,15 @@ try {
   assert.ok(document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'), 'Equipe abre direto no resumo.');
   assert.equal(botao('Roteiro da equipe').getAttribute('aria-pressed'), 'true');
 
+  assert.equal(pedidosTranscricao, 0, 'A transcrição só é buscada quando a aba abre.');
+  await clicar('🔒 Transcrição');
+  assert.ok(document.body.textContent?.includes('Trecho sobre prazo'), 'A aba mostra o texto.');
+  assert.ok(document.body.textContent?.includes('não conferido com o áudio'));
+  assert.equal(pedidosTranscricao, 1);
+
   await clicar('Visão do cliente');
+  assert.ok(!document.body.textContent?.includes('🔒 Transcrição'), 'Na visão do cliente a aba some.');
+  assert.ok(!document.body.textContent?.includes('Trecho sobre prazo'));
   assert.ok(document.body.textContent?.includes('Pauta ainda não compartilhada'));
   assert.ok(!document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'));
   assert.ok(document.body.textContent?.includes('Consulte o Roteiro da equipe'));
@@ -77,6 +92,10 @@ try {
   await assentar();
   assert.equal(botao('Roteiro da equipe').getAttribute('aria-pressed'), 'true', 'Outro encontro volta ao padrão da equipe.');
   assert.ok(document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'));
+  await clicar('🔒 Transcrição');
+  assert.ok(document.body.textContent?.includes('Sem transcrição registrada'), 'Sem transcrição é explícito.');
+  assert.equal(pedidosTranscricao, 1, 'Reunião sem transcrição não busca o texto.');
+  await clicar('Conduzir reunião');
 
   atual = { ...pessoa, equipe: false };
   await act(async () => { trocarPessoa(atual); });
