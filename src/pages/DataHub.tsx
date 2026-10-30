@@ -6,7 +6,7 @@ import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import { CriadorDeExtracao, ListaDeExtracoes, type DestinoGoogleSheets, type EstadoExecucao, type ExtracaoLocal } from './data-hub-extracoes';
 import { escolherPlanilhaGoogle } from './data-hub-google-picker';
 import { validarAceiteExecucao } from './data-hub-execucao';
-import { ConsultaQueryV2, type ConsultaV2Payload } from './data-hub-query-v2';
+import { ConsultaQueryV2, erroDaConsulta, type ConsultaV2Payload } from './data-hub-query-v2';
 import { CATALOGO_PADRAO, normalizarCatalogo, RASCUNHO_INICIAL, campoCriativoLegado, nivelResolvidoDoRascunho, preservarGraoLegadoNosCampos, sanearCamposDoCatalogo, type Catalogo, type Granularidade, type Rascunho } from './data-hub-catalogo';
 import '../painel/painel.css';
 import './data-hub.css';
@@ -89,7 +89,9 @@ function DataHubInicio() {
       headers: { Authorization: `Bearer ${sessao.access_token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
     });
     const corpo = await resposta.json().catch(() => null);
-    if (!resposta.ok) throw new Error(String(corpo?.mensagem ?? corpo?.erro ?? 'Não foi possível consultar o Data Hub.'));
+    if (!resposta.ok) {
+      throw erroDaConsulta(corpo);
+    }
     return { status: resposta.status, corpo };
   }
 
