@@ -555,6 +555,9 @@ function destaquesDaCapa(snapshot) {
 
 // src/reports/pdf/RelatorioPdf.tsx
 import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
+var ehAnual = (id) => id.produto === "anual_externo_cliente";
+var periodoDoRelatorio = (id) => ehAnual(id) && id.rotuloPeriodo ? id.rotuloPeriodo : formatarCompetencia(id.competencia);
+var nomeDoProduto = (id) => ehAnual(id) ? "Relat\xF3rio anual de performance" : "Relat\xF3rio mensal de performance";
 var FOLHA = { largura: 841.89, altura: 595.28 };
 var MARGEM = { lado: 40, topo: 60, base: 46 };
 var LARGURA_UTIL = FOLHA.largura - MARGEM.lado * 2;
@@ -1266,7 +1269,7 @@ function CabecalhoERodape({ snapshot, ctx, logos }) {
         /* @__PURE__ */ jsx2(Text2, { style: ctx.s.cabecalhoCliente, children: t(snapshot.identidade.clienteNome) }),
         "   \xB7   ",
         "Relat\xF3rio de ",
-        t(formatarCompetencia(snapshot.identidade.competencia))
+        t(periodoDoRelatorio(snapshot.identidade))
       ] })
     ] }),
     /* @__PURE__ */ jsx2(View2, { style: ctx.s.cabecalhoFio, fixed: true }),
@@ -1275,7 +1278,9 @@ function CabecalhoERodape({ snapshot, ctx, logos }) {
         /* @__PURE__ */ jsx2(View2, { style: ctx.s.rodapeQuadro }),
         /* @__PURE__ */ jsxs2(Text2, { children: [
           t(ctx.marca.assinatura),
-          "  \xB7  Relat\xF3rio mensal de performance  \xB7  Vers\xE3o ",
+          "  \xB7  ",
+          nomeDoProduto(snapshot.identidade),
+          "  \xB7  Vers\xE3o ",
           snapshot.publicacao.versao
         ] })
       ] }),
@@ -1296,9 +1301,9 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }) {
       ] }),
       /* @__PURE__ */ jsxs2(View2, { children: [
         /* @__PURE__ */ jsx2(View2, { style: { width: 30, height: 3, backgroundColor: c.acento, marginBottom: 14 } }),
-        /* @__PURE__ */ jsx2(Text2, { style: { color: c.sobrePrimariaSuave, fontSize: 7.6, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", marginBottom: 10 }, children: "Relat\xF3rio mensal de performance" }),
+        /* @__PURE__ */ jsx2(Text2, { style: { color: c.sobrePrimariaSuave, fontSize: 7.6, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", marginBottom: 10 }, children: nomeDoProduto(id) }),
         /* @__PURE__ */ jsx2(Text2, { style: { color: c.sobrePrimaria, fontSize: id.clienteNome.length > 22 ? 26 : 32, fontWeight: 700, lineHeight: 1.05, letterSpacing: -0.6, marginBottom: 8 }, children: t(id.clienteNome) }),
-        /* @__PURE__ */ jsx2(Text2, { style: { color: c.acento, fontSize: 17, fontWeight: 500 }, children: t(maiuscula(formatarCompetencia(id.competencia))) })
+        /* @__PURE__ */ jsx2(Text2, { style: { color: c.acento, fontSize: 17, fontWeight: 500 }, children: t(maiuscula(periodoDoRelatorio(id))) })
       ] }),
       /* @__PURE__ */ jsxs2(View2, { style: { borderTopWidth: 0.8, borderTopColor: c.destaque, paddingTop: 12 }, children: [
         /* @__PURE__ */ jsxs2(Text2, { style: { color: c.sobrePrimariaSuave, fontSize: 7.6, lineHeight: 1.6 }, children: [
@@ -1315,7 +1320,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }) {
     ] }),
     /* @__PURE__ */ jsxs2(View2, { style: { flex: 1, paddingHorizontal: 40, paddingTop: 44, paddingBottom: 34, justifyContent: "space-between" }, children: [
       destaques.length > 0 && /* @__PURE__ */ jsxs2(View2, { children: [
-        /* @__PURE__ */ jsx2(Text2, { style: { color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }, children: "O m\xEAs em n\xFAmeros" }),
+        /* @__PURE__ */ jsx2(Text2, { style: { color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }, children: ehAnual(id) ? "O ano em n\xFAmeros" : "O m\xEAs em n\xFAmeros" }),
         /* @__PURE__ */ jsx2(View2, { style: { flexDirection: "row", marginHorizontal: -5 }, children: destaques.map((metrica) => /* @__PURE__ */ jsx2(View2, { style: { flex: 1, paddingHorizontal: 5 }, children: /* @__PURE__ */ jsxs2(View2, { style: { borderTopWidth: 2.4, borderTopColor: c.primaria, paddingTop: 8 }, children: [
           /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 6.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: c.cinza, marginBottom: 4 }, children: t(metrica.rotulo) }),
           /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 17, fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }, children: tv(metrica.valor, metrica.unidade, metrica.sufixo) }),
@@ -1360,12 +1365,12 @@ function RelatorioPdf({
   return /* @__PURE__ */ jsxs2(
     Document,
     {
-      title: `Relat\xF3rio ${formatarCompetencia(id.competencia)} - ${id.clienteNome}`,
+      title: `Relat\xF3rio ${periodoDoRelatorio(id)} - ${id.clienteNome}`,
       author: marca.assinatura,
       creator: marca.assinatura,
       producer: marca.assinatura,
-      subject: "Relat\xF3rio mensal de performance",
-      keywords: `${marca.nome}, relat\xF3rio mensal, ${id.clienteNome}, vers\xE3o ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`,
+      subject: nomeDoProduto(id),
+      keywords: `${marca.nome}, ${ehAnual(id) ? "relat\xF3rio anual" : "relat\xF3rio mensal"}, ${id.clienteNome}, vers\xE3o ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`,
       language: "pt-BR",
       children: [
         /* @__PURE__ */ jsx2(
@@ -1383,8 +1388,8 @@ function RelatorioPdf({
           /* @__PURE__ */ jsx2(CabecalhoERodape, { snapshot: publicado, ctx, logos }),
           resumo.length > 0 && /* @__PURE__ */ jsxs2(View2, { style: ctx.s.resumo, wrap: false, children: [
             /* @__PURE__ */ jsxs2(View2, { style: ctx.s.resumoRotuloCol, children: [
-              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoRotulo, children: "Resumo do m\xEAs" }),
-              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoTitulo, children: t(maiuscula(formatarCompetencia(id.competencia))) })
+              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoRotulo, children: ehAnual(id) ? "Resumo do ano" : "Resumo do m\xEAs" }),
+              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoTitulo, children: t(maiuscula(periodoDoRelatorio(id))) })
             ] }),
             /* @__PURE__ */ jsx2(View2, { style: ctx.s.resumoTextoCol, children: resumo.map((afirmacao, indice) => /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoTexto, children: t(afirmacao.texto) }, indice)) })
           ] }),

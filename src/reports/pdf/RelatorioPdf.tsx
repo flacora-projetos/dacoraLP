@@ -70,6 +70,18 @@ import type {
 import { GraficoBarras, GraficoLinha, SetaFunil, SetaVariacao, AneisDecorativos, type PontoBarra } from './graficosPdf.js';
 import { destaquesDaCapa, type DestaqueDaCapa } from './capa.js';
 
+/**
+ * O MESMO gerador desenha o relatório ANUAL (04/11/2026, pedido do PO): a
+ * fábrica monta o anual a partir dos mensais, no mesmo formato de snapshot, e
+ * só os rótulos de período mudam. Nada de segundo gerador.
+ */
+type IdentidadeDoRelatorio = SnapshotMontado['identidade'];
+const ehAnual = (id: IdentidadeDoRelatorio) => id.produto === 'anual_externo_cliente';
+const periodoDoRelatorio = (id: IdentidadeDoRelatorio) =>
+  ehAnual(id) && id.rotuloPeriodo ? id.rotuloPeriodo : formatarCompetencia(id.competencia);
+const nomeDoProduto = (id: IdentidadeDoRelatorio) =>
+  ehAnual(id) ? 'Relatório anual de performance' : 'Relatório mensal de performance';
+
 /* ------------------------------------------------------------------ */
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
@@ -1004,14 +1016,14 @@ function CabecalhoERodape({ snapshot, ctx, logos }: { snapshot: SnapshotMontado;
         <LogoNoCabecalho ctx={ctx} logos={logos} />
         <Text style={ctx.s.cabecalhoMeta}>
           <Text style={ctx.s.cabecalhoCliente}>{t(snapshot.identidade.clienteNome)}</Text>
-          {'   ·   '}Relatório de {t(formatarCompetencia(snapshot.identidade.competencia))}
+          {'   ·   '}Relatório de {t(periodoDoRelatorio(snapshot.identidade))}
         </Text>
       </View>
       <View style={ctx.s.cabecalhoFio} fixed />
       <View style={ctx.s.rodape} fixed>
         <View style={ctx.s.rodapeMarca}>
           <View style={ctx.s.rodapeQuadro} />
-          <Text>{t(ctx.marca.assinatura)}  ·  Relatório mensal de performance  ·  Versão {snapshot.publicacao.versao}</Text>
+          <Text>{t(ctx.marca.assinatura)}  ·  {nomeDoProduto(snapshot.identidade)}  ·  Versão {snapshot.publicacao.versao}</Text>
         </View>
         <Text style={ctx.s.rodapePagina} render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
       </View>
@@ -1053,13 +1065,13 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
         <View>
           <View style={{ width: 30, height: 3, backgroundColor: c.acento, marginBottom: 14 }} />
           <Text style={{ color: c.sobrePrimariaSuave, fontSize: 7.6, fontWeight: 700, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 10 }}>
-            Relatório mensal de performance
+            {nomeDoProduto(id)}
           </Text>
           <Text style={{ color: c.sobrePrimaria, fontSize: id.clienteNome.length > 22 ? 26 : 32, fontWeight: 700, lineHeight: 1.05, letterSpacing: -0.6, marginBottom: 8 }}>
             {t(id.clienteNome)}
           </Text>
           <Text style={{ color: c.acento, fontSize: 17, fontWeight: 500 }}>
-            {t(maiuscula(formatarCompetencia(id.competencia)))}
+            {t(maiuscula(periodoDoRelatorio(id)))}
           </Text>
         </View>
         <View style={{ borderTopWidth: 0.8, borderTopColor: c.destaque, paddingTop: 12 }}>
@@ -1078,7 +1090,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
         {destaques.length > 0 && (
           <View>
             <Text style={{ color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
-              O mês em números
+              {ehAnual(id) ? 'O ano em números' : 'O mês em números'}
             </Text>
             <View style={{ flexDirection: 'row', marginHorizontal: -5 }}>
               {destaques.map((metrica) => (
@@ -1165,12 +1177,12 @@ export default function RelatorioPdf({
 
   return (
     <Document
-      title={`Relatório ${formatarCompetencia(id.competencia)} - ${id.clienteNome}`}
+      title={`Relatório ${periodoDoRelatorio(id)} - ${id.clienteNome}`}
       author={marca.assinatura}
       creator={marca.assinatura}
       producer={marca.assinatura}
-      subject="Relatório mensal de performance"
-      keywords={`${marca.nome}, relatório mensal, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
+      subject={nomeDoProduto(id)}
+      keywords={`${marca.nome}, ${ehAnual(id) ? 'relatório anual' : 'relatório mensal'}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
       language="pt-BR"
     >
       <Capa
@@ -1188,8 +1200,8 @@ export default function RelatorioPdf({
         {resumo.length > 0 && (
           <View style={ctx.s.resumo} wrap={false}>
             <View style={ctx.s.resumoRotuloCol}>
-              <Text style={ctx.s.resumoRotulo}>Resumo do mês</Text>
-              <Text style={ctx.s.resumoTitulo}>{t(maiuscula(formatarCompetencia(id.competencia)))}</Text>
+              <Text style={ctx.s.resumoRotulo}>{ehAnual(id) ? 'Resumo do ano' : 'Resumo do mês'}</Text>
+              <Text style={ctx.s.resumoTitulo}>{t(maiuscula(periodoDoRelatorio(id)))}</Text>
             </View>
             <View style={ctx.s.resumoTextoCol}>
               {resumo.map((afirmacao, indice) => <Text key={indice} style={ctx.s.resumoTexto}>{t(afirmacao.texto)}</Text>)}

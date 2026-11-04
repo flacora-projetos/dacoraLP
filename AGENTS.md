@@ -175,6 +175,13 @@ rotina do Drive da fábrica (`OpenClaw-Dacora/src/lib/relatorio-pdf.js`)
   (a Vercel compila arquivo por arquivo).
 - Conferência visual: `npm run pdf:prototipos` gera os PDFs das fixtures em
   `output/pdf/` pelo mesmo caminho do servidor.
+- **O mesmo gerador desenha o relatório ANUAL (04/11/2026, pedido do PO).**
+  Snapshot com `identidade.produto === 'anual_externo_cliente'` troca só os
+  rótulos ("Relatório anual", "O ano em números", "Resumo do ano", período
+  por extenso em `identidade.rotuloPeriodo`); o mensal não muda (seção 8 de
+  `verifica:pdf-dedicado`). O anual não passa pelo banco nem pelo link:
+  `scripts/gerar-pdf-anual.mts` desenha a partir do pacote da fábrica. Roteiro:
+  `OpenClaw-Dacora/.claude/skills/relatorio-anual/SKILL.md`.
 - **A capa soma as plataformas (07/10/2026, pedido do PO).** "O mês em
   números" era a primeira faixa da montagem — no relatório de leads, só o Meta
   (Karyne, setembro: R$ 886,23 e 24 leads, com o Google fora). Hoje
