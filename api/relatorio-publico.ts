@@ -35,6 +35,7 @@
  */
 import type { Request, Response } from 'express';
 import { montarRelatorioParaRevisao } from './painel-relatorio.js';
+import { snapshotSemOrigemPrivada } from '../src/reports/produto.js';
 import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
 import { resolverAudiosPrivados } from './_audios-relatorio.js';
 
@@ -250,6 +251,9 @@ export async function lerRelatorioPublico(token: string): Promise<LeituraPublica
     const relatorio = montarRelatorioParaRevisao(linha as any);
     if (!relatorio) return INDISPONIVEL;
 
+    // A rota pública e o PDF leem apenas o documento sanitizado.
+    // A origem dos três mensais e a conferência ficam exclusivamente com a revisão.
+    relatorio.snapshot = snapshotSemOrigemPrivada(relatorio.snapshot);
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,
       { clienteSlug: linha.cliente_slug, competencia: linha.competencia },

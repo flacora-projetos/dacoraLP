@@ -12,6 +12,8 @@ import { resolverMiniaturasPrivadas } from './_miniaturas-relatorio.js';
 import { resolverAudiosPrivados } from './_audios-relatorio.js';
 import { conferirEstadoEditorial, resumoEditorialIndisponivel } from './_painel-estado-editorial.js';
 import { compararSecoesRecusadas } from './_painel-diff-secoes.js';
+import { lerConferenciaTrimestral } from './_painel-conferencia-trimestral.js';
+import { ehTrimestral } from '../src/reports/produto.js';
 
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -258,6 +260,12 @@ export default async function handler(req: Request, res: Response) {
       revisaoEditorial,
       diffDaRecusa: await diffDaRecusa(linha, { urlSupabase, chaveDeServico }),
       documentoAprovado: await lerDocumentoAprovado(linha, { urlSupabase, chaveDeServico }),
+      ...(ehTrimestral(relatorioBase.snapshot.identidade) ? {
+        conferenciaTrimestral: await lerConferenciaTrimestral(
+          { id: linha.id, checksum: linha.checksum, competencia: linha.competencia },
+          { urlSupabase, chaveDeServico },
+        ).catch(() => null),
+      } : {}),
     };
     relatorio.snapshot = await resolverMiniaturasPrivadas(
       relatorio.snapshot,

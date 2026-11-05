@@ -10,3 +10,5 @@ coverage/
 .vercel
 tmp/pdfs/
 output/pdf/*.pdf
+# Previews e temporários locais da regressão visual trimestral.
+output/trimestral-etapa4/

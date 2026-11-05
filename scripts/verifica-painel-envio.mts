@@ -351,7 +351,7 @@ try {
     assert.equal(JSON.stringify(res.corpo).includes(ENVIO_ID), false);
   }
 
-  /* Recusa de produto não ganha read-back nem sucesso falso. */
+  /* Antes da RPC, a view verifica se a identidade é trimestral. */
   {
     let chamadasDaView = 0;
     globalThis.fetch = async (entrada) => {
@@ -368,7 +368,27 @@ try {
     assert.equal(res.statusCode, 409);
     assert.equal(res.corpo.solicitado, false);
     assert.equal(res.corpo.erro, 'checksum_divergente');
-    assert.equal(chamadasDaView, 0);
+    assert.equal(chamadasDaView, 1, 'uma leitura de identidade antes da RPC, sem efeitos');
+  }
+
+  /* Trimestral é recusado NO SERVIDOR, tanto no GET quanto no POST, sem nenhuma RPC. */
+  for (const method of ['GET', 'POST']) {
+    let chamadasRpc = 0;
+    globalThis.fetch = async (entrada) => {
+      const url = String(entrada);
+      if (url.endsWith('/auth/v1/user')) return respostaHttp(usuario);
+      if (url.includes('/rpc/')) { chamadasRpc++; throw new Error('RPC proibida para trimestral'); }
+      return respostaHttp([linha({ cliente_slug: 'rei_teste__trimestral' } as any)]);
+    };
+    const res = resMock();
+    await handler({
+      method, headers: { authorization: 'Bearer sessao' },
+      query: method === 'GET' ? { id: ID } : {},
+      body: method === 'POST' ? { id: ID, checksum: CHECKSUM } : undefined,
+    } as any, res as any);
+    assert.equal(res.statusCode, 409);
+    assert.equal(res.corpo.erro, 'envio_trimestral_desligado');
+    assert.equal(chamadasRpc, 0, 'nenhuma RPC de envio');
   }
 
   /* Confirmação divergente falha fechado. */

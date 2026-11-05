@@ -9,6 +9,7 @@ import {
   lerPedidoAnaliseSecao,
 } from './_painel-analises-secao.js';
 import { espacosAnaliticosDoSnapshot } from '../src/reports/blocos/analise.js';
+import { ehTrimestral, SECOES_EDITORIAIS_TRIMESTRAIS } from '../src/reports/produto.js';
 import { lerDispensasVigentes } from './_painel-estado-editorial.js';
 import { registrarRevisaoViva, salvarContextoVivo } from './_painel-revisao-viva.js';
 import { lerContextoSugerido, organizarContexto } from './_painel-contexto-sugerido.js';
@@ -137,6 +138,11 @@ export default async function handler(req: Request, res: Response) {
       return res.status(200).json({ observacaoPublica: { secao: observacao.secao_registrada, texto: observacao.texto_registrado ?? null, ativa: observacao.ativa === true } });
     }
     const dispensavel = pedido.acao === 'dispensar' || pedido.acao === 'reverter_dispensa';
+    if (dispensavel && ehTrimestral(relatorio.conteudo?.identidade)
+      && SECOES_EDITORIAIS_TRIMESTRAIS.some(s => s.secao === pedido.secao)) {
+      return res.status(409).json({ erro: 'revisao_trimestral_obrigatoria',
+        mensagem: 'Aprendizados e recomendações exigem revisão humana; não podem ser dispensados.' });
+    }
     const espaco = pedido.secao ? espacos.find((item) => item.secao === pedido.secao) : null;
     /* A dispensa vale para toda seção obrigatória, e a introdução é obrigatória
        sem ser um bloco analítico — ela não aparece em `espacos`. */

@@ -54,6 +54,7 @@ import {
   textoValor,
 } from '../format.js';
 import { termosDoGlossario, termoDoGlossario } from '../glossario.js';
+import { rotuloDoPeriodo, nomeDoProduto, rotuloDoResumo, rotuloDosNumeros, ehTrimestral, SECOES_EDITORIAIS_TRIMESTRAIS, snapshotParaExibicao } from '../produto.js';
 import { marcaDoRelatorio, type CoresDaMarca, type MarcaResolvida } from '../marcas.js';
 import type { DirecaoFavoravel, Metrica, PlataformaId, Unidade, Valor } from '../snapshot';
 import type {
@@ -76,11 +77,6 @@ import { destaquesDaCapa, type DestaqueDaCapa } from './capa.js';
  * só os rótulos de período mudam. Nada de segundo gerador.
  */
 type IdentidadeDoRelatorio = SnapshotMontado['identidade'];
-const ehAnual = (id: IdentidadeDoRelatorio) => id.produto === 'anual_externo_cliente';
-const periodoDoRelatorio = (id: IdentidadeDoRelatorio) =>
-  ehAnual(id) && id.rotuloPeriodo ? id.rotuloPeriodo : formatarCompetencia(id.competencia);
-const nomeDoProduto = (id: IdentidadeDoRelatorio) =>
-  ehAnual(id) ? 'Relatório anual de performance' : 'Relatório mensal de performance';
 
 /* ------------------------------------------------------------------ */
 /* Página                                                              */
@@ -1016,7 +1012,7 @@ function CabecalhoERodape({ snapshot, ctx, logos }: { snapshot: SnapshotMontado;
         <LogoNoCabecalho ctx={ctx} logos={logos} />
         <Text style={ctx.s.cabecalhoMeta}>
           <Text style={ctx.s.cabecalhoCliente}>{t(snapshot.identidade.clienteNome)}</Text>
-          {'   ·   '}Relatório de {t(periodoDoRelatorio(snapshot.identidade))}
+          {'   ·   '}Relatório de {t(rotuloDoPeriodo(snapshot.identidade))}
         </Text>
       </View>
       <View style={ctx.s.cabecalhoFio} fixed />
@@ -1071,7 +1067,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
             {t(id.clienteNome)}
           </Text>
           <Text style={{ color: c.acento, fontSize: 17, fontWeight: 500 }}>
-            {t(maiuscula(periodoDoRelatorio(id)))}
+            {t(maiuscula(rotuloDoPeriodo(id)))}
           </Text>
         </View>
         <View style={{ borderTopWidth: 0.8, borderTopColor: c.destaque, paddingTop: 12 }}>
@@ -1090,7 +1086,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
         {destaques.length > 0 && (
           <View>
             <Text style={{ color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
-              {ehAnual(id) ? 'O ano em números' : 'O mês em números'}
+              {rotuloDosNumeros(id)}
             </Text>
             <View style={{ flexDirection: 'row', marginHorizontal: -5 }}>
               {destaques.map((metrica) => (
@@ -1167,7 +1163,7 @@ export default function RelatorioPdf({
   paginasDasSecoes,
   aoPaginarSecao,
 }: RelatorioPdfProps): ReactElement<DocumentProps> {
-  const publicado = aplicarIntroducaoAprovada(snapshot, introducaoDasAnalises(analisesPublicadas));
+  const publicado = aplicarIntroducaoAprovada(snapshotParaExibicao(snapshot), introducaoDasAnalises(analisesPublicadas));
   const marca = marcaDoRelatorio(publicado.identidade);
   const ctx: Contexto = { s: estilosSemCompartilhar(criarEstilos(marca.cores)), c: marca.cores, marca, imagens };
   const secoes = publicado.montagem.filter((config) => config.bloco !== 'B8' || Boolean(publicado.dados.comentarios?.[config.comentario]));
@@ -1177,12 +1173,12 @@ export default function RelatorioPdf({
 
   return (
     <Document
-      title={`Relatório ${periodoDoRelatorio(id)} - ${id.clienteNome}`}
+      title={`Relatório ${rotuloDoPeriodo(id)} - ${id.clienteNome}`}
       author={marca.assinatura}
       creator={marca.assinatura}
       producer={marca.assinatura}
       subject={nomeDoProduto(id)}
-      keywords={`${marca.nome}, ${ehAnual(id) ? 'relatório anual' : 'relatório mensal'}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
+      keywords={`${marca.nome}, ${nomeDoProduto(id)}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
       language="pt-BR"
     >
       <Capa
@@ -1200,8 +1196,8 @@ export default function RelatorioPdf({
         {resumo.length > 0 && (
           <View style={ctx.s.resumo} wrap={false}>
             <View style={ctx.s.resumoRotuloCol}>
-              <Text style={ctx.s.resumoRotulo}>{ehAnual(id) ? 'Resumo do ano' : 'Resumo do mês'}</Text>
-              <Text style={ctx.s.resumoTitulo}>{t(maiuscula(periodoDoRelatorio(id)))}</Text>
+              <Text style={ctx.s.resumoRotulo}>{rotuloDoResumo(id)}</Text>
+              <Text style={ctx.s.resumoTitulo}>{t(maiuscula(rotuloDoPeriodo(id)))}</Text>
             </View>
             <View style={ctx.s.resumoTextoCol}>
               {resumo.map((afirmacao, indice) => <Text key={indice} style={ctx.s.resumoTexto}>{t(afirmacao.texto)}</Text>)}
@@ -1240,6 +1236,17 @@ export default function RelatorioPdf({
             </View>
           );
         })}
+
+        {ehTrimestral(id) && SECOES_EDITORIAIS_TRIMESTRAIS.filter(s =>
+          analisesPublicadas.some(a => a.secao === s.secao)).map((secao, indice) => (
+          <View key={secao.secao} style={ctx.s.secao}>
+            <View style={ctx.s.secaoCabecalho} wrap={false}>
+              <Text style={ctx.s.secaoIndice}>{String(secoes.length + indice + 1).padStart(2, '0')}</Text>
+              <Text style={ctx.s.secaoTitulo}>{t(secao.titulo)}</Text>
+            </View>
+            <Analises secao={secao.secao} analises={analisesPublicadas} observacoes={[]} ctx={ctx} />
+          </View>
+        ))}
 
         <View style={ctx.s.fecho} wrap={false}>
           <View style={ctx.s.fechoCol}>

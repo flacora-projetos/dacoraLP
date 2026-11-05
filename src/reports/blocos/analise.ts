@@ -1,4 +1,5 @@
 import type { BlocoConfigurado, DadosDeBloco, SnapshotMontado } from './tipos';
+import { ehTrimestral, SECOES_EDITORIAIS_TRIMESTRAIS } from '../produto.js';
 
 export interface EspacoAnalitico {
   secao: `bloco:${string}`;
@@ -69,7 +70,23 @@ export function espacoAnaliticoDoBloco(config: BlocoConfigurado, dados: DadosDeB
 }
 
 export function espacosAnaliticosDoSnapshot(snapshot: SnapshotMontado): EspacoAnalitico[] {
-  return snapshot.montagem
+  const comuns = snapshot.montagem
     .map((config) => espacoAnaliticoDoBloco(config, snapshot.dados))
     .filter((espaco): espaco is EspacoAnalitico => espaco !== null);
+  if (!ehTrimestral(snapshot.identidade)) return comuns;
+  // Analítica trimestral é editorial, não adiciona números ao snapshot fechado.
+  // A seleção de fatos remove explicitamente os checksums/versões dos mensais.
+  const resumo = {
+    periodo: snapshot.identidade.periodo,
+    faixas: Object.values(snapshot.dados.faixas ?? {}).flatMap(faixa =>
+      (faixa.metricas ?? []).map(m => ({ id: m.id, rotulo: m.rotulo, valor: m.valor,
+        unidade: m.unidade, fontes: m.origem?.fontes }))),
+    evolucoes: Object.keys(snapshot.dados.evolucoesMensais ?? {}),
+    limites: snapshot.montagem.filter(b => b.indisponivel).map(b => ({ titulo: b.titulo,
+      motivo: b.indisponivel?.motivo })),
+  };
+  return [...comuns, ...SECOES_EDITORIAIS_TRIMESTRAIS.map(s => ({
+    secao: s.secao, blocoId: s.blocoId, titulo: s.titulo,
+    objetivo: s.objetivo, fonte: projetarFonte(resumo),
+  }))];
 }

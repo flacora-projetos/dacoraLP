@@ -20,6 +20,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { usarPainelAuth } from './AuthContext';
 import PortalDoDialogo from './PortalDoDialogo';
 import { formatarCompetencia, formatarNumero } from '../reports/format';
+import { rotuloDoPeriodo } from '../reports/produto';
 import VisaoGeral, {
   type CampoDeFiltro,
   type DadosDaVisaoGeral,
@@ -67,10 +68,11 @@ interface ItemDaFila {
   clienteSlug: string;
   clienteNome: string;
   carteira: 'DACORA' | 'ALLGROTECH' | 'NAO_IDENTIFICADA';
-  produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'NAO_IDENTIFICADO';
+  produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'trimestral_externo_cliente' | 'NAO_IDENTIFICADO';
   /** `small_cap`, `ecommerce`, `servicos_leads` — ou `null` se o snapshot não declara. */
   formato: string | null;
   competencia: string;
+  rotuloPeriodo?: string;
   versao: number;
   estado: EstadoNaTela;
   geradoEm: string | null;
@@ -447,6 +449,8 @@ function AcoesDoEstadoAprovado({
   acaoEmCurso?: string | null;
 }) {
   const emCurso = acaoEmCurso === item.id;
+  // O trimestral só é enviado pela Etapa 5; esconder não substitui a recusa do servidor.
+  if (item.produto === 'trimestral_externo_cliente') return null;
   if (!item.podeVoltarEdicao && !item.podeSolicitarEnvio && !item.envioIndisponibilidade) return null;
   return (
     <span className="dcp-estado-acoes" aria-label={`Ações do relatório aprovado de ${item.clienteNome}`}>
@@ -501,7 +505,9 @@ function TabelaDeRelatorios({
       <div className="dcp-fila__rolagem">
         <table className="dcp-tabela">
           <caption className="dcp-sr">
-            {titulo}, {formatarCompetencia(competencia)}, em ordem de atenção
+            {titulo}, {itens[0]?.produto === 'trimestral_externo_cliente'
+              ? rotuloDoPeriodo({ competencia, produto: 'trimestral_externo_cliente', rotuloPeriodo: itens[0].rotuloPeriodo })
+              : formatarCompetencia(competencia)}, em ordem de atenção
           </caption>
           <thead>
             <tr>
@@ -519,7 +525,7 @@ function TabelaDeRelatorios({
                   <Link
                     to={linkParaAbrirRelatorio(item, buscaAtual)}
                     className="dcp-tabela__abrir"
-                    aria-label={`Abrir o relatório de ${item.clienteNome}, ${formatarCompetencia(item.competencia)}`}
+                    aria-label={`Abrir o relatório de ${item.clienteNome}, ${rotuloDoPeriodo({ competencia: item.competencia, produto: item.produto, rotuloPeriodo: item.rotuloPeriodo })}`}
                   >
                     {item.clienteNome}
                   </Link>
@@ -916,6 +922,16 @@ function CorpoDaFila({
       chave: 'externos-allgrotech',
       titulo: 'Mensais externos · Carteira Allgrotech',
       itens: visiveis.filter((item) => item.produto === 'mensal_externo_cliente' && item.carteira === 'ALLGROTECH'),
+    },
+    {
+      chave: 'trimestrais-dacora',
+      titulo: 'Trimestrais · Carteira Dácora',
+      itens: visiveis.filter((item) => item.produto === 'trimestral_externo_cliente' && item.carteira === 'DACORA'),
+    },
+    {
+      chave: 'trimestrais-allgrotech',
+      titulo: 'Trimestrais · Carteira Allgrotech',
+      itens: visiveis.filter((item) => item.produto === 'trimestral_externo_cliente' && item.carteira === 'ALLGROTECH'),
     },
     {
       chave: 'internos-allgrotech',

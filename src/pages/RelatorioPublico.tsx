@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import RelatorioMontado from '../reports/RelatorioMontado';
 import BotaoPdfRelatorio from '../reports/pdf/BotaoPdfRelatorio';
-import { formatarCompetencia } from '../reports/format';
+import { rotuloDoPeriodo } from '../reports/produto';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
 
 interface RelatorioExterno {
@@ -22,7 +22,7 @@ export function RelatorioPublicoApresentado({ relatorio, token }: { relatorio: R
       proposta="B"
       competencias={[{
         competencia: relatorio.competencia,
-        rotulo: formatarCompetencia(relatorio.competencia),
+        rotulo: rotuloDoPeriodo(relatorio.snapshot.identidade),
         publicada: true,
       }]}
       analisesPublicadas={relatorio.analisesPublicadas ?? []}

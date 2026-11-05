@@ -153,7 +153,7 @@ export interface ItemDaFila {
   clienteSlug: string;
   clienteNome: string;
   carteira: 'DACORA' | 'ALLGROTECH' | 'NAO_IDENTIFICADA';
-  produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'NAO_IDENTIFICADO';
+  produto: 'mensal_externo_cliente' | 'mensal_interno_allgrotech' | 'trimestral_externo_cliente' | 'NAO_IDENTIFICADO';
   /**
    * O tipo do relatório como o snapshot declara (`small_cap`, `ecommerce`,
    * `servicos_leads`), ou `null` quando não declara.
@@ -166,6 +166,7 @@ export interface ItemDaFila {
    */
   formato: string | null;
   competencia: string;
+  rotuloPeriodo?: string;
   versao: number;
   estado: EstadoNaTela;
   geradoEm: string | null;
@@ -295,7 +296,7 @@ function sinaisDoRelatorio(conteudo: any): Sinal[] {
 
   if (
     !['DACORA', 'ALLGROTECH'].includes(identidade.carteira) ||
-    !['mensal_externo_cliente', 'mensal_interno_allgrotech'].includes(identidade.produto)
+    !['mensal_externo_cliente', 'mensal_interno_allgrotech', 'trimestral_externo_cliente'].includes(identidade.produto)
   ) {
     sinais.push({
       tipo: 'classificacao_ausente',
@@ -509,7 +510,7 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
     carteira: ['DACORA', 'ALLGROTECH'].includes(identidade.carteira)
       ? identidade.carteira
       : 'NAO_IDENTIFICADA',
-    produto: ['mensal_externo_cliente', 'mensal_interno_allgrotech'].includes(identidade.produto)
+    produto: ['mensal_externo_cliente', 'mensal_interno_allgrotech', 'trimestral_externo_cliente'].includes(identidade.produto)
       ? identidade.produto
       : 'NAO_IDENTIFICADO',
     formato:
@@ -517,6 +518,7 @@ export function montarItem(linha: LinhaDoBanco): ItemDaFila {
         ? identidade.tipoRelatorio
         : null,
     competencia: linha.competencia,
+    rotuloPeriodo: typeof identidade.rotuloPeriodo === 'string' ? identidade.rotuloPeriodo : undefined,
     versao: linha.versao,
     estado,
     geradoEm: linha.gerado_em,

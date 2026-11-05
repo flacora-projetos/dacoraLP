@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import RelatorioMontado from '../reports/RelatorioMontado';
-import { formatarCompetencia } from '../reports/format';
+import { rotuloDoPeriodo } from '../reports/produto';
 import { usarPainelAuth } from './AuthContext';
 import { RevisaoMoldura, type RelatorioDaRevisao } from './RevisaoMoldura';
 import type { PedidoDeDecisao, ResultadoDaDecisao } from './DecisaoDaRevisao';
@@ -111,7 +111,7 @@ export function RevisaoApresentada({
       proposta="B"
       competencias={[{
         competencia: relatorio.competencia,
-        rotulo: formatarCompetencia(relatorio.competencia),
+        rotulo: rotuloDoPeriodo(relatorio.snapshot.identidade),
         publicada: relatorio.estado === 'liberado' || relatorio.estado === 'enviado',
       }]}
       introducaoDaRevisao={aoAnalisarIntroducao && relatorio.podeDecidir ? <>
