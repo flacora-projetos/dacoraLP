@@ -63,8 +63,16 @@ export interface Identidade {
   clienteSlug: string;
   /** Nome exibido, como o cliente se reconhece. */
   clienteNome: string;
-  /** Competência no formato AAAA-MM. */
+  /** Competência no formato AAAA-MM (no relatório anual, só AAAA). */
   competencia: string;
+  /**
+   * Produto do snapshot, gravado pela fábrica: `mensal_externo_cliente` ou
+   * `anual_externo_cliente` (relatório anual montado a partir dos mensais,
+   * 04/11/2026). Ausente nos snapshots antigos, que são todos mensais.
+   */
+  produto?: string;
+  /** Só no anual: o período por extenso, ex. "janeiro a outubro de 2026". */
+  rotuloPeriodo?: string;
   periodo: Periodo;
   fusoHorario: string;
   tipoRelatorio: TipoRelatorio;

@@ -194,4 +194,35 @@ assert.match(
   assert.deepEqual(destaquesDaCapa(umaSo).map((d) => d.id), ['meta_investimento', 'meta_cpm', 'meta_cpc', 'meta_resultado'], 'uma plataforma só: a capa não muda');
 }
 
+/* ---- 8) o mesmo gerador desenha o relatório ANUAL (04/11/2026) ---- */
+{
+  // O pdfkit grava Title/Subject como objeto indireto ("/Subject 57 0 R"); segue
+  // a referência até a string, que vem em hexadecimal UTF-16 quando há acento.
+  const STRING = String.raw`(<[0-9A-Fa-f]+>|\((?:\\.|[^\\)])*\))`;
+  const metadado = (bruto: string, campo: string) => {
+    const direto = bruto.match(new RegExp(String.raw`/${campo}\s*` + STRING));
+    const referencia = bruto.match(new RegExp(String.raw`/${campo}\s+(\d+) 0 R`));
+    const objeto = referencia ? bruto.match(new RegExp(String.raw`\b${referencia[1]} 0 obj\s*` + STRING)) : null;
+    const valor = (direto ?? objeto)?.[1];
+    if (!valor) return null;
+    if (valor.startsWith('<')) {
+      const bytes = Buffer.from(valor.slice(1, -1), 'hex');
+      return bytes[0] === 0xfe && bytes[1] === 0xff ? Buffer.from(bytes.subarray(2)).swap16().toString('utf16le') : bytes.toString('latin1');
+    }
+    const literal = valor.slice(1, -1);
+    return literal.startsWith('\xfe\xff') ? Buffer.from(literal.slice(2), 'latin1').swap16().toString('utf16le') : literal;
+  };
+  const anual = {
+    ...karyneMontada202607,
+    identidade: { ...id, carteira: 'ALLGROTECH', produto: 'anual_externo_cliente', competencia: '2026', rotuloPeriodo: 'janeiro a outubro de 2026' },
+  };
+  const pdfAnual = (await gerarPdfDoRelatorio({ snapshot: anual as any, analisesPublicadas, observacoesPublicas, imagens: new Map() })).toString('latin1');
+  assert.equal(metadado(pdfAnual, 'Subject'), 'Relatório anual de performance', 'anual: o documento se declara anual');
+  assert.match(metadado(pdfAnual, 'Title') ?? '', /janeiro a outubro de 2026/, 'anual: o título leva o período por extenso, não "2026" cru');
+
+  const mensal = (await gerarPdfDoRelatorio({ snapshot: karyneMontada202607 as any, analisesPublicadas, observacoesPublicas, imagens: new Map() })).toString('latin1');
+  assert.equal(metadado(mensal, 'Subject'), 'Relatório mensal de performance', 'mensal: nada muda para quem não é anual');
+  assert.match(metadado(mensal, 'Title') ?? '', /julho de 2026/, 'mensal: o título continua sendo o mês');
+}
+
 console.log('verifica-relatorio-pdf-dedicado: ok');
