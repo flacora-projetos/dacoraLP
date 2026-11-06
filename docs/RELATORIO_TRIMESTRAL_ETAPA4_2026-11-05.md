@@ -1,6 +1,6 @@
 # Relatório trimestral — Etapa 4, portal (05/11/2026)
 
-Continuação local em 06/11/2026. O [teste de falha na recusa mensal](TESTE_RECUSA_MENSAL_TRIMESTRAL_2026-11-06.md) confirmou a dependência adicional de leitura e o bloqueio seguro antes da RPC. Recusa manual trimestral e bloqueio da automática passaram pelo endpoint real com dublês. Código operacional permanece na revisão auditada, aguardando GO para a correção local.
+Continuação local em 06/11/2026, com GO específico do PO. A [correção da recusa mensal](TESTE_RECUSA_MENSAL_TRIMESTRAL_2026-11-06.md) elimina a consulta adicional e põe a proteção trimestral na transação do banco. Endpoint e SQL reais passaram em memória, com rollback integral da recusa automática trimestral. A nova restrição, preparada na fábrica, precisa ser aplicada com GO antes de publicar o portal. Nada foi publicado ou aplicado remotamente.
 
 **Escopo:** desenvolvimento local na worktree `SITE DACORA LP/repo-worktrees/trimestral-etapas01`, branch `feat/trimestral-periodo-etapas01-20261105`. Não houve merge, push, deploy, gravação de produção, mudança de VPS, Drive ou rotina.
 

@@ -1,5 +1,46 @@
 # Teste local da recusa mensal e trimestral
 
+## Correção vigente, autorizada em 06/11/2026
+
+O PO respondeu **“Autorizar correção local”** ao pedido específico. O diagnóstico anterior está em `f83faa7`. A correção permanece na mesma branch/worktree local. O portal remove a consulta adicional e mantém a RPC transacional e o read-back. A restrição `recusa_trimestral_somente_manual`, preparada na candidata da fábrica em `db/migrations/20261106160000_trimestral_recusa_manual.sql`, exige ordem manual para a chave com sufixo exato `__trimestral`, inclusive se o roteamento fosse nulo.
+
+O vínculo composto já existente entre ordem e relatório impede forjar a chave. A RPC existente calcula o roteamento a partir das causas validadas, e qualquer causa manual torna a ordem inteira manual. O gatilho existente cria a ordem na mesma transação da decisão. A restrição desfaz a transação inteira quando a ordem seria automática. Nenhuma função, permissão, tabela ou privilégio novo foi criado. O portal traduz a violação para o mesmo erro legível HTTP 409.
+
+### Prova de integração
+
+O novo `scripts/verifica-recusa-trimestral-banco.mts` recebe explicitamente a pasta `db/migrations` da candidata da fábrica. Os 35 SQLs versionados são carregados em PGlite em memória. A RPC real roda como `service_role` com BYPASSRLS, conforme o contrato existente, sem `security definer`. Apenas autenticação e transporte HTTP são dublados. A URL de teste é conferida e nenhuma requisição externa é enviada.
+
+| Cenário | Resultado corrigido |
+|---|---|
+| Mensal automático normal, ou com HTTP 503/erro de rede preparado na consulta removida | 200, zero consultas extras, uma ordem, uma notificação e read-back válido |
+| Trimestral automático | 409, gravado false, envelope inteiro idêntico ao anterior, zero ordens/notificações |
+| Trimestral manual ou combinação de causas automática e manual | 200, uma ordem manual |
+| Alterar ordem trimestral para automatic ou null | Restrição impede |
+| Forjar chave mensal na ordem trimestral | Chave estrangeira composta recusa |
+| Chave terminando em __trimestral_extra | Não é confundida com trimestral |
+
+Mutação local da regra para permitir tudo fez o trimestral automático retornar 200 onde a prova exige 409. O teste reprovou, e o arquivo SQL foi restaurado byte a byte antes da rodada final.
+
+Comando executado na raiz da candidata do portal.
+
+```powershell
+npm run verifica:recusa-trimestral-banco -- 'C:/Users/Flávio Corá/.codex/worktrees/trimestral-atualizacao-local/OpenClaw-Dacora/db/migrations'
+```
+
+Passaram o teste SQL, `verifica:decisao`, `verifica:trimestral`, `lint` e o build integral, incluindo prebuild, prerenderização e empacotamento do servidor. PGlite já estava no manifesto/lockfile, sem dependência nova. O manifesto acrescenta apenas o comando de integração. Os verificadores com dublês foram atualizados para a tradução da restrição, mas a prova de segurança também roda no SQL real em memória.
+
+### Publicação futura e rollback
+
+**Aplicar e conferir a restrição no Dácora Reports antes de publicar este portal**, com GO operacional específico. Publicar a remoção da consulta sem a regra permitiria criar uma ordem trimestral automática por chamada direta. O SQL está na candidata da fábrica, por isso os dois PRs precisam ser revisados em conjunto. Aplicar esse SQL revisado é um passo separado antes da publicação do portal, mesmo antes de integrar o restante da fábrica.
+
+Depois da aplicação autorizada, conferir nome, expressão e validação da restrição. Só então publicar o portal e depois a fábrica com rotinas trimestrais desligadas. Rollback futuro começa pelo portal anterior, com a consulta protetora, preservando a restrição no banco. Não retirar essa proteção enquanto houver portal novo em execução.
+
+Nada foi aplicado remotamente. Sem push, PR, deploy, VPS, .env, relatório real, mensagem ou Drive. Prévias/builds próprios serão removidos ao encerrar. A worktree fica como destino da candidata não publicada, com suas dependências para continuação, até integração ou arquivamento autorizado.
+
+## Diagnóstico anterior, preservado como evidência de f83faa7
+
+O texto abaixo registra a etapa anterior à autorização de correção e não descreve o código corrigido.
+
 ## Escopo e revisão
 
 Etapa pequena autorizada pelo PO em 06/11/2026, após a atualização local da fábrica. Cópia gerenciada em `C:/Users/Flávio Corá/.codex/worktrees/trimestral-recusa-local/trimestral-validacao-20261106`, branch `codex/trimestral-recusa-falha-local-20261106`, base `b5f61c254bfbed8118aa9f413302d5e12765a786`. Originais e cópia de validação anteriores preservados.

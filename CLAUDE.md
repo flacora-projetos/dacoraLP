@@ -3,6 +3,8 @@
 Leia [`AGENTS.md`](AGENTS.md) por inteiro antes de qualquer ação; ele é a fonte
 de verdade compartilhada com Codex.
 
+Trimestral local de 06/11/2026. Leia a [correção da recusa e a ordem de publicação](docs/TESTE_RECUSA_MENSAL_TRIMESTRAL_2026-11-06.md). A regra SQL do banco precisa preceder o portal, sob GO operacional separado.
+
 **PDF do relatório mensal: um gerador só, `api/_relatorio-pdf.ts` (endereço `/api/relatorio-pdf`) (desde
 29/09/2026).** O botão do link e o Drive baixam o mesmo arquivo; não gere PDF
 no navegador nem imprima a página. Marca (Dácora ou Allgrotech) sai da

@@ -290,6 +290,10 @@ export function lerPedido(corpo: unknown): LeituraDoPedido {
  * painel quebrou — quando o painel acabou de fazer exatamente o trabalho dele.
  */
 const MOTIVOS_DO_BANCO: Record<string, { status: number; mensagem: string }> = {
+  recusa_trimestral_somente_manual: {
+    status: 409,
+    mensagem: 'A correção de um relatório trimestral é sempre manual. Escolha uma causa do grupo de correção manual.',
+  },
   relatorio_nao_encontrado: {
     status: 404,
     mensagem: 'Este relatório não está mais no banco. Volte para a fila e abra a versão atual.',

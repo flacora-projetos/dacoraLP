@@ -30,7 +30,7 @@ import { secoesEditoriaisObrigatorias } from '../src/painel/estadoEditorial.ts';
 import { validarConferenciaTrimestral, conferirAnalisesTrimestrais } from '../api/_painel-conferencia-trimestral.ts';
 import { ehEnvioTrimestralBloqueado } from '../api/painel-envio.ts';
 import { gerarPdfDoRelatorio } from '../src/reports/pdf/gerarPdf.ts';
-import decisaoHandler, { conferirProntidaoEditorialParaAprovacao, recusaTrimestralSemCausaManual } from '../api/painel-decisao.ts';
+import decisaoHandler, { conferirProntidaoEditorialParaAprovacao } from '../api/painel-decisao.ts';
 import { CATALOGO_CAUSAS_RECUSA } from '../src/painel/causasRecusa.ts';
 
 const snap = structuredClone(sintetico) as any;
@@ -229,22 +229,16 @@ try {
   assert.equal(semAnalises.erro,'aprendizados_recomendacoes_pendentes');
   assert.equal(chamadasRpc,0);
 
-  /* Recusa do trimestral é sempre manual; a do mensal não muda. */
-  const dono=(slug:string)=>{ globalThis.fetch=(async()=>new Response(JSON.stringify([{cliente_slug:slug}]),{status:200})) as typeof fetch; };
-  dono('cliente_demo__trimestral');
-  assert.equal(await recusaTrimestralSemCausaManual({id,causas:[{causeId:'metrica_obrigatoria_ausente'}]},cfg),true,'causa automática recusa');
-  assert.equal(await recusaTrimestralSemCausaManual({id,causas:[{causeId:'texto_ou_grafia'}]},cfg),false,'causa manual passa');
-  assert.equal(await recusaTrimestralSemCausaManual({id,causas:[{causeId:'metrica_obrigatoria_ausente'},{causeId:'texto_ou_grafia'}]},cfg),false,'uma manual torna a ordem manual');
-  dono('cliente_demo');
-  assert.equal(await recusaTrimestralSemCausaManual({id,causas:[{causeId:'metrica_obrigatoria_ausente'}]},cfg),false,'mensal segue igual');
-
-  /* O servidor recusa antes de qualquer gravação, não só a função isolada. */
+  /* O banco recusa a ordem automática na mesma transação da decisão. */
   process.env.SUPABASE_URL='https://teste.invalid'; process.env.SUPABASE_SERVICE_ROLE_KEY='fake';
   process.env.SUPABASE_ANON_KEY='publica-de-teste'; process.env.PAINEL_EMAILS_AUTORIZADOS='pessoa@teste.invalid';
   let rpcDaRecusa=0;
   globalThis.fetch=(async(input:any)=>{ const url=String(input);
     if (url.includes('/auth/v1/user')) return new Response(JSON.stringify({email:'pessoa@teste.invalid',email_confirmed_at:'2026-01-01T00:00:00Z',app_metadata:{provider:'google',providers:['google']}}),{status:200});
-    if (url.includes('/rpc/')) { rpcDaRecusa++; return new Response('[]',{status:200}); }
+    if (url.includes('/rpc/')) {
+      rpcDaRecusa++;
+      return Response.json({code:'23514',message:'new row violates check constraint "recusa_trimestral_somente_manual"'},{status:400});
+    }
     return new Response(JSON.stringify([{cliente_slug:'cliente_demo__trimestral'}]),{status:200}); }) as typeof fetch;
   const resposta:any={cabecalhos:{},statusCode:0,corpo:null,setHeader(){},status(c:number){this.statusCode=c;return this;},json(b:unknown){this.corpo=b;return this;}};
   await decisaoHandler({method:'POST',headers:{authorization:'Bearer sessao'},body:{id,decisao:'recusar',checksum,
@@ -252,7 +246,7 @@ try {
     causas:[{causeId:'metrica_obrigatoria_ausente',parameters:{section_id:'bloco:numeros-meta',platform:'meta',metric_id:'meta_cpm'}}]}} as any,resposta);
   assert.equal(resposta.statusCode,409,JSON.stringify(resposta.corpo));
   assert.equal(resposta.corpo.erro,'recusa_trimestral_somente_manual');
-  assert.equal(rpcDaRecusa,0,'nenhuma ordem nasce');
+  assert.equal(rpcDaRecusa,1,'a decisão é verificada pelo banco');
 
   /* A rota pública de verdade, com o documento real: nada privado sai. */
   process.env.SUPABASE_URL='https://teste.invalid'; process.env.SUPABASE_SERVICE_ROLE_KEY='fake';

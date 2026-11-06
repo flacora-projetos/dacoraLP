@@ -657,29 +657,30 @@ const linhaRecusada = linhaGravada('pessoa.autorizada@exemplo.com', {
   assert.equal('p_escopo_secoes' in rpc.corpo, false);
 }
 
-/* --- Diagnóstico da dependência extra da recusa ---------------------- */
+/* --- A recusa mensal usa somente decisão e read-back ---------------- */
 for (const falhaPreRecusa of ['http', 'rede'] as const) {
   const saida = await chamar({
     usuario: autorizada,
     corpo: CORPO_RECUSA,
-    cenario: { falhaPreRecusa },
+    cenario: { falhaPreRecusa, linhaLida: linhaRecusada },
   });
-  assert.equal(saida.status, 502);
-  assert.equal(saida.corpo.erro, 'decisao_indisponivel');
-  assert.equal(saida.corpo.gravado, false);
-  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 0,
-    'falha somente na consulta extra interrompe a recusa mensal antes da RPC disponível');
+  assert.equal(saida.status, 200);
+  assert.equal(saida.corpo.gravado, true);
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 1);
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rest/v1/relatorios?')).length, 0);
 }
 
 {
   const saida = await chamar({
     usuario: autorizada,
     corpo: CORPO_RECUSA,
-    cenario: { clienteSlug: 'cliente_exemplo__trimestral' },
+    cenario: {
+      erroDoBanco: 'new row violates check constraint "recusa_trimestral_somente_manual"',
+    },
   });
   assert.equal(saida.status, 409);
   assert.equal(saida.corpo.erro, 'recusa_trimestral_somente_manual');
-  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 0);
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 1);
 }
 
 {
