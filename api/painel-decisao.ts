@@ -39,7 +39,8 @@ import {
 } from './_painel-decisao-regras.js';
 import { conferirEstadoEditorial } from './_painel-estado-editorial.js';
 import { conferirAnalisesTrimestrais, lerConferenciaTrimestral } from './_painel-conferencia-trimestral.js';
-import { ehTrimestral } from '../src/reports/produto.js';
+import { ehTrimestral, SUFIXO_TRIMESTRAL } from '../src/reports/produto.js';
+import { causaEhManual } from '../src/painel/causasRecusa.js';
 
 /** O mínimo para montar o eco e registrar a auditoria. `token` fica de fora. */
 const COLUNAS_DA_LEITURA = [
@@ -116,8 +117,11 @@ export async function conferirProntidaoEditorialParaAprovacao(
     if (!conferencia) return { ok: false as const, status: 409,
       erro: 'conferencia_trimestral_pendente',
       mensagem: 'A conferência interna deste trimestre ainda não foi registrada ou está desatualizada.' };
-    const analises = await conferirAnalisesTrimestrais(
-      { id: linha.id, checksum: linha.checksum }, config);
+    const analises = await conferirAnalisesTrimestrais({
+      id: linha.id, checksum: linha.checksum, clienteSlug: linha.cliente_slug,
+      competencia: linha.competencia, versao: linha.versao,
+      checksumFactual: linha.checksum_factual_editorial,
+    }, config);
     if (!analises.ok) return { ok: false as const, status: 409,
       erro: 'aprendizados_recomendacoes_pendentes',
       mensagem: analises.motivo || 'Aprendizados e recomendações precisam ser aprovados.' };
@@ -155,6 +159,25 @@ export async function conferirProntidaoEditorialParaAprovacao(
     };
   }
   return { ok: true as const, resumo, checksumFactual: linha.checksum_factual_editorial };
+}
+
+/**
+ * Recusa de trimestral é sempre manual: o corretor automático regeraria um
+ * mensal e, por isso, falha a ordem. Uma causa manual torna a ordem inteira
+ * manual, então basta exigir uma; sem ela a recusa não nasce.
+ */
+export async function recusaTrimestralSemCausaManual(
+  pedido: { id: string; causas?: Array<{ causeId: Parameters<typeof causaEhManual>[0] }> },
+  config: { urlSupabase: string; chaveDeServico: string },
+) {
+  const resposta = await fetch(
+    `${config.urlSupabase}/rest/v1/relatorios?id=eq.${pedido.id}&select=cliente_slug&limit=1`,
+    { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } },
+  );
+  if (!resposta.ok) throw new Error(`leitura_pre_recusa_http_${resposta.status}`);
+  const [linha] = await resposta.json() as Array<{ cliente_slug?: string }>;
+  return String(linha?.cliente_slug ?? '').endsWith(SUFIXO_TRIMESTRAL)
+    && !(pedido.causas ?? []).some((causa) => causaEhManual(causa.causeId));
 }
 
 function corpoDoPedido(req: Request): unknown {
@@ -226,6 +249,15 @@ export default async function handler(req: Request, res: Response) {
         });
       }
       checksumFactualParaFechamento = prontidao.checksumFactual;
+    }
+
+    if (pedido.decisao === 'recusar'
+      && await recusaTrimestralSemCausaManual(pedido, { urlSupabase, chaveDeServico })) {
+      return res.status(409).json({
+        erro: 'recusa_trimestral_somente_manual',
+        mensagem: 'A correção de um relatório trimestral é sempre manual. Escolha uma causa do grupo de correção manual.',
+        gravado: false,
+      });
     }
 
     /* 1. Decisão final. Aprovar também fecha editorialmente, dentro da MESMA

@@ -114,7 +114,10 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
       .map(s => ({ id: s.blocoId, titulo: s.titulo,
         conteudo: <>{analiseAprovadaDa(s.secao)}{analiseDaSecao?.(s.secao)}</>,
       }));
-    return [...comuns, ...editoriais];
+    /* Fecham a leitura; o glossário segue por último, como no mensal. */
+    const glossario = comuns.findIndex(s => s.id === visual.montagem.find(b => b.bloco === 'B7')?.id);
+    return glossario < 0 ? [...comuns, ...editoriais]
+      : [...comuns.slice(0, glossario), ...editoriais, ...comuns.slice(glossario)];
   }, [analiseDaSecao, analisesPublicadas, visual, theme]);
 
   return (

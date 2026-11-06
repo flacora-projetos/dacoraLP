@@ -15,9 +15,9 @@ const candidatos = [
 ].filter(Boolean);
 const navegador = candidatos.find(x => existsSync(x));
 if (!navegador) throw new Error('Navegador headless local não encontrado.');
-for (const alvo of ['pagina','painel']) {
+for (const alvo of ['pagina','painel','revisao']) {
   const html = join(dir, alvo + '.html');
-  const css = readFileSync(alvo === 'pagina' ? 'src/reports/report.css' : 'src/painel/painel.css', 'utf8');
+  const css = ['src/reports/report.css', ...(alvo === 'pagina' ? [] : ['src/painel/painel.css'])].map(a => readFileSync(a, 'utf8')).join('\n');
   const texto = readFileSync(html,'utf8');
   const pronto = texto.replace('<body>', '<style>' + css + '</style><body>');
   const visual = join(dir, alvo + '-com-estilo.html');

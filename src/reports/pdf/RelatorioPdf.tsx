@@ -78,6 +78,25 @@ import { destaquesDaCapa, type DestaqueDaCapa } from './capa.js';
  */
 type IdentidadeDoRelatorio = SnapshotMontado['identidade'];
 
+/** Seção escrita pela revisão: entra na ordem e no índice, sem ser bloco do catálogo. */
+interface SecaoEditorial { editorial: true; id: string; titulo: string; secao: string }
+type SecaoDoPdf = SnapshotMontado['montagem'][number] | SecaoEditorial;
+const ehEditorial = (secao: SecaoDoPdf): secao is SecaoEditorial => 'editorial' in secao;
+
+export function comSecoesEditoriais(
+  secoes: SnapshotMontado['montagem'],
+  snapshot: SnapshotMontado,
+  analises: Array<{ secao: string }>,
+): SecaoDoPdf[] {
+  if (!ehTrimestral(snapshot.identidade)) return secoes;
+  const editoriais: SecaoEditorial[] = SECOES_EDITORIAIS_TRIMESTRAIS
+    .filter((s) => analises.some((a) => a.secao === s.secao))
+    .map((s) => ({ editorial: true, id: s.blocoId, titulo: s.titulo, secao: s.secao }));
+  const glossario = secoes.findIndex((config) => config.bloco === 'B7');
+  return glossario < 0 ? [...secoes, ...editoriais]
+    : [...secoes.slice(0, glossario), ...editoriais, ...secoes.slice(glossario)];
+}
+
 /* ------------------------------------------------------------------ */
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
@@ -1033,7 +1052,7 @@ function CabecalhoERodape({ snapshot, ctx, logos }: { snapshot: SnapshotMontado;
 
 function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
   snapshot: SnapshotMontado;
-  secoes: BlocoConfigurado[];
+  secoes: Array<{ id: string; titulo?: string }>;
   paginas?: Record<string, number>;
   destaques: DestaqueDaCapa[];
   ctx: Contexto;
@@ -1166,7 +1185,8 @@ export default function RelatorioPdf({
   const publicado = aplicarIntroducaoAprovada(snapshotParaExibicao(snapshot), introducaoDasAnalises(analisesPublicadas));
   const marca = marcaDoRelatorio(publicado.identidade);
   const ctx: Contexto = { s: estilosSemCompartilhar(criarEstilos(marca.cores)), c: marca.cores, marca, imagens };
-  const secoes = publicado.montagem.filter((config) => config.bloco !== 'B8' || Boolean(publicado.dados.comentarios?.[config.comentario]));
+  const secoesDoBloco = publicado.montagem.filter((config) => config.bloco !== 'B8' || Boolean(publicado.dados.comentarios?.[config.comentario]));
+  const secoes = comSecoesEditoriais(secoesDoBloco, publicado, analisesPublicadas);
   const resumo = publicado.leitura.resumoExecutivo;
   const observacoesGerais = observacoesPublicas.filter((item) => item.secao === 'introducao' || item.secao === 'relatorio_inteiro');
   const id = publicado.identidade;
@@ -1178,7 +1198,7 @@ export default function RelatorioPdf({
       creator={marca.assinatura}
       producer={marca.assinatura}
       subject={nomeDoProduto(id)}
-      keywords={`${marca.nome}, ${nomeDoProduto(id)}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
+      keywords={`${marca.nome}, ${id.produto === 'anual_externo_cliente' ? 'relatório anual' : ehTrimestral(id) ? 'relatório trimestral' : 'relatório mensal'}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
       language="pt-BR"
     >
       <Capa
@@ -1207,6 +1227,28 @@ export default function RelatorioPdf({
         <Analises secao="introducao" analises={[]} observacoes={observacoesGerais.map((item) => ({ ...item, secao: 'introducao' }))} ctx={ctx} />
 
         {secoes.map((config, indice) => {
+          if (ehEditorial(config)) {
+            return (
+              <View key={config.id} style={ctx.s.secao}>
+                <View style={ctx.s.secaoCabecalho} wrap={false}>
+                  <Text style={ctx.s.secaoIndice}>{String(indice + 1).padStart(2, '0')}</Text>
+                  <View style={ctx.s.secaoTextos}>
+                    <Text style={ctx.s.secaoTitulo}>{t(config.titulo)}</Text>
+                  </View>
+                  {aoPaginarSecao && (
+                    <Text
+                      style={{ position: 'absolute', width: 1, height: 1, fontSize: 1, color: '#FFFFFF' }}
+                      render={({ pageNumber }) => {
+                        aoPaginarSecao(config.id, pageNumber);
+                        return ' ';
+                      }}
+                    />
+                  )}
+                </View>
+                <Analises secao={config.secao} analises={analisesPublicadas} observacoes={[]} ctx={ctx} />
+              </View>
+            );
+          }
           const [abertura, ...resto] = pedacosDoBloco(config, publicado, ctx);
           return (
             <View key={config.id} style={ctx.s.secao}>
@@ -1236,17 +1278,6 @@ export default function RelatorioPdf({
             </View>
           );
         })}
-
-        {ehTrimestral(id) && SECOES_EDITORIAIS_TRIMESTRAIS.filter(s =>
-          analisesPublicadas.some(a => a.secao === s.secao)).map((secao, indice) => (
-          <View key={secao.secao} style={ctx.s.secao}>
-            <View style={ctx.s.secaoCabecalho} wrap={false}>
-              <Text style={ctx.s.secaoIndice}>{String(secoes.length + indice + 1).padStart(2, '0')}</Text>
-              <Text style={ctx.s.secaoTitulo}>{t(secao.titulo)}</Text>
-            </View>
-            <Analises secao={secao.secao} analises={analisesPublicadas} observacoes={[]} ctx={ctx} />
-          </View>
-        ))}
 
         <View style={ctx.s.fecho} wrap={false}>
           <View style={ctx.s.fechoCol}>

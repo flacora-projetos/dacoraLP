@@ -62,6 +62,10 @@ export interface ResultadoDaDecisao {
 export interface RelatorioDecidivel {
   clienteNome: string;
   competencia: string;
+  /** Trimestral: o nome do período. Sem ele, a competência escreveria só o último mês. */
+  rotuloPeriodo?: string;
+  /** Trimestral: a recusa nunca aciona o corretor automático. */
+  somenteCausasManuais?: boolean;
   versao: number;
   checksum: string;
   estado: string;
@@ -175,7 +179,7 @@ export function ecoDaDecisao(
   motivo: string,
 ): string {
   const cabeca =
-    `${relatorio.clienteNome} · ${formatarCompetencia(relatorio.competencia)} · ` +
+    `${relatorio.clienteNome} · ${relatorio.rotuloPeriodo ?? formatarCompetencia(relatorio.competencia)} · ` +
     `versão ${relatorio.versao} · impressão digital ${relatorio.checksum.slice(0, 12)}…`;
 
   if (decisao === 'aprovar') {
@@ -279,7 +283,7 @@ export default function DecisaoDaRevisao({
   const idBloqueio = useId();
 
   const jaDecidido = textoDoJaDecidido(relatorio);
-  const rotuloDoObjeto = `${relatorio.clienteNome}, ${formatarCompetencia(relatorio.competencia)}`;
+  const rotuloDoObjeto = `${relatorio.clienteNome}, ${relatorio.rotuloPeriodo ?? formatarCompetencia(relatorio.competencia)}`;
   const podeAprovarEditorialmente = relatorio.revisaoEditorial?.podeAprovar === true;
 
   function fecharDialogo() {

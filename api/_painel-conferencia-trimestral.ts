@@ -49,26 +49,56 @@ export async function lerConferenciaTrimestral(
   return validarConferenciaTrimestral(rows?.[0]?.sugestao, identidade, rows?.[0]?.atualizado_em);
 }
 
+export interface IdentidadeAnalises {
+  id: string;
+  checksum: string;
+  clienteSlug: string;
+  competencia: string;
+  versao: number;
+  checksumFactual: string | null;
+}
+
+/**
+ * As duas seções obrigatórias precisam existir nos DOIS registros.
+ *
+ * A tabela de sugestões diz que uma pessoa decidiu. Quem publica é a revisão
+ * durável, lida com os mesmos filtros da view pública: se o registro durável
+ * falhou, o painel segue dizendo "aplicada", e o mensal é socorrido pela ponte
+ * da coleta seguinte. O trimestral não tem coleta seguinte: aprovaria um
+ * documento sem aprendizados nem recomendações.
+ */
 export async function conferirAnalisesTrimestrais(
-  identidade: Pick<IdentidadeConferencia, 'id' | 'checksum'>,
+  identidade: IdentidadeAnalises,
   config: { urlSupabase: string; chaveDeServico: string },
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ ok: boolean; motivo?: string }> {
-  const lista = SECOES_EDITORIAIS_TRIMESTRAIS.map(s => s.secao).join(',');
-  const resposta = await fetchImpl(
-    `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${encodeURIComponent(identidade.id)}&relatorio_checksum=eq.${encodeURIComponent(identidade.checksum)}&secao=in.(${lista})&estado=in.(aplicada,editada)&select=secao,estado,texto_atual`,
-    { headers: { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` } },
-  );
-  if (!resposta.ok) return { ok: false, motivo: 'As análises trimestrais não puderam ser conferidas.' };
-  const rows = await resposta.json() as Array<{ secao?: string; texto_atual?: string }>;
+  if (!identidade.checksumFactual) return { ok: false, motivo: 'Esta versão ainda não tem a impressão factual exigida.' };
+  const cabecalhos = { apikey: config.chaveDeServico, Authorization: `Bearer ${config.chaveDeServico}` };
+  const lista = encodeURIComponent(`(${SECOES_EDITORIAIS_TRIMESTRAIS.map(s => `"${s.secao}"`).join(',')})`);
+  const [sugestoes, revisoes] = await Promise.all([
+    fetchImpl(
+      `${config.urlSupabase}/rest/v1/relatorio_analise_sugestoes?relatorio_id=eq.${encodeURIComponent(identidade.id)}&relatorio_checksum=eq.${encodeURIComponent(identidade.checksum)}&secao=in.${lista}&estado=in.(aplicada,editada)&select=secao`,
+      { headers: cabecalhos },
+    ),
+    fetchImpl(
+      `${config.urlSupabase}/rest/v1/relatorio_revisoes_editoriais?cliente_slug=eq.${encodeURIComponent(identidade.clienteSlug)}&competencia=eq.${encodeURIComponent(identidade.competencia)}&relatorio_versao=eq.${encodeURIComponent(String(identidade.versao))}&secao=in.${lista}&estado=eq.atual&tipo_decisao=eq.analise&invalidada_em=is.null&origem_relatorio_id=eq.${encodeURIComponent(identidade.id)}&checksum_documento=eq.${encodeURIComponent(identidade.checksum)}&checksum_factual=eq.${encodeURIComponent(identidade.checksumFactual)}&select=secao,texto`,
+      { headers: cabecalhos },
+    ),
+  ]);
+  if (!sugestoes.ok || !revisoes.ok) return { ok: false, motivo: 'As análises trimestrais não puderam ser conferidas.' };
+  const decididas = await sugestoes.json() as Array<{ secao?: string }>;
+  const duraveis = await revisoes.json() as Array<{ secao?: string; texto?: string | null }>;
   for (const item of SECOES_EDITORIAIS_TRIMESTRAIS) {
-    const textos = rows?.filter(r => r.secao === item.secao && typeof r.texto_atual === 'string'
-      && r.texto_atual.trim().length >= 12) ?? [];
-    if (!textos.length) return { ok: false, motivo: item.titulo + ' ainda não foi revisado e aplicado.' };
-    if (item.secao === 'bloco:recomendacoes-trimestral') {
-      const texto = textos.at(-1)!.texto_atual!.trim();
-      const quantas = texto.split(/\n+/).filter(Boolean).length;
-      if (quantas > 3) return { ok: false, motivo: 'O trimestral admite no máximo três recomendações.' };
+    if (!decididas?.some(r => r.secao === item.secao)) {
+      return { ok: false, motivo: item.titulo + ' ainda não foi revisado e aplicado.' };
+    }
+    const texto = duraveis?.find(r => r.secao === item.secao)?.texto?.trim() ?? '';
+    if (texto.length < 12) {
+      return { ok: false, motivo: item.titulo + ' não ficou registrado para publicação. Aplique a análise de novo.' };
+    }
+    if (item.secao === 'bloco:recomendacoes-trimestral'
+      && texto.split(/\n+/).filter(l => l.trim()).length > 3) {
+      return { ok: false, motivo: 'O trimestral admite no máximo três recomendações, uma por linha.' };
     }
   }
   return { ok: true };

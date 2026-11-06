@@ -35,6 +35,8 @@ import {
 export interface AlvoDaRecusa {
   clienteNome: string;
   competencia: string;
+  rotuloPeriodo?: string;
+  somenteCausasManuais?: boolean;
   secoesRecusaveis?: Array<{ secao: string; titulo: string }>;
   metricasRecusaveis?: Array<{ id: string; rotulo: string; plataforma: string }>;
 }
@@ -195,7 +197,7 @@ export default function DialogoRecusaCausas({
   }
 
   const manual = selecionadas.some(causaEhManual);
-  const automaticas = OPCOES_CAUSA_RECUSA.filter((opcao) => !opcao.manual);
+  const automaticas = relatorio.somenteCausasManuais ? [] : OPCOES_CAUSA_RECUSA.filter((opcao) => !opcao.manual);
   const manuais = OPCOES_CAUSA_RECUSA.filter((opcao) => opcao.manual);
 
   function campoDeSecoes(id: IdCausaRecusa, campo: string, rotulo: string, itens = secoes) {
@@ -416,16 +418,18 @@ export default function DialogoRecusaCausas({
               O que precisa mudar no relatório de {relatorio.clienteNome}?
             </h2>
             <p className="dcp-modal__apoio">
-              {formatarCompetencia(relatorio.competencia)}. Marque o que está errado. O relatório
+              {relatorio.rotuloPeriodo ?? formatarCompetencia(relatorio.competencia)}. Marque o que está errado. O relatório
               volta para você depois de corrigido.
             </p>
           </header>
 
           <div className="dcp-causas__corpo">
-            <section className="dcp-causas__grupo">
-              <h3>O sistema tenta corrigir sozinho</h3>
-              {listaDeCausas(automaticas, true)}
-            </section>
+            {automaticas.length > 0 && (
+              <section className="dcp-causas__grupo">
+                <h3>O sistema tenta corrigir sozinho</h3>
+                {listaDeCausas(automaticas, true)}
+              </section>
+            )}
 
             <section className="dcp-causas__grupo">
               <h3>Precisa de alguém olhando</h3>

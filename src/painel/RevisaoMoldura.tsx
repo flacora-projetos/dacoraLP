@@ -235,6 +235,9 @@ function FaixaDeRevisao({
           relatorio={{
             clienteNome: relatorio.clienteNome,
             competencia: relatorio.competencia,
+            ...(ehTrimestral(relatorio.snapshot?.identidade)
+              ? { rotuloPeriodo: competencia, somenteCausasManuais: true }
+              : {}),
             versao: relatorio.versao,
             checksum: relatorio.checksum as string,
             estado: relatorio.estado,

@@ -20,10 +20,37 @@
 - Nenhuma prévia valida contexto editorial real ou escrita real. Ainda não existe `analysisContext` específico do trimestral; usa a projeção factual aprovada. O armazenamento privado da conferência reaproveita JSON com versão 1, sem migração.
 - As seções de funil GA4 e PMax continuam obedecendo às suspensões recebidas do snapshot mensal. A regra do prefixo das miniaturas não foi alterada.
 
-## Capturas anexadas (dados inventados)
-- [Página do relatório](evidencias/trimestral-etapa4/pagina.png)
-- [Fila de revisão](evidencias/trimestral-etapa4/painel.png)
-- [PDF, página 1](evidencias/trimestral-etapa4/pdf-pagina1.png)
-- [PDF, página 2](evidencias/trimestral-etapa4/pdf-pagina2.png)
+## Auditoria do Claude (05/11/2026)
 
-**Próximo portão:** auditoria independente do Claude. Não executar Etapas 5 a 8 nem integrar sem autorização.
+**Veredito:** reprovada como entregue (`4833ee8`) e **aprovada depois das correções** desta auditoria. Nada integrado, publicado ou gravado; banco e conector só foram lidos. Tabela completa dos defeitos: handoff da fábrica.
+
+**O que mudou no portal:**
+- Prontidão confere a decisão humana e a revisão durável, com os mesmos filtros da view pública; no mensal a ponte da coleta socorre uma falha desse registro, no trimestral não existe coleta seguinte.
+- Recusa de trimestral exige causa manual, no servidor e no diálogo. O grupo de causas automáticas não aparece.
+- Eco da aprovação e da recusa dizem o trimestre. A fila mantém "Voltar para edição" no aprovado e esconde só o envio.
+- Nome do PDF diz o trimestre (`...-3-trimestre-de-2026-v1.pdf`): antes era igual ao do mensal de setembro.
+- Aprendizados e recomendações entram no índice da capa, antes do glossário, na página e no PDF.
+- A janela enviada à análise assistida diz que o documento é trimestral.
+- Metadado `keywords` do PDF do mensal e do anual voltou ao texto de antes.
+
+**Mudança de método:** `verifica:trimestral` usava um mensal com o carimbo de trimestral (`zenun`), que traz resumo pronto e por isso escondia a análise morta, e as capturas antigas mostravam "Julho teve...". A base agora é `src/reports/fixtures/trimestral-sintetico.json`, saída do montador da fábrica com números inventados e ajustada à forma do documento real. A verificação também passou a exercitar a rota pública e o servidor da decisão, não só funções isoladas.
+
+**Provas:**
+- Simulação real, só leitura, com Minerthal (enxuto, marca Allgrotech), Rei, Hannover e Syntonics (e-commerce): resumo, análise, página e PDF montam. Totais conferidos: Minerthal R$ 2.776,93, 237 conversas, R$ 11,72; Syntonics R$ 34.502,44 + R$ 1.324,39 = R$ 35.826,83. Julho segue hipotético, nenhum dado gravado.
+- Mensal e anual, antes (`207c06d`) e depois, com cinco fixtures nas duas variantes: 30 arquivos comparados, PDFs idênticos em texto, imagem e metadados, página do mensal idêntica. Só difere a página do anual, que deixou de dizer "mensal" e "Resumo do mês": mudança pedida no handoff.
+- Mutações: 17 de 17 no portal e 13 de 13 na fábrica. A que escapou na primeira rodada (receita de uma plataforma só) virou teste.
+- Verdes: `verifica:trimestral`, `pdf-dedicado`, `fila`, `visao-geral`, `publico`, `envio`, `decisao`, `analise`, `ra4`, `revisao`, `analises-publicadas`, `analises-aprovadas-painel`. Continuam 12 funções públicas em `api/`.
+
+**Conferido e aprovado sem mudança:** a view do envio traz `cliente_slug`, e a recusa do envio funciona de verdade; a tabela privada da conferência só dá acesso ao `service_role`, e a sugestão mensal não lê nem expõe a linha do trimestral; a chave nova não tem destinatário, segunda barreira contra envio; `origensMensais` não sai na rota pública.
+
+**Limites conhecidos:** ver "O que falta antes do piloto" no handoff. `npm run lint` segue com a falta de `@electric-sql/pglite`, anterior a esta frente.
+
+## Capturas (dados inventados)
+- [Página](evidencias/trimestral-etapa4/pagina.png)
+- [Tela de revisão, com a conferência privada](evidencias/trimestral-etapa4/revisao.png)
+- [Fila de revisão](evidencias/trimestral-etapa4/painel.png): prova só o agrupamento; a captura sai sem o estilo do painel.
+- [PDF, capa com o índice](evidencias/trimestral-etapa4/pdf-pagina1.png)
+- [PDF, página 2](evidencias/trimestral-etapa4/pdf-pagina2.png)
+- [PDF, Instagram com ausência declarada](evidencias/trimestral-etapa4/pdf-pagina7.png)
+
+**Próximo portão:** Etapa 5 (Drive), na fábrica. Não integrar sem autorização.

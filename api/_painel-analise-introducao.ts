@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { gerarAnaliseAssistida, type ModoAnalise } from './_painel-analise-provider.js';
+import { ehTrimestral } from '../src/reports/produto.js';
 
 export const ANALISE_PROMPT_VERSAO = 'ra2_introducao_v4_janela_declarada';
 const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -210,6 +211,13 @@ export function descreverJanelaDoRelatorio(identidade: any, competencia: string)
   }
 
   const dias = Math.round((Date.parse(`${fim}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86_400_000) + 1;
+  if (ehTrimestral(identidade)) {
+    return {
+      declarada: true, inicio, fim, dias, parcial: false, ...declarados,
+      texto: `Este relatório é TRIMESTRAL: cobre ${formatarDia(inicio)} a ${formatarDia(fim)}, um trimestre fechado (${dias} dias), ` +
+        'consolidando três relatórios mensais já aprovados. Escreva sobre o trimestre, nunca sobre "o mês", e não trate um mês isolado como o período inteiro.',
+    };
+  }
   const ultimoDia = ultimoDiaDaCompetencia(competencia);
   const parcial = declarados.emAndamento === true || (ultimoDia !== null && fim < ultimoDia);
   const intervalo = `${formatarDia(inicio)} a ${formatarDia(fim)}`;
