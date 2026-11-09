@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
+    "verifica:propostas": "tsx scripts/verifica-propostas.mts",
     "verifica:painel": "tsx scripts/verifica-painel-autorizacao.mts",
     "verifica:contexto-sugerido": "tsx scripts/verifica-contexto-sugerido.mts",
     "verifica:data-hub-spike": "tsx scripts/verifica-data-hub-spike.mts",
