@@ -69,8 +69,7 @@ function guardarSenha(senha) {
 await garantirBucketPrivado();
 await enviar('pagina.html', readFileSync(arquivo), 'text/html; charset=utf-8');
 function lerSenhaGuardada() {
-  const linha = readFileSync(destino, 'utf8').split(/?
-/).find(item => item.startsWith(`${nomeDaSenha}=`));
+  const linha = readFileSync(destino, 'utf8').split(/\r?\n/).find(item => item.startsWith(`${nomeDaSenha}=`));
   if (!linha || linha.length === nomeDaSenha.length + 1) parar(`Não encontrei ${nomeDaSenha} no arquivo indicado.`);
   return linha.slice(nomeDaSenha.length + 1);
 }
