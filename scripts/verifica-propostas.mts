@@ -30,6 +30,7 @@ const semCookie = await pedir('GET', 'alfa');
 assert.equal(semCookie.status, 200);
 assert.ok(!semCookie.corpo.includes(SEGREDO), 'sem senha não mostra a proposta');
 assert.match(semCookie.corpo, /type="password"/);
+assert.match(semCookie.corpo, /aria-label="Mostrar senha"/);
 assert.equal(semCookie.cabecalhos['x-robots-tag'], 'noindex, nofollow, noarchive');
 
 const errada = await pedir('POST', 'alfa', { senha: 'errada' });

@@ -128,9 +128,14 @@ h1{margin:0;font-size:clamp(34px,8vw,48px);line-height:1.05;font-weight:800;lett
 form{display:flex;flex-direction:column;gap:10px}
 label{font-size:15px;color:#B9D3C4}
 input{width:100%;height:54px;padding:0 16px;font:500 18px "Red Hat Display",system-ui,sans-serif;color:#0D1F18;background:#FFFEFA;border:2px solid #FFFEFA;border-radius:2px}
-button{height:54px;margin-top:6px;font:700 17px "Red Hat Display",system-ui,sans-serif;color:#014029;background:#CFE3D7;border:0;border-radius:2px;cursor:pointer;touch-action:manipulation;transition:background-color .15s ease}
-button:hover{background:#FFFEFA}
-input:focus-visible,button:focus-visible{outline:3px solid #6CC497;outline-offset:2px}
+.entrar{height:54px;margin-top:6px;font:700 17px "Red Hat Display",system-ui,sans-serif;color:#014029;background:#CFE3D7;border:0;border-radius:2px;cursor:pointer;touch-action:manipulation;transition:background-color .15s ease}
+.entrar:hover{background:#FFFEFA}
+.campo-senha{position:relative}
+.campo-senha input{padding-right:56px}
+.ver{position:absolute;top:5px;right:5px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0;color:#014029;background:transparent;border:0;border-radius:2px;cursor:pointer;touch-action:manipulation;transition:background-color .15s ease}
+.ver:hover{background:#E7E2DB}
+.ver[hidden]{display:none}
+input:focus-visible,.entrar:focus-visible,.ver:focus-visible{outline:3px solid #6CC497;outline-offset:2px}
 .aviso{margin:0;padding:12px 14px;font-size:15px;line-height:1.4;background:#FFFEFA;color:#7A1F1F;border-radius:2px}
 .ajuda{margin:0;font-size:14px;line-height:1.5;color:#B9D3C4}
 </style>
@@ -144,11 +149,31 @@ input:focus-visible,button:focus-visible{outline:3px solid #6CC497;outline-offse
     <label for="login">Login</label>
     <input id="login" name="login" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="200" autofocus>
     <label for="senha">Senha</label>
-    <input id="senha" name="senha" type="password" autocomplete="current-password" required maxlength="200">
-    <button type="submit">Abrir proposta</button>
+    <div class="campo-senha">
+      <input id="senha" name="senha" type="password" autocomplete="current-password" required maxlength="200">
+      <button class="ver" id="ver-senha" type="button" aria-label="Mostrar senha" aria-pressed="false" hidden><svg class="olho" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="risco" hidden viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.2A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-3.1 3.9M6.5 6.5C3.7 8.3 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.5-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button>
+    </div>
+    <button class="entrar" type="submit">Abrir proposta</button>
   </form>
   <p class="ajuda">Não recebeu o acesso? Fale com quem enviou a proposta na Dácora.</p>
 </main>
+<script>
+(function () {
+  var campo = document.getElementById('senha');
+  var botao = document.getElementById('ver-senha');
+  botao.hidden = false;
+  botao.addEventListener('click', function () {
+    var mostrar = campo.type === 'password';
+    campo.type = mostrar ? 'text' : 'password';
+    botao.setAttribute('aria-pressed', String(mostrar));
+    botao.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+    botao.querySelector('.olho').toggleAttribute('hidden', mostrar);
+    botao.querySelector('.risco').toggleAttribute('hidden', !mostrar);
+    campo.focus();
+  });
+  campo.form.addEventListener('submit', function () { campo.type = 'password'; });
+})();
+</script>
 </body>
 </html>
 `;
