@@ -12,6 +12,16 @@ node --env-file=.env.local scripts/propostas-subir.mjs <endereco> <pagina.html> 
 
 A senha é gerada e fica só no arquivo indicado, fora do Git, sem aparecer na tela. Trocar a senha derruba os acessos já abertos. O acesso dura 30 dias no aparelho.
 
+## Senha definida pelo PO e lista de logins
+
+Grave `PROPOSTA_SENHA_<ENDERECO>` no arquivo indicado e rode:
+
+```bash
+node --env-file=.env.local scripts/propostas-subir.mjs <endereco> <pagina.html> --usar-senha <arquivo.env> --logins login,pessoa@empresa.com
+```
+
+Sem lista, o login aceito é o próprio endereço.
+
 ## Só atualizar o texto, mantendo a senha
 
 ```bash

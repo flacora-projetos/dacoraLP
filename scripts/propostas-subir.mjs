@@ -2,6 +2,7 @@
  * Envia uma proposta para o bucket privado e cria (ou mantém) a senha dela.
  *
  * node --env-file=.env.local scripts/propostas-subir.mjs <endereco> <pagina.html> --guardar-senha <arquivo.env>
+ * node --env-file=.env.local scripts/propostas-subir.mjs <endereco> <pagina.html> --usar-senha <arquivo.env> --logins a,b@c.com
  * node --env-file=.env.local scripts/propostas-subir.mjs <endereco> <pagina.html> --manter-senha
  *
  * A senha nunca aparece na tela: fica só no arquivo indicado, fora do Git, na
@@ -12,7 +13,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { promisify } from 'node:util';
 
 const derivar = promisify(scrypt);
-const [endereco, arquivo, opcao, destino] = process.argv.slice(2);
+const [endereco, arquivo, opcao, destino, opcaoLogins, listaLogins] = process.argv.slice(2);
+const logins = opcaoLogins === '--logins' ? listaLogins.split(',').map(item => item.trim().toLowerCase()).filter(Boolean) : [endereco];
+const nomeDaSenha = `PROPOSTA_SENHA_${(endereco ?? '').toUpperCase().replaceAll('-', '_')}`;
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'propostas';
@@ -24,7 +27,7 @@ function parar(mensagem) {
 
 if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(endereco ?? '')) parar('Endereço inválido: use letras minúsculas, números e hífen.');
 if (!arquivo || !existsSync(arquivo)) parar('Arquivo da proposta não encontrado.');
-if (opcao !== '--manter-senha' && !(opcao === '--guardar-senha' && destino)) parar('Indique --guardar-senha <arquivo.env> ou --manter-senha.');
+if (opcao !== '--manter-senha' && !(['--guardar-senha', '--usar-senha'].includes(opcao) && destino)) parar('Indique --guardar-senha <arquivo.env>, --usar-senha <arquivo.env> ou --manter-senha.');
 if (!url || !chave) parar('Faltam a URL do Supabase ou a chave de serviço.');
 
 const cabecalhos = { apikey: chave, Authorization: `Bearer ${chave}` };
@@ -56,7 +59,7 @@ function gerarSenha() {
 }
 
 function guardarSenha(senha) {
-  const nome = `PROPOSTA_SENHA_${endereco.toUpperCase().replaceAll('-', '_')}`;
+  const nome = nomeDaSenha;
   const atual = existsSync(destino) ? readFileSync(destino, 'utf8') : '';
   const linhas = atual.split(/\r?\n/).filter(linha => linha && !linha.startsWith(`${nome}=`));
   writeFileSync(destino, `${[...linhas, `${nome}=${senha}`].join('\n')}\n`);
@@ -65,11 +68,18 @@ function guardarSenha(senha) {
 
 await garantirBucketPrivado();
 await enviar('pagina.html', readFileSync(arquivo), 'text/html; charset=utf-8');
-if (opcao === '--guardar-senha') {
-  const senha = gerarSenha();
+function lerSenhaGuardada() {
+  const linha = readFileSync(destino, 'utf8').split(/?
+/).find(item => item.startsWith(`${nomeDaSenha}=`));
+  if (!linha || linha.length === nomeDaSenha.length + 1) parar(`Não encontrei ${nomeDaSenha} no arquivo indicado.`);
+  return linha.slice(nomeDaSenha.length + 1);
+}
+
+if (opcao !== '--manter-senha') {
+  const senha = opcao === '--usar-senha' ? lerSenhaGuardada() : gerarSenha();
   const sal = randomBytes(16);
   const hash = await derivar(senha.normalize('NFKC'), sal, 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
-  await enviar('acesso.json', JSON.stringify({ sal: sal.toString('hex'), hash: hash.toString('hex') }), 'application/json');
-  guardarSenha(senha);
+  await enviar('acesso.json', JSON.stringify({ sal: sal.toString('hex'), hash: hash.toString('hex'), logins }), 'application/json');
+  if (opcao === '--guardar-senha') guardarSenha(senha);
 }
 console.log(`Proposta enviada: /propostas/${endereco}`);

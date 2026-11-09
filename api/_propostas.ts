@@ -21,6 +21,8 @@ const TAMANHO_CHAVE = 32;
 export interface AcessoProposta {
   sal: string;
   hash: string;
+  /** Logins aceitos, em minúsculas. Sem a lista, vale o próprio endereço. */
+  logins?: string[];
 }
 
 export interface DependenciasPropostas {
@@ -76,9 +78,13 @@ function cookieValido(valor: string | null, endereco: string, acesso: AcessoProp
   return esperado.length === recebido.length && timingSafeEqual(esperado, recebido);
 }
 
-function lerSenha(corpo: unknown) {
-  const senha = typeof corpo === 'string' ? new URLSearchParams(corpo).get('senha') : (corpo as { senha?: unknown } | null | undefined)?.senha;
-  return typeof senha === 'string' && senha.length > 0 && senha.length <= 200 ? senha : null;
+function lerCampo(corpo: unknown, nome: 'login' | 'senha') {
+  const valor = typeof corpo === 'string' ? new URLSearchParams(corpo).get(nome) : (corpo as Record<string, unknown> | null | undefined)?.[nome];
+  return typeof valor === 'string' && valor.length > 0 && valor.length <= 200 ? valor : null;
+}
+
+function loginAceito(login: string | null, endereco: string, acesso: AcessoProposta | null) {
+  return Boolean(login && acesso) && (acesso!.logins ?? [endereco]).includes(login!.trim().toLowerCase());
 }
 
 function criarBaixador(url: string, chave: string) {
@@ -95,7 +101,7 @@ function criarBaixador(url: string, chave: string) {
 function telaDeSenha(endereco: string, situacao: 'pedir' | 'errada' | 'indisponivel') {
   const destino = ENDERECO.test(endereco) ? `/propostas/${endereco}` : '/propostas/';
   const aviso = situacao === 'errada'
-    ? '<p class="aviso" role="alert">Senha incorreta. Confira a senha recebida da Dácora e tente de novo.</p>'
+    ? '<p class="aviso" role="alert">Login ou senha incorretos. Confira os dados recebidos da Dácora e tente de novo.</p>'
     : situacao === 'indisponivel'
       ? '<p class="aviso" role="alert">Não foi possível abrir a proposta agora. Tente de novo em alguns minutos.</p>'
       : '';
@@ -132,14 +138,16 @@ input:focus-visible,button:focus-visible{outline:3px solid #6CC497;outline-offse
 <body>
 <main>
   <span class="marca"><b>Dácora</b> · Proposta privada</span>
-  <h1>Digite a senha para abrir a proposta</h1>
+  <h1>Entre para abrir a proposta</h1>
   ${aviso}
   <form method="post" action="${destino}">
+    <label for="login">Login</label>
+    <input id="login" name="login" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="200" autofocus>
     <label for="senha">Senha</label>
-    <input id="senha" name="senha" type="password" autocomplete="current-password" required maxlength="200" autofocus>
+    <input id="senha" name="senha" type="password" autocomplete="current-password" required maxlength="200">
     <button type="submit">Abrir proposta</button>
   </form>
-  <p class="ajuda">Não recebeu a senha? Fale com quem enviou a proposta na Dácora.</p>
+  <p class="ajuda">Não recebeu o acesso? Fale com quem enviou a proposta na Dácora.</p>
 </main>
 </body>
 </html>
@@ -174,8 +182,9 @@ export async function atenderPropostas(req: Request, res: Response, dependencias
     const acesso = ENDERECO.test(endereco) ? await baixarAcesso(endereco) : null;
 
     if (req.method === 'POST') {
-      const senha = lerSenha(req.body);
-      if (!senha || !(await senhaConfere(senha, acesso)) || !acesso) {
+      const senha = lerCampo(req.body, 'senha');
+      const senhaOk = senha ? await senhaConfere(senha, acesso) : false;
+      if (!senhaOk || !loginAceito(lerCampo(req.body, 'login'), endereco, acesso) || !acesso) {
         return res.status(401).send(telaDeSenha(endereco, 'errada'));
       }
       const expira = Math.floor(agora.getTime() / 1000) + VALIDADE_SEGUNDOS;
