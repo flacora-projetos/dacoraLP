@@ -135,6 +135,7 @@ input{width:100%;height:54px;padding:0 16px;font:500 18px "Red Hat Display",syst
 .ver{position:absolute;top:5px;right:5px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0;color:#014029;background:transparent;border:0;border-radius:2px;cursor:pointer;touch-action:manipulation;transition:background-color .15s ease}
 .ver:hover{background:#E7E2DB}
 .ver[hidden]{display:none}
+.ver svg[hidden]{display:none}
 input:focus-visible,.entrar:focus-visible,.ver:focus-visible{outline:3px solid #6CC497;outline-offset:2px}
 .aviso{margin:0;padding:12px 14px;font-size:15px;line-height:1.4;background:#FFFEFA;color:#7A1F1F;border-radius:2px}
 .ajuda{margin:0;font-size:14px;line-height:1.5;color:#B9D3C4}
