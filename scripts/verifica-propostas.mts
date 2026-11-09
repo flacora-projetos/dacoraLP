@@ -3,7 +3,7 @@ import { atenderPropostas, resumirSenha } from '../api/_propostas.ts';
 
 const SEGREDO = 'CONTEUDO-SECRETO-DA-PROPOSTA';
 const acessos = {
-  alfa: await resumirSenha('senha-de-teste-alfa'),
+  alfa: { ...(await resumirSenha('senha-de-teste-alfa')), logins: ['alfa', 'pessoa@exemplo.com'] },
   beta: await resumirSenha('senha-de-teste-beta'),
 };
 const dependencias = {
@@ -12,14 +12,14 @@ const dependencias = {
   baixarPagina: async (alvo: string) => `${SEGREDO}-${alvo}`,
 };
 
-async function pedir(metodo: string, slug: string, opcoes: { senha?: string; cookie?: string; extra?: object } = {}) {
+async function pedir(metodo: string, slug: string, opcoes: { login?: string; senha?: string; cookie?: string; extra?: object } = {}) {
   const saida = { status: 0, corpo: '', cabecalhos: {} as Record<string, string> };
   const res: any = {
     setHeader: (nome: string, valor: string) => { saida.cabecalhos[nome.toLowerCase()] = valor; },
     status: (codigo: number) => { saida.status = codigo; return res; },
     send: (corpo: string) => { saida.corpo = corpo; return res; },
   };
-  const req: any = { method: metodo, query: { slug }, headers: { cookie: opcoes.cookie }, body: opcoes.senha === undefined ? undefined : { senha: opcoes.senha } };
+  const req: any = { method: metodo, query: { slug }, headers: { cookie: opcoes.cookie }, body: opcoes.senha === undefined ? undefined : { login: opcoes.login ?? slug, senha: opcoes.senha } };
   await atenderPropostas(req, res, { ...dependencias, ...opcoes.extra });
   return saida;
 }
@@ -47,6 +47,10 @@ assert.equal(certa.status, 303);
 assert.equal(certa.cabecalhos.location, '/propostas/alfa');
 assert.match(certa.cabecalhos['set-cookie'], /HttpOnly; Secure; SameSite=Lax/);
 assert.match(certa.cabecalhos['set-cookie'], /Path=\/propostas\/alfa/);
+
+assert.equal((await pedir('POST', 'alfa', { login: 'intruso', senha: 'senha-de-teste-alfa' })).status, 401, 'login fora da lista não entra');
+assert.equal((await pedir('POST', 'alfa', { login: ' Pessoa@Exemplo.com ', senha: 'senha-de-teste-alfa' })).status, 303, 'e-mail da lista entra');
+assert.equal((await pedir('POST', 'beta', { login: 'beta', senha: 'senha-de-teste-beta' })).status, 303, 'sem lista, vale o endereço');
 
 const aberta = await pedir('GET', 'alfa', { cookie: cookieDe(certa) });
 assert.equal(aberta.status, 200);
