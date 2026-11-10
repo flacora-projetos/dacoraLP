@@ -46,6 +46,10 @@ function cabecalhos(chaveDeServico: string, comJson = false): Record<string, str
   };
 }
 
+export function ehEnvioTrimestralBloqueado(linha: Pick<LinhaDoPortalP5, 'cliente_slug'> | null | undefined) {
+  return typeof linha?.cliente_slug === 'string' && linha.cliente_slug.endsWith('__trimestral');
+}
+
 async function lerLinha(
   relatorioId: string,
   urlSupabase: string,
@@ -67,6 +71,10 @@ function responderEstado(res: Response, linha: LinhaDoPortalP5 | null) {
       mensagem: 'Este relatório não está disponível no contrato de envio. Volte para a fila.',
     });
   }
+  if (ehEnvioTrimestralBloqueado(linha)) {
+    return res.status(409).json({ erro: 'envio_trimestral_desligado',
+      mensagem: 'O envio de relatórios trimestrais ainda não está habilitado.' });
+  }
   const montagem = montarEstadoSeguroDoEnvio(linha);
   if (montagem.ok === false) {
     console.error(`[painel-envio] Read-back inválido para ${linha.relatorio_id}: ${montagem.motivo}.`);
@@ -87,6 +95,12 @@ async function solicitar(
   urlSupabase: string,
   chaveDeServico: string,
 ) {
+  // A URL pública do P5 não é autorização. Bloqueio NO servidor, antes de solicitar RPC.
+  const preflight = await lerLinha(pedido.id, urlSupabase, chaveDeServico);
+  if (ehEnvioTrimestralBloqueado(preflight)) {
+    return res.status(409).json({ erro: 'envio_trimestral_desligado', solicitado: false,
+      mensagem: 'O envio de relatórios trimestrais ainda não está habilitado.' });
+  }
   const resposta = await fetch(`${urlSupabase}/rest/v1/rpc/relatorio_p5_solicitar_envio`, {
     method: 'POST',
     headers: cabecalhos(chaveDeServico, true),

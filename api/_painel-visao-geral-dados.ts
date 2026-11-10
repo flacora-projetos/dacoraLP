@@ -149,6 +149,8 @@ export interface VisaoGeral {
    * competência, sem os arquivados.
    */
   totalCorrentes: number;
+  /** Relatórios trimestrais da competência, nunca somados aos indicadores mensais. */
+  trimestrais?: { totalCorrentes: number; porCarteira: Fatia[] };
   /** Correntes arquivados — decisão de que não saem. Ficam fora de todo o resto. */
   arquivados: number;
   cobertura: {
@@ -204,6 +206,7 @@ const ROTULO_CARTEIRA: Record<string, string> = {
 
 const ROTULO_PRODUTO: Record<string, string> = {
   mensal_externo_cliente: 'Mensal externo do cliente',
+  trimestral_externo_cliente: 'Trimestral externo do cliente',
   mensal_interno_allgrotech: 'Mensal interno Allgrotech',
   NAO_IDENTIFICADO: 'Sem finalidade no snapshot',
 };
@@ -247,7 +250,7 @@ const ROTULO_SINAL: Record<string, string> = {
  * está cada coisa em vez de ler o número.
  */
 const ORDEM_CARTEIRA = ['DACORA', 'ALLGROTECH', 'NAO_IDENTIFICADA'];
-const ORDEM_PRODUTO = ['mensal_externo_cliente', 'mensal_interno_allgrotech', 'NAO_IDENTIFICADO'];
+const ORDEM_PRODUTO = ['mensal_externo_cliente', 'mensal_interno_allgrotech', 'trimestral_externo_cliente', 'NAO_IDENTIFICADO'];
 const ORDEM_FORMATO = ['small_cap', 'ecommerce', 'servicos_leads'];
 const ORDEM_ESTADO = ['gerado', 'recusado', 'liberado', 'enviado', 'substituido', 'arquivado', 'desconhecido'];
 const ORDEM_SINAL = [
@@ -574,14 +577,18 @@ export function montarVisaoGeral(
   hojeISO: string,
   extras: Extras = {},
 ): VisaoGeral {
-  const { correntes } = separarPorVersaoCorrente(linhas);
+  const linhasMensais = linhas.filter((linha) => !String(linha.cliente_slug).endsWith('__trimestral'));
+  const linhasTrimestrais = linhas.filter((linha) => String(linha.cliente_slug).endsWith('__trimestral'));
+  const { correntes } = separarPorVersaoCorrente(linhasMensais);
   const todosOsItens: ItemDaFila[] = correntes.map(montarItem);
+  const trimestrais = separarPorVersaoCorrente(linhasTrimestrais).correntes.map(montarItem)
+    .filter((item) => item.estado !== 'arquivado');
   /* Arquivado sai de tudo — cobertura, sinais, prazo — e aparece só na própria
      fatia de "onde a fila parou". Contá-lo como "esperando" ou "com sinal" é
      cobrar trabalho de um documento que foi decidido que não sai. */
   const itens = todosOsItens.filter((item) => item.estado !== 'arquivado');
   const fora = chavesArquivadas(
-    linhas.map((l) => ({
+    linhasMensais.map((l) => ({
       cliente_slug: l.cliente_slug,
       competencia: l.competencia,
       versao: l.versao,
@@ -601,7 +608,7 @@ export function montarVisaoGeral(
   /* Retrabalho: a versão nascida de uma recusa é marcada pelo próprio banco
      (`correcao_eh_nova_versao`). Versão nova sem essa marca é o fechamento do
      mês ou regra nova, e não é contada como correção. */
-  const porRecusa = linhas.filter((linha) => linha.correcao_eh_nova_versao === true);
+  const porRecusa = linhasMensais.filter((linha) => linha.correcao_eh_nova_versao === true);
   const correcoesPorCliente = new Map<string, number>();
   for (const linha of porRecusa) {
     correcoesPorCliente.set(linha.cliente_slug, (correcoesPorCliente.get(linha.cliente_slug) ?? 0) + 1);
@@ -610,12 +617,16 @@ export function montarVisaoGeral(
   const nomeDoCliente = (slug: string) =>
     todosOsItens.find((item) => item.clienteSlug === slug)?.clienteNome ?? slug;
 
-  const aprovacao = horasAteAprovar(linhas, fora);
+  const aprovacao = horasAteAprovar(linhasMensais, fora);
 
   return {
     competencia,
     totalCorrentes: itens.length,
     arquivados: todosOsItens.length - itens.length,
+    ...(trimestrais.length ? { trimestrais: {
+      totalCorrentes: trimestrais.length,
+      porCarteira: contar(trimestrais.map(item => item.carteira), ORDEM_CARTEIRA, ROTULO_CARTEIRA),
+    }} : {}),
     cobertura: {
       porCarteira: contar(
         itens.map((item) => item.carteira),
@@ -648,13 +659,13 @@ export function montarVisaoGeral(
     retrabalho: {
       relatoriosCorrigidos: correcoesPorCliente.size,
       versoesPorRecusa: porRecusa.length,
-      versoesSemRecusa: linhas.filter((l) => l.versao > 1 && l.correcao_eh_nova_versao !== true).length,
+      versoesSemRecusa: linhasMensais.filter((l) => l.versao > 1 && l.correcao_eh_nova_versao !== true).length,
       maisCorrigido: maisCorrigido
         ? { clienteNome: nomeDoCliente(maisCorrigido[0]), correcoes: maisCorrigido[1] }
         : null,
     },
-    prazo: medirPrazo(primeiraLiberacaoPorRelatorio(linhas, fora), competencia, hojeISO),
-    correcoes: extras.ordens ? montarCorrecoes(extras.ordens, linhas) : null,
+    prazo: medirPrazo(primeiraLiberacaoPorRelatorio(linhasMensais, fora), competencia, hojeISO),
+    correcoes: extras.ordens ? montarCorrecoes(extras.ordens.filter(o => !String(o.cliente_slug).endsWith('__trimestral')), linhasMensais) : null,
     horasAteAprovar: aprovacao.horas,
     aprovadosMedidos: aprovacao.medidos,
     envios: extras.envios ? montarEnvios(extras.envios) : null,

@@ -23,6 +23,7 @@ import type { CompetenciaDisponivel } from './snapshot';
 import { criarChartTheme, type PropostaId } from './charts/chartTheme';
 import Esqueleto, { type SecaoRelatorio } from './Esqueleto';
 import { renderizarBloco } from './blocos/catalogo';
+import { ehTrimestral, SECOES_EDITORIAIS_TRIMESTRAIS, snapshotParaExibicao } from './produto';
 import type { SnapshotMontado } from './blocos/tipos';
 import {
   aplicarIntroducaoAprovada,
@@ -54,13 +55,14 @@ interface Props {
 
 export default function RelatorioMontado({ snapshot, competencias, proposta, demo, introducaoDaRevisao, analiseDaSecao, observacoesPublicas = [], analisesPublicadas = [], acaoPdf }: Props) {
   const theme = useMemo(() => criarChartTheme(proposta), [proposta]);
+  const visual = useMemo(() => snapshotParaExibicao(snapshot), [snapshot]);
 
   /* A introdução aprovada ENTRA NO LUGAR da leitura automática, como já
      acontecia na prévia de quem revisa. A regra mora em `analisePublicada.ts`
      justamente para as duas não poderem divergir. */
   const snapshotPublicado = useMemo(
-    () => aplicarIntroducaoAprovada(snapshot, introducaoDasAnalises(analisesPublicadas)),
-    [snapshot, analisesPublicadas],
+    () => aplicarIntroducaoAprovada(visual, introducaoDasAnalises(analisesPublicadas)),
+    [visual, analisesPublicadas],
   );
 
   const secoes: SecaoRelatorio[] = useMemo(() => {
@@ -71,7 +73,7 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
      * verdades para a mesma coisa.
      */
     const rotulosPlataforma = Object.fromEntries(
-      snapshot.fontes.map((fonte) => [fonte.plataforma, fonte.rotulo]),
+      visual.fontes.map((fonte) => [fonte.plataforma, fonte.rotulo]),
     );
 
     const analiseAprovadaDa = (secao: string) => analisesPublicadas
@@ -84,10 +86,10 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
         </aside>
       ));
 
-    return snapshot.montagem
+    const comuns = visual.montagem
       .map((config) => {
         const conteudo = renderizarBloco(config, {
-          dados: snapshot.dados,
+          dados: visual.dados,
           theme,
           rotulosPlataforma,
         });
@@ -106,7 +108,17 @@ export default function RelatorioMontado({ snapshot, competencias, proposta, dem
        * título com o corpo vazio embaixo.
        */
       .filter((secao) => secao.conteudo !== null);
-  }, [analiseDaSecao, analisesPublicadas, snapshot, theme]);
+    if (!ehTrimestral(visual.identidade)) return comuns;
+    const editoriais = SECOES_EDITORIAIS_TRIMESTRAIS.filter(s =>
+      Boolean(analiseDaSecao) || analisesPublicadas.some(a => a.secao === s.secao))
+      .map(s => ({ id: s.blocoId, titulo: s.titulo,
+        conteudo: <>{analiseAprovadaDa(s.secao)}{analiseDaSecao?.(s.secao)}</>,
+      }));
+    /* Fecham a leitura; o glossário segue por último, como no mensal. */
+    const glossario = comuns.findIndex(s => s.id === visual.montagem.find(b => b.bloco === 'B7')?.id);
+    return glossario < 0 ? [...comuns, ...editoriais]
+      : [...comuns.slice(0, glossario), ...editoriais, ...comuns.slice(glossario)];
+  }, [analiseDaSecao, analisesPublicadas, visual, theme]);
 
   return (
     <Esqueleto

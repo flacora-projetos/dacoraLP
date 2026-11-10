@@ -54,6 +54,7 @@ import {
   textoValor,
 } from '../format.js';
 import { termosDoGlossario, termoDoGlossario } from '../glossario.js';
+import { rotuloDoPeriodo, nomeDoProduto, rotuloDoResumo, rotuloDosNumeros, ehTrimestral, SECOES_EDITORIAIS_TRIMESTRAIS, snapshotParaExibicao } from '../produto.js';
 import { marcaDoRelatorio, type CoresDaMarca, type MarcaResolvida } from '../marcas.js';
 import type { DirecaoFavoravel, Metrica, PlataformaId, Unidade, Valor } from '../snapshot';
 import type {
@@ -76,11 +77,25 @@ import { destaquesDaCapa, type DestaqueDaCapa } from './capa.js';
  * só os rótulos de período mudam. Nada de segundo gerador.
  */
 type IdentidadeDoRelatorio = SnapshotMontado['identidade'];
-const ehAnual = (id: IdentidadeDoRelatorio) => id.produto === 'anual_externo_cliente';
-const periodoDoRelatorio = (id: IdentidadeDoRelatorio) =>
-  ehAnual(id) && id.rotuloPeriodo ? id.rotuloPeriodo : formatarCompetencia(id.competencia);
-const nomeDoProduto = (id: IdentidadeDoRelatorio) =>
-  ehAnual(id) ? 'Relatório anual de performance' : 'Relatório mensal de performance';
+
+/** Seção escrita pela revisão: entra na ordem e no índice, sem ser bloco do catálogo. */
+interface SecaoEditorial { editorial: true; id: string; titulo: string; secao: string }
+type SecaoDoPdf = SnapshotMontado['montagem'][number] | SecaoEditorial;
+const ehEditorial = (secao: SecaoDoPdf): secao is SecaoEditorial => 'editorial' in secao;
+
+export function comSecoesEditoriais(
+  secoes: SnapshotMontado['montagem'],
+  snapshot: SnapshotMontado,
+  analises: Array<{ secao: string }>,
+): SecaoDoPdf[] {
+  if (!ehTrimestral(snapshot.identidade)) return secoes;
+  const editoriais: SecaoEditorial[] = SECOES_EDITORIAIS_TRIMESTRAIS
+    .filter((s) => analises.some((a) => a.secao === s.secao))
+    .map((s) => ({ editorial: true, id: s.blocoId, titulo: s.titulo, secao: s.secao }));
+  const glossario = secoes.findIndex((config) => config.bloco === 'B7');
+  return glossario < 0 ? [...secoes, ...editoriais]
+    : [...secoes.slice(0, glossario), ...editoriais, ...secoes.slice(glossario)];
+}
 
 /* ------------------------------------------------------------------ */
 /* Página                                                              */
@@ -1016,7 +1031,7 @@ function CabecalhoERodape({ snapshot, ctx, logos }: { snapshot: SnapshotMontado;
         <LogoNoCabecalho ctx={ctx} logos={logos} />
         <Text style={ctx.s.cabecalhoMeta}>
           <Text style={ctx.s.cabecalhoCliente}>{t(snapshot.identidade.clienteNome)}</Text>
-          {'   ·   '}Relatório de {t(periodoDoRelatorio(snapshot.identidade))}
+          {'   ·   '}Relatório de {t(rotuloDoPeriodo(snapshot.identidade))}
         </Text>
       </View>
       <View style={ctx.s.cabecalhoFio} fixed />
@@ -1037,7 +1052,7 @@ function CabecalhoERodape({ snapshot, ctx, logos }: { snapshot: SnapshotMontado;
 
 function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
   snapshot: SnapshotMontado;
-  secoes: BlocoConfigurado[];
+  secoes: Array<{ id: string; titulo?: string }>;
   paginas?: Record<string, number>;
   destaques: DestaqueDaCapa[];
   ctx: Contexto;
@@ -1071,7 +1086,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
             {t(id.clienteNome)}
           </Text>
           <Text style={{ color: c.acento, fontSize: 17, fontWeight: 500 }}>
-            {t(maiuscula(periodoDoRelatorio(id)))}
+            {t(maiuscula(rotuloDoPeriodo(id)))}
           </Text>
         </View>
         <View style={{ borderTopWidth: 0.8, borderTopColor: c.destaque, paddingTop: 12 }}>
@@ -1090,7 +1105,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }: {
         {destaques.length > 0 && (
           <View>
             <Text style={{ color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
-              {ehAnual(id) ? 'O ano em números' : 'O mês em números'}
+              {rotuloDosNumeros(id)}
             </Text>
             <View style={{ flexDirection: 'row', marginHorizontal: -5 }}>
               {destaques.map((metrica) => (
@@ -1167,22 +1182,23 @@ export default function RelatorioPdf({
   paginasDasSecoes,
   aoPaginarSecao,
 }: RelatorioPdfProps): ReactElement<DocumentProps> {
-  const publicado = aplicarIntroducaoAprovada(snapshot, introducaoDasAnalises(analisesPublicadas));
+  const publicado = aplicarIntroducaoAprovada(snapshotParaExibicao(snapshot), introducaoDasAnalises(analisesPublicadas));
   const marca = marcaDoRelatorio(publicado.identidade);
   const ctx: Contexto = { s: estilosSemCompartilhar(criarEstilos(marca.cores)), c: marca.cores, marca, imagens };
-  const secoes = publicado.montagem.filter((config) => config.bloco !== 'B8' || Boolean(publicado.dados.comentarios?.[config.comentario]));
+  const secoesDoBloco = publicado.montagem.filter((config) => config.bloco !== 'B8' || Boolean(publicado.dados.comentarios?.[config.comentario]));
+  const secoes = comSecoesEditoriais(secoesDoBloco, publicado, analisesPublicadas);
   const resumo = publicado.leitura.resumoExecutivo;
   const observacoesGerais = observacoesPublicas.filter((item) => item.secao === 'introducao' || item.secao === 'relatorio_inteiro');
   const id = publicado.identidade;
 
   return (
     <Document
-      title={`Relatório ${periodoDoRelatorio(id)} - ${id.clienteNome}`}
+      title={`Relatório ${rotuloDoPeriodo(id)} - ${id.clienteNome}`}
       author={marca.assinatura}
       creator={marca.assinatura}
       producer={marca.assinatura}
       subject={nomeDoProduto(id)}
-      keywords={`${marca.nome}, ${ehAnual(id) ? 'relatório anual' : 'relatório mensal'}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
+      keywords={`${marca.nome}, ${id.produto === 'anual_externo_cliente' ? 'relatório anual' : ehTrimestral(id) ? 'relatório trimestral' : 'relatório mensal'}, ${id.clienteNome}, versão ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`}
       language="pt-BR"
     >
       <Capa
@@ -1200,8 +1216,8 @@ export default function RelatorioPdf({
         {resumo.length > 0 && (
           <View style={ctx.s.resumo} wrap={false}>
             <View style={ctx.s.resumoRotuloCol}>
-              <Text style={ctx.s.resumoRotulo}>{ehAnual(id) ? 'Resumo do ano' : 'Resumo do mês'}</Text>
-              <Text style={ctx.s.resumoTitulo}>{t(maiuscula(periodoDoRelatorio(id)))}</Text>
+              <Text style={ctx.s.resumoRotulo}>{rotuloDoResumo(id)}</Text>
+              <Text style={ctx.s.resumoTitulo}>{t(maiuscula(rotuloDoPeriodo(id)))}</Text>
             </View>
             <View style={ctx.s.resumoTextoCol}>
               {resumo.map((afirmacao, indice) => <Text key={indice} style={ctx.s.resumoTexto}>{t(afirmacao.texto)}</Text>)}
@@ -1211,6 +1227,28 @@ export default function RelatorioPdf({
         <Analises secao="introducao" analises={[]} observacoes={observacoesGerais.map((item) => ({ ...item, secao: 'introducao' }))} ctx={ctx} />
 
         {secoes.map((config, indice) => {
+          if (ehEditorial(config)) {
+            return (
+              <View key={config.id} style={ctx.s.secao}>
+                <View style={ctx.s.secaoCabecalho} wrap={false}>
+                  <Text style={ctx.s.secaoIndice}>{String(indice + 1).padStart(2, '0')}</Text>
+                  <View style={ctx.s.secaoTextos}>
+                    <Text style={ctx.s.secaoTitulo}>{t(config.titulo)}</Text>
+                  </View>
+                  {aoPaginarSecao && (
+                    <Text
+                      style={{ position: 'absolute', width: 1, height: 1, fontSize: 1, color: '#FFFFFF' }}
+                      render={({ pageNumber }) => {
+                        aoPaginarSecao(config.id, pageNumber);
+                        return ' ';
+                      }}
+                    />
+                  )}
+                </View>
+                <Analises secao={config.secao} analises={analisesPublicadas} observacoes={[]} ctx={ctx} />
+              </View>
+            );
+          }
           const [abertura, ...resto] = pedacosDoBloco(config, publicado, ctx);
           return (
             <View key={config.id} style={ctx.s.secao}>

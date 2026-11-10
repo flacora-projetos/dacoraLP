@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { AnalysisContextV1 } from '../reports/snapshot';
 import type { SnapshotMontado } from '../reports/blocos/tipos';
 import { formatarCompetencia, formatarNumero, formatarVariacao } from '../reports/format';
+import { rotuloDoPeriodo, ehTrimestral } from '../reports/produto';
 import DecisaoDaRevisao, {
   type EstadoDaNotificacaoInterna,
   type PedidoDeDecisao,
@@ -62,6 +63,9 @@ export interface RelatorioDaRevisao {
     destinoReferencia: string;
   } | null;
   revisaoEditorial?: ResumoEditorialRA4;
+  /** Somente do endpoint autenticado do painel. Nunca via rota pública. */
+  conferenciaTrimestral?: { disponivel: true; checksum: string; registradoEm: string | null;
+    divergencias: Array<{ tipo: string; competencia?: string; mensagem: string; diferenca?: number | null }> } | null;
   /**
    * Depois da aprovação: as análises e observações que o cliente lê, das mesmas
    * views da rota pública. `null` enquanto o relatório não foi aprovado.
@@ -172,12 +176,12 @@ function FaixaDeRevisao({
   aoDescartarRetencao?: (confirmacao: string) => Promise<ResultadoRetencaoEditorial>;
   aoRegistrarObservacao?: (secao: string, texto: string) => Promise<ResultadoDaDecisao>;
 }) {
-  const competencia = formatarCompetencia(relatorio.competencia);
+  const competencia = rotuloDoPeriodo(relatorio.snapshot?.identidade ?? { competencia: relatorio.competencia });
   const linkDeVolta = useLinkDeVoltaParaFila();
   const podeOferecerDecisao = Boolean(aoDecidir && relatorio.checksum);
   const fechadoOuEnviado = relatorio.estado === 'liberado' || relatorio.estado === 'enviado';
   const podeMontarEnvio = Boolean(
-    relatorio.checksum && fechadoOuEnviado && aoCarregarEnvio && aoSolicitarEnvio,
+    relatorio.checksum && fechadoOuEnviado && !ehTrimestral(relatorio.snapshot?.identidade) && aoCarregarEnvio && aoSolicitarEnvio,
   );
   const podeMontarRetencao = Boolean(
     relatorio.checksum && fechadoOuEnviado && aoCarregarRetencao && aoDescartarRetencao,
@@ -204,6 +208,20 @@ function FaixaDeRevisao({
         </summary>
         <ListaDeSinais sinais={relatorio.sinais} />
       </details>
+      {ehTrimestral(relatorio.snapshot?.identidade) && (
+        <section className="dcp-revisao__diff" aria-label="Conferência privativa do trimestre">
+          <h2>Conferência do trimestre · somente para revisão</h2>
+          {relatorio.conferenciaTrimestral?.disponivel ? (
+            relatorio.conferenciaTrimestral.divergencias.length ? (
+              <ul>{relatorio.conferenciaTrimestral.divergencias.map((d, i) => (
+                <li key={`${d.tipo}-${d.competencia ?? ''}-${i}`}>
+                  <strong>{d.competencia ?? 'Período inteiro'}</strong>: {d.mensagem}
+                </li>
+              ))}</ul>
+            ) : <p>Conferência registrada. Nenhuma divergência encontrada.</p>
+          ) : <p role="alert">Conferência privada não localizada ou desatualizada. Aprovação bloqueada.</p>}
+        </section>
+      )}
       <ContextoDaAnalise contexto={relatorio.snapshot.analysisContext} />
       <HistoricoAnalises historico={historicoAnalises} secoes={relatorio.revisaoEditorial?.secoes} />
       {relatorio.diffDaRecusa && (
@@ -217,6 +235,9 @@ function FaixaDeRevisao({
           relatorio={{
             clienteNome: relatorio.clienteNome,
             competencia: relatorio.competencia,
+            ...(ehTrimestral(relatorio.snapshot?.identidade)
+              ? { rotuloPeriodo: competencia, somenteCausasManuais: true }
+              : {}),
             versao: relatorio.versao,
             checksum: relatorio.checksum as string,
             estado: relatorio.estado,

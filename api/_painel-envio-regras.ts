@@ -28,6 +28,7 @@ const UUID_VALIDO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 
 export interface LinhaDoPortalP5 {
   relatorio_id: string;
+  cliente_slug?: string;
   cliente_nome: string;
   competencia: string;
   relatorio_versao: number;

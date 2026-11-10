@@ -1,0 +1,1314 @@
+{
+ "identidade": {
+  "relatorioId": "cliente_demo-2026-09-trimestral",
+  "clienteSlug": "cliente_demo",
+  "clienteNome": "Cliente demonstração",
+  "carteira": "ALLGROTECH",
+  "tipoRelatorio": "small_cap",
+  "competencia": "2026-09",
+  "emAndamento": false,
+  "produto": "trimestral_externo_cliente",
+  "versaoSchema": "2026-08-painel-carteiras",
+  "rotuloPeriodo": "3º trimestre de 2026 (julho a setembro)",
+  "periodo": {
+   "inicio": "2026-07-01",
+   "fim": "2026-09-30"
+  },
+  "temDiaFechado": true
+ },
+ "fontes": [
+  {
+   "plataforma": "meta",
+   "situacao": "sucesso",
+   "janela": {
+    "inicio": "2026-07-01",
+    "fim": "2026-09-30"
+   },
+   "observacoes": [],
+   "rotulo": "Meta Ads"
+  },
+  {
+   "plataforma": "instagram",
+   "situacao": "sucesso",
+   "janela": {
+    "inicio": "2026-07-01",
+    "fim": "2026-09-30"
+   },
+   "observacoes": [],
+   "rotulo": "Instagram"
+  }
+ ],
+ "montagem": [
+  {
+   "bloco": "B1",
+   "id": "numeros-meta",
+   "titulo": "O trimestre no Meta Ads",
+   "apoio": "O retrato da conta inteira no 3º trimestre de 2026 (julho a setembro).",
+   "faixa": "faixa_meta",
+   "mostrarVariacao": false
+  },
+  {
+   "bloco": "B3",
+   "id": "evolucao-meta",
+   "titulo": "Mês a mês: investimento e resultado",
+   "apoio": "Cada mês na própria janela fechada, lado a lado.",
+   "nota": "Cada métrica tem o painel dela, com escala própria: sobrepor as três num gráfico só faria parecer que uma explica a outra. Contra o trimestre anterior: conversas iniciadas, de 18 para 36 (+100,0%); visitas ao perfil, de 6 para 11 (+83,3%).",
+   "evolucao": "evolucao_meta",
+   "apresentacao": "grafico"
+  },
+  {
+   "bloco": "B2",
+   "id": "midia-por-mes",
+   "titulo": "Mês a mês: quanto custou aparecer e ser clicado",
+   "apoio": "O custo de mídia de cada mês, do primeiro ao último.",
+   "tabela": "midia_por_mes",
+   "pergunta": "Quanto custou cada mês?",
+   "participacaoRotulo": "Participação no investimento"
+  },
+  {
+   "bloco": "B2",
+   "id": "campanhas-meta",
+   "titulo": "Quanto cada campanha consumiu e o que ela trouxe",
+   "apoio": "Todas as campanhas do período, na ordem dos meses em que rodaram.",
+   "nota": "A soma desta tabela é o período inteiro.",
+   "tabela": "campanhas_meta",
+   "pergunta": "Para onde foi o investimento do período?",
+   "participacaoRotulo": "Participação no investimento"
+  },
+  {
+   "bloco": "B6",
+   "id": "regioes-meta",
+   "titulo": "De onde veio o público alcançado",
+   "apoio": "Em que parte do país o investimento do período foi consumido.",
+   "nota": "A região é a que a plataforma atribui a quem viu o anúncio. Parte pode aparecer como não determinada: é a própria plataforma dizendo que não soube identificar.",
+   "quebra": "regioes_meta"
+  },
+  {
+   "bloco": "B4",
+   "id": "criativos-meta",
+   "titulo": "Os anúncios que mais trouxeram conversas iniciadas no trimestre",
+   "ranking": "ranking_meta",
+   "apoio": "O mesmo anúncio repetido nas campanhas de meses diferentes aparece somado num cartão só."
+  },
+  {
+   "bloco": "B2",
+   "id": "campeao-por-mes",
+   "titulo": "O anúncio campeão de cada mês",
+   "apoio": "Quem mais trouxe resultado em cada mês.",
+   "tabela": "campeao_por_mes",
+   "pergunta": "Qual anúncio liderou cada mês?",
+   "participacaoRotulo": "Participação no resultado"
+  },
+  {
+   "bloco": "B1",
+   "id": "instagram-organico",
+   "titulo": "O perfil do Instagram no trimestre",
+   "apoio": "O perfil somado de julho a setembro.",
+   "nota": "Os números descrevem o perfil inteiro. Não são resultados atribuídos aos anúncios e não devem ser somados a eles. Seguidores é o total do perfil no fechamento do último mês do período.",
+   "faixa": "faixa_instagram",
+   "mostrarVariacao": false
+  },
+  {
+   "bloco": "B2",
+   "id": "instagram-por-mes",
+   "titulo": "O Instagram mês a mês",
+   "apoio": "Os números do perfil em cada mês.",
+   "tabela": "instagram_por_mes",
+   "pergunta": "Como o perfil se comportou em cada mês?",
+   "participacaoRotulo": "Participação nas visualizações"
+  },
+  {
+   "id": "glossario",
+   "bloco": "B7",
+   "titulo": "O que cada número quer dizer",
+   "posicao": "rodape",
+   "metricas": [
+    "investimento",
+    "cpm",
+    "mensagens",
+    "custo_por_mensagem",
+    "cpc"
+   ]
+  }
+ ],
+ "dados": {
+  "faixas": {
+   "faixa_meta": {
+    "id": "faixa_meta",
+    "escopo": {
+     "tipo": "plataforma",
+     "rotulo": "toda a conta do Meta Ads, de julho a setembro"
+    },
+    "metricas": [
+     {
+      "id": "meta_investimento",
+      "rotulo": "Investimento",
+      "unidade": "brl",
+      "valor": {
+       "estado": "ok",
+       "numero": 360
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "meta"
+       ]
+      },
+      "direcaoFavoravel": "neutra",
+      "comparativo": null,
+      "glossarioId": "investimento"
+     },
+     {
+      "id": "meta_cpm",
+      "rotulo": "CPM",
+      "unidade": "brl",
+      "valor": {
+       "estado": "ok",
+       "numero": 10
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "meta"
+       ]
+      },
+      "direcaoFavoravel": "baixa",
+      "comparativo": null,
+      "glossarioId": "cpm"
+     },
+     {
+      "id": "meta_resultado_grupo_1",
+      "rotulo": "Conversas iniciadas",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ok",
+       "numero": 36
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "meta"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null,
+      "objetivo": {
+       "id": "meta:grupo_1",
+       "plataforma": "meta",
+       "rotulo": "Conversas iniciadas"
+      }
+     },
+     {
+      "id": "meta_custo_resultado_grupo_1",
+      "rotulo": "Custo por conversa",
+      "unidade": "brl",
+      "valor": {
+       "estado": "ok",
+       "numero": 8.06
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "meta"
+       ]
+      },
+      "direcaoFavoravel": "baixa",
+      "comparativo": null
+     },
+     {
+      "id": "meta_resultado_grupo_2",
+      "rotulo": "Visitas ao perfil",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ok",
+       "numero": 11
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "meta"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null,
+      "objetivo": {
+       "id": "meta:grupo_2",
+       "plataforma": "meta",
+       "rotulo": "Visitas ao perfil"
+      }
+     },
+     {
+      "id": "meta_custo_resultado_grupo_2",
+      "rotulo": "Custo por visita",
+      "unidade": "brl",
+      "valor": {
+       "estado": "ok",
+       "numero": 6.36
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "meta"
+       ]
+      },
+      "direcaoFavoravel": "baixa",
+      "comparativo": null
+     },
+     {
+      "id": "meta_cpc",
+      "rotulo": "CPC",
+      "unidade": "brl",
+      "valor": {
+       "estado": "ok",
+       "numero": 0.33
+      },
+      "origem": {
+       "tipo": "calculado",
+       "fontes": [
+        "meta"
+       ],
+       "formula": "investimento ÷ cliques no link"
+      },
+      "direcaoFavoravel": "baixa",
+      "comparativo": null,
+      "glossarioId": "cpc"
+     }
+    ]
+   },
+   "faixa_instagram": {
+    "id": "faixa_instagram",
+    "escopo": {
+     "tipo": "perfil",
+     "rotulo": "@cliente_demo, de julho a setembro"
+    },
+    "metricas": [
+     {
+      "id": "instagram_seguidores",
+      "rotulo": "Seguidores",
+      "valor": {
+       "estado": "ok",
+       "numero": 1500
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "neutra",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_visitas",
+      "rotulo": "Visitas ao perfil",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_visualizacoes",
+      "rotulo": "Visualizações",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ok",
+       "numero": 600
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_curtidas",
+      "rotulo": "Curtidas",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ok",
+       "numero": 60
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_comentarios",
+      "rotulo": "Comentários",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_compartilhamentos",
+      "rotulo": "Compartilhamentos",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_salvamentos",
+      "rotulo": "Salvamentos",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     },
+     {
+      "id": "instagram_cliques_bio",
+      "rotulo": "Cliques no link da bio",
+      "unidade": "inteiro",
+      "valor": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "origem": {
+       "tipo": "coletado",
+       "fontes": [
+        "instagram"
+       ]
+      },
+      "direcaoFavoravel": "alta",
+      "comparativo": null
+     }
+    ]
+   }
+  },
+  "tabelas": {
+   "midia_por_mes": {
+    "id": "midia_por_mes",
+    "dimensao": "campanha",
+    "rotuloDimensao": "Mês",
+    "plataforma": "meta",
+    "escopo": {
+     "tipo": "plataforma",
+     "rotulo": "toda a conta do Meta Ads"
+    },
+    "colunaPrincipal": "investimento",
+    "colunas": [
+     {
+      "id": "investimento",
+      "rotulo": "Investimento",
+      "unidade": "brl"
+     },
+     {
+      "id": "cpm",
+      "rotulo": "CPM",
+      "unidade": "brl"
+     },
+     {
+      "id": "cpc",
+      "rotulo": "CPC",
+      "unidade": "brl"
+     }
+    ],
+    "linhas": [
+     {
+      "id": "2026-07",
+      "nome": "julho de 2026",
+      "plataforma": "meta",
+      "valores": {
+       "investimento": {
+        "estado": "ok",
+        "numero": 100
+       },
+       "cpm": {
+        "estado": "ok",
+        "numero": 11
+       },
+       "cpc": {
+        "estado": "ok",
+        "numero": 1
+       }
+      }
+     },
+     {
+      "id": "2026-08",
+      "nome": "agosto de 2026",
+      "plataforma": "meta",
+      "valores": {
+       "investimento": {
+        "estado": "ok",
+        "numero": 120
+       },
+       "cpm": {
+        "estado": "ok",
+        "numero": 11
+       },
+       "cpc": {
+        "estado": "ok",
+        "numero": 1
+       }
+      }
+     },
+     {
+      "id": "2026-09",
+      "nome": "setembro de 2026",
+      "plataforma": "meta",
+      "valores": {
+       "investimento": {
+        "estado": "ok",
+        "numero": 140
+       },
+       "cpm": {
+        "estado": "ok",
+        "numero": 11
+       },
+       "cpc": {
+        "estado": "ok",
+        "numero": 1
+       }
+      }
+     }
+    ],
+    "total": {
+     "rotulo": "Total do trimestre",
+     "valores": {
+      "investimento": {
+       "estado": "ok",
+       "numero": 360
+      },
+      "cpm": {
+       "estado": "ok",
+       "numero": 10
+      },
+      "cpc": {
+       "estado": "ok",
+       "numero": 0.33
+      }
+     }
+    },
+    "definicoes": [
+     "CPM: investimento ÷ impressões × 1.000.",
+     "CPC: investimento ÷ cliques no link.",
+     "O total é do período inteiro (investimento do trimestre ÷ impressões ou cliques do trimestre), e não a média dos meses."
+    ]
+   },
+   "campanhas_meta": {
+    "id": "campanhas_meta",
+    "dimensao": "campanha",
+    "rotuloDimensao": "Campanha",
+    "plataforma": "meta",
+    "escopo": {
+     "tipo": "plataforma",
+     "rotulo": "toda a conta do Meta Ads"
+    },
+    "colunaPrincipal": "investimento",
+    "participacaoRotulo": "Participação no investimento",
+    "colunas": [
+     {
+      "id": "investimento",
+      "rotulo": "Investimento",
+      "unidade": "brl"
+     },
+     {
+      "id": "cpm",
+      "rotulo": "CPM",
+      "unidade": "brl",
+      "secundaria": true
+     },
+     {
+      "id": "resultado",
+      "rotulo": "Resultado",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "custo_resultado",
+      "rotulo": "Custo por resultado",
+      "unidade": "brl"
+     },
+     {
+      "id": "cpc",
+      "rotulo": "CPC",
+      "unidade": "brl",
+      "secundaria": true
+     }
+    ],
+    "linhas": [
+     {
+      "id": "cConversas",
+      "nome": "Conversas",
+      "plataforma": "meta",
+      "etiqueta": "Conversas iniciadas",
+      "valores": {
+       "investimento": {
+        "estado": "ok",
+        "numero": 290
+       },
+       "cpm": {
+        "estado": "ok",
+        "numero": 10
+       },
+       "resultado": {
+        "estado": "ok",
+        "numero": 36
+       },
+       "custo_resultado": {
+        "estado": "ok",
+        "numero": 8.06
+       },
+       "cpc": {
+        "estado": "ok",
+        "numero": 0.29
+       }
+      }
+     },
+     {
+      "id": "cPerfil",
+      "nome": "Perfil",
+      "plataforma": "meta",
+      "etiqueta": "Visitas ao perfil",
+      "valores": {
+       "investimento": {
+        "estado": "ok",
+        "numero": 70
+       },
+       "cpm": {
+        "estado": "ok",
+        "numero": 10
+       },
+       "resultado": {
+        "estado": "ok",
+        "numero": 11
+       },
+       "custo_resultado": {
+        "estado": "ok",
+        "numero": 6.36
+       },
+       "cpc": {
+        "estado": "ok",
+        "numero": 0.7
+       }
+      }
+     }
+    ],
+    "total": {
+     "rotulo": "Total da conta no período",
+     "valores": {
+      "investimento": {
+       "estado": "ok",
+       "numero": 360
+      },
+      "cpm": {
+       "estado": "ok",
+       "numero": 10
+      },
+      "cpc": {
+       "estado": "ok",
+       "numero": 0.33
+      },
+      "resultado": {
+       "estado": "nao_aplicavel",
+       "motivo": "As campanhas desta conta contrataram conversões diferentes. O total de cada uma está na faixa de números do trimestre."
+      },
+      "custo_resultado": {
+       "estado": "nao_aplicavel",
+       "motivo": "As campanhas desta conta contrataram conversões diferentes. O total de cada uma está na faixa de números do trimestre."
+      }
+     }
+    },
+    "definicoes": [
+     "CPC: investimento ÷ cliques no link.",
+     "CPM: investimento ÷ impressões × 1.000.",
+     "Custo por resultado: investimento ÷ resultado, os dois da mesma linha.",
+     "O nome do resultado contratado aparece ao lado do nome de cada campanha; por isso a coluna de resultado não tem um total.",
+     "As campanhas aparecem na ordem do mês em que começaram a rodar.",
+     "O resultado de cada campanha soma todos os meses em que ela registrou algum, inclusive conversas que chegaram no começo do mês seguinte.",
+     "A soma desta tabela fecha com o total da conta: todas as campanhas do período estão aqui."
+    ]
+   },
+   "campeao_por_mes": {
+    "id": "campeao_por_mes",
+    "dimensao": "campanha",
+    "rotuloDimensao": "Mês e anúncio",
+    "plataforma": "meta",
+    "escopo": {
+     "tipo": "grupo",
+     "rotulo": "as campanhas que contrataram conversas iniciadas"
+    },
+    "colunaPrincipal": "resultado",
+    "colunas": [
+     {
+      "id": "resultado",
+      "rotulo": "Conversas iniciadas",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "custo",
+      "rotulo": "Custo por conversa",
+      "unidade": "brl"
+     }
+    ],
+    "linhas": [
+     {
+      "id": "2026-07",
+      "nome": "julho de 2026",
+      "plataforma": "meta",
+      "etiqueta": "Criativo técnico",
+      "valores": {
+       "resultado": {
+        "estado": "ok",
+        "numero": 10
+       },
+       "custo": {
+        "estado": "ok",
+        "numero": 8
+       }
+      }
+     },
+     {
+      "id": "2026-08",
+      "nome": "agosto de 2026",
+      "plataforma": "meta",
+      "etiqueta": "Criativo técnico",
+      "valores": {
+       "resultado": {
+        "estado": "ok",
+        "numero": 12
+       },
+       "custo": {
+        "estado": "ok",
+        "numero": 8.333333333333334
+       }
+      }
+     },
+     {
+      "id": "2026-09",
+      "nome": "setembro de 2026",
+      "plataforma": "meta",
+      "etiqueta": "Criativo técnico",
+      "valores": {
+       "resultado": {
+        "estado": "ok",
+        "numero": 14
+       },
+       "custo": {
+        "estado": "ok",
+        "numero": 7.857142857142857
+       }
+      }
+     }
+    ],
+    "total": {
+     "rotulo": "O período inteiro, todos os anúncios",
+     "valores": {
+      "resultado": {
+       "estado": "ok",
+       "numero": 36
+      },
+      "custo": {
+       "estado": "ok",
+       "numero": 8.06
+      }
+     }
+    },
+    "definicoes": [
+     "Em cada mês, o anúncio que mais trouxe resultado naquele mês, com o número dele no mês.",
+     "A última linha é o período inteiro, somando todos os anúncios, para comparar o campeão de cada mês com o total."
+    ]
+   },
+   "instagram_por_mes": {
+    "id": "instagram_por_mes",
+    "dimensao": "campanha",
+    "rotuloDimensao": "Mês",
+    "plataforma": "instagram",
+    "escopo": {
+     "tipo": "perfil",
+     "rotulo": "@cliente_demo"
+    },
+    "colunaPrincipal": "visualizacoes",
+    "colunas": [
+     {
+      "id": "alcance",
+      "rotulo": "Alcance",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "visitas",
+      "rotulo": "Visitas ao perfil",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "visualizacoes",
+      "rotulo": "Visualizações",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "curtidas",
+      "rotulo": "Curtidas",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "comentarios",
+      "rotulo": "Comentários",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "compartilhamentos",
+      "rotulo": "Compartilhamentos",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "salvamentos",
+      "rotulo": "Salvamentos",
+      "unidade": "inteiro"
+     },
+     {
+      "id": "cliques_bio",
+      "rotulo": "Cliques no link da bio",
+      "unidade": "inteiro"
+     }
+    ],
+    "linhas": [
+     {
+      "id": "2026-07",
+      "nome": "julho de 2026",
+      "plataforma": "instagram",
+      "valores": {
+       "alcance": {
+        "estado": "ok",
+        "numero": 1000
+       },
+       "visitas": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "visualizacoes": {
+        "estado": "ok",
+        "numero": 100
+       },
+       "curtidas": {
+        "estado": "ok",
+        "numero": 10
+       },
+       "comentarios": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "compartilhamentos": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "salvamentos": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "cliques_bio": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       }
+      }
+     },
+     {
+      "id": "2026-08",
+      "nome": "agosto de 2026",
+      "plataforma": "instagram",
+      "valores": {
+       "alcance": {
+        "estado": "ok",
+        "numero": 1100
+       },
+       "visitas": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "visualizacoes": {
+        "estado": "ok",
+        "numero": 200
+       },
+       "curtidas": {
+        "estado": "ok",
+        "numero": 20
+       },
+       "comentarios": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "compartilhamentos": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "salvamentos": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "cliques_bio": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       }
+      }
+     },
+     {
+      "id": "2026-09",
+      "nome": "setembro de 2026",
+      "plataforma": "instagram",
+      "valores": {
+       "alcance": {
+        "estado": "ok",
+        "numero": 1200
+       },
+       "visitas": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "visualizacoes": {
+        "estado": "ok",
+        "numero": 300
+       },
+       "curtidas": {
+        "estado": "ok",
+        "numero": 30
+       },
+       "comentarios": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "compartilhamentos": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "salvamentos": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       },
+       "cliques_bio": {
+        "estado": "ausente",
+        "motivo": "o mensal deste mês não trouxe este número"
+       }
+      }
+     }
+    ],
+    "total": {
+     "rotulo": "Total do trimestre",
+     "valores": {
+      "alcance": {
+       "estado": "nao_aplicavel",
+       "motivo": "O alcance conta pessoas únicas de cada mês: a mesma pessoa alcançada em vários meses entraria várias vezes na soma."
+      },
+      "visitas": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "visualizacoes": {
+       "estado": "ok",
+       "numero": 600
+      },
+      "curtidas": {
+       "estado": "ok",
+       "numero": 60
+      },
+      "comentarios": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "compartilhamentos": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "salvamentos": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      },
+      "cliques_bio": {
+       "estado": "ausente",
+       "motivo": "O Instagram não devolveu este número em julho de 2026, agosto de 2026, setembro de 2026, então o total não fecha."
+      }
+     }
+    },
+    "definicoes": [
+     "Os números descrevem o perfil inteiro, e não só o que veio dos anúncios.",
+     "O alcance não tem total porque conta pessoas únicas de cada mês; os demais números somam."
+    ]
+   }
+  },
+  "evolucoesMensais": {
+   "evolucao_meta": {
+    "colunas": [
+     {
+      "id": "custo",
+      "rotulo": "Investimento",
+      "unidade": "brl"
+     },
+     {
+      "id": "resultado_conversas",
+      "rotulo": "Conversas iniciadas",
+      "unidade": "inteiro",
+      "conversao": "Conversas iniciadas"
+     },
+     {
+      "id": "investimento_conversas",
+      "rotulo": "Investimento em conversas",
+      "unidade": "brl",
+      "oculta": true
+     },
+     {
+      "id": "custo_resultado_conversas",
+      "rotulo": "Custo por conversa",
+      "unidade": "brl",
+      "razao": {
+       "numerador": "investimento_conversas",
+       "denominador": "resultado_conversas"
+      }
+     },
+     {
+      "id": "resultado_perfil",
+      "rotulo": "Visitas ao perfil",
+      "unidade": "inteiro",
+      "conversao": "Visitas ao perfil"
+     },
+     {
+      "id": "investimento_perfil",
+      "rotulo": "Investimento em perfil",
+      "unidade": "brl",
+      "oculta": true
+     },
+     {
+      "id": "custo_resultado_perfil",
+      "rotulo": "Custo por visita",
+      "unidade": "brl",
+      "razao": {
+       "numerador": "investimento_perfil",
+       "denominador": "resultado_perfil"
+      }
+     }
+    ],
+    "meses": [
+     {
+      "competencia": "2026-07",
+      "valores": {
+       "custo": {
+        "estado": "ok",
+        "numero": 100
+       },
+       "resultado_conversas": {
+        "estado": "ok",
+        "numero": 10
+       },
+       "investimento_conversas": {
+        "estado": "ok",
+        "numero": 80
+       },
+       "custo_resultado_conversas": {
+        "estado": "ok",
+        "numero": 8
+       },
+       "resultado_perfil": {
+        "estado": "ok",
+        "numero": 4
+       },
+       "investimento_perfil": {
+        "estado": "ok",
+        "numero": 20
+       },
+       "custo_resultado_perfil": {
+        "estado": "ok",
+        "numero": 5
+       }
+      }
+     },
+     {
+      "competencia": "2026-08",
+      "valores": {
+       "custo": {
+        "estado": "ok",
+        "numero": 120
+       },
+       "resultado_conversas": {
+        "estado": "ok",
+        "numero": 12
+       },
+       "investimento_conversas": {
+        "estado": "ok",
+        "numero": 100
+       },
+       "custo_resultado_conversas": {
+        "estado": "ok",
+        "numero": 8.333333333333334
+       },
+       "resultado_perfil": {
+        "estado": "ok",
+        "numero": 2
+       },
+       "investimento_perfil": {
+        "estado": "ok",
+        "numero": 20
+       },
+       "custo_resultado_perfil": {
+        "estado": "ok",
+        "numero": 10
+       }
+      }
+     },
+     {
+      "competencia": "2026-09",
+      "valores": {
+       "custo": {
+        "estado": "ok",
+        "numero": 140
+       },
+       "resultado_conversas": {
+        "estado": "ok",
+        "numero": 14
+       },
+       "investimento_conversas": {
+        "estado": "ok",
+        "numero": 110
+       },
+       "custo_resultado_conversas": {
+        "estado": "ok",
+        "numero": 7.857142857142857
+       },
+       "resultado_perfil": {
+        "estado": "ok",
+        "numero": 5
+       },
+       "investimento_perfil": {
+        "estado": "ok",
+        "numero": 30
+       },
+       "custo_resultado_perfil": {
+        "estado": "ok",
+        "numero": 6
+       }
+      }
+     }
+    ],
+    "total": {
+     "rotulo": "Total do trimestre",
+     "valores": {
+      "custo": {
+       "estado": "ok",
+       "numero": 360
+      },
+      "resultado_conversas": {
+       "estado": "ok",
+       "numero": 36
+      },
+      "investimento_conversas": {
+       "estado": "ok",
+       "numero": 290
+      },
+      "custo_resultado_conversas": {
+       "estado": "ok",
+       "numero": 8.06
+      },
+      "resultado_perfil": {
+       "estado": "ok",
+       "numero": 11
+      },
+      "investimento_perfil": {
+       "estado": "ok",
+       "numero": 70
+      },
+      "custo_resultado_perfil": {
+       "estado": "ok",
+       "numero": 6.36
+      }
+     }
+    },
+    "id": "evolucao_meta",
+    "plataforma": "meta",
+    "definicoes": [
+     "Cada mês na própria janela fechada."
+    ],
+    "escopo": {
+     "tipo": "plataforma",
+     "rotulo": "toda a conta do Meta Ads"
+    }
+   }
+  },
+  "rankingsCriativos": {
+   "ranking_meta": {
+    "id": "ranking_meta",
+    "escopo": {
+     "tipo": "grupo",
+     "rotulo": "as campanhas que contrataram conversas iniciadas, de julho a setembro"
+    },
+    "ordenadoPor": "conversas iniciadas no período",
+    "criativos": [
+     {
+      "id": "a1",
+      "nome": "Criativo técnico",
+      "miniatura": {
+       "src": "storage://m/2.jpg",
+       "alt": "Criativo Criativo técnico"
+      },
+      "numeros": [
+       {
+        "rotulo": "Conversas iniciadas",
+        "valor": {
+         "estado": "ok",
+         "numero": 36
+        },
+        "unidade": "inteiro"
+       },
+       {
+        "rotulo": "Custo por conversa",
+        "valor": {
+         "estado": "ok",
+         "numero": 8.06
+        },
+        "unidade": "brl"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "quebras": {
+   "regioes_meta": {
+    "id": "regioes_meta",
+    "itens": [
+     {
+      "id": "regiao_1",
+      "rotulo": "Goiás",
+      "valor": {
+       "estado": "ok",
+       "numero": 240
+      },
+      "parteDoTotal": {
+       "estado": "ok",
+       "numero": 0.6666666666666666
+      }
+     },
+     {
+      "id": "regiao_2",
+      "rotulo": "São Paulo",
+      "valor": {
+       "estado": "ok",
+       "numero": 120
+      },
+      "parteDoTotal": {
+       "estado": "ok",
+       "numero": 0.3333333333333333
+      }
+     }
+    ],
+    "pergunta": "De onde veio o público que o investimento do período alcançou?",
+    "unidadeTexto": "Investimento de julho a setembro",
+    "total": {
+     "rotulo": "Total do período",
+     "valor": {
+      "estado": "ok",
+      "numero": 360
+     }
+    },
+    "definicoes": [
+     "A soma de todas as regiões fecha com o investimento do período; diferença de centavos vem do arredondamento de cada mês.",
+     "A região é a que a plataforma atribui a quem viu o anúncio, e não o endereço de quem comprou ou escreveu."
+    ],
+    "escopo": {
+     "tipo": "plataforma",
+     "rotulo": "toda a conta do Meta Ads"
+    },
+    "plataforma": "meta",
+    "unidade": "brl",
+    "rotuloDimensao": "Região"
+   }
+  },
+  "funis": {},
+  "series": {},
+  "origensMensais": [
+   {
+    "competencia": "2026-07",
+    "versao": 1,
+    "checksum": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "checksumFactualEditorial": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   {
+    "competencia": "2026-08",
+    "versao": 2,
+    "checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "checksumFactualEditorial": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+   },
+   {
+    "competencia": "2026-09",
+    "versao": 3,
+    "checksum": "cccccccccccccccccccccccccccccccc",
+    "checksumFactualEditorial": "cccccccccccccccccccccccccccccccc"
+   }
+  ]
+ },
+ "leitura": {
+  "resumoExecutivo": [
+   {
+    "texto": "No 3º trimestre de 2026 (julho a setembro), o investimento foi de R$ 360,00 no Meta Ads.",
+    "sustentadaPor": [
+     "meta_investimento"
+    ]
+   },
+   {
+    "texto": "No Meta Ads, o trimestre fechou com 36 conversas iniciadas a R$ 8,06 cada, 11 visitas ao perfil a R$ 6,36 cada.",
+    "sustentadaPor": [
+     "faixa_meta"
+    ]
+   },
+   {
+    "texto": "Contra o trimestre anterior: conversas iniciadas, de 18 para 36 (+100,0%); visitas ao perfil, de 6 para 11 (+83,3%).",
+    "sustentadaPor": [
+     "evolucao_meta"
+    ]
+   }
+  ],
+  "destaques": [],
+  "atencao": [],
+  "proximosPassos": []
+ },
+ "publicacao": {
+  "estado": "gerado",
+  "versao": 1,
+  "geradoEm": "2026-11-05T12:00:00.000Z",
+  "aprovadoPor": null,
+  "aprovadoEm": null,
+  "enviadoEm": null,
+  "substituiVersao": null,
+  "checksum": "53de58e14a547aec708f343e3fe80454",
+  "checksumFactualEditorial": "e2d2c325d295e4398c26b7ec500efc07"
+ }
+}

@@ -343,6 +343,84 @@ function termoDoGlossario(id) {
   return POR_ID2.get(id);
 }
 
+// src/reports/produto.ts
+var PRODUTO_TRIMESTRAL = "trimestral_externo_cliente";
+var SECOES_EDITORIAIS_TRIMESTRAIS = [
+  {
+    secao: "bloco:aprendizados-trimestral",
+    blocoId: "aprendizados-trimestral",
+    titulo: "Aprendizados do trimestre",
+    objetivo: "Explique o que mudou durante os tr\xEAs meses com evid\xEAncias verific\xE1veis, sem atribuir causas n\xE3o demonstradas."
+  },
+  {
+    secao: "bloco:recomendacoes-trimestral",
+    blocoId: "recomendacoes-trimestral",
+    titulo: "Recomenda\xE7\xF5es para o pr\xF3ximo trimestre",
+    objetivo: "Escreva no m\xE1ximo tr\xEAs decis\xF5es concretas apoiadas em n\xFAmeros auditados, sem prometer resultados."
+  }
+];
+function ehTrimestral(id) {
+  return id?.produto === PRODUTO_TRIMESTRAL;
+}
+function rotuloDoPeriodo(id, curto = false) {
+  if (ehTrimestral(id)) {
+    const competencia = id.competencia;
+    const m = /^(\d{4})-(\d{2})$/.exec(competencia);
+    if (!m || ![3, 6, 9, 12].includes(Number(m[2]))) return id.rotuloPeriodo || "trimestre n\xE3o identificado";
+    const numero = Number(m[2]) / 3;
+    const curtoOficial = numero + "\xBA trimestre de " + m[1];
+    return curto ? curtoOficial : id.rotuloPeriodo || curtoOficial;
+  }
+  if (id.produto === "anual_externo_cliente" && id.rotuloPeriodo) return id.rotuloPeriodo;
+  return formatarCompetencia(id.competencia);
+}
+function nomeDoProduto(id) {
+  if (ehTrimestral(id)) return "Relat\xF3rio trimestral de performance";
+  if (id.produto === "anual_externo_cliente") return "Relat\xF3rio anual de performance";
+  return "Relat\xF3rio mensal de performance";
+}
+function rotuloDoResumo(id) {
+  if (ehTrimestral(id)) return "Resumo do trimestre";
+  if (id.produto === "anual_externo_cliente") return "Resumo do ano";
+  return "Resumo do m\xEAs";
+}
+function rotuloDosNumeros(id) {
+  if (ehTrimestral(id)) return "O trimestre em n\xFAmeros";
+  if (id.produto === "anual_externo_cliente") return "O ano em n\xFAmeros";
+  return "O m\xEAs em n\xFAmeros";
+}
+function snapshotParaExibicao(snapshot) {
+  if (!ehTrimestral(snapshot.identidade)) return snapshot;
+  const copia = structuredClone(snapshot);
+  const arredondar2 = (v) => Math.round((v + Number.EPSILON) * 1e3) / 1e3;
+  const visitar = (no) => {
+    if (!no || typeof no !== "object") return;
+    if (Array.isArray(no)) {
+      no.forEach(visitar);
+      return;
+    }
+    if (no.unidade === "percentual" && no.valor?.estado === "ok")
+      no.valor.numero = arredondar2(no.valor.numero);
+    if (Array.isArray(no.colunas)) {
+      const percentuais = no.colunas.filter((c) => c.unidade === "percentual").map((c) => c.id);
+      for (const id of percentuais) {
+        for (const linha of [...no.linhas ?? [], ...no.meses ?? [], ...no.total ? [no.total] : []]) {
+          if (linha?.valores?.[id]?.estado === "ok")
+            linha.valores[id].numero = arredondar2(linha.valores[id].numero);
+        }
+      }
+    }
+    if (Array.isArray(no.transicoes))
+      for (const t2 of no.transicoes) {
+        if (typeof t2.taxa === "number") t2.taxa = arredondar2(t2.taxa);
+        if (typeof t2.perda === "number") t2.perda = arredondar2(t2.perda);
+      }
+    for (const value of Object.values(no)) visitar(value);
+  };
+  visitar(copia.dados);
+  return copia;
+}
+
 // src/reports/pdf/graficosPdf.tsx
 import { G, Line, Path, Rect, Svg, View, Text } from "@react-pdf/renderer";
 import { jsx, jsxs } from "react/jsx-runtime";
@@ -555,9 +633,13 @@ function destaquesDaCapa(snapshot) {
 
 // src/reports/pdf/RelatorioPdf.tsx
 import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
-var ehAnual = (id) => id.produto === "anual_externo_cliente";
-var periodoDoRelatorio = (id) => ehAnual(id) && id.rotuloPeriodo ? id.rotuloPeriodo : formatarCompetencia(id.competencia);
-var nomeDoProduto = (id) => ehAnual(id) ? "Relat\xF3rio anual de performance" : "Relat\xF3rio mensal de performance";
+var ehEditorial = (secao) => "editorial" in secao;
+function comSecoesEditoriais(secoes, snapshot, analises) {
+  if (!ehTrimestral(snapshot.identidade)) return secoes;
+  const editoriais = SECOES_EDITORIAIS_TRIMESTRAIS.filter((s) => analises.some((a) => a.secao === s.secao)).map((s) => ({ editorial: true, id: s.blocoId, titulo: s.titulo, secao: s.secao }));
+  const glossario = secoes.findIndex((config) => config.bloco === "B7");
+  return glossario < 0 ? [...secoes, ...editoriais] : [...secoes.slice(0, glossario), ...editoriais, ...secoes.slice(glossario)];
+}
 var FOLHA = { largura: 841.89, altura: 595.28 };
 var MARGEM = { lado: 40, topo: 60, base: 46 };
 var LARGURA_UTIL = FOLHA.largura - MARGEM.lado * 2;
@@ -1269,7 +1351,7 @@ function CabecalhoERodape({ snapshot, ctx, logos }) {
         /* @__PURE__ */ jsx2(Text2, { style: ctx.s.cabecalhoCliente, children: t(snapshot.identidade.clienteNome) }),
         "   \xB7   ",
         "Relat\xF3rio de ",
-        t(periodoDoRelatorio(snapshot.identidade))
+        t(rotuloDoPeriodo(snapshot.identidade))
       ] })
     ] }),
     /* @__PURE__ */ jsx2(View2, { style: ctx.s.cabecalhoFio, fixed: true }),
@@ -1303,7 +1385,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }) {
         /* @__PURE__ */ jsx2(View2, { style: { width: 30, height: 3, backgroundColor: c.acento, marginBottom: 14 } }),
         /* @__PURE__ */ jsx2(Text2, { style: { color: c.sobrePrimariaSuave, fontSize: 7.6, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", marginBottom: 10 }, children: nomeDoProduto(id) }),
         /* @__PURE__ */ jsx2(Text2, { style: { color: c.sobrePrimaria, fontSize: id.clienteNome.length > 22 ? 26 : 32, fontWeight: 700, lineHeight: 1.05, letterSpacing: -0.6, marginBottom: 8 }, children: t(id.clienteNome) }),
-        /* @__PURE__ */ jsx2(Text2, { style: { color: c.acento, fontSize: 17, fontWeight: 500 }, children: t(maiuscula(periodoDoRelatorio(id))) })
+        /* @__PURE__ */ jsx2(Text2, { style: { color: c.acento, fontSize: 17, fontWeight: 500 }, children: t(maiuscula(rotuloDoPeriodo(id))) })
       ] }),
       /* @__PURE__ */ jsxs2(View2, { style: { borderTopWidth: 0.8, borderTopColor: c.destaque, paddingTop: 12 }, children: [
         /* @__PURE__ */ jsxs2(Text2, { style: { color: c.sobrePrimariaSuave, fontSize: 7.6, lineHeight: 1.6 }, children: [
@@ -1320,7 +1402,7 @@ function Capa({ snapshot, secoes, paginas, destaques, ctx, logos }) {
     ] }),
     /* @__PURE__ */ jsxs2(View2, { style: { flex: 1, paddingHorizontal: 40, paddingTop: 44, paddingBottom: 34, justifyContent: "space-between" }, children: [
       destaques.length > 0 && /* @__PURE__ */ jsxs2(View2, { children: [
-        /* @__PURE__ */ jsx2(Text2, { style: { color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }, children: ehAnual(id) ? "O ano em n\xFAmeros" : "O m\xEAs em n\xFAmeros" }),
+        /* @__PURE__ */ jsx2(Text2, { style: { color: c.destaque, fontSize: 7.2, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }, children: rotuloDosNumeros(id) }),
         /* @__PURE__ */ jsx2(View2, { style: { flexDirection: "row", marginHorizontal: -5 }, children: destaques.map((metrica) => /* @__PURE__ */ jsx2(View2, { style: { flex: 1, paddingHorizontal: 5 }, children: /* @__PURE__ */ jsxs2(View2, { style: { borderTopWidth: 2.4, borderTopColor: c.primaria, paddingTop: 8 }, children: [
           /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 6.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: c.cinza, marginBottom: 4 }, children: t(metrica.rotulo) }),
           /* @__PURE__ */ jsx2(Text2, { style: { fontSize: 17, fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }, children: tv(metrica.valor, metrica.unidade, metrica.sufixo) }),
@@ -1355,22 +1437,23 @@ function RelatorioPdf({
   paginasDasSecoes,
   aoPaginarSecao
 }) {
-  const publicado = aplicarIntroducaoAprovada(snapshot, introducaoDasAnalises(analisesPublicadas));
+  const publicado = aplicarIntroducaoAprovada(snapshotParaExibicao(snapshot), introducaoDasAnalises(analisesPublicadas));
   const marca = marcaDoRelatorio(publicado.identidade);
   const ctx = { s: estilosSemCompartilhar(criarEstilos(marca.cores)), c: marca.cores, marca, imagens };
-  const secoes = publicado.montagem.filter((config) => config.bloco !== "B8" || Boolean(publicado.dados.comentarios?.[config.comentario]));
+  const secoesDoBloco = publicado.montagem.filter((config) => config.bloco !== "B8" || Boolean(publicado.dados.comentarios?.[config.comentario]));
+  const secoes = comSecoesEditoriais(secoesDoBloco, publicado, analisesPublicadas);
   const resumo = publicado.leitura.resumoExecutivo;
   const observacoesGerais = observacoesPublicas.filter((item) => item.secao === "introducao" || item.secao === "relatorio_inteiro");
   const id = publicado.identidade;
   return /* @__PURE__ */ jsxs2(
     Document,
     {
-      title: `Relat\xF3rio ${periodoDoRelatorio(id)} - ${id.clienteNome}`,
+      title: `Relat\xF3rio ${rotuloDoPeriodo(id)} - ${id.clienteNome}`,
       author: marca.assinatura,
       creator: marca.assinatura,
       producer: marca.assinatura,
       subject: nomeDoProduto(id),
-      keywords: `${marca.nome}, ${ehAnual(id) ? "relat\xF3rio anual" : "relat\xF3rio mensal"}, ${id.clienteNome}, vers\xE3o ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`,
+      keywords: `${marca.nome}, ${id.produto === "anual_externo_cliente" ? "relat\xF3rio anual" : ehTrimestral(id) ? "relat\xF3rio trimestral" : "relat\xF3rio mensal"}, ${id.clienteNome}, vers\xE3o ${publicado.publicacao.versao}, ${publicado.publicacao.checksum}`,
       language: "pt-BR",
       children: [
         /* @__PURE__ */ jsx2(
@@ -1388,13 +1471,32 @@ function RelatorioPdf({
           /* @__PURE__ */ jsx2(CabecalhoERodape, { snapshot: publicado, ctx, logos }),
           resumo.length > 0 && /* @__PURE__ */ jsxs2(View2, { style: ctx.s.resumo, wrap: false, children: [
             /* @__PURE__ */ jsxs2(View2, { style: ctx.s.resumoRotuloCol, children: [
-              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoRotulo, children: ehAnual(id) ? "Resumo do ano" : "Resumo do m\xEAs" }),
-              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoTitulo, children: t(maiuscula(periodoDoRelatorio(id))) })
+              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoRotulo, children: rotuloDoResumo(id) }),
+              /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoTitulo, children: t(maiuscula(rotuloDoPeriodo(id))) })
             ] }),
             /* @__PURE__ */ jsx2(View2, { style: ctx.s.resumoTextoCol, children: resumo.map((afirmacao, indice) => /* @__PURE__ */ jsx2(Text2, { style: ctx.s.resumoTexto, children: t(afirmacao.texto) }, indice)) })
           ] }),
           /* @__PURE__ */ jsx2(Analises, { secao: "introducao", analises: [], observacoes: observacoesGerais.map((item) => ({ ...item, secao: "introducao" })), ctx }),
           secoes.map((config, indice) => {
+            if (ehEditorial(config)) {
+              return /* @__PURE__ */ jsxs2(View2, { style: ctx.s.secao, children: [
+                /* @__PURE__ */ jsxs2(View2, { style: ctx.s.secaoCabecalho, wrap: false, children: [
+                  /* @__PURE__ */ jsx2(Text2, { style: ctx.s.secaoIndice, children: String(indice + 1).padStart(2, "0") }),
+                  /* @__PURE__ */ jsx2(View2, { style: ctx.s.secaoTextos, children: /* @__PURE__ */ jsx2(Text2, { style: ctx.s.secaoTitulo, children: t(config.titulo) }) }),
+                  aoPaginarSecao && /* @__PURE__ */ jsx2(
+                    Text2,
+                    {
+                      style: { position: "absolute", width: 1, height: 1, fontSize: 1, color: "#FFFFFF" },
+                      render: ({ pageNumber }) => {
+                        aoPaginarSecao(config.id, pageNumber);
+                        return " ";
+                      }
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsx2(Analises, { secao: config.secao, analises: analisesPublicadas, observacoes: [], ctx })
+              ] }, config.id);
+            }
             const [abertura, ...resto] = pedacosDoBloco(config, publicado, ctx);
             return /* @__PURE__ */ jsxs2(View2, { style: ctx.s.secao, children: [
               /* @__PURE__ */ jsxs2(View2, { wrap: false, children: [

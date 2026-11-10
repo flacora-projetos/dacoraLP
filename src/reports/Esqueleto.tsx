@@ -24,6 +24,7 @@ import { Link } from 'react-router-dom';
 
 import type { CompetenciaDisponivel, SnapshotBase } from './snapshot';
 import { marcaDoRelatorio } from './marcas';
+import { rotuloDoPeriodo, nomeDoProduto, rotuloDoResumo } from './produto';
 import {
   formatarCarimbo,
   formatarCompetencia,
@@ -120,7 +121,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
   /* A carteira decide a marca (Allgrotech ou Dácora) — ver `marcas.ts`. */
   const marca = marcaDoRelatorio(identidade);
 
-  const competenciaTexto = formatarCompetencia(identidade.competencia);
+  const competenciaTexto = rotuloDoPeriodo(identidade);
   usaPaginaPrivada(`Relatório ${competenciaTexto} — ${identidade.clienteNome} | ${marca.nome}`);
 
   const estado = ESTADO_PUBLICACAO[publicacao.estado] ?? {
@@ -176,7 +177,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
         {/* 2 — capa ------------------------------------------------- */}
         <section className="dc-capa" aria-labelledby="capa-titulo">
           <div className="dc-capa__caixa" data-sobre={proposta === 'A' ? 'verde' : undefined}>
-            <p className="dc-capa__eyebrow">Relatório mensal de performance</p>
+            <p className="dc-capa__eyebrow">{nomeDoProduto(identidade)}</p>
             <h1 className="dc-capa__titulo" id="capa-titulo">
               {identidade.clienteNome}
             </h1>
@@ -199,7 +200,7 @@ export default function Esqueleto({ snapshot, competencias, proposta, secoes, de
         <Secao
           indice={proximo()}
           id="resumo"
-          titulo="Resumo do mês"
+          titulo={rotuloDoResumo(identidade)}
           /**
            * ⚠️ A ABERTURA NÃO PODE ANUNCIAR O QUE O TEXTO LOGO ABAIXO VAI DIZER.
            *

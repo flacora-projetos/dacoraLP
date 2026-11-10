@@ -38,6 +38,8 @@ import {
   type LinhaDecidida,
 } from './_painel-decisao-regras.js';
 import { conferirEstadoEditorial } from './_painel-estado-editorial.js';
+import { conferirAnalisesTrimestrais, lerConferenciaTrimestral } from './_painel-conferencia-trimestral.js';
+import { ehTrimestral } from '../src/reports/produto.js';
 
 /** O mínimo para montar o eco e registrar a auditoria. `token` fica de fora. */
 const COLUNAS_DA_LEITURA = [
@@ -92,7 +94,7 @@ interface LinhaParaEstadoEditorial {
 const COLUNAS_PRE_APROVACAO =
   'id,cliente_slug,competencia,versao,checksum,checksum_factual_editorial,estado,substituido_por,revogado_em,conteudo';
 
-async function conferirProntidaoEditorialParaAprovacao(
+export async function conferirProntidaoEditorialParaAprovacao(
   pedido: { id: string; checksumVisto: string },
   config: { urlSupabase: string; chaveDeServico: string },
 ) {
@@ -107,6 +109,21 @@ async function conferirProntidaoEditorialParaAprovacao(
   if (linha.estado !== 'gerado' || linha.substituido_por || linha.revogado_em) return { ok: false as const, status: 409, erro: 'versao_fora_de_revisao', mensagem: 'Esta versão não está mais aberta para revisão.' };
   if (!linha.conteudo || typeof linha.conteudo !== 'object' || !Array.isArray(linha.conteudo.montagem)) {
     return { ok: false as const, status: 422, erro: 'conteudo_incompleto', mensagem: 'O conteúdo desta versão está incompleto e não pode ser aprovado.' };
+  }
+  if (ehTrimestral(linha.conteudo.identidade)) {
+    const conferencia = await lerConferenciaTrimestral(
+      { id: linha.id, checksum: linha.checksum, competencia: linha.competencia }, config);
+    if (!conferencia) return { ok: false as const, status: 409,
+      erro: 'conferencia_trimestral_pendente',
+      mensagem: 'A conferência interna deste trimestre ainda não foi registrada ou está desatualizada.' };
+    const analises = await conferirAnalisesTrimestrais({
+      id: linha.id, checksum: linha.checksum, clienteSlug: linha.cliente_slug,
+      competencia: linha.competencia, versao: linha.versao,
+      checksumFactual: linha.checksum_factual_editorial,
+    }, config);
+    if (!analises.ok) return { ok: false as const, status: 409,
+      erro: 'aprendizados_recomendacoes_pendentes',
+      mensagem: analises.motivo || 'Aprendizados e recomendações precisam ser aprovados.' };
   }
   const resumo = await conferirEstadoEditorial(
     {

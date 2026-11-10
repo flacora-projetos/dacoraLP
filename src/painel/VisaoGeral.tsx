@@ -67,6 +67,7 @@ export interface EnviosDoMes {
 export interface DadosDaVisaoGeral {
   competencia: string;
   totalCorrentes: number;
+  trimestrais?: { totalCorrentes: number; porCarteira: Fatia[] };
   /** Respostas anteriores a 08/10/2026 não trazem os campos opcionais abaixo. */
   arquivados?: number;
   cobertura: { porCarteira: Fatia[]; porProduto: Fatia[]; porFormato: Fatia[] };
@@ -445,6 +446,26 @@ export default function VisaoGeral({
         abre a fila já filtrada. Esta tela mede a operação — ela não soma investimento nem resultado
         entre clientes, porque cada cliente mede coisas diferentes.
       </p>
+
+      {dados.trimestrais && (
+        <section className="dcp-distribuicao" aria-label="Trimestrais por carteira">
+          <h2 className="dcp-distribuicao__titulo">Trimestrais · separados dos mensais</h2>
+          <p className="dcp-distribuicao__explicacao">
+            {dados.trimestrais.totalCorrentes} relatório(s) trimestral(is) nesta competência.
+            Não entram nas contagens, prazos ou retrabalho do mês.
+          </p>
+          <ul className="dcp-retrabalho">
+            {dados.trimestrais.porCarteira.map(item => (
+              <li key={item.chave}>
+                <button type="button" className="dcp-botao dcp-botao--discreto"
+                  onClick={() => aoFiltrar({ produto: 'trimestral_externo_cliente', carteira: item.chave })}>
+                  {item.rotulo}: {item.quantidade}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="dcp-visao__indicadores">
         <Indicador

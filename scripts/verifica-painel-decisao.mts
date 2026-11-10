@@ -312,6 +312,8 @@ const semGoogle = {
 const fetchOriginal = globalThis.fetch;
 
 interface Cenario {
+  falhaPreRecusa?: 'http' | 'rede';
+  clienteSlug?: string;
   /** Erro que a função do banco devolve, se houver. */
   erroDoBanco?: string;
   /** A linha que a leitura de volta encontra. */
@@ -339,9 +341,15 @@ function dublar(usuario: unknown | null, cenario: Cenario = {}) {
     chamadasAoBanco.push({ url, corpo });
 
     if (url.includes('/rest/v1/relatorios?')) {
+      if (url.includes('select=cliente_slug&') && cenario.falhaPreRecusa === 'http') {
+        return new Response('{}', { status: 503 });
+      }
+      if (url.includes('select=cliente_slug&') && cenario.falhaPreRecusa === 'rede') {
+        throw new TypeError('Falha de rede simulada somente na leitura pré-recusa');
+      }
       return new Response(JSON.stringify([{
         id: ID,
-        cliente_slug: 'cliente_exemplo',
+        cliente_slug: cenario.clienteSlug ?? 'cliente_exemplo',
         competencia: '2026-07',
         versao: 3,
         checksum: CHECKSUM,
@@ -607,31 +615,33 @@ for (const corpoTorto of [
   assert.equal(saida.corpo.gravado, false);
 }
 
+const linhaRecusada = linhaGravada('pessoa.autorizada@exemplo.com', {
+  estado: 'recusado',
+  aprovado_por: null,
+  aprovado_em: null,
+  aprovado_checksum: null,
+  recusado_por: 'pessoa.autorizada@exemplo.com',
+  recusado_em: '2026-08-11T13:00:00Z',
+  recusa_motivo: MOTIVO,
+  correcao_ordem_id: 'ordem-1',
+  correcao_estado: 'aguardando_nova_versao',
+  correcao_solicitado_em: '2026-08-11T13:00:00Z',
+  notificacao_interna_id: 'notificacao-1',
+  notificacao_interna_estado: 'pendente',
+  notificacao_destino_referencia: 'dacora_semanais.recipients',
+  correcao_escopo_secoes: ['bloco:meta'],
+  correcao_catalog_version: CATALOGO,
+  correcao_routing_mode: 'automatic',
+  correcao_causas: [{ ordinal: 1, catalog_version: CATALOGO, cause_id: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters, routing_mode: 'automatic', verification_status: 'pending' }],
+});
+
 /* --- Recusa com motivo ------------------------------------------------ */
 {
   const saida = await chamar({
     usuario: autorizada,
     corpo: { ...CORPO_RECUSA, motivo: `  ${MOTIVO}  ` },
     cenario: {
-      linhaLida: linhaGravada('pessoa.autorizada@exemplo.com', {
-        estado: 'recusado',
-        aprovado_por: null,
-        aprovado_em: null,
-        aprovado_checksum: null,
-        recusado_por: 'pessoa.autorizada@exemplo.com',
-        recusado_em: '2026-08-11T13:00:00Z',
-        recusa_motivo: MOTIVO,
-        correcao_ordem_id: 'ordem-1',
-        correcao_estado: 'aguardando_nova_versao',
-        correcao_solicitado_em: '2026-08-11T13:00:00Z',
-        notificacao_interna_id: 'notificacao-1',
-        notificacao_interna_estado: 'pendente',
-        notificacao_destino_referencia: 'dacora_semanais.recipients',
-        correcao_escopo_secoes: ['bloco:meta'],
-        correcao_catalog_version: CATALOGO,
-        correcao_routing_mode: 'automatic',
-        correcao_causas: [{ ordinal: 1, catalog_version: CATALOGO, cause_id: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters, routing_mode: 'automatic', verification_status: 'pending' }],
-      }),
+      linhaLida: linhaRecusada,
     },
   });
   assert.equal(saida.status, 200);
@@ -645,6 +655,65 @@ for (const corpoTorto of [
   assert.equal(rpc.corpo.p_catalog_version, CATALOGO);
   assert.deepEqual(rpc.corpo.p_causas, [{ cause_id: 'metrica_obrigatoria_ausente', parameters: CAUSAS[0].parameters }]);
   assert.equal('p_escopo_secoes' in rpc.corpo, false);
+}
+
+/* --- A recusa mensal usa somente decisão e read-back ---------------- */
+for (const falhaPreRecusa of ['http', 'rede'] as const) {
+  const saida = await chamar({
+    usuario: autorizada,
+    corpo: CORPO_RECUSA,
+    cenario: { falhaPreRecusa, linhaLida: linhaRecusada },
+  });
+  assert.equal(saida.status, 200);
+  assert.equal(saida.corpo.gravado, true);
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 1);
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rest/v1/relatorios?')).length, 0);
+}
+
+{
+  const saida = await chamar({
+    usuario: autorizada,
+    corpo: CORPO_RECUSA,
+    cenario: {
+      erroDoBanco: 'new row violates check constraint "recusa_trimestral_somente_manual"',
+    },
+  });
+  assert.equal(saida.status, 409);
+  assert.equal(saida.corpo.erro, 'recusa_trimestral_somente_manual');
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 1);
+}
+
+{
+  const causaManual = {
+    causeId: 'texto_ou_grafia',
+    parameters: {
+      section_ids: ['bloco:meta'],
+      description: 'Corrigir a grafia na análise.',
+    },
+  };
+  const saida = await chamar({
+    usuario: autorizada,
+    corpo: { ...CORPO_RECUSA, causas: [causaManual] },
+    cenario: {
+      clienteSlug: 'cliente_exemplo__trimestral',
+      linhaLida: {
+        ...linhaRecusada,
+        cliente_slug: 'cliente_exemplo__trimestral',
+        correcao_routing_mode: 'manual',
+        correcao_causas: [{
+          ordinal: 1,
+          catalog_version: CATALOGO,
+          cause_id: causaManual.causeId,
+          parameters: causaManual.parameters,
+          routing_mode: 'manual',
+          verification_status: 'pending',
+        }],
+      },
+    },
+  });
+  assert.equal(saida.status, 200, JSON.stringify(saida.corpo));
+  assert.equal(saida.corpo.gravado, true);
+  assert.equal(chamadasAoBanco.filter(c => c.url.includes('/rpc/')).length, 1);
 }
 
 /* --- Sem chave de serviço, falha alto — nunca cai para a chave pública -- */

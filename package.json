@@ -49,7 +49,9 @@
     "verifica:data-hub-exportacao": "tsx scripts/verifica-data-hub-exportacao.mts",
     "verifica:data-hub-seletor": "tsx scripts/verifica-data-hub-seletor.mts",
     "verifica:data-hub-recusa": "tsx scripts/verifica-data-hub-recusa.mts",
-    "verifica:analises-aprovadas-painel": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-painel-analises-aprovadas.mts"
+    "verifica:analises-aprovadas-painel": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-painel-analises-aprovadas.mts",
+    "verifica:trimestral": "tsx --import ./scripts/_registra-css-vazio.mjs scripts/verifica-relatorio-trimestral.mts",
+    "verifica:recusa-trimestral-banco": "tsx scripts/verifica-recusa-trimestral-banco.mts"
   },
   "dependencies": {
     "@expo-google-fonts/red-hat-display": "^0.4.1",
