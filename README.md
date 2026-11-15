@@ -145,3 +145,7 @@ O apex `dacora.com.br` redireciona para `www`. Esse redirect é configuração d
 **domínio no painel do Vercel**, não do `vercel.json` — ele acontece antes das
 rotas do deployment. Deve ser 308 (permanente): com 307, o Google trata o apex
 como URL canônica e ignora o redirect para consolidar sinais.
+
+### Revisão web da página inicial
+
+A página inicial tem proteção contra incorporação, política de referência e `nosniff` em `vercel.json`. Para rever mudanças, rode `npx --yes modern-web-guidance@1.0.0 legacy-scan src`, `npm run build` e confira no navegador o atalho flutuante do WhatsApp, a preferência por movimento reduzido e a página pré-renderizada. A proteção se aplica à home. As páginas Negócios e Serviços e Proposta de Landing Page são carregadas sob demanda no navegador e continuam pré-renderizadas no build.

@@ -1,9 +1,15 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ComponentType } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import NegociosServicos from './pages/NegociosServicos';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import PropostaLandingPage from './pages/PropostaLandingPage';
+
+const NegociosServicos = lazy(() => import('./pages/NegociosServicos'));
+const PropostaLandingPage = lazy(() => import('./pages/PropostaLandingPage'));
+
+type PaginasInstitucionais = {
+  negociosServicos: ComponentType;
+  propostaLandingPage: ComponentType;
+};
 
 /**
  * Rotas privadas de relatório (fase W0).
@@ -43,15 +49,17 @@ const RelatorioPublico = lazy(() => import('./pages/RelatorioPublico'));
 const PainelRelatorioInterno = lazy(() => import('./pages/PainelRelatorioInterno'));
 const PainelRevisaoLocal = import.meta.env.DEV ? lazy(() => import('./pages/PainelRevisaoLocal')) : null;
 
-export default function App() {
+export default function App({ paginas }: { paginas?: PaginasInstitucionais }) {
+  const Negocios = paginas?.negociosServicos ?? NegociosServicos;
+  const Proposta = paginas?.propostaLandingPage ?? PropostaLandingPage;
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/reunioes" element={<Suspense fallback={<CarregandoPainel />}><Reunioes /></Suspense>} />
       <Route path="/reunioes/:slug" element={<Suspense fallback={<CarregandoPainel />}><Reunioes /></Suspense>} />
-      <Route path="/negocios-servicos" element={<NegociosServicos />} />
+      <Route path="/negocios-servicos" element={<Suspense fallback={null}><Negocios /></Suspense>} />
       <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
-      <Route path="/proposta-landing-page" element={<PropostaLandingPage />} />
+      <Route path="/proposta-landing-page" element={<Suspense fallback={null}><Proposta /></Suspense>} />
       <Route
         path="/relatorios/demo/a"
         element={
