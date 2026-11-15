@@ -133,7 +133,7 @@ export default function App() {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-24 mt-12 md:mt-0">
           <motion.div
             className="w-full flex flex-col"
-            initial="hidden"
+            initial={reduceMotion ? false : "hidden"}
             animate="visible"
             variants={staggerContainer}
           >
@@ -180,7 +180,7 @@ export default function App() {
       <section className="bg-dacora-primary text-dacora-offwhite py-24 px-6 md:py-32">
         <motion.div 
           className="max-w-4xl mx-auto"
-          initial="hidden"
+          initial={reduceMotion ? false : "hidden"}
           whileInView="visible"
           viewport={{ once: true, margin: '-100px' }}
           variants={staggerContainer}
@@ -222,7 +222,7 @@ export default function App() {
           {/* Imagem (Faixa Editorial) */}
           <motion.div 
             className="w-full lg:w-[45%] h-[40vh] min-h-[300px] lg:h-auto relative"
-            initial={{ opacity: 0, x: -20 }}
+            initial={reduceMotion ? false : { opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.8 }}
@@ -249,7 +249,7 @@ export default function App() {
           <div className="w-full px-6 py-20 lg:px-16 xl:px-24">
             <motion.div 
               className="max-w-2xl"
-              initial="hidden"
+              initial={reduceMotion ? false : "hidden"}
               whileInView="visible"
               viewport={{ once: true, margin: '-100px' }}
               variants={staggerContainer}
@@ -306,7 +306,7 @@ export default function App() {
       <section className="py-24 lg:py-32 px-6 bg-[#EBE7E1] border-t border-t-dacora-sage/10">
         <div className="max-w-7xl mx-auto">
           <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
@@ -317,7 +317,7 @@ export default function App() {
 
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 mb-20"
-            initial="hidden"
+            initial={reduceMotion ? false : "hidden"}
             whileInView="visible"
             viewport={{ once: true, margin: '-50px' }}
             variants={staggerContainer}
@@ -354,7 +354,7 @@ export default function App() {
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4, duration: 0.6 }}
@@ -382,7 +382,7 @@ export default function App() {
         <div className="mx-auto max-w-7xl">
           <motion.div
             className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end"
-            initial="hidden"
+            initial={reduceMotion ? false : "hidden"}
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
             variants={staggerContainer}
@@ -471,7 +471,7 @@ export default function App() {
              
         <motion.div 
           className="max-w-4xl mx-auto text-center relative z-10"
-          initial="hidden"
+          initial={reduceMotion ? false : "hidden"}
           whileInView="visible"
           viewport={{ once: true }}
           variants={staggerContainer}
@@ -564,10 +564,11 @@ export default function App() {
       <motion.a
         href={CONTACT_LINK}
         onClick={trackContact}
+        aria-label="Fale conosco pelo WhatsApp"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1EBE5D] hover:scale-105 hover:shadow-xl transition-all duration-300 group flex items-center justify-center pointer-events-auto"
-        initial={{ scale: 0, opacity: 0 }}
+        className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1EBE5D] motion-safe:hover:scale-105 hover:shadow-xl transition-all duration-300 group flex items-center justify-center pointer-events-auto"
+        initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 1, type: "spring", bounce: 0.5 }}
       >
