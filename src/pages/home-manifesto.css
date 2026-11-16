@@ -151,6 +151,8 @@
 .hm .rod a:hover { color: var(--papel); }
 
 @media (min-width: 768px) { .hm .rod { padding-block: 28px; } }
+/* abre espaço para o botão flutuante do WhatsApp não encostar no botão do herói */
+@media (min-width: 901px) { .hm .heroi .base { padding-right: 76px; } }
 
 @media (max-width: 900px) {
   .hm .topo nav, .hm .dica { display: none; }
