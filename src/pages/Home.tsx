@@ -1,26 +1,38 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Home da Dácora — remodelação "manifesto" (opção 2), escolhida pela Fernanda
+ * e transmitida pelo Flávio em 16/11/2026, com a tipografia Editorial.
+ * Decisão: OpenClaw-Dacora/cerebro/decisoes/2026-11-16-remodelacao-home-dacora.md
+ *
+ * Os efeitos moram em ./home-efeitos e só ligam no navegador (useEffect); o
+ * HTML pré-renderizado mantém todo o texto, que é o que buscadores e IAs leem.
  */
 
-import { motion, useReducedMotion, type Variants } from 'motion/react';
-import { CheckCircle2, Instagram, Pause, Play } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
+import './home-manifesto.css';
+import {
+  iniciarBando,
+  iniciarContagem,
+  iniciarEtapas,
+  iniciarIma,
+  iniciarReticula,
+  iniciarTextoQueAcende,
+} from './home-efeitos';
 
 const CONTACT_LINK = 'https://wa.me/5519988947233?text=Ol%C3%A1%21+Vim+do+site+da+D%C3%A1cora+e+quero+saber+mais';
 const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-18415625900/F2OMCMWG1-kcEKzNoM1E';
 
+/** Só clientes ativos da carteira (conferido em config/clients.json, 16/11/2026). */
 const partnerLogos = [
   { file: 'hannover.png', alt: 'Hannover Fondue', width: 488, height: 140 },
   { file: 'dona-raiz.png', alt: 'Dona Raiz', width: 201, height: 140 },
   { file: 'rei-dos-pulverizadores.png', alt: 'Rei dos Pulverizadores', width: 264, height: 140 },
-  { file: 'realmaq.png', alt: 'Realmaq Service', width: 431, height: 140 },
-  { file: 'med-moveis.png', alt: 'M e D Móveis Planejados', width: 138, height: 140 },
-  { file: 'avlon.png', alt: 'Avlon', width: 302, height: 140 },
   { file: 'aphase.png', alt: 'Aphase', width: 483, height: 140 },
   { file: 'dr-danilo.png', alt: 'Dr. Danilo de Sá', width: 369, height: 140 },
-  { file: 'dr-flavio-zenun.png', alt: 'Dr. Flávio Zenun', width: 565, height: 140 },
   { file: 'lucas-bulcao.png', alt: 'Lucas Bulcão', width: 131, height: 140 },
   { file: 'sant-alberti.png', alt: "Sant'Alberti", width: 639, height: 140 },
   { file: 'aviarte.png', alt: 'Aviarte', width: 296, height: 140 },
@@ -28,549 +40,342 @@ const partnerLogos = [
   { file: 'maria-nazare.png', alt: 'Dra. Maria Nazaré', width: 236, height: 140 },
 ] as const;
 
-const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
-};
-
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2,
-    },
+const etapas = [
+  {
+    n: '01',
+    titulo: 'Diagnóstico comercial',
+    texto: 'Mapeamos o seu processo para identificar gargalos e oportunidades antes de criar qualquer campanha.',
+    img: 'estrategia-planejamento',
+    alt: 'Mapa do processo comercial do cliente',
   },
-};
+  {
+    n: '02',
+    titulo: 'Guia de Criativos',
+    texto: 'Um documento personalizado para orientar a produção de conteúdo estratégico.',
+    img: 'landing-page-mobile',
+    alt: 'Guia de criativos sendo planejado',
+  },
+  {
+    n: '03',
+    titulo: 'Gestão profissional',
+    texto: 'Gestão de tráfego pago por uma equipe especializada com mais de 5 anos de mercado e processo validado.',
+    img: 'estrutura-tecnica',
+    alt: 'Estrutura técnica das campanhas',
+  },
+] as const;
 
 const WhatsAppIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className="w-6 h-6 lg:w-7 lg:h-7"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 lg:w-7 lg:h-7">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
   </svg>
 );
 
 const trackContact = () => {
-  const generateEventId = () => {
-    return typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : 'evt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
-  };
-  
-  const eventId = generateEventId();
+  const eventId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'evt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
 
   // 1. Pixel no front-end
   if (typeof window !== 'undefined' && (window as any).fbq) {
     (window as any).fbq('track', 'Contact', {}, { eventID: eventId });
   }
 
-  // 2. Google Analytics 4 (GA4)
+  // 2. Google Analytics 4 (GA4) e conversão do Google Ads
   if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', 'Contact', {
-      event_category: 'Home Page',
-      event_label: 'Contact'
-    });
-
-    (window as any).gtag('event', 'conversion', {
-      send_to: GOOGLE_ADS_CONVERSION_SEND_TO
-    });
+    (window as any).gtag('event', 'Contact', { event_category: 'Home Page', event_label: 'Contact' });
+    (window as any).gtag('event', 'conversion', { send_to: GOOGLE_ADS_CONVERSION_SEND_TO });
   }
 
   // 3. Conversions API no server-side
   if (typeof window !== 'undefined') {
     const fbp = document.cookie.split('; ').find(row => row.startsWith('_fbp='))?.split('=')[1] || null;
     const fbc = document.cookie.split('; ').find(row => row.startsWith('_fbc='))?.split('=')[1] || null;
-
     fetch('/api/meta-capi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         eventName: 'Contact',
-        eventId: eventId,
+        eventId,
         eventUrl: window.location.href,
         userAgent: navigator.userAgent,
         fbp,
-        fbc
-      })
+        fbc,
+      }),
     }).catch(err => console.error('CAPI fetch error:', err));
   }
 };
 
+/** Botão de contato: abre o WhatsApp e registra a conversão, como antes. */
+function Cta({ children, escuro, id }: { children: string; escuro?: boolean; id?: string }) {
+  return (
+    <a
+      id={id}
+      className={escuro ? 'cta escuro' : 'cta'}
+      href={CONTACT_LINK}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={trackContact}
+      data-ima=""
+    >
+      {children} <span className="s" aria-hidden="true">→</span>
+    </a>
+  );
+}
+
+/** Título palavra por palavra: cada palavra sobe da sua própria máscara. */
+function Palavras({ texto, inicio }: { texto: string; inicio: number }) {
+  const ws = texto.split(' ');
+  return (
+    <>
+      {ws.map((w, k) => (
+        <Fragment key={k}>
+          <span className="palavra">
+            <span style={{ ['--i' as string]: inicio + k }}>{w}</span>
+          </span>
+          {k < ws.length - 1 ? ' ' : null}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** Texto que acende ao rolar: cada palavra vira um alvo. */
+function Acende({ texto }: { texto: string }) {
+  return (
+    <>
+      {texto.split(' ').map((w, k, ws) => (
+        <Fragment key={k}>
+          <span className="w">{w}</span>
+          {k < ws.length - 1 ? ' ' : null}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+const TITULO_1 = 'Você tem um serviço diferenciado.';
+const TITULO_2 = 'O tráfego pago precisa refletir isso.';
+
 export default function App() {
-  const reduceMotion = useReducedMotion() ?? false;
-  const [partnersPaused, setPartnersPaused] = useState(false);
+  const raiz = useRef<HTMLDivElement>(null);
+  const heroi = useRef<HTMLElement>(null);
+  const bando = useRef<HTMLCanvasElement>(null);
+  const retic = useRef<HTMLElement>(null);
+  const acende = useRef<HTMLParagraphElement>(null);
+  const conta = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = raiz.current;
+    if (!el) return;
+    const reduz = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // As classes que "apagam" texto e etapas só valem com os efeitos ligados.
+    if (!reduz) el.classList.add('fx');
+    const limpezas = [
+      bando.current && heroi.current ? iniciarBando(bando.current, heroi.current, el.querySelector('#cta-heroi')) : null,
+      retic.current ? iniciarReticula(retic.current) : null,
+      acende.current ? iniciarTextoQueAcende(acende.current) : null,
+      iniciarEtapas(el),
+      conta.current ? iniciarContagem(conta.current, 150) : null,
+      iniciarIma(el),
+    ];
+    return () => {
+      limpezas.forEach((f) => f?.());
+      el.classList.remove('fx');
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-dacora-offwhite text-dacora-dark font-sans selection:bg-dacora-primary selection:text-dacora-offwhite">
-      {/* 
-        -------------------------------------------
-        SEÇÃO 1 — HERO
-        -------------------------------------------
-      */}
-      <section className="relative min-h-[85vh] lg:min-h-screen flex text-left items-center justify-center overflow-hidden w-full bg-dacora-dark">
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/img/hero-trafego-pago-1920.webp"
-            srcSet="/img/hero-trafego-pago-640.webp 640w, /img/hero-trafego-pago-828.webp 828w, /img/hero-trafego-pago-1280.webp 1280w, /img/hero-trafego-pago-1920.webp 1920w"
-            sizes="100vw"
-            width={1920}
-            height={1280}
-            alt="Gestor de tráfego analisando dados de campanhas para negócios locais"
-            className="w-full h-full object-cover object-[70%_center] md:object-[60%_center]"
-            fetchPriority="high"
-            decoding="async"
-          />
-          {/* General overlay */}
-          <div className="absolute inset-0 bg-dacora-dark/40 pointer-events-none"></div>
-          {/* Left side text protection mask */}
-          <div className="absolute inset-0 bg-gradient-to-r from-dacora-dark/95 via-dacora-dark/75 to-transparent w-full md:w-3/4 lg:w-2/3 pointer-events-none"></div>
+    <div ref={raiz} className="hm">
+      <header className="topo lado">
+        <div className="miolo">
+          <a className="marca" href="#topo" aria-label="Dácora, início da página">dácora</a>
+          <nav aria-label="Seções">
+            <a href="#diagnostico">Diagnóstico</a>
+            <a href="#etapas">Como funciona</a>
+            <a href="#parceiros">Parceiros</a>
+          </nav>
         </div>
+      </header>
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-24 mt-12 md:mt-0">
-          <motion.div
-            className="w-full flex flex-col"
-            initial={reduceMotion ? false : "hidden"}
-            animate="visible"
-            variants={staggerContainer}
-          >
-            <motion.div variants={fadeInUp}>
-              <span className="inline-block uppercase tracking-[0.2em] text-sm font-medium text-dacora-offwhite/80 mb-6">
-                TRÁFEGO PAGO
-              </span>
-            </motion.div>
-            
-            <motion.h1 
-              variants={fadeInUp}
-              className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-dacora-offwhite leading-[1.15] mb-8 tracking-tight max-w-[650px]"
-            >
-              Você tem um serviço diferenciado.<br className="hidden md:block" /> O tráfego pago precisa<br className="hidden md:block" /> refletir isso.
-            </motion.h1>
-            
-            <motion.p 
-              variants={fadeInUp}
-              className="text-lg md:text-xl lg:text-[1.35rem] text-dacora-offwhite/90 font-light mb-10 max-w-[580px] leading-relaxed"
-            >
-              Ajudamos negócios locais a atrair leads qualificados, mas o trabalho começa com um diagnóstico do seu processo comercial, não com o gerenciador.
-            </motion.p>
-            
-            <motion.div variants={fadeInUp}>
-              <a
-                href={CONTACT_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={trackContact}
-                className="inline-flex items-center justify-center px-10 py-[1.125rem] bg-dacora-offwhite text-dacora-primary font-bold text-lg rounded-[4px] hover:bg-white hover:scale-[1.02] transition-all duration-300 w-full sm:w-auto"
-              >
-                Solicitar proposta →
-              </a>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 
-        -------------------------------------------
-        SEÇÃO 2 — QUALIFICAÇÃO
-        -------------------------------------------
-      */}
-      <section className="bg-dacora-primary text-dacora-offwhite py-24 px-6 md:py-32">
-        <motion.div 
-          className="max-w-4xl mx-auto"
-          initial={reduceMotion ? false : "hidden"}
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={staggerContainer}
-        >
-          <motion.h2 
-            variants={fadeInUp}
-            className="text-3xl md:text-4xl lg:text-5xl font-bold mb-16 text-center lg:text-left"
-          >
-            Esse serviço é para você que:
-          </motion.h2>
-
-          <div className="space-y-8 lg:space-y-12">
-            {[
-              "Tem um serviço diferenciado e quer que os anúncios tragam o cliente certo — não só volume.",
-              "Investe em anúncios, mas os leads que chegam não viram cliente — e você nem sabe o porquê.",
-              "Quer uma gestão que entende o seu processo comercial, não só as métricas da campanha."
-            ].map((text, index) => (
-              <motion.div 
-                key={index} 
-                variants={fadeInUp}
-                className="flex items-start gap-5 lg:gap-6 group"
-              >
-                <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-dacora-sage opacity-80 shrink-0 mt-0.5 md:mt-0" strokeWidth={1.5} />
-                <p className="text-xl md:text-2xl font-light leading-relaxed">
-                  {text}
-                </p>
-              </motion.div>
-            ))}
+      <main id="topo">
+        {/* HERÓI — o espetáculo: cada ponto é um lead e o bando segue o mouse */}
+        <section ref={heroi} className="heroi lado grao" aria-labelledby="t1">
+          <div className="foto" aria-hidden="true">
+            <img
+              src="/img/hero-trafego-pago-1920.webp"
+              srcSet="/img/hero-trafego-pago-640.webp 640w, /img/hero-trafego-pago-828.webp 828w, /img/hero-trafego-pago-1280.webp 1280w, /img/hero-trafego-pago-1920.webp 1920w"
+              sizes="100vw"
+              width={1920}
+              height={1280}
+              alt=""
+              fetchPriority="high"
+              decoding="async"
+            />
           </div>
-        </motion.div>
-      </section>
-
-      {/* 
-        -------------------------------------------
-        SEÇÃO 3 — PROBLEMA
-        -------------------------------------------
-      */}
-      <section className="lg:min-h-screen flex flex-col lg:flex-row bg-dacora-offwhite relative">
-          {/* Imagem (Faixa Editorial) */}
-          <motion.div 
-            className="w-full lg:w-[45%] h-[40vh] min-h-[300px] lg:h-auto relative"
-            initial={reduceMotion ? false : { opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.8 }}
-          >
-          <img
-            src="/img/diagnostico-comercial-1200.webp"
-            srcSet="/img/diagnostico-comercial-640.webp 640w, /img/diagnostico-comercial-828.webp 828w, /img/diagnostico-comercial-1200.webp 1200w"
-            sizes="(min-width: 1024px) 45vw, 100vw"
-            width={1200}
-            height={1800}
-            alt="Reunião de diagnóstico do processo comercial antes de iniciar as campanhas"
-            className="w-full h-full object-cover object-[center_60%] lg:object-[20%_70%]"
-            style={{ filter: 'contrast(1.1) grayscale(0.2)' }}
-            loading="lazy"
-            decoding="async"
-          />
-          {/* Overlay esverdeado/frio subtil */}
-          <div className="absolute inset-0 bg-dacora-primary/10 mix-blend-multiply pointer-events-none"></div>
-          <div className="absolute inset-0 bg-dacora-dark/10 pointer-events-none"></div>
-        </motion.div>
-
-        {/* Texto */}
-        <div className="w-full lg:w-[55%] flex items-center">
-          <div className="w-full px-6 py-20 lg:px-16 xl:px-24">
-            <motion.div 
-              className="max-w-2xl"
-              initial={reduceMotion ? false : "hidden"}
-              whileInView="visible"
-              viewport={{ once: true, margin: '-100px' }}
-              variants={staggerContainer}
-            >
-              <motion.div variants={fadeInUp}>
-                <span className="inline-block uppercase tracking-[0.2em] text-sm font-semibold text-dacora-sage mb-6">
-                  DIAGNÓSTICO COMERCIAL
-                </span>
-              </motion.div>
-
-              <motion.h2 
-                variants={fadeInUp}
-                className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold text-dacora-dark mb-8 leading-[1.15] tracking-tight"
-              >
-                O problema nem sempre está no anúncio
-              </motion.h2>
-              
-              <motion.div variants={fadeInUp} className="text-lg md:text-xl text-dacora-gray font-light leading-relaxed">
-                <p className="mb-10">
-                  A maioria dos negócios locais que investe em tráfego pago encontra os gargalos antes do gerenciador:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 my-10">
-                  {[
-                    'Atendimento desorganizado', 
-                    'Oferta mal posicionada', 
-                    'Follow-up inexistente'
-                  ].map((item, idx) => (
-                    <div key={idx} className="pt-4 border-t border-dacora-sage/30">
-                       <span className="text-dacora-dark text-base md:text-lg font-medium block leading-snug">
-                         {item}
-                       </span>
-                    </div>
-                  ))}
-                </div>
-
-                <p className="mb-4">
-                  O anúncio traz o lead. O processo comercial é o que converte.
-                </p>
-                <p>
-                  Por isso a gestão começa com diagnóstico.
-                </p>
-              </motion.div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* 
-        -------------------------------------------
-        SEÇÃO 4 — COMO FUNCIONA
-        -------------------------------------------
-      */}
-      <section className="py-24 lg:py-32 px-6 bg-[#EBE7E1] border-t border-t-dacora-sage/10">
-        <div className="max-w-7xl mx-auto">
-          <motion.h2 
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl lg:text-5xl font-bold text-dacora-dark mb-16 lg:mb-24 text-center lg:text-left"
-          >
-            Como funciona:
-          </motion.h2>
-
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 mb-20"
-            initial={reduceMotion ? false : "hidden"}
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            variants={staggerContainer}
-          >
-            {[
-              {
-                num: "01",
-                title: "Diagnóstico comercial",
-                desc: "Mapeamos o seu processo para identificar gargalos e oportunidades antes de criar qualquer campanha."
-              },
-              {
-                num: "02",
-                title: "Guia de Criativos",
-                desc: "Um documento personalizado para orientar a produção de conteúdo estratégico."
-              },
-              {
-                num: "03",
-                title: "Gestão profissional",
-                desc: "Gestão de tráfego pago por uma equipe especializada com mais de 5 anos de mercado e processo validado."
-              }
-            ].map((step, idx) => (
-              <motion.div key={idx} variants={fadeInUp} className="flex flex-col">
-                <span className="text-6xl lg:text-7xl font-bold text-dacora-primary mb-6 block tracking-tight">
-                  {step.num}
-                </span>
-                <h3 className="text-xl lg:text-2xl font-bold text-dacora-dark mb-4">
-                  {step.title}
-                </h3>
-                <p className="text-dacora-gray font-light text-lg leading-relaxed">
-                  {step.desc}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div 
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="flex justify-center"
-          >
-            <a
-              href={CONTACT_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={trackContact}
-              className="inline-flex items-center justify-center px-10 py-5 bg-dacora-primary text-dacora-offwhite font-bold text-lg md:text-xl rounded-[4px] hover:brightness-110 hover:scale-[1.02] transition-all duration-300"
-            >
-              Quero saber mais →
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 
-        -------------------------------------------
-        SEÇÃO 5 — PARCEIROS
-        -------------------------------------------
-      */}
-      <section className="border-y border-dacora-sage/15 bg-white px-6 py-24 md:py-32" aria-labelledby="parceiros-title">
-        <div className="mx-auto max-w-7xl">
-          <motion.div
-            className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end"
-            initial={reduceMotion ? false : "hidden"}
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-            variants={staggerContainer}
-          >
-            <div className="max-w-3xl">
-              <motion.p variants={fadeInUp} className="mb-6 text-sm font-medium uppercase tracking-[0.2em] text-dacora-sage">
-                Parceiros
-              </motion.p>
-              <motion.h2
-                variants={fadeInUp}
-                id="parceiros-title"
-                className="text-balance text-3xl font-bold leading-[1.12] tracking-tight text-dacora-primary md:text-4xl lg:text-5xl"
-              >
-                Mais de 150 empresas já passaram pelo nosso processo.
-              </motion.h2>
-              <motion.p variants={fadeInUp} className="mt-8 max-w-2xl text-pretty text-lg font-light leading-relaxed text-dacora-gray">
-                De negócios locais a empresas com operação nacional, nossa estratégia parte sempre do mesmo princípio: entender o negócio antes de decidir como anunciar.
-              </motion.p>
+          <canvas ref={bando} aria-hidden="true" />
+          <p className="dica d" aria-hidden="true">cada ponto é um lead.<br />passe o mouse no <b>botão</b>.</p>
+          <div className="miolo">
+            <p className="rot d">tráfego pago para negócios locais</p>
+            <h1 id="t1" aria-label={`${TITULO_1} ${TITULO_2}`}>
+              <span aria-hidden="true"><Palavras texto={TITULO_1} inicio={0} /></span>
+              <span className="v" aria-hidden="true"><Palavras texto={TITULO_2} inicio={TITULO_1.split(' ').length} /></span>
+            </h1>
+            <div className="base">
+              <p>
+                Ajudamos negócios locais a atrair leads qualificados, mas <b>o trabalho começa com um diagnóstico do seu processo comercial</b>, não com o gerenciador.
+              </p>
+              <Cta id="cta-heroi">Solicitar proposta</Cta>
             </div>
+          </div>
+        </section>
 
-            <motion.button
-              variants={fadeInUp}
-              type="button"
-              onClick={() => setPartnersPaused((paused) => !paused)}
-              className="motion-reduce:hidden inline-flex min-h-12 items-center justify-center gap-2 rounded-[4px] border border-dacora-sage/30 px-4 text-sm font-semibold text-dacora-primary transition-[border-color,background-color] duration-200 hover:border-dacora-primary hover:bg-dacora-offwhite focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dacora-primary"
-              aria-pressed={partnersPaused}
-              aria-label={partnersPaused ? 'Continuar carrossel de parceiros' : 'Pausar carrossel de parceiros'}
-            >
-              {partnersPaused ? (
-                <Play className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
-              ) : (
-                <Pause className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
-              )}
-              {partnersPaused ? 'Continuar' : 'Pausar'}
-            </motion.button>
-          </motion.div>
+        {/* PARA QUEM É */}
+        <section className="manif papel lado grao" aria-labelledby="t2">
+          <div className="miolo">
+            <h2 className="d" id="t2">esse serviço é para você que</h2>
+            <p ref={acende} className="grande">
+              <Acende texto="Tem um serviço diferenciado e quer que os anúncios tragam" />{' '}
+              <span className="v"><Acende texto="o cliente certo" /></span>{' '}
+              <Acende texto="— não só volume." />
+            </p>
+            <div className="quem">
+              <article><span className="d n">01 · volume não basta</span><p>Investe em anúncios, mas os leads que chegam não viram cliente — e você nem sabe o porquê.</p></article>
+              <article><span className="d n">02 · processo antes de campanha</span><p>Quer uma gestão que entende o seu processo comercial, não só as métricas da campanha.</p></article>
+              <article><span className="d n">03 · prova toda semana</span><p>Quer ver, toda segunda, o que o investimento trouxe — em mensagem clara, no WhatsApp.</p></article>
+            </div>
+          </div>
+        </section>
 
-          <div
-            className="mt-16 overflow-hidden motion-reduce:overflow-x-auto motion-reduce:pb-4"
-            tabIndex={reduceMotion ? 0 : undefined}
-            role="region"
-            aria-label="Carrossel automático com logos de parceiros"
-          >
-            <div
-              className="dacora-client-marquee flex w-max"
-              data-paused={partnersPaused ? 'true' : 'false'}
-            >
-              {[0, 1].map((groupIndex) => (
-                <div
-                  key={groupIndex}
-                  className="flex shrink-0 gap-4 pr-4"
-                  aria-hidden={groupIndex === 1 ? true : undefined}
-                >
-                  {partnerLogos.map((logo) => (
-                    <div
-                      key={`${groupIndex}-${logo.file}`}
-                      className="flex h-32 min-w-[220px] items-center justify-center rounded-[4px] border border-dacora-sage/20 bg-dacora-offwhite px-8 md:h-36 md:min-w-[260px]"
-                    >
-                      <img
-                        src={`/img/negocios-servicos/logos/${logo.file}`}
-                        alt={groupIndex === 0 ? logo.alt : ''}
-                        width={logo.width}
-                        height={logo.height}
-                        className="max-h-12 w-auto max-w-[170px] object-contain md:max-h-14 md:max-w-[190px]"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-                  ))}
-                </div>
+        {/* DIAGNÓSTICO — a foto se revela por trás da retícula */}
+        <section id="diagnostico" className="diag lado grao" aria-labelledby="t3">
+          <div className="miolo">
+            <div>
+              <p className="d">diagnóstico comercial</p>
+              <h2 id="t3">O problema nem sempre está <span className="v">no anúncio.</span></h2>
+              <p className="l">A maioria dos negócios locais que investe em tráfego pago encontra os gargalos antes do gerenciador:</p>
+              <ul className="garg">
+                <li>Atendimento desorganizado <span className="d">gargalo 1</span></li>
+                <li>Oferta mal posicionada <span className="d">gargalo 2</span></li>
+                <li>Follow-up inexistente <span className="d">gargalo 3</span></li>
+              </ul>
+              <p className="frase">O anúncio traz o lead. O processo comercial é o que <b>converte.</b> Por isso a gestão começa com diagnóstico.</p>
+            </div>
+            <figure ref={retic} className="retic">
+              <img
+                src="/img/diagnostico-comercial-828.webp"
+                srcSet="/img/diagnostico-comercial-640.webp 640w, /img/diagnostico-comercial-828.webp 828w, /img/diagnostico-comercial-1200.webp 1200w"
+                sizes="(min-width: 900px) 600px, 100vw"
+                width={828}
+                height={1242}
+                alt="Reunião de diagnóstico do processo comercial antes de iniciar as campanhas"
+                loading="lazy"
+                decoding="async"
+              />
+              <canvas aria-hidden="true" />
+              <figcaption className="d" aria-hidden="true">passe o mouse para ver por trás do anúncio</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        {/* COMO FUNCIONA — etapas presas na rolagem */}
+        <section id="etapas" className="etapas papel lado grao" aria-labelledby="t4">
+          <div className="miolo">
+            <div className="fixo">
+              <p className="d">como funciona</p>
+              <h2 id="t4">Três etapas, <span className="v">nessa ordem.</span></h2>
+              <div className="contador" aria-hidden="true"><span className="num"><span data-num="">01</span></span><span className="d tot">/ 03</span></div>
+              <div className="barra" aria-hidden="true"><i data-barra="" /></div>
+              <Cta escuro>Quero saber mais</Cta>
+            </div>
+            <div>
+              {etapas.map((e) => (
+                <article key={e.n} className="passo" data-n={e.n}>
+                  <figure>
+                    <img
+                      src={`/img/${e.img}-640.webp`}
+                      srcSet={`/img/${e.img}-400.webp 400w, /img/${e.img}-640.webp 640w, /img/${e.img}-1000.webp 1000w`}
+                      sizes="(min-width: 900px) 640px, 100vw"
+                      alt={e.alt}
+                      width={640}
+                      height={400}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <span className="d">etapa {e.n}</span>
+                  <h3>{e.titulo}</h3>
+                  <p>{e.texto}</p>
+                </article>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/*
-        -------------------------------------------
-        SEÇÃO 6 — CTA FINAL
-        -------------------------------------------
-      */}
-      <section className="relative bg-dacora-primary text-dacora-offwhite py-32 px-6 overflow-hidden">
-        {/* Subtle background detail */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none" 
-             style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #F2EFEB 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-             
-        <motion.div 
-          className="max-w-4xl mx-auto text-center relative z-10"
-          initial={reduceMotion ? false : "hidden"}
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={staggerContainer}
-        >
-          <motion.div variants={fadeInUp} className="mb-6 md:mb-8">
-            <span className="text-dacora-sage/90 italic font-light text-lg md:text-xl tracking-wide">
-              Tráfego atrai. Estrutura converte. Método escala.
-            </span>
-          </motion.div>
-
-          <motion.h2 
-            variants={fadeInUp}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-12 leading-tight"
-          >
-            Quer atrair os clientes certos e se destacar no seu mercado?
-          </motion.h2>
-
-          <motion.div variants={fadeInUp} className="mb-10">
-            <a
-              href={CONTACT_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={trackContact}
-              className="inline-flex items-center justify-center px-10 py-5 bg-dacora-offwhite text-dacora-primary font-bold text-lg md:text-xl rounded-[4px] hover:bg-white transition-colors duration-300"
-            >
-              Solicitar proposta →
-            </a>
-          </motion.div>
-
-          <motion.p 
-            variants={fadeInUp}
-            className="text-dacora-sage font-light text-base md:text-lg max-w-2xl mx-auto"
-          >
-            Vagas limitadas. Trabalhamos com um número reduzido de clientes para garantir qualidade de entrega.
-          </motion.p>
-        </motion.div>
-      </section>
-
-      {/* 
-        -------------------------------------------
-        SEÇÃO 7 — RODAPÉ
-        -------------------------------------------
-      */}
-      <footer className="bg-dacora-primary pt-12 pb-28 md:pb-12 px-6 border-t border-t-dacora-offwhite/10 relative">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 md:pr-24 lg:pr-32">
-          
-          <span className="text-dacora-offwhite/60 font-light tracking-wide text-sm order-3 md:order-1 mt-2 md:mt-0">
-            dacora.com.br
-          </span>
-
-          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 order-1 md:order-2">
-            <a 
-              href="https://www.instagram.com/dacora.com.br/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram da Dácora"
-              className="inline-flex items-center gap-2 text-dacora-offwhite/80 hover:text-dacora-offwhite transition-colors group"
-            >
-              <Instagram className="w-[18px] h-[18px] group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-              <span className="text-sm tracking-wide font-medium">Instagram</span>
-            </a>
-            <Link 
-              to="/politica-de-privacidade"
-              className="text-dacora-offwhite/80 hover:text-dacora-offwhite transition-colors text-sm tracking-wide font-medium"
-            >
-              Política de Privacidade
-            </Link>
-            {/* Página de vendas do Dácora Fluxo: projeto próprio, servido em /fluxo/ pelo vercel.json */}
-            <a
-              href="/fluxo/"
-              className="text-dacora-offwhite/80 hover:text-dacora-offwhite transition-colors text-sm tracking-wide font-medium"
-            >
-              Dácora Fluxo
-            </a>
+        {/* PARCEIROS — o número grande e quem já passou pelo processo */}
+        <section id="parceiros" className="prova lado grao" aria-labelledby="t5">
+          <div className="miolo">
+            <p className="d">parceiros</p>
+            <div className="topo-prova">
+              <div className="cento" aria-hidden="true"><span ref={conta}>150</span><span className="v">+</span></div>
+              <div>
+                <h2 id="t5">Mais de 150 empresas já passaram pelo nosso processo.</h2>
+                <p className="l">De negócios locais a empresas com operação nacional, nossa estratégia parte sempre do mesmo princípio: entender o negócio antes de decidir como anunciar.</p>
+              </div>
+            </div>
+            <ul className="logos" aria-label="Alguns clientes da Dácora">
+              {partnerLogos.map((logo) => (
+                <li key={logo.file}>
+                  <img
+                    src={`/img/negocios-servicos/logos/${logo.file}`}
+                    alt={logo.alt}
+                    width={logo.width}
+                    height={logo.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
+        </section>
 
-          <a 
-            href="https://wa.me/5562999465725"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-dacora-sage/60 hover:text-dacora-offwhite transition-colors text-xs tracking-wide order-2 md:order-3"
-          >
-            Desenvolvido por Flávio Corá
-          </a>
+        {/* CHAMADA FINAL */}
+        <section className="final papel lado grao" aria-labelledby="t6">
+          <div className="miolo">
+            <p className="d">próximo passo</p>
+            <h2 id="t6">Quer atrair os clientes certos e <span className="v">se destacar no seu mercado?</span></h2>
+            <div className="linha">
+              <p>Vagas limitadas. Trabalhamos com um número reduzido de clientes para garantir qualidade de entrega.</p>
+              <Cta escuro>Solicitar proposta</Cta>
+            </div>
+          </div>
+        </section>
+      </main>
 
+      <footer className="rod lado">
+        <div className="miolo">
+          <span>dacora.com.br</span>
+          <nav aria-label="Links do rodapé">
+            <a href="https://www.instagram.com/dacora.com.br/" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <Link to="/politica-de-privacidade">Política de Privacidade</Link>
+            {/* Página de vendas do Dácora Fluxo: projeto próprio, servido em /fluxo/ pelo vercel.json */}
+            <a href="/fluxo/">Dácora Fluxo</a>
+          </nav>
+          <a className="d" href="https://wa.me/5562999465725" target="_blank" rel="noopener noreferrer">desenvolvido por flávio corá</a>
         </div>
       </footer>
 
-      {/* Floating WhatsApp Button */}
+      {/* Botão flutuante do WhatsApp */}
       <motion.a
         href={CONTACT_LINK}
         onClick={trackContact}
-        aria-label="Fale conosco pelo WhatsApp"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1EBE5D] motion-safe:hover:scale-105 hover:shadow-xl transition-all duration-300 group flex items-center justify-center pointer-events-auto"
-        initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
+        aria-label="Fale conosco pelo WhatsApp"
+        className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#1EBE5D] hover:scale-105 hover:shadow-xl transition-all duration-300 group flex items-center justify-center pointer-events-auto"
+        initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 1, type: "spring", bounce: 0.5 }}
+        transition={{ delay: 1, type: 'spring', bounce: 0.5 }}
       >
         <WhatsAppIcon />
         <span className="absolute right-full mr-4 bg-dacora-dark text-dacora-offwhite text-sm font-medium px-4 py-2 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap hidden sm:block">
