@@ -8,9 +8,16 @@ import {
   type Visao,
 } from './visao';
 
+export interface DadosVisao {
+  visao: Visao | null;
+  correcoes: CorrecaoVisao[];
+}
 interface Props {
   existe: boolean;
-  carregar: () => Promise<{ visao: Visao | null; correcoes: CorrecaoVisao[] }>;
+  /** Carregados pela página da reunião, que também mostra o placar no topo. */
+  dados: DadosVisao | null;
+  falhou: boolean;
+  recarregar: () => Promise<void>;
   corrigir: (dados: {
     id: string;
     item_id: string;
@@ -23,7 +30,7 @@ const quando = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
 /** Número do placar: conta de zero até o valor uma vez, parado para quem pede menos movimento. */
-function Contador({ valor }: { valor: number }) {
+export function Contador({ valor }: { valor: number }) {
   const [mostrado, setMostrado] = useState(valor);
   const feito = useRef(false);
   useEffect(() => {
@@ -42,25 +49,7 @@ function Contador({ valor }: { valor: number }) {
   return <>{mostrado}</>;
 }
 
-export default function VisaoGeral({ existe, carregar, corrigir }: Props) {
-  const [dados, setDados] = useState<{ visao: Visao | null; correcoes: CorrecaoVisao[] } | null>(
-    null,
-  );
-  const [falhou, setFalhou] = useState(false);
-  const carregarAtual = useRef(carregar);
-  carregarAtual.current = carregar;
-  async function recarregar() {
-    try {
-      setDados(await carregarAtual.current());
-      setFalhou(false);
-    } catch {
-      setFalhou(true);
-    }
-  }
-  useEffect(() => {
-    if (existe) void recarregar();
-  }, [existe]);
-
+export default function VisaoGeral({ existe, dados, falhou, recarregar, corrigir }: Props) {
   if (!existe)
     return (
       <section className="dcr-bloco">
@@ -88,46 +77,41 @@ export default function VisaoGeral({ existe, carregar, corrigir }: Props) {
   const { visao, correcoes } = dados;
   const efetiva = aplicarCorrecoes(visao.conteudo, correcoes);
   const de = (secao: string) => efetiva.itens.filter((i) => i.secao === secao);
-  const ativos = (secao: string) => de(secao).filter((i) => i.estado !== 'descartado').length;
   const salvar = async (item_id: string, acao: CorrecaoVisao['acao'], texto?: string) => {
     await corrigir({ id: crypto.randomUUID(), item_id, acao, ...(texto ? { texto } : {}) });
     await recarregar();
   };
-  const placar = [
-    { id: 'decisao', rotulo: 'decisões explícitas', n: ativos('decisao') },
-    { id: 'passo', rotulo: 'próximos passos', n: ativos('passo') },
-    { id: 'pendencia', rotulo: 'em aberto', n: ativos('pendencia') },
-    { id: 'risco', rotulo: 'riscos e oportunidades', n: ativos('risco') + ativos('oportunidade') },
-  ];
   const mensal = efetiva.itens.filter(vaiParaOMensal);
   return (
     <div className="dcr-visao">
       <div className="dcr-visao__principal">
-        <p className="dcr-proveniencia">
-          <span>
-            <b>Gerada em {quando(visao.gerada_em)}</b> pelo Jeeves
-          </span>
-          <span>
-            Fontes: transcrição{visao.fontes.slack ? ` · Slack ${visao.fontes.slack}` : ''}
-          </span>
-          <span>
-            Versão {efetiva.versao} ·{' '}
-            {correcoes.length
-              ? `${correcoes.length} ${correcoes.length === 1 ? 'correção' : 'correções'} da equipe`
-              : 'nenhuma correção ainda'}
-          </span>
-        </p>
-        <p className="dcr-legenda">
-          <span>
-            <span className="dcr-tipo dcr-tipo--fato">FATO</span> dito na reunião ou no Slack
-          </span>
-          <span>
-            <span className="dcr-tipo dcr-tipo--decisao">DEC</span> decisão dita com todas as letras
-          </span>
-          <span>
-            <span className="dcr-tipo dcr-tipo--ia">IA</span> leitura da IA, não foi dito assim
-          </span>
-        </p>
+        <div className="dcr-visao__meta">
+          <p className="dcr-proveniencia">
+            <span>
+              <b>Gerada em {quando(visao.gerada_em)}</b> pelo Jeeves
+            </span>
+            <span>
+              Fontes: transcrição{visao.fontes.slack ? ` · Slack ${visao.fontes.slack}` : ''}
+            </span>
+            <span>
+              Versão {efetiva.versao} ·{' '}
+              {correcoes.length
+                ? `${correcoes.length} ${correcoes.length === 1 ? 'correção' : 'correções'} da equipe`
+                : 'nenhuma correção ainda'}
+            </span>
+          </p>
+          <p className="dcr-legenda">
+            <span>
+              <span className="dcr-tipo dcr-tipo--fato">FATO</span> dito
+            </span>
+            <span>
+              <span className="dcr-tipo dcr-tipo--decisao">DEC</span> decidido
+            </span>
+            <span title="Interpretação: não foi dito assim">
+              <span className="dcr-tipo dcr-tipo--ia">IA</span> leitura da IA
+            </span>
+          </p>
+        </div>
         <section className="dcr-executivo">
           <p className="dcr-sobrancelha">resumo executivo · leitura da IA</p>
           <p className={`dcr-executivo__texto dcr-estado--${efetiva.executivo.estado}`}>
@@ -138,16 +122,6 @@ export default function VisaoGeral({ existe, carregar, corrigir }: Props) {
             aoSalvar={salvar}
           />
         </section>
-        <nav className="dcr-placar" aria-label="Resumo em números">
-          {placar.map((p) => (
-            <a key={p.id} href={`#visao-${p.id}`}>
-              <span className="dcr-placar__n">
-                <Contador valor={p.n} />
-              </span>
-              <span>{p.rotulo}</span>
-            </a>
-          ))}
-        </nav>
         {SECOES.map((s) => {
           const itens = de(s.id);
           if (!itens.length) return null;

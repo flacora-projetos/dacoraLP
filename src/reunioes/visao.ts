@@ -100,3 +100,23 @@ export function aplicarCorrecoes(conteudo: ConteudoVisao, correcoes: CorrecaoVis
 export function vaiParaOMensal(item: ItemEfetivo) {
   return item.tipo !== 'ia' && item.estado !== 'descartado';
 }
+
+/** Placar da visão geral (no topo da reunião): conta só o que não foi marcado como "não procede". */
+export function placarDaVisao(itens: ItemEfetivo[]) {
+  const ativos = (...secoes: SecaoVisao[]) =>
+    itens.filter((i) => secoes.includes(i.secao) && i.estado !== 'descartado').length;
+  return [
+    { id: 'decisao', rotulo: 'decisões explícitas', n: ativos('decisao') },
+    { id: 'passo', rotulo: 'próximos passos', n: ativos('passo') },
+    { id: 'pendencia', rotulo: 'em aberto', n: ativos('pendencia') },
+    { id: 'risco', rotulo: 'riscos e oportunidades', n: ativos('risco', 'oportunidade') },
+  ];
+}
+
+/** Título da agenda no formato "Parceiro | Assunto": o assunto vira título e o resto, subtítulo. Só para exibir. */
+export function partirTitulo(titulo: string) {
+  const partes = titulo.split(/\s+\|\s+/).map((p) => p.trim());
+  return partes.length === 2 && partes[0] && partes[1]
+    ? { titulo: partes[1], sub: partes[0] }
+    : { titulo, sub: '' };
+}
