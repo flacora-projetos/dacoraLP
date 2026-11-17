@@ -9,7 +9,8 @@ import type {
   ResumoReuniao,
   Reuniao,
 } from './tipos';
-import VisaoGeral from './VisaoGeral';
+import VisaoGeral, { Contador, type DadosVisao } from './VisaoGeral';
+import { aplicarCorrecoes, partirTitulo, placarDaVisao } from './visao';
 
 interface Props {
   usuario: IdentidadeReunioes;
@@ -77,6 +78,17 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
   const [indice, setIndice] = useState(0);
   const [acesa, setAcesa] = useState<string | null>(null);
   const [atualizado, setAtualizado] = useState('');
+  // Visão geral carregada aqui: a aba mostra o conteúdo e o topo mostra o placar.
+  const [visao, setVisao] = useState<{ dados: DadosVisao | null; falhou: boolean }>({
+    dados: null,
+    falhou: false,
+  });
+  // Na Visão geral, o registro da conversa fica numa gaveta, aberta pelo botão "Registrar ponto".
+  const [gaveta, setGaveta] = useState(false);
+  const abridorGaveta = useRef<HTMLButtonElement>(null);
+  const fecharGaveta = useRef<HTMLButtonElement>(null);
+  const slugAtual = useRef(slug);
+  slugAtual.current = slug;
   const geracao = useRef(0);
   const consultaAtual = useRef(0);
   const tokenAtual = useRef(token);
@@ -142,6 +154,8 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     setModo(null);
     setBusca('');
     setFeedback('');
+    setVisao({ dados: null, falhou: false });
+    setGaveta(false);
     void atualizar();
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void atualizar(true);
@@ -162,6 +176,47 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
   }
   const aba: Aba =
     abaEscolhida ?? (usuario.equipe && modo === 'interno' && detalhe?.tem_visao ? 'visao' : 'roteiro');
+  const verVisao = usuario.equipe && modo === 'interno' && detalhe?.tem_visao === true;
+  const naVisao = aba === 'visao' && usuario.equipe && modo === 'interno';
+  const recarregarVisao = useCallback(async () => {
+    const pedido = slug;
+    try {
+      const dados = await api('visao', undefined, pedido);
+      if (slugAtual.current === pedido) setVisao({ dados, falhou: false });
+    } catch {
+      if (slugAtual.current === pedido) setVisao((v) => ({ ...v, falhou: true }));
+    }
+  }, [api, slug]);
+  useEffect(() => {
+    if (verVisao) void recarregarVisao();
+    else setVisao({ dados: null, falhou: false });
+  }, [verVisao, recarregarVisao]);
+  const placar =
+    verVisao && visao.dados?.visao
+      ? placarDaVisao(aplicarCorrecoes(visao.dados.visao.conteudo, visao.dados.correcoes).itens)
+      : null;
+  const gavetaAberta = gaveta && naVisao;
+  function fechar() {
+    setGaveta(false);
+    abridorGaveta.current?.focus();
+  }
+  useEffect(() => {
+    if (!gavetaAberta) return;
+    fecharGaveta.current?.focus();
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') fechar();
+    };
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [gavetaAberta]);
+  function irParaBloco(id: string) {
+    setAba('visao');
+    window.setTimeout(
+      () => document.getElementById(`visao-${id}`)?.scrollIntoView({ block: 'start' }),
+      0,
+    );
+  }
+  const cabeca = detalhe ? partirTitulo(detalhe.reuniao.titulo) : null;
   const conteudo = detalhe?.reuniao[modo];
   const secoes = conteudo?.secoes ?? [];
   const secao = secoes[Math.min(indice, Math.max(0, secoes.length - 1))];
@@ -309,20 +364,41 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                   <Link className="dcr-voltar" to="/reunioes">
                     ← Todas as reuniões
                   </Link>
-                  <div className="dcr-abertura dcr-abertura--reuniao">
+                  <div className="dcr-cabeca">
                     <div>
                       <p className="dcr-sobrancelha">
                         {detalhe.reuniao.cliente} · {dataBr(detalhe.reuniao.data)}
                       </p>
-                      <h1>{detalhe.reuniao.titulo}</h1>
+                      <h1>{cabeca!.titulo}</h1>
+                      {cabeca!.sub && <p className="dcr-cabeca__sub">{cabeca!.sub}</p>}
                     </div>
-                    <button onClick={() => void copiarLink()}>Copiar link ↗</button>
+                    {placar && (
+                      <nav className="dcr-cabeca__placar" aria-label="Visão geral em números">
+                        {placar.map((p) => (
+                          <a
+                            key={p.id}
+                            href={`#visao-${p.id}`}
+                            className={p.n ? undefined : 'dcr-zero'}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              irParaBloco(p.id);
+                            }}
+                          >
+                            <b>
+                              <Contador valor={p.n} />
+                            </b>
+                            <small>{p.rotulo}</small>
+                          </a>
+                        ))}
+                      </nav>
+                    )}
                   </div>
-                  {usuario.equipe && (
-                    <div className="dcr-escopo" aria-label="Conteúdo da reunião">
-                      <div className="dcr-escopo__botoes">
+                  <div className="dcr-comandos">
+                    {usuario.equipe && (
+                      <div className="dcr-escopo__botoes" role="group" aria-label="Conteúdo da reunião">
                         <button
                           aria-pressed={modo === 'compartilhado'}
+                          title="A pauta que os convidados podem consultar"
                           onClick={() => {
                             setModo('compartilhado');
                             setIndice(0);
@@ -333,72 +409,89 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                         </button>
                         <button
                           aria-pressed={modo === 'interno'}
+                          title="Só a equipe Dácora vê"
                           onClick={() => {
                             setModo('interno');
                             setIndice(0);
                             setAba('roteiro');
                           }}
                         >
-                          Roteiro da equipe
+                          <svg className="dcr-cadeado" viewBox="0 0 16 16" aria-hidden="true">
+                            <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+                          </svg>
+                          Roteiro da equipe<span className="dcr-sr"> (só a equipe Dácora vê)</span>
                         </button>
                       </div>
-                      <p>
-                        {modo === 'interno'
-                          ? 'Apenas a equipe Dácora vê este roteiro.'
-                          : 'Esta é a pauta que os convidados podem consultar.'}
-                      </p>
-                    </div>
-                  )}
-                  <nav className="dcr-abas" aria-label="Área da reunião">
-                    {usuario.equipe && modo === 'interno' && (
+                    )}
+                    <button onClick={() => void copiarLink()}>Copiar link ↗</button>
+                  </div>
+                  <div className="dcr-linha-abas">
+                    <nav className="dcr-abas" aria-label="Área da reunião">
+                      {usuario.equipe && modo === 'interno' && (
+                        <button
+                          aria-current={aba === 'visao' ? 'page' : undefined}
+                          onClick={() => setAba('visao')}
+                        >
+                          Visão geral
+                        </button>
+                      )}
                       <button
-                        aria-current={aba === 'visao' ? 'page' : undefined}
-                        onClick={() => setAba('visao')}
+                        aria-current={aba === 'roteiro' ? 'page' : undefined}
+                        onClick={() => setAba('roteiro')}
                       >
-                        Visão geral <span className="dcr-selo">só equipe</span>
+                        Conduzir reunião
+                      </button>
+                      {(conteudo?.duvidas.length ?? 0) > 0 && (
+                        <button
+                          aria-current={aba === 'duvidas' ? 'page' : undefined}
+                          onClick={() => setAba('duvidas')}
+                        >
+                          Respostas rápidas
+                        </button>
+                      )}
+                      {usuario.equipe && modo === 'interno' && (
+                        <button
+                          aria-current={aba === 'transcricao' ? 'page' : undefined}
+                          onClick={() => setAba('transcricao')}
+                        >
+                          Transcrição
+                        </button>
+                      )}
+                      {usuario.equipe && (
+                        <button
+                          aria-current={aba === 'acessos' ? 'page' : undefined}
+                          onClick={() => setAba('acessos')}
+                        >
+                          Convidados
+                        </button>
+                      )}
+                    </nav>
+                    {naVisao && (
+                      <button
+                        ref={abridorGaveta}
+                        className="dcr-registrar"
+                        aria-expanded={gavetaAberta}
+                        aria-controls="dcr-gaveta"
+                        onClick={() => setGaveta(true)}
+                      >
+                        + Registrar ponto
+                        {detalhe.notas.length > 0 && <b>{detalhe.notas.length}</b>}
                       </button>
                     )}
-                    <button
-                      aria-current={aba === 'roteiro' ? 'page' : undefined}
-                      onClick={() => setAba('roteiro')}
-                    >
-                      Conduzir reunião
-                    </button>
-                    {(conteudo?.duvidas.length ?? 0) > 0 && (
-                      <button
-                        aria-current={aba === 'duvidas' ? 'page' : undefined}
-                        onClick={() => setAba('duvidas')}
-                      >
-                        Respostas rápidas
-                      </button>
-                    )}
-                    {usuario.equipe && modo === 'interno' && (
-                      <button
-                        aria-current={aba === 'transcricao' ? 'page' : undefined}
-                        onClick={() => setAba('transcricao')}
-                      >
-                        Transcrição <span className="dcr-selo">só equipe</span>
-                      </button>
-                    )}
-                    {usuario.equipe && (
-                      <button
-                        aria-current={aba === 'acessos' ? 'page' : undefined}
-                        onClick={() => setAba('acessos')}
-                      >
-                        Convidados
-                      </button>
-                    )}
-                  </nav>
+                  </div>
                 </div>
               </section>
               <div className="dcr-miolo">
-                <div className="dcr-mesa">
+                <div className={`dcr-mesa${naVisao ? ' dcr-mesa--larga' : ''}`}>
                   <div className="dcr-principal" key={`${modo}-${aba}`}>
                     {aba === 'visao' && usuario.equipe && modo === 'interno' ? (
                       <VisaoGeral
                         key={slug}
                         existe={detalhe.tem_visao === true}
-                        carregar={() => api('visao', undefined, slug)}
+                        dados={visao.dados}
+                        falhou={visao.falhou}
+                        recarregar={recarregarVisao}
                         corrigir={async (dados) => {
                           await api('corrigir_visao', dados, slug);
                         }}
@@ -472,17 +565,37 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                       </div>
                     )}
                   </div>
-                  <Anotacoes
-                    key={slug}
-                    notas={detalhe.notas}
-                    equipe={usuario.equipe}
-                    secao={secao?.id ?? 'geral'}
-                    atualizado={atualizado}
-                    aoSalvar={async (dados) => {
-                      await api('anotar', dados, slug);
-                      await atualizar(true);
-                    }}
-                  />
+                  {naVisao && (
+                    <div
+                      className={`dcr-gaveta-fundo${gavetaAberta ? ' dcr-aberta' : ''}`}
+                      aria-hidden="true"
+                      onClick={fechar}
+                    />
+                  )}
+                  <div
+                    id="dcr-gaveta"
+                    className={naVisao ? `dcr-gaveta${gavetaAberta ? ' dcr-aberta' : ''}` : 'dcr-lado'}
+                    {...(naVisao ? { role: 'dialog', 'aria-label': 'Registro da conversa' } : {})}
+                  >
+                    {naVisao && (
+                      <div className="dcr-gaveta__topo">
+                        <button ref={fecharGaveta} onClick={fechar}>
+                          Fechar <span aria-hidden="true">✕</span>
+                        </button>
+                      </div>
+                    )}
+                    <Anotacoes
+                      key={slug}
+                      notas={detalhe.notas}
+                      equipe={usuario.equipe}
+                      secao={secao?.id ?? 'geral'}
+                      atualizado={atualizado}
+                      aoSalvar={async (dados) => {
+                        await api('anotar', dados, slug);
+                        await atualizar(true);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </>

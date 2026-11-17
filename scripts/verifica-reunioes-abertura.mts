@@ -44,10 +44,10 @@ globalThis.fetch = (async (entrada, init) => {
   const slug = url.searchParams.get('slug');
   return Response.json({
     reuniao: {
-      id: slug, slug, titulo: 'Reunião de teste', cliente: 'Cliente de teste', data: '2026-10-29',
+      id: slug, slug, titulo: slug === 'teste-v' ? 'Parceiro >< Cliente | Assunto de teste' : 'Reunião de teste', cliente: 'Cliente de teste', data: '2026-10-29',
       compartilhado, ...(atual.equipe ? { interno: internas } : {}),
     },
-    notas: [],
+    notas: slug === 'teste-v' ? [{ id: 'n1', secao: 'geral', tipo: 'decisao', texto: 'NOTA_TESTE', visibilidade: 'interno', autor_nome: 'Pessoa de teste', criado_em: '2026-10-30T12:00:00Z' }] : [],
     ...(atual.equipe ? { tem_transcricao: slug === 'teste-a', tem_visao: slug === 'teste-v' } : {}),
   });
 }) as typeof fetch;
@@ -77,6 +77,11 @@ try {
   await assentar();
   assert.ok(document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'), 'Equipe abre direto no resumo.');
   assert.equal(botao('Roteiro da equipe').getAttribute('aria-pressed'), 'true');
+  assert.equal(document.querySelector('h1')?.textContent, 'Reunião de teste', 'Título sem barra fica inteiro.');
+  assert.ok(!document.querySelector('.dcr-cabeca__sub'), 'Sem barra, não há subtítulo.');
+  assert.ok(!document.querySelector('.dcr-cabeca__placar'), 'Sem visão geral, não há placar no topo.');
+  assert.ok(!document.querySelector('.dcr-registrar'), 'Fora da visão geral, o registro fica ao lado, sem botão.');
+  assert.ok(document.querySelector('#dcr-gaveta.dcr-lado .dcr-notas'), 'Registro da conversa ao lado do roteiro.');
 
   assert.equal(pedidosTranscricao, 0, 'A transcrição só é buscada quando a aba abre.');
   await clicar('Transcrição');
@@ -108,10 +113,31 @@ try {
   await assentar();
   assert.ok(document.body.textContent?.includes('EXECUTIVO_TESTE'), 'Reunião com visão geral abre nela para a equipe.');
   assert.equal(botao('Visão geral').getAttribute('aria-current'), 'page');
+  assert.equal(document.querySelector('h1')?.textContent, 'Assunto de teste', 'Título da agenda: o assunto vira título.');
+  assert.equal(document.querySelector('.dcr-cabeca__sub')?.textContent, 'Parceiro >< Cliente');
+  assert.ok(!document.querySelector('.dcr-selo'), 'Abas sem selo repetido.');
+  await act(async () => { await new Promise((r) => setTimeout(r, 600)); });
+  const placar = [...document.querySelectorAll('.dcr-cabeca__placar a')].map((a) => a.textContent);
+  assert.deepEqual(placar, ['1decisões explícitas', '0próximos passos', '0em aberto', '1riscos e oportunidades'], 'Placar no topo com a contagem da visão.');
+  assert.ok(document.querySelector('.dcr-cabeca__placar a.dcr-zero'), 'Zero aparece apagado.');
+  const registrar = botao('Registrar ponto');
+  assert.ok(registrar.textContent?.includes('1'), 'O botão mostra quantos registros existem.');
+  const gaveta = document.getElementById('dcr-gaveta')!;
+  assert.ok(gaveta.classList.contains('dcr-gaveta') && !gaveta.classList.contains('dcr-aberta'), 'Na visão geral, o registro começa fechado na gaveta.');
+  assert.ok(gaveta.textContent?.includes('NOTA_TESTE'), 'Os registros continuam lá dentro.');
+  await act(async () => { registrar.click(); });
+  assert.ok(gaveta.classList.contains('dcr-aberta'), 'Registrar ponto abre a gaveta.');
+  assert.equal(registrar.getAttribute('aria-expanded'), 'true');
+  assert.equal(document.activeElement?.textContent?.trim(), 'Fechar ✕', 'Foco vai para o fechar.');
+  await act(async () => { document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' })); });
+  assert.ok(!gaveta.classList.contains('dcr-aberta'), 'Esc fecha a gaveta.');
+  assert.equal(document.activeElement, registrar, 'Foco volta para o botão.');
   const mensal = document.querySelector('.dcr-visao__mensal')?.textContent ?? '';
   assert.ok(mensal.includes('DECISAO_TESTE') && !mensal.includes('RISCO_IA_TESTE'), 'Leitura da IA não aparece como sugestão do mensal.');
   await clicar('Visão do cliente');
   assert.ok(!document.body.textContent?.includes('EXECUTIVO_TESTE'), 'Na visão do cliente a visão geral some.');
+  assert.ok(!document.querySelector('.dcr-cabeca__placar'), 'Na visão do cliente o placar some.');
+  assert.ok(document.querySelector('#dcr-gaveta.dcr-lado'), 'Fora da visão geral, o registro volta para o lado.');
   await clicar('Roteiro da equipe');
   await clicar('Conduzir reunião');
 
@@ -120,6 +146,8 @@ try {
   await assentar();
   assert.ok(!document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'), 'Rebaixamento de acesso remove o roteiro mesmo com detalhe antigo em memória.');
   assert.ok(!document.body.textContent?.includes('Roteiro da equipe'));
+  assert.ok(!document.querySelector('.dcr-cabeca__placar'), 'Convidado não vê o placar da visão geral.');
+  assert.ok(document.querySelector('.dcr-comandos')?.textContent?.includes('Copiar link'), 'Convidado ainda copia o link.');
   assert.ok(document.body.textContent?.includes('A equipe ainda está preparando'));
 
   await act(async () => { await router.navigate('/reunioes/teste-c'); });
