@@ -32,6 +32,13 @@ globalThis.fetch = (async (entrada, init) => {
     pedidosTranscricao++;
     return Response.json({ transcricao: { texto: 'Trecho sobre orçamento\nTrecho sobre prazo', fonte_url: 'https://docs.google.com/document/d/teste/edit', lida_em: '2026-10-30T12:00:00Z' } });
   }
+  if (url.searchParams.get('acao') === 'visao') {
+    assert.ok(atual.equipe, 'Convidado não pode pedir a visão geral.');
+    return Response.json({ visao: { conteudo: { versao: 1, executivo: 'EXECUTIVO_TESTE', itens: [
+      { id: 'a'.repeat(24), secao: 'decisao', tipo: 'decisao', texto: 'DECISAO_TESTE', trecho: 'trecho da decisão', fonte: 'transcricao' },
+      { id: 'b'.repeat(24), secao: 'risco', tipo: 'ia', texto: 'RISCO_IA_TESTE', trecho: 'trecho do risco', fonte: 'transcricao' },
+    ] }, fontes: { transcricao: true, slack: null }, conta: 'contato', gerada_em: '2026-10-30T12:00:00Z', transcricao_lida_em: '2026-10-30T11:00:00Z' }, correcoes: [] });
+  }
   assert.equal(url.searchParams.get('acao'), 'abrir');
   consultas++;
   const slug = url.searchParams.get('slug');
@@ -41,7 +48,7 @@ globalThis.fetch = (async (entrada, init) => {
       compartilhado, ...(atual.equipe ? { interno: internas } : {}),
     },
     notas: [],
-    ...(atual.equipe ? { tem_transcricao: slug === 'teste-a' } : {}),
+    ...(atual.equipe ? { tem_transcricao: slug === 'teste-a', tem_visao: slug === 'teste-v' } : {}),
   });
 }) as typeof fetch;
 
@@ -95,6 +102,17 @@ try {
   await clicar('Transcrição');
   assert.ok(document.body.textContent?.includes('Sem transcrição registrada'), 'Sem transcrição é explícito.');
   assert.equal(pedidosTranscricao, 1, 'Reunião sem transcrição não busca o texto.');
+  await clicar('Conduzir reunião');
+
+  await act(async () => { await router.navigate('/reunioes/teste-v'); });
+  await assentar();
+  assert.ok(document.body.textContent?.includes('EXECUTIVO_TESTE'), 'Reunião com visão geral abre nela para a equipe.');
+  assert.equal(botao('Visão geral').getAttribute('aria-current'), 'page');
+  const mensal = document.querySelector('.dcr-visao__mensal')?.textContent ?? '';
+  assert.ok(mensal.includes('DECISAO_TESTE') && !mensal.includes('RISCO_IA_TESTE'), 'Leitura da IA não aparece como sugestão do mensal.');
+  await clicar('Visão do cliente');
+  assert.ok(!document.body.textContent?.includes('EXECUTIVO_TESTE'), 'Na visão do cliente a visão geral some.');
+  await clicar('Roteiro da equipe');
   await clicar('Conduzir reunião');
 
   atual = { ...pessoa, equipe: false };

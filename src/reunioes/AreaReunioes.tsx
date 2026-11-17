@@ -9,6 +9,7 @@ import type {
   ResumoReuniao,
   Reuniao,
 } from './tipos';
+import VisaoGeral from './VisaoGeral';
 
 interface Props {
   usuario: IdentidadeReunioes;
@@ -61,6 +62,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     notas: Anotacao[];
     convites?: Convite[];
     tem_transcricao?: boolean;
+    tem_visao?: boolean;
   } | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -69,7 +71,9 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
   const [nova, setNova] = useState(false);
   const [modoEscolhido, setModo] = useState<'compartilhado' | 'interno' | null>(null);
   const modo = usuario.equipe ? (modoEscolhido ?? 'interno') : 'compartilhado';
-  const [aba, setAba] = useState<'roteiro' | 'duvidas' | 'acessos' | 'transcricao'>('roteiro');
+  type Aba = 'visao' | 'roteiro' | 'duvidas' | 'acessos' | 'transcricao';
+  // Sem escolha da pessoa, a reunião que já tem visão geral abre nela (equipe, roteiro interno).
+  const [abaEscolhida, setAba] = useState<Aba | null>(null);
   const [indice, setIndice] = useState(0);
   const [acesa, setAcesa] = useState<string | null>(null);
   const [atualizado, setAtualizado] = useState('');
@@ -134,7 +138,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     setDetalhe(null);
     setCarregando(true);
     setIndice(0);
-    setAba('roteiro');
+    setAba(null);
     setModo(null);
     setBusca('');
     setFeedback('');
@@ -156,6 +160,8 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
       setFeedback(`Copie o endereço da barra do navegador para compartilhar esta reunião.`);
     }
   }
+  const aba: Aba =
+    abaEscolhida ?? (usuario.equipe && modo === 'interno' && detalhe?.tem_visao ? 'visao' : 'roteiro');
   const conteudo = detalhe?.reuniao[modo];
   const secoes = conteudo?.secoes ?? [];
   const secao = secoes[Math.min(indice, Math.max(0, secoes.length - 1))];
@@ -344,6 +350,14 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
                     </div>
                   )}
                   <nav className="dcr-abas" aria-label="Área da reunião">
+                    {usuario.equipe && modo === 'interno' && (
+                      <button
+                        aria-current={aba === 'visao' ? 'page' : undefined}
+                        onClick={() => setAba('visao')}
+                      >
+                        Visão geral <span className="dcr-selo">só equipe</span>
+                      </button>
+                    )}
                     <button
                       aria-current={aba === 'roteiro' ? 'page' : undefined}
                       onClick={() => setAba('roteiro')}
@@ -380,7 +394,16 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
               <div className="dcr-miolo">
                 <div className="dcr-mesa">
                   <div className="dcr-principal" key={`${modo}-${aba}`}>
-                    {aba === 'acessos' && usuario.equipe ? (
+                    {aba === 'visao' && usuario.equipe && modo === 'interno' ? (
+                      <VisaoGeral
+                        key={slug}
+                        existe={detalhe.tem_visao === true}
+                        carregar={() => api('visao', undefined, slug)}
+                        corrigir={async (dados) => {
+                          await api('corrigir_visao', dados, slug);
+                        }}
+                      />
+                    ) : aba === 'acessos' && usuario.equipe ? (
                       <Acessos
                         convites={detalhe.convites ?? []}
                         aoSalvar={async (dados) => {

@@ -980,6 +980,260 @@ a.dcr-proxima:hover .dcr-proxima__quando {
   color: #f2b8a0;
 }
 
+/* Visão geral (só equipe) */
+.dcr-visao {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.dcr-proveniencia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 0.84rem;
+  color: var(--cinza);
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--linha);
+}
+.dcr-proveniencia b {
+  color: var(--tinta);
+  font-weight: 600;
+}
+.dcr-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: var(--cinza);
+}
+.dcr-legenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dcr-tipo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 2.7em;
+  height: 1.8em;
+  padding: 0 0.6em;
+  border-radius: 999px;
+  font-family: var(--detalhe);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+.dcr-tipo--fato {
+  background: var(--papel-2);
+  color: var(--tinta);
+}
+.dcr-tipo--decisao {
+  background: var(--verde);
+  color: var(--broto);
+}
+.dcr-tipo--ia {
+  border: 1px dashed var(--cinza);
+  color: var(--cinza);
+}
+.dcr-executivo {
+  margin-top: 30px;
+}
+.dcr-executivo__texto {
+  margin-top: 12px;
+  font-size: clamp(1.4rem, 2.8vw, 2.05rem);
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+  max-width: 34ch;
+}
+.dcr-placar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 30px;
+  border-top: 1.5px solid var(--tinta);
+}
+.dcr-placar a {
+  display: grid;
+  gap: 2px;
+  padding: 14px 12px 6px;
+  border-right: 1px solid var(--linha);
+  font-size: 0.84rem;
+  color: var(--cinza);
+}
+.dcr-placar a:first-child {
+  padding-left: 0;
+}
+.dcr-placar a:last-child {
+  border-right: 0;
+}
+.dcr-placar__n {
+  font-size: clamp(2.6rem, 5vw, 3.8rem);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--tinta);
+  transition: color 0.2s;
+}
+.dcr-placar a:hover .dcr-placar__n {
+  color: var(--verde-2);
+}
+.dcr-visao__bloco {
+  margin-top: 44px;
+  scroll-margin-top: 24px;
+}
+.dcr-visao__bloco > header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--tinta);
+}
+.dcr-visao__bloco ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dcr-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--linha);
+  align-items: start;
+}
+.dcr-item__texto {
+  min-width: 0;
+}
+.dcr-item__texto > p:first-child {
+  max-width: 64ch;
+}
+.dcr-estado--corrigido > .dcr-item__texto > p:first-child,
+p.dcr-estado--corrigido {
+  background: linear-gradient(transparent 62%, rgba(207, 227, 184, 0.85) 62%);
+}
+.dcr-estado--descartado > .dcr-item__texto > p:first-child,
+p.dcr-estado--descartado {
+  text-decoration: line-through;
+  color: var(--salvia);
+}
+.dcr-item__quem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 6px;
+  font-size: 0.86rem;
+}
+.dcr-item__quem em {
+  font-style: normal;
+  color: var(--erro);
+}
+.dcr-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--cinza);
+}
+.dcr .dcr-link {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+  font-size: 0.8rem;
+  color: var(--verde);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.dcr .dcr-link:hover:not(:disabled) {
+  background: none;
+}
+.dcr-trecho {
+  margin: 10px 0 0;
+  border-left: 2px solid var(--broto-2);
+  padding: 4px 0 4px 14px;
+  color: var(--cinza);
+  max-width: 64ch;
+  animation: dcr-surge 0.35s var(--ease) both;
+}
+.dcr-trecho small {
+  margin-top: 6px;
+}
+.dcr-correcao {
+  margin-top: 10px;
+}
+.dcr-correcao > div,
+.dcr-correcao form > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dcr-correcao button {
+  padding: 3px 12px;
+  font-size: 0.76rem;
+  color: var(--cinza);
+}
+.dcr-correcao form {
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+.dcr-correcao .dcr-primario {
+  color: var(--papel);
+}
+.dcr-visao__aviso {
+  margin-top: 24px;
+  background: var(--papel-2);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.dcr-visao__mensal {
+  margin-top: 32px;
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: 16px;
+  padding: 22px;
+}
+.dcr-visao__mensal h3 {
+  margin: 6px 0 6px;
+  font-size: 1.25rem;
+}
+.dcr-visao__mensal ul {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.dcr-visao__mensal li {
+  border-top: 1px solid var(--linha);
+  padding-top: 10px;
+  font-size: 0.92rem;
+}
+.dcr-visao__mensal li .dcr-sobrancelha {
+  display: block;
+  margin-bottom: 4px;
+}
+@media (max-width: 720px) {
+  .dcr-placar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dcr-placar a {
+    border-bottom: 1px solid var(--linha);
+  }
+  .dcr-placar a:nth-child(3) {
+    padding-left: 0;
+  }
+  .dcr-placar a:nth-child(2) {
+    border-right: 0;
+  }
+}
+
 @media (max-width: 1000px) {
   .dcr-mesa {
     grid-template-columns: minmax(0, 1fr);
