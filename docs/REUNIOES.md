@@ -122,16 +122,16 @@ Referências verificadas para a implementação: [API protegida](https://supabas
 e [changelog](https://supabase.com/changelog.md). Usado Supabase JS do lockfile;
 nenhuma mudança de SDK em produção.
 
-## Remodelação visual ousada — 17/11/2026 (branch local, não publicada)
+## Remodelação visual ousada — 17/11/2026 (em produção desde 17/11, PR #91)
 
-Pedido do PO pela skill maestro, nível ousado, depois de duas prévias (a segunda sem cursiva). Branch `feat/reunioes-visual-ousado`, só local: sem push, sem PR e sem publicação até o GO do PO.
+Pedido do PO pela skill maestro, nível ousado, depois de duas prévias (a segunda sem cursiva). Publicada com GO do PO ("Pode publicar direto") pelo PR #91.
 
 - Tipografia da referência da skill: Inter Tight para texto, títulos e números; DM Mono só em rótulos. Sem serifada e sem itálico; destaque por peso e cor (PO, 17/11). Cores e grão da home nova.
 - Lista: herói escuro com a próxima conversa (hoje, amanhã, em N dias) e a fita da semana (segunda a sábado), cada reunião um ponto no seu dia, ligado ao cartão. Lista dividida em próximas e já aconteceram.
 - Reunião: cabeçalho escuro com escopo e abas; abas e etapas entram com transição curta. Emojis de cadeado e pessoas trocados por texto ("só equipe", "Compartilhado").
-- Nada mudou em acesso, convite, anotação, transcrição ou API. A aba Visão geral ainda não existe no código: depende da aprovação da proposta de conteúdo.
+- Nada mudou em acesso, convite, anotação, transcrição ou API. A aba Visão geral entrou na mesma entrega (seção abaixo).
 - Verificado: `verifica:reunioes` (com o teste da aba de transcrição ajustado ao nome sem emoji e provado por mutação), lint e build do Vite; bancada local com dados fictícios em computador e 375 px, sem rolagem lateral. Sem login real e sem produção.
 
-## Visão geral pós-reunião — 17/11/2026 (mesma branch, não publicada)
+## Visão geral pós-reunião — 17/11/2026 (em produção desde 17/11, PR #91)
 
-Aprovada pelo PO ("Aprovo, pode construir"). Aba "Visão geral" só da equipe, no roteiro interno; abre nela quando existe. Tabelas novas `portal_reunioes_visoes` (uma por reunião, sem update) e `portal_reunioes_visao_correcoes` (inserção individual, autor do servidor), migração `20261117190000_portal_reunioes_visoes.sql`, ainda **não aplicada**. Ações `visao` e `corrigir_visao` em `_reunioes.ts`, só equipe; convidado nem recebe `tem_visao`. Contrato e correções em `src/reunioes/visao.ts`, espelhados na Dácora (`OpenClaw-Dacora/src/lib/cerebro/reunioes-visao.js`), que confere os itens antes de gravar. Handoff completo, provas e ordem de publicação: `OpenClaw-Dacora/docs/HANDOFF_REUNIOES_VISAO_GERAL_2026-11-17.md`.
+Aprovada pelo PO ("Aprovo, pode construir"). Aba "Visão geral" só da equipe, no roteiro interno; abre nela quando existe. Tabelas novas `portal_reunioes_visoes` (uma por reunião, sem update) e `portal_reunioes_visao_correcoes` (inserção individual, autor do servidor), migração `20261117190000_portal_reunioes_visoes.sql`, **aplicada no Dácora Reports em 17/11** (RLS ligada, sem acesso para anon/authenticated). Ações `visao` e `corrigir_visao` em `_reunioes.ts`, só equipe; convidado nem recebe `tem_visao`. Contrato e correções em `src/reunioes/visao.ts`, espelhados na Dácora (`OpenClaw-Dacora/src/lib/cerebro/reunioes-visao.js`), que confere os itens antes de gravar. Handoff completo, provas e ordem de publicação: `OpenClaw-Dacora/docs/HANDOFF_REUNIOES_VISAO_GERAL_2026-11-17.md`.
