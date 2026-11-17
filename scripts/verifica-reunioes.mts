@@ -26,6 +26,8 @@ const tabelas = [
   'portal_reunioes_convites',
   'portal_reunioes_notas',
   'portal_reunioes_transcricoes',
+  'portal_reunioes_visoes',
+  'portal_reunioes_visao_correcoes',
 ];
 function nome(n: string) {
   assert.match(n, /^[a-z_]+$/);
@@ -79,7 +81,7 @@ const buscar: typeof fetch = async (entrada, init) => {
   if (init?.method === 'POST') {
     const corpo = JSON.parse(String(init.body));
     const colunas = Object.keys(corpo);
-    sql = `insert into ${nome(tabela)} (${colunas.map(nome).join(',')}) values (${colunas.map((c) => parametro(typeof corpo[c] === 'object' ? JSON.stringify(corpo[c]) : corpo[c])).join(',')})`;
+    sql = `insert into ${nome(tabela)} (${colunas.map(nome).join(',')}) values (${colunas.map((c) => parametro(corpo[c] !== null && typeof corpo[c] === 'object' ? JSON.stringify(corpo[c]) : corpo[c])).join(',')})`;
     if (headers.get('Prefer')?.includes('resolution=merge-duplicates'))
       sql += ` on conflict (${url.searchParams.get('on_conflict')!.split(',').map(nome).join(',')}) do update set ${colunas
         .filter((c) => !['reuniao_id', 'email'].includes(c))
@@ -153,6 +155,12 @@ try {
   await db.exec(
     await fs.readFile(
       new URL('../supabase/migrations/20261030170000_portal_reunioes_transcricoes.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  await db.exec(
+    await fs.readFile(
+      new URL('../supabase/migrations/20261117190000_portal_reunioes_visoes.sql', import.meta.url),
       'utf8',
     ),
   );
@@ -307,6 +315,40 @@ try {
   assert.equal((await chamar('equipe', 'transcricao', reuniao.slug)).dados.transcricao.texto, 'TRANSCRICAO_PRIVADA');
   assert.ok(!JSON.stringify((await chamar('cliente', 'abrir', reuniao.slug)).dados).includes('TRANSCRICAO_PRIVADA'));
   assert.equal((await chamar('cliente', 'transcricao', reuniao.slug)).status, 403);
+
+  // Visão geral: só equipe, correção com autor do servidor, repetição sem duplicar.
+  const idReuniao = semTranscricao.dados.reuniao.id;
+  assert.equal(semTranscricao.dados.tem_visao, false);
+  assert.deepEqual((await chamar('equipe', 'visao', reuniao.slug)).dados, { visao: null, correcoes: [] });
+  const itemId = 'a'.repeat(24);
+  await db.query(
+    `insert into portal_reunioes_visoes (reuniao_id, cliente_slug, data, conteudo, fontes, conta, transcricao_lida_em)
+     values ($1, 'empresa_teste', '2026-10-29', $2, '{"transcricao":true}', 'contato', now())`,
+    [idReuniao, JSON.stringify({ versao: 1, executivo: 'VISAO_PRIVADA', itens: [
+      { id: itemId, secao: 'decisao', tipo: 'decisao', texto: 'Dois kits.', trecho: 'fechado, só os dois kits', fonte: 'transcricao' },
+    ] })],
+  );
+  assert.equal((await chamar('equipe', 'abrir', reuniao.slug)).dados.tem_visao, true);
+  const abertoConvidado = await chamar('cliente', 'abrir', reuniao.slug);
+  assert.equal(abertoConvidado.dados.tem_visao, undefined, 'Convidado não sabe nem que existe visão.');
+  assert.ok(!JSON.stringify(abertoConvidado.dados).includes('VISAO_PRIVADA'));
+  assert.equal((await chamar('cliente', 'visao', reuniao.slug)).status, 403, 'Convidado não lê a visão.');
+  const lida = await chamar('fernanda', 'visao', reuniao.slug);
+  assert.equal(lida.dados.visao.conteudo.executivo, 'VISAO_PRIVADA');
+  const correcao = { id: randomUUID(), item_id: itemId, acao: 'corrigir', texto: 'Dois kits e frete grátis.', autor_nome: 'Forjado', autor_id: clienteId };
+  assert.equal((await chamar('cliente', 'corrigir_visao', reuniao.slug, correcao)).status, 403);
+  assert.equal((await chamar('equipe', 'corrigir_visao', reuniao.slug, { ...correcao, item_id: 'b'.repeat(24) })).status, 400, 'Item que não existe é recusado.');
+  assert.equal((await chamar('equipe', 'corrigir_visao', reuniao.slug, { ...correcao, texto: ' ' })).status, 400, 'Corrigir exige texto.');
+  assert.equal((await chamar('equipe', 'corrigir_visao', reuniao.slug, { ...correcao, acao: 'apagar' })).status, 400);
+  assert.equal((await chamar('fernanda', 'corrigir_visao', reuniao.slug, correcao)).status, 201);
+  assert.equal((await chamar('fernanda', 'corrigir_visao', reuniao.slug, correcao)).status, 201, 'Repetir a mesma correção não duplica.');
+  assert.equal((await chamar('fernanda', 'corrigir_visao', reuniao.slug, { ...correcao, texto: 'Outro texto' })).status, 409, 'Mesmo identificador com outro texto é recusado.');
+  assert.equal((await chamar('equipe', 'corrigir_visao', reuniao.slug, correcao)).status, 409, 'Identificador de correção de outra pessoa não é reaproveitado.');
+  const corrigida = await chamar('equipe', 'visao', reuniao.slug);
+  assert.equal(corrigida.dados.correcoes.length, 1);
+  assert.equal(corrigida.dados.correcoes[0].autor_nome, 'Fernanda', 'O autor vem da sessão, não do corpo.');
+  assert.equal(corrigida.dados.visao.conteudo.itens[0].texto, 'Dois kits.', 'O original fica guardado.');
+  assert.equal((await chamar('equipe', 'corrigir_visao', reuniao.slug, { id: randomUUID(), item_id: 'executivo', acao: 'nao_procede' })).status, 201);
   assert.equal(convidado.dados.convites, undefined);
   assert.ok(
     !/SEGREDO_NEGOCIACAO|ESTRATEGIA_PRIVADA|NOTA_PRIVADA|Fingindo ser equipe/.test(

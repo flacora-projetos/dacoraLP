@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type {
   Anotacao,
@@ -9,6 +9,7 @@ import type {
   ResumoReuniao,
   Reuniao,
 } from './tipos';
+import VisaoGeral from './VisaoGeral';
 
 interface Props {
   usuario: IdentidadeReunioes;
@@ -61,6 +62,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     notas: Anotacao[];
     convites?: Convite[];
     tem_transcricao?: boolean;
+    tem_visao?: boolean;
   } | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -69,8 +71,11 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
   const [nova, setNova] = useState(false);
   const [modoEscolhido, setModo] = useState<'compartilhado' | 'interno' | null>(null);
   const modo = usuario.equipe ? (modoEscolhido ?? 'interno') : 'compartilhado';
-  const [aba, setAba] = useState<'roteiro' | 'duvidas' | 'acessos' | 'transcricao'>('roteiro');
+  type Aba = 'visao' | 'roteiro' | 'duvidas' | 'acessos' | 'transcricao';
+  // Sem escolha da pessoa, a reunião que já tem visão geral abre nela (equipe, roteiro interno).
+  const [abaEscolhida, setAba] = useState<Aba | null>(null);
   const [indice, setIndice] = useState(0);
+  const [acesa, setAcesa] = useState<string | null>(null);
   const [atualizado, setAtualizado] = useState('');
   const geracao = useRef(0);
   const consultaAtual = useRef(0);
@@ -133,7 +138,7 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
     setDetalhe(null);
     setCarregando(true);
     setIndice(0);
-    setAba('roteiro');
+    setAba(null);
     setModo(null);
     setBusca('');
     setFeedback('');
@@ -155,253 +160,432 @@ export default function AreaReunioes({ usuario, token, aoSair }: Props) {
       setFeedback(`Copie o endereço da barra do navegador para compartilhar esta reunião.`);
     }
   }
+  const aba: Aba =
+    abaEscolhida ?? (usuario.equipe && modo === 'interno' && detalhe?.tem_visao ? 'visao' : 'roteiro');
   const conteudo = detalhe?.reuniao[modo];
   const secoes = conteudo?.secoes ?? [];
   const secao = secoes[Math.min(indice, Math.max(0, secoes.length - 1))];
+  const hoje = hojeIso();
+  const filtradas = lista.filter((r) =>
+    normalizar(`${r.titulo} ${r.cliente}`).includes(normalizar(busca)),
+  );
+  const proximas = filtradas.filter((r) => r.data >= hoje).sort((a, b) => a.data.localeCompare(b.data));
+  const anteriores = filtradas.filter((r) => r.data < hoje).sort((a, b) => b.data.localeCompare(a.data));
+  const cartao = (r: ResumoReuniao) => (
+    <Link
+      className={`dcr-reuniao-card${acesa === r.id ? ' dcr-acesa' : ''}`}
+      to={`/reunioes/${r.slug}`}
+      key={r.id}
+      onMouseEnter={() => setAcesa(r.id)}
+      onMouseLeave={() => setAcesa(null)}
+      onFocus={() => setAcesa(r.id)}
+      onBlur={() => setAcesa(null)}
+    >
+      <span className="dcr-dia" aria-hidden="true">
+        {r.data.slice(8, 10)}
+        <small>{mesCurto(r.data)}</small>
+      </span>
+      <span className="dcr-cartao-texto">
+        <h2>{r.titulo}</h2>
+        <span className="dcr-cliente">
+          {r.cliente} · {dataBr(r.data)}
+        </span>
+      </span>
+      <span className="dcr-abrir">
+        Abrir reunião <span aria-hidden="true">↗</span>
+      </span>
+    </Link>
+  );
   return (
     <>
       <header className="dcr-topo">
-        <Link to="/reunioes" className="dcr-marca" aria-label="Dácora, todas as reuniões">
-          dácora<span>®</span>
-        </Link>
-        <span className="dcr-area">reuniões</span>
-        <div className="dcr-identidade">
-          <span>{usuario.nome}</span>
-          <button onClick={() => void aoSair()}>Sair</button>
+        <div className="dcr-miolo">
+          <Link to="/reunioes" className="dcr-marca" aria-label="Dácora, todas as reuniões">
+            dácora<span>®</span>
+          </Link>
+          <span className="dcr-area">reuniões</span>
+          <div className="dcr-identidade">
+            <span>{usuario.nome}</span>
+            <button onClick={() => void aoSair()}>Sair</button>
+          </div>
         </div>
       </header>
       <main className="dcr-corpo">
-        {erro && (
-          <div className="dcr-erro" role="alert">
-            {erro} <button onClick={() => void atualizar()}>Tentar novamente</button>
+        {(erro || feedback) && (
+          <div className="dcr-miolo dcr-avisos">
+            {erro && (
+              <div className="dcr-erro" role="alert">
+                {erro} <button onClick={() => void atualizar()}>Tentar novamente</button>
+              </div>
+            )}
+            {feedback && (
+              <p className="dcr-feedback" role="status">
+                {feedback}
+              </p>
+            )}
           </div>
         )}
-        {feedback && (
-          <p className="dcr-feedback" role="status">
-            {feedback}
-          </p>
-        )}
         {carregando ? (
-          <p role="status">Carregando reuniões…</p>
+          <div className="dcr-miolo">
+            <p role="status" className="dcr-carregando">
+              Carregando reuniões…
+            </p>
+          </div>
         ) : !slug ? (
           <>
-            <div className="dcr-abertura">
-              <div>
-                <p className="dcr-sobrancelha">CONVERSAS QUE VIRAM CAMINHO</p>
-                <h1>À mesma mesa.</h1>
-                <p>Pautas, decisões e próximos passos. Tudo no mesmo lugar.</p>
+            <section className="dcr-heroi">
+              <div className="dcr-miolo">
+                <div className="dcr-abertura">
+                  <div>
+                    <p className="dcr-sobrancelha">CONVERSAS QUE VIRAM CAMINHO</p>
+                    <h1>
+                      À mesma <span className="dcr-leve">mesa.</span>
+                    </h1>
+                    <p>Pautas, decisões e próximos passos. Tudo no mesmo lugar.</p>
+                  </div>
+                  <Proxima lista={lista} hoje={hoje} />
+                </div>
+                <Semana lista={lista} hoje={hoje} acesa={acesa} aoAcender={setAcesa} />
               </div>
-              {usuario.equipe && (
-                <button className="dcr-primario" onClick={() => setNova(!nova)}>
-                  {nova ? 'Fechar' : '+ Nova reunião'}
-                </button>
+            </section>
+            <div className="dcr-miolo">
+              <div className="dcr-barra">
+                <label className="dcr-busca">
+                  Buscar reunião
+                  <input
+                    type="search"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Cliente ou assunto"
+                  />
+                </label>
+                {usuario.equipe && (
+                  <button className="dcr-primario" onClick={() => setNova(!nova)}>
+                    {nova ? 'Fechar' : '+ Nova reunião'}
+                  </button>
+                )}
+              </div>
+              {nova && (
+                <CriarReuniao
+                  aoCriar={async (dados) => {
+                    const r = await api('criar', dados);
+                    setNova(false);
+                    navegar(`/reunioes/${r.reuniao.slug}`);
+                  }}
+                />
+              )}
+              {proximas.length > 0 && (
+                <section className="dcr-grupo" aria-label="Próximas reuniões">
+                  <p className="dcr-sobrancelha">PRÓXIMAS</p>
+                  <div className="dcr-lista">{proximas.map(cartao)}</div>
+                </section>
+              )}
+              {anteriores.length > 0 && (
+                <section className="dcr-grupo" aria-label="Reuniões que já aconteceram">
+                  <p className="dcr-sobrancelha">JÁ ACONTECERAM</p>
+                  <div className="dcr-lista">{anteriores.map(cartao)}</div>
+                </section>
+              )}
+              {!lista.length && !erro && (
+                <div className="dcr-vazio">
+                  <h2>A próxima conversa começa aqui.</h2>
+                  <p>
+                    {usuario.equipe
+                      ? 'Crie uma reunião e salve a pauta antes de convidar as pessoas.'
+                      : 'Suas reuniões convidadas aparecerão aqui.'}
+                  </p>
+                </div>
+              )}
+              {lista.length > 0 && !filtradas.length && (
+                <p className="dcr-vazio-busca">Nenhuma reunião com esse termo.</p>
               )}
             </div>
-            {nova && (
-              <CriarReuniao
-                aoCriar={async (dados) => {
-                  const r = await api('criar', dados);
-                  setNova(false);
-                  navegar(`/reunioes/${r.reuniao.slug}`);
-                }}
-              />
-            )}
-            <label className="dcr-busca">
-              Buscar reunião
-              <input
-                type="search"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Cliente ou assunto"
-              />
-            </label>
-            <div className="dcr-lista">
-              {lista
-                .filter((r) => normalizar(`${r.titulo} ${r.cliente}`).includes(normalizar(busca)))
-                .map((r) => (
-                  <Link className="dcr-reuniao-card" to={`/reunioes/${r.slug}`} key={r.id}>
-                    <span className="dcr-sobrancelha">{r.cliente}</span>
-                    <h2>{r.titulo}</h2>
-                    <p>{dataBr(r.data)}</p>
-                    <span className="dcr-abrir">
-                      Abrir reunião <span aria-hidden="true">↗</span>
-                    </span>
-                  </Link>
-                ))}
-            </div>
-            {!lista.length && !erro && (
-              <div className="dcr-vazio">
-                <h2>A próxima conversa começa aqui.</h2>
-                <p>
-                  {usuario.equipe
-                    ? 'Crie uma reunião e salve a pauta antes de convidar as pessoas.'
-                    : 'Suas reuniões convidadas aparecerão aqui.'}
-                </p>
-              </div>
-            )}
-            {lista.length > 0 &&
-              !lista.some((r) =>
-                normalizar(`${r.titulo} ${r.cliente}`).includes(normalizar(busca)),
-              ) && <p>Nenhuma reunião com esse termo.</p>}
           </>
         ) : (
           detalhe && (
             <>
-              <Link className="dcr-voltar" to="/reunioes">
-                ← Todas as reuniões
-              </Link>
-              <div className="dcr-abertura dcr-abertura--reuniao">
-                <div>
-                  <p className="dcr-sobrancelha">
-                    {detalhe.reuniao.cliente} · {dataBr(detalhe.reuniao.data)}
-                  </p>
-                  <h1>{detalhe.reuniao.titulo}</h1>
-                </div>
-                <button onClick={() => void copiarLink()}>Copiar link ↗</button>
-              </div>
-              {usuario.equipe && (
-                <div className="dcr-escopo" aria-label="Conteúdo da reunião">
-                  <button
-                    aria-pressed={modo === 'compartilhado'}
-                    onClick={() => {
-                      setModo('compartilhado');
-                      setIndice(0);
-                      setAba('roteiro');
-                    }}
-                  >
-                    👥 Visão do cliente
-                  </button>
-                  <button
-                    aria-pressed={modo === 'interno'}
-                    onClick={() => {
-                      setModo('interno');
-                      setIndice(0);
-                      setAba('roteiro');
-                    }}
-                  >
-                    🔒 Roteiro da equipe
-                  </button>
-                  <p>
-                    {modo === 'interno'
-                      ? 'Apenas a equipe Dácora vê este roteiro.'
-                      : 'Esta é a pauta que os convidados podem consultar.'}
-                  </p>
-                </div>
-              )}
-              <nav className="dcr-abas" aria-label="Área da reunião">
-                <button
-                  aria-current={aba === 'roteiro' ? 'page' : undefined}
-                  onClick={() => setAba('roteiro')}
-                >
-                  Conduzir reunião
-                </button>
-                {(conteudo?.duvidas.length ?? 0) > 0 && (
-                  <button
-                    aria-current={aba === 'duvidas' ? 'page' : undefined}
-                    onClick={() => setAba('duvidas')}
-                  >
-                    Respostas rápidas
-                  </button>
-                )}
-                {usuario.equipe && modo === 'interno' && (
-                  <button
-                    aria-current={aba === 'transcricao' ? 'page' : undefined}
-                    onClick={() => setAba('transcricao')}
-                  >
-                    🔒 Transcrição
-                  </button>
-                )}
-                {usuario.equipe && (
-                  <button
-                    aria-current={aba === 'acessos' ? 'page' : undefined}
-                    onClick={() => setAba('acessos')}
-                  >
-                    Convidados
-                  </button>
-                )}
-              </nav>
-              <div className="dcr-mesa">
-                <div className="dcr-principal">
-                  {aba === 'acessos' && usuario.equipe ? (
-                    <Acessos
-                      convites={detalhe.convites ?? []}
-                      aoSalvar={async (dados) => {
-                        await api('convidar', dados, slug);
-                        await atualizar(true);
-                        setFeedback(
-                          'Acesso atualizado. Compartilhe o link com a pessoa; nenhum e-mail foi enviado.',
-                        );
-                      }}
-                    />
-                  ) : aba === 'transcricao' && usuario.equipe && modo === 'interno' ? (
-                    <PainelTranscricao
-                      key={slug}
-                      existe={detalhe.tem_transcricao === true}
-                      carregar={() => api('transcricao', undefined, slug)}
-                    />
-                  ) : aba === 'duvidas' ? (
-                    <Duvidas conteudo={conteudo!} />
-                  ) : (
-                    <div className="dcr-roteiro">
-                      <nav aria-label="Etapas do roteiro">
-                        {secoes.map((s, i) => (
-                          <button
-                            key={s.id}
-                            onClick={() => setIndice(i)}
-                            aria-current={indice === i ? 'step' : undefined}
-                          >
-                            <span>{String(i + 1).padStart(2, '0')}</span>
-                            {s.titulo}
-                          </button>
-                        ))}
-                      </nav>
-                      <article key={`${modo}-${secao?.id}`}>
-                        <p className="dcr-sobrancelha">
-                          {secao ? `${indice + 1} DE ${secoes.length}` : 'PAUTA'}
-                        </p>
-                        <h2>{secao?.titulo ?? (modo === 'compartilhado' ? 'Pauta ainda não compartilhada' : 'Roteiro a preparar')}</h2>
-                        <Texto
-                          valor={
-                            secao?.texto ?? (modo === 'compartilhado'
-                              ? usuario.equipe
-                                ? 'Consulte o Roteiro da equipe para ver o conteúdo interno. Esta visão mostra apenas o que foi preparado para os convidados.'
-                                : 'A equipe ainda está preparando o conteúdo que será compartilhado aqui.'
-                              : 'Registre os pontos da conversa nas anotações ao lado.')
-                          }
-                        />
-                        <div className="dcr-passos">
-                          <button disabled={indice === 0} onClick={() => setIndice((i) => i - 1)}>
-                            ← Anterior
-                          </button>
-                          <button
-                            className="dcr-primario"
-                            disabled={indice >= secoes.length - 1}
-                            onClick={() => setIndice((i) => i + 1)}
-                          >
-                            Próximo ponto →
-                          </button>
-                        </div>
-                      </article>
+              <section className="dcr-heroi dcr-heroi--reuniao">
+                <div className="dcr-miolo">
+                  <Link className="dcr-voltar" to="/reunioes">
+                    ← Todas as reuniões
+                  </Link>
+                  <div className="dcr-abertura dcr-abertura--reuniao">
+                    <div>
+                      <p className="dcr-sobrancelha">
+                        {detalhe.reuniao.cliente} · {dataBr(detalhe.reuniao.data)}
+                      </p>
+                      <h1>{detalhe.reuniao.titulo}</h1>
+                    </div>
+                    <button onClick={() => void copiarLink()}>Copiar link ↗</button>
+                  </div>
+                  {usuario.equipe && (
+                    <div className="dcr-escopo" aria-label="Conteúdo da reunião">
+                      <div className="dcr-escopo__botoes">
+                        <button
+                          aria-pressed={modo === 'compartilhado'}
+                          onClick={() => {
+                            setModo('compartilhado');
+                            setIndice(0);
+                            setAba('roteiro');
+                          }}
+                        >
+                          Visão do cliente
+                        </button>
+                        <button
+                          aria-pressed={modo === 'interno'}
+                          onClick={() => {
+                            setModo('interno');
+                            setIndice(0);
+                            setAba('roteiro');
+                          }}
+                        >
+                          Roteiro da equipe
+                        </button>
+                      </div>
+                      <p>
+                        {modo === 'interno'
+                          ? 'Apenas a equipe Dácora vê este roteiro.'
+                          : 'Esta é a pauta que os convidados podem consultar.'}
+                      </p>
                     </div>
                   )}
+                  <nav className="dcr-abas" aria-label="Área da reunião">
+                    {usuario.equipe && modo === 'interno' && (
+                      <button
+                        aria-current={aba === 'visao' ? 'page' : undefined}
+                        onClick={() => setAba('visao')}
+                      >
+                        Visão geral <span className="dcr-selo">só equipe</span>
+                      </button>
+                    )}
+                    <button
+                      aria-current={aba === 'roteiro' ? 'page' : undefined}
+                      onClick={() => setAba('roteiro')}
+                    >
+                      Conduzir reunião
+                    </button>
+                    {(conteudo?.duvidas.length ?? 0) > 0 && (
+                      <button
+                        aria-current={aba === 'duvidas' ? 'page' : undefined}
+                        onClick={() => setAba('duvidas')}
+                      >
+                        Respostas rápidas
+                      </button>
+                    )}
+                    {usuario.equipe && modo === 'interno' && (
+                      <button
+                        aria-current={aba === 'transcricao' ? 'page' : undefined}
+                        onClick={() => setAba('transcricao')}
+                      >
+                        Transcrição <span className="dcr-selo">só equipe</span>
+                      </button>
+                    )}
+                    {usuario.equipe && (
+                      <button
+                        aria-current={aba === 'acessos' ? 'page' : undefined}
+                        onClick={() => setAba('acessos')}
+                      >
+                        Convidados
+                      </button>
+                    )}
+                  </nav>
                 </div>
-                <Anotacoes
-                  key={slug}
-                  notas={detalhe.notas}
-                  equipe={usuario.equipe}
-                  secao={secao?.id ?? 'geral'}
-                  atualizado={atualizado}
-                  aoSalvar={async (dados) => {
-                    await api('anotar', dados, slug);
-                    await atualizar(true);
-                  }}
-                />
+              </section>
+              <div className="dcr-miolo">
+                <div className="dcr-mesa">
+                  <div className="dcr-principal" key={`${modo}-${aba}`}>
+                    {aba === 'visao' && usuario.equipe && modo === 'interno' ? (
+                      <VisaoGeral
+                        key={slug}
+                        existe={detalhe.tem_visao === true}
+                        carregar={() => api('visao', undefined, slug)}
+                        corrigir={async (dados) => {
+                          await api('corrigir_visao', dados, slug);
+                        }}
+                      />
+                    ) : aba === 'acessos' && usuario.equipe ? (
+                      <Acessos
+                        convites={detalhe.convites ?? []}
+                        aoSalvar={async (dados) => {
+                          await api('convidar', dados, slug);
+                          await atualizar(true);
+                          setFeedback(
+                            'Acesso atualizado. Compartilhe o link com a pessoa; nenhum e-mail foi enviado.',
+                          );
+                        }}
+                      />
+                    ) : aba === 'transcricao' && usuario.equipe && modo === 'interno' ? (
+                      <PainelTranscricao
+                        key={slug}
+                        existe={detalhe.tem_transcricao === true}
+                        carregar={() => api('transcricao', undefined, slug)}
+                      />
+                    ) : aba === 'duvidas' ? (
+                      <Duvidas conteudo={conteudo!} />
+                    ) : (
+                      <div className="dcr-roteiro">
+                        <nav aria-label="Etapas do roteiro">
+                          {secoes.map((s, i) => (
+                            <button
+                              key={s.id}
+                              onClick={() => setIndice(i)}
+                              aria-current={indice === i ? 'step' : undefined}
+                            >
+                              <span>{String(i + 1).padStart(2, '0')}</span>
+                              {s.titulo}
+                            </button>
+                          ))}
+                        </nav>
+                        <article key={`${modo}-${secao?.id}`}>
+                          <p className="dcr-sobrancelha">
+                            {secao ? `${indice + 1} DE ${secoes.length}` : 'PAUTA'}
+                          </p>
+                          <h2>
+                            {secao?.titulo ??
+                              (modo === 'compartilhado'
+                                ? 'Pauta ainda não compartilhada'
+                                : 'Roteiro a preparar')}
+                          </h2>
+                          <Texto
+                            valor={
+                              secao?.texto ??
+                              (modo === 'compartilhado'
+                                ? usuario.equipe
+                                  ? 'Consulte o Roteiro da equipe para ver o conteúdo interno. Esta visão mostra apenas o que foi preparado para os convidados.'
+                                  : 'A equipe ainda está preparando o conteúdo que será compartilhado aqui.'
+                                : 'Registre os pontos da conversa nas anotações ao lado.')
+                            }
+                          />
+                          <div className="dcr-passos">
+                            <button disabled={indice === 0} onClick={() => setIndice((i) => i - 1)}>
+                              ← Anterior
+                            </button>
+                            <button
+                              className="dcr-primario"
+                              disabled={indice >= secoes.length - 1}
+                              onClick={() => setIndice((i) => i + 1)}
+                            >
+                              Próximo ponto →
+                            </button>
+                          </div>
+                        </article>
+                      </div>
+                    )}
+                  </div>
+                  <Anotacoes
+                    key={slug}
+                    notas={detalhe.notas}
+                    equipe={usuario.equipe}
+                    secao={secao?.id ?? 'geral'}
+                    atualizado={atualizado}
+                    aoSalvar={async (dados) => {
+                      await api('anotar', dados, slug);
+                      await atualizar(true);
+                    }}
+                  />
+                </div>
               </div>
             </>
           )
         )}
       </main>
     </>
+  );
+}
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const mesCurto = (data: string) => MESES[Number(data.slice(5, 7)) - 1] ?? '';
+function hojeIso() {
+  return new Date().toLocaleDateString('en-CA');
+}
+function diasEntre(de: string, ate: string) {
+  return Math.round(
+    (new Date(`${ate}T12:00:00`).getTime() - new Date(`${de}T12:00:00`).getTime()) / 86400000,
+  );
+}
+function somarDias(data: string, dias: number) {
+  const d = new Date(`${data}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  return d.toLocaleDateString('en-CA');
+}
+
+function Proxima({ lista, hoje }: { lista: ResumoReuniao[]; hoje: string }) {
+  const proxima = lista
+    .filter((r) => r.data >= hoje)
+    .sort((a, b) => a.data.localeCompare(b.data))[0];
+  if (!proxima)
+    return (
+      <div className="dcr-proxima">
+        <p className="dcr-sobrancelha">PRÓXIMA CONVERSA</p>
+        <strong className="dcr-proxima__quando">—</strong>
+        <p>Nenhuma reunião marcada a partir de hoje.</p>
+      </div>
+    );
+  const dias = diasEntre(hoje, proxima.data);
+  const quando = dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : `em ${dias} dias`;
+  return (
+    <Link className="dcr-proxima" to={`/reunioes/${proxima.slug}`}>
+      <p className="dcr-sobrancelha">PRÓXIMA CONVERSA</p>
+      <strong className="dcr-proxima__quando">{quando}</strong>
+      <p>
+        {proxima.cliente} · {proxima.titulo}
+      </p>
+    </Link>
+  );
+}
+
+// A fita da semana: segunda a sábado da semana corrente, cada reunião um ponto no seu dia.
+function Semana({
+  lista,
+  hoje,
+  acesa,
+  aoAcender,
+}: {
+  lista: ResumoReuniao[];
+  hoje: string;
+  acesa: string | null;
+  aoAcender: (id: string | null) => void;
+}) {
+  const diaDaSemana = new Date(`${hoje}T12:00:00`).getDay();
+  const segunda = somarDias(hoje, diaDaSemana === 0 ? 1 : 1 - diaDaSemana);
+  const nomes = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  let ordem = 0;
+  return (
+    <div className="dcr-semana" aria-label="Reuniões desta semana">
+      {nomes.map((nome, i) => {
+        const dia = somarDias(segunda, i);
+        const doDia = lista.filter((r) => r.data === dia);
+        return (
+          <div
+            key={dia}
+            className={`dcr-semana__dia${dia === hoje ? ' dcr-hoje' : ''}${dia < hoje ? ' dcr-passado' : ''}`}
+          >
+            <span className="dcr-semana__nome">
+              {nome} {dia.slice(8, 10)}
+              {dia === hoje && <b>hoje</b>}
+            </span>
+            <div className="dcr-semana__pontos">
+              {doDia.map((r) => (
+                <Link
+                  key={r.id}
+                  to={`/reunioes/${r.slug}`}
+                  className={`dcr-ponto${acesa === r.id ? ' dcr-acesa' : ''}`}
+                  style={{ '--n': ordem++ } as CSSProperties}
+                  onMouseEnter={() => aoAcender(r.id)}
+                  onMouseLeave={() => aoAcender(null)}
+                  onFocus={() => aoAcender(r.id)}
+                  onBlur={() => aoAcender(null)}
+                >
+                  <i aria-hidden="true" />
+                  <span>{r.cliente}</span>
+                </Link>
+              ))}
+              {!doDia.length && <span className="dcr-semana__livre">livre</span>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -474,7 +658,7 @@ function PainelTranscricao({
     <section className="dcr-bloco dcr-transcricao">
       <h2>Transcrição da reunião</h2>
       <p>
-        🔒 Só a equipe Dácora vê. Texto automático, não conferido com o áudio. Lida em{' '}
+        Só a equipe Dácora vê. Texto automático, não conferido com o áudio. Lida em{' '}
         {new Date(transcricao.lida_em).toLocaleDateString('pt-BR')}.{' '}
         <a href={transcricao.fonte_url} target="_blank" rel="noreferrer noopener">
           Abrir o documento original ↗
@@ -626,8 +810,8 @@ function Anotacoes({
         />
         <p className="dcr-visibilidade">
           {visibilidade === 'interno'
-            ? '🔒 Apenas equipe Dácora'
-            : '👥 Visível para equipe e convidados'}
+            ? 'Só a equipe Dácora vê'
+            : 'Equipe e convidados veem'}
         </p>
         {erro && (
           <p className="dcr-erro" role="alert">
@@ -660,7 +844,7 @@ function Anotacoes({
             <article className="dcr-nota" key={n.id}>
               <div>
                 <span>{tipos[n.tipo]}</span>
-                <span>{n.visibilidade === 'interno' ? '🔒 Equipe' : '👥 Compartilhado'}</span>
+                <span>{n.visibilidade === 'interno' ? 'Só equipe' : 'Compartilhado'}</span>
               </div>
               <p>{n.texto}</p>
               <footer>

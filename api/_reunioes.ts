@@ -265,11 +265,20 @@ export async function atenderReunioes(
             limit: '1',
           })
         : [];
+      const visoes = usuario.equipe
+        ? await banco<any[]>('portal_reunioes_visoes', {
+            reuniao_id: `eq.${resumo.id}`,
+            select: 'reuniao_id',
+            limit: '1',
+          })
+        : [];
       return res.json({
         reuniao,
         notas,
         ...(convites ? { convites } : {}),
-        ...(usuario.equipe ? { tem_transcricao: transcricoes.length > 0 } : {}),
+        ...(usuario.equipe
+          ? { tem_transcricao: transcricoes.length > 0, tem_visao: visoes.length > 0 }
+          : {}),
       });
     }
     if (req.method === 'GET' && acao === 'transcricao') {
@@ -365,6 +374,77 @@ export async function atenderReunioes(
         'resolution=merge-duplicates,return=minimal',
       );
       return res.json({ salvo: true });
+    }
+    if (req.method === 'GET' && acao === 'visao') {
+      if (!usuario.equipe) throw new FalhaReunioes(403, 'A visão geral é apenas da equipe.');
+      const [visao] = await banco<any[]>('portal_reunioes_visoes', {
+        reuniao_id: `eq.${resumo.id}`,
+        select: 'conteudo,fontes,conta,gerada_em,transcricao_lida_em',
+        limit: '1',
+      });
+      const correcoes = visao
+        ? await banco('portal_reunioes_visao_correcoes', {
+            reuniao_id: `eq.${resumo.id}`,
+            select: 'id,item_id,acao,texto,autor_nome,criado_em',
+            order: 'criado_em.asc,id.asc',
+          })
+        : [];
+      return res.json({ visao: visao ?? null, correcoes });
+    }
+    if (req.method === 'POST' && acao === 'corrigir_visao') {
+      if (!usuario.equipe) throw new FalhaReunioes(403, 'Só a equipe corrige a visão geral.');
+      exigir(
+        typeof corpo.id === 'string' && UUID.test(corpo.id),
+        'A correção precisa de um identificador válido.',
+      );
+      exigir(
+        ['corrigir', 'nao_procede', 'restaurar'].includes(corpo.acao),
+        'Escolha corrigir, não procede ou restaurar.',
+      );
+      const textoCorrigido = corpo.acao === 'corrigir' ? texto(corpo.texto, 1200) : '';
+      exigir(corpo.acao !== 'corrigir' || textoCorrigido, 'Escreva o texto corrigido.');
+      const [visao] = await banco<any[]>('portal_reunioes_visoes', {
+        reuniao_id: `eq.${resumo.id}`,
+        select: 'conteudo',
+        limit: '1',
+      });
+      if (!visao) throw new FalhaReunioes(404, 'Esta reunião ainda não tem visão geral.');
+      const itens: Array<{ id: string }> = Array.isArray(visao.conteudo?.itens) ? visao.conteudo.itens : [];
+      exigir(
+        typeof corpo.item_id === 'string' &&
+          (corpo.item_id === 'executivo' || itens.some((i) => i.id === corpo.item_id)),
+        'Este item não existe nesta visão geral.',
+      );
+      await banco(
+        'portal_reunioes_visao_correcoes',
+        {},
+        'POST',
+        {
+          id: corpo.id,
+          reuniao_id: resumo.id,
+          item_id: corpo.item_id,
+          acao: corpo.acao,
+          texto: textoCorrigido || null,
+          autor_id: usuario.id,
+          autor_nome: usuario.nome,
+        },
+        'resolution=ignore-duplicates,return=minimal',
+      );
+      const [gravada] = await banco<any[]>('portal_reunioes_visao_correcoes', {
+        id: `eq.${corpo.id}`,
+        reuniao_id: `eq.${resumo.id}`,
+        select: 'autor_id,item_id,acao,texto',
+        limit: '1',
+      });
+      if (
+        !gravada ||
+        gravada.autor_id !== usuario.id ||
+        gravada.item_id !== corpo.item_id ||
+        gravada.acao !== corpo.acao ||
+        (gravada.texto ?? '') !== textoCorrigido
+      )
+        throw new FalhaReunioes(409, 'Esta correção já foi usada. Tente novamente.');
+      return res.status(201).json({ salvo: true, id: corpo.id });
     }
     throw new FalhaReunioes(400, 'Ação não reconhecida.');
   } catch (erro) {
