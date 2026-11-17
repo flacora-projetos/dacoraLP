@@ -136,7 +136,7 @@ Pedido do PO pela skill maestro, nível ousado, depois de duas prévias (a segun
 
 Aprovada pelo PO ("Aprovo, pode construir"). Aba "Visão geral" só da equipe, no roteiro interno; abre nela quando existe. Tabelas novas `portal_reunioes_visoes` (uma por reunião, sem update) e `portal_reunioes_visao_correcoes` (inserção individual, autor do servidor), migração `20261117190000_portal_reunioes_visoes.sql`, **aplicada no Dácora Reports em 17/11** (RLS ligada, sem acesso para anon/authenticated). Ações `visao` e `corrigir_visao` em `_reunioes.ts`, só equipe; convidado nem recebe `tem_visao`. Contrato e correções em `src/reunioes/visao.ts`, espelhados na Dácora (`OpenClaw-Dacora/src/lib/cerebro/reunioes-visao.js`), que confere os itens antes de gravar. Handoff completo, provas e ordem de publicação: `OpenClaw-Dacora/docs/HANDOFF_REUNIOES_VISAO_GERAL_2026-11-17.md`.
 
-## Topo novo da reunião — 17/11/2026 (branch `feat/reunioes-topo-novo`, aguarda GO para publicar)
+## Topo novo da reunião — 17/11/2026 (publicado com GO do PO, "Pode publicar", PR #93)
 
 Pedido do PO a partir de um print ("hero muito carregada e sem harmonia"), prévia antes/depois aprovada ("Pode construir"). Dentro do estilo já aprovado (Inter Tight, sem cursiva):
 - Título da agenda no formato "Parceiro | Assunto" vira título (assunto) e subtítulo (parceiro), só na exibição (`partirTitulo`); sem barra, fica inteiro. Título bem menor.
