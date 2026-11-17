@@ -72,13 +72,13 @@ try {
   assert.equal(botao('Roteiro da equipe').getAttribute('aria-pressed'), 'true');
 
   assert.equal(pedidosTranscricao, 0, 'A transcrição só é buscada quando a aba abre.');
-  await clicar('🔒 Transcrição');
+  await clicar('Transcrição');
   assert.ok(document.body.textContent?.includes('Trecho sobre prazo'), 'A aba mostra o texto.');
   assert.ok(document.body.textContent?.includes('não conferido com o áudio'));
   assert.equal(pedidosTranscricao, 1);
 
   await clicar('Visão do cliente');
-  assert.ok(!document.body.textContent?.includes('🔒 Transcrição'), 'Na visão do cliente a aba some.');
+  assert.ok(![...document.querySelectorAll('nav[aria-label="Área da reunião"] button')].some((b) => b.textContent?.includes('Transcrição')), 'Na visão do cliente a aba some.');
   assert.ok(!document.body.textContent?.includes('Trecho sobre prazo'));
   assert.ok(document.body.textContent?.includes('Pauta ainda não compartilhada'));
   assert.ok(!document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'));
@@ -92,7 +92,7 @@ try {
   await assentar();
   assert.equal(botao('Roteiro da equipe').getAttribute('aria-pressed'), 'true', 'Outro encontro volta ao padrão da equipe.');
   assert.ok(document.body.textContent?.includes('CONTEUDO_PRIVADO_TESTE'));
-  await clicar('🔒 Transcrição');
+  await clicar('Transcrição');
   assert.ok(document.body.textContent?.includes('Sem transcrição registrada'), 'Sem transcrição é explícito.');
   assert.equal(pedidosTranscricao, 1, 'Reunião sem transcrição não busca o texto.');
   await clicar('Conduzir reunião');

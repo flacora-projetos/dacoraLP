@@ -121,3 +121,13 @@ Referências verificadas para a implementação: [API protegida](https://supabas
 [validação de usuário](https://supabase.com/docs/reference/javascript/auth-getuser)
 e [changelog](https://supabase.com/changelog.md). Usado Supabase JS do lockfile;
 nenhuma mudança de SDK em produção.
+
+## Remodelação visual ousada — 17/11/2026 (branch local, não publicada)
+
+Pedido do PO pela skill maestro, nível ousado, depois de duas prévias (a segunda sem cursiva). Branch `feat/reunioes-visual-ousado`, só local: sem push, sem PR e sem publicação até o GO do PO.
+
+- Tipografia da referência da skill: Inter Tight para texto, títulos e números; DM Mono só em rótulos. Sem serifada e sem itálico; destaque por peso e cor (PO, 17/11). Cores e grão da home nova.
+- Lista: herói escuro com a próxima conversa (hoje, amanhã, em N dias) e a fita da semana (segunda a sábado), cada reunião um ponto no seu dia, ligado ao cartão. Lista dividida em próximas e já aconteceram.
+- Reunião: cabeçalho escuro com escopo e abas; abas e etapas entram com transição curta. Emojis de cadeado e pessoas trocados por texto ("só equipe", "Compartilhado").
+- Nada mudou em acesso, convite, anotação, transcrição ou API. A aba Visão geral ainda não existe no código: depende da aprovação da proposta de conteúdo.
+- Verificado: `verifica:reunioes` (com o teste da aba de transcrição ajustado ao nome sem emoji e provado por mutação), lint e build do Vite; bancada local com dados fictícios em computador e 375 px, sem rolagem lateral. Sem login real e sem produção.
