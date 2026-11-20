@@ -22,6 +22,10 @@ function textoValido(valor: unknown, maximo: number): valor is string {
   return typeof valor === 'string' && valor.trim().length > 0 && valor.trim().length <= maximo;
 }
 
+function valorValido(valor: unknown): valor is number | null {
+  return valor === null || (Number.isInteger(valor) && (valor as number) >= 0 && (valor as number) <= 2147483647);
+}
+
 function sessaoOAuth(token: string, id: string | null | undefined): boolean {
   // As declarações deste token só são lidas depois da validação em /auth/v1/user.
   try {
@@ -94,7 +98,7 @@ export async function atenderPainelPropostas(req: Request, res: Response, buscar
       if (slug !== undefined) {
         if (!slugValido(slug)) throw new FalhaPainelPropostas(400, 'Endereço inválido.');
         const resposta = await banco('portal_propostas_historico', {
-          slug: `eq.${slug}`, select: 'situacao,autor,criado_em', order: 'revisao.desc',
+          slug: `eq.${slug}`, select: 'situacao,valor_centavos,autor,criado_em', order: 'revisao.desc',
         });
         if (!resposta.ok) throw new Error('Histórico indisponível');
         return res.status(200).json({ historico: await resposta.json() });
@@ -108,8 +112,7 @@ export async function atenderPainelPropostas(req: Request, res: Response, buscar
     if (!corpo || !slugValido(corpo.slug)) throw new FalhaPainelPropostas(400, 'Endereço inválido.');
     if (corpo.acao === 'cadastrar') {
       const { cliente, titulo, valor_centavos } = corpo;
-      if (!textoValido(cliente, 120) || !textoValido(titulo, 180) ||
-        (valor_centavos !== null && (!Number.isInteger(valor_centavos) || valor_centavos < 0 || valor_centavos > 2147483647))) {
+      if (!textoValido(cliente, 120) || !textoValido(titulo, 180) || !valorValido(valor_centavos)) {
         throw new FalhaPainelPropostas(400, 'Confira o cliente, o título e o valor da proposta.');
       }
       const resposta = await banco('portal_propostas', { select: CAMPOS }, {
@@ -121,19 +124,19 @@ export async function atenderPainelPropostas(req: Request, res: Response, buscar
       return res.status(201).json({ proposta });
     }
 
-    if (corpo.acao !== 'situacao' || typeof corpo.situacao !== 'string' || !Object.hasOwn(situacoesPropostas, corpo.situacao) ||
-      !Number.isInteger(corpo.revisao) || corpo.revisao < 0 || corpo.revisao >= 2147483647) {
-      throw new FalhaPainelPropostas(400, 'Confira a situação da proposta.');
+    if (corpo.acao !== 'atualizar' || typeof corpo.situacao !== 'string' || !Object.hasOwn(situacoesPropostas, corpo.situacao) ||
+      !Number.isInteger(corpo.revisao) || corpo.revisao < 0 || corpo.revisao >= 2147483647 || !valorValido(corpo.valor_centavos)) {
+      throw new FalhaPainelPropostas(400, 'Confira a situação e o valor da proposta.');
     }
-    const resposta = await banco('rpc/portal_propostas_mudar_situacao', {}, {
-      proposta_slug: corpo.slug, proposta_revisao: corpo.revisao,
-      nova_situacao: corpo.situacao, autor_validado: normalizarEmail(usuario.email),
+    const resposta = await banco('rpc/portal_propostas_atualizar', {}, {
+      proposta_slug: corpo.slug, proposta_revisao: corpo.revisao, nova_situacao: corpo.situacao,
+      novo_valor: corpo.valor_centavos, autor_validado: normalizarEmail(usuario.email),
     });
     if (!resposta.ok) throw new Error('Alteração indisponível');
     switch (await resposta.json()) {
       case 'salva': return res.status(200).json({ salva: true });
       case 'ausente': throw new FalhaPainelPropostas(404, 'Proposta não encontrada no painel.');
-      case 'conflito': throw new FalhaPainelPropostas(409, 'A situação mudou desde que você abriu a proposta. Confira a nova situação.');
+      case 'conflito': throw new FalhaPainelPropostas(409, 'A proposta mudou desde que você a abriu. Confira a situação e o valor atuais.');
       default: throw new Error('Alteração sem confirmação');
     }
   } catch (erro) {

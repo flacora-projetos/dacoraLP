@@ -13,11 +13,13 @@ const db = new PGlite();
 try {
   await db.exec('create role anon; create role authenticated; create role service_role bypassrls;');
   await db.exec(await readFile(new URL('../supabase/migrations/20261119233000_portal_propostas.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/20261120020000_portal_propostas_valor.sql', import.meta.url), 'utf8'));
   for (const papel of ['anon', 'authenticated']) {
     await db.exec(`set role ${papel}`);
     await assert.rejects(db.query('select * from public.portal_propostas'), /permission denied/);
     await assert.rejects(db.query('select * from public.portal_propostas_historico'), /permission denied/);
     await assert.rejects(db.query("select public.portal_propostas_mudar_situacao('alfa', 0, 'fechada', 'alterado')"), /permission denied/);
+    await assert.rejects(db.query("select public.portal_propostas_atualizar('alfa', 0, 'fechada', 100, 'alterado')"), /permission denied/);
     await db.exec('reset role');
   }
   await db.exec('set role service_role');
@@ -39,17 +41,17 @@ try {
     }
     assert.equal(bearer, 'chave-servico-de-teste');
     dadosAcessados++;
-    if (alvo.pathname === '/rest/v1/rpc/portal_propostas_mudar_situacao') {
+    if (alvo.pathname === '/rest/v1/rpc/portal_propostas_atualizar') {
       const b = JSON.parse(String(opts?.body));
       const res = await db.query<{ resultado: string }>(
-        'select public.portal_propostas_mudar_situacao($1, $2, $3, $4) as resultado',
-        [b.proposta_slug, b.proposta_revisao, b.nova_situacao, b.autor_validado],
+        'select public.portal_propostas_atualizar($1, $2, $3, $4, $5) as resultado',
+        [b.proposta_slug, b.proposta_revisao, b.nova_situacao, b.novo_valor, b.autor_validado],
       );
       return Response.json(res.rows[0].resultado);
     }
     if (alvo.pathname === '/rest/v1/portal_propostas_historico') {
       const slug = alvo.searchParams.get('slug')?.slice(3);
-      const res = await db.query('select situacao, autor, criado_em from public.portal_propostas_historico where slug = $1 order by revisao desc', [slug]);
+      const res = await db.query('select situacao, valor_centavos, autor, criado_em from public.portal_propostas_historico where slug = $1 order by revisao desc', [slug]);
       return Response.json(res.rows);
     }
     assert.equal(alvo.pathname, '/rest/v1/portal_propostas');
@@ -81,7 +83,7 @@ try {
   const primeiro = token('equipe1@exemplo.test');
   const segundo = token('equipe2@exemplo.test');
   const cadastro = { acao: 'cadastrar', slug: 'alfa', cliente: 'Teste', titulo: 'Proposta interna', valor_centavos: null };
-  const fechamento = { acao: 'situacao', slug: 'alfa', revisao: 0, situacao: 'fechada', autor: 'falso@exemplo.test' };
+  const fechamento = { acao: 'atualizar', slug: 'alfa', revisao: 0, situacao: 'fechada', valor_centavos: 240000, autor: 'falso@exemplo.test' };
   assert.equal((await pedir()).status, 401);
   assert.equal((await pedir('token-invalido')).status, 401);
   assert.equal((await pedir(token('outro@exemplo.test'), cadastro)).status, 403);
@@ -97,15 +99,26 @@ try {
   assert.match(criada.headers['Cache-Control'], /no-store/);
   assert.equal((await pedir(segundo)).corpo.propostas.length, 1);
   assert.equal((await pedir(primeiro, { ...fechamento, situacao: ['fechada'] })).status, 400);
+  assert.equal((await pedir(primeiro, { ...fechamento, valor_centavos: -1 })).status, 400);
+  assert.equal((await pedir(primeiro, { ...fechamento, valor_centavos: 12.5 })).status, 400);
+  assert.equal((await pedir(primeiro, { ...fechamento, valor_centavos: undefined })).status, 400);
+  assert.equal((await pedir(primeiro, { ...fechamento, acao: 'situacao' })).status, 400);
   assert.equal((await pedir(primeiro, fechamento)).status, 200);
   assert.equal((await pedir(primeiro, fechamento)).status, 200);
   assert.equal((await pedir(segundo, { ...fechamento, situacao: 'sem-acordo' })).status, 409);
   assert.equal((await pedir(segundo)).corpo.propostas[0].situacao, 'fechada');
+  assert.equal((await pedir(segundo)).corpo.propostas[0].valor_centavos, 240000);
+  // Só o valor muda, e volta para "a definir": cada mudança fica no histórico com quem fez.
+  assert.equal((await pedir(segundo, { ...fechamento, revisao: 1, valor_centavos: 99000 })).status, 200);
+  assert.equal((await pedir(primeiro, { ...fechamento, revisao: 2, valor_centavos: null })).status, 200);
+  assert.equal((await pedir(primeiro)).corpo.propostas[0].valor_centavos, null);
   const registros = (await pedir(segundo, undefined, 'alfa')).corpo.historico;
-  assert.equal(registros.length, 1);
-  assert.equal(registros[0].autor, 'equipe1@exemplo.test');
-  assert.equal(registros[0].situacao, 'fechada');
-  console.log('Painel de propostas: restrição Google, isolamento, persistência, autoria e concorrência — ok');
+  assert.equal(registros.length, 3);
+  assert.deepEqual(registros.map((r: any) => [r.valor_centavos, r.autor]), [
+    [null, 'equipe1@exemplo.test'], [99000, 'equipe2@exemplo.test'], [240000, 'equipe1@exemplo.test'],
+  ]);
+  assert.equal(registros[2].situacao, 'fechada');
+  console.log('Painel de propostas: restrição Google, isolamento, persistência, valor editável, autoria e concorrência — ok');
 } finally {
   await db.close();
 }

@@ -19,6 +19,7 @@ export type Proposta = {
 
 export type RegistroProposta = {
   situacao: SituacaoProposta;
+  valor_centavos: number | null;
   autor: string;
   criado_em: string;
 };

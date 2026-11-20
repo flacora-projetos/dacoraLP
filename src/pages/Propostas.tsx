@@ -210,6 +210,10 @@ export default function Propostas() {
                 <div>
                   <strong>{proposta.cliente}</strong>
                   <p>{proposta.titulo}</p>
+                  <a className="dcr-propostas-endereco" href={`/propostas/${proposta.slug}`} target="_blank" rel="noreferrer"
+                    aria-label={`Abrir a proposta de ${proposta.cliente} em nova aba`}>
+                    dacora.com.br/propostas/{proposta.slug} <span aria-hidden="true">↗</span>
+                  </a>
                 </div>
                 <span className="dcr-propostas-situacao" data-situacao={proposta.situacao}>
                   {situacoesPropostas[proposta.situacao]}
@@ -278,15 +282,15 @@ function DetalhesProposta({ detalhe, token, fechar, atualizado }: {
     definirSalvando(true);
     definirErro('');
     try {
-      const valor = campos.get('valor');
+      const valor = String(campos.get('valor') ?? '').trim();
+      const valor_centavos = valor ? Math.round(Number(valor) * 100) : null;
       await chamar(token, proposta ? {
-        acao: 'situacao', slug: endereco, revisao: proposta.revisao, situacao: campos.get('situacao'),
+        acao: 'atualizar', slug: endereco, revisao: proposta.revisao, situacao: campos.get('situacao'), valor_centavos,
       } : {
-        acao: 'cadastrar', slug: endereco, cliente: campos.get('cliente'), titulo: campos.get('titulo'),
-        valor_centavos: valor ? Math.round(Number(valor) * 100) : null,
+        acao: 'cadastrar', slug: endereco, cliente: campos.get('cliente'), titulo: campos.get('titulo'), valor_centavos,
       });
       caixa.current?.close();
-      atualizado(proposta ? 'Situação atualizada.' : 'Proposta adicionada ao painel.');
+      atualizado(proposta ? 'Proposta atualizada.' : 'Proposta adicionada ao painel.');
     } catch (falha) {
       if (proposta && falha instanceof Falha && falha.status === 409) {
         caixa.current?.close();
@@ -308,7 +312,6 @@ function DetalhesProposta({ detalhe, token, fechar, atualizado }: {
       {proposta && (
         <>
           <p>{proposta.titulo}</p>
-          <p>{proposta.valor_centavos === null ? 'Valor a definir' : moeda.format(proposta.valor_centavos / 100)}</p>
           <a className="dcr-propostas-link" href={`/propostas/${proposta.slug}`} target="_blank" rel="noreferrer">
             Abrir link da proposta ↗
           </a>
@@ -324,6 +327,13 @@ function DetalhesProposta({ detalhe, token, fechar, atualizado }: {
               ))}
             </select>
           </label>
+        ) : null}
+        {proposta ? (
+          <label>
+            Valor da proposta (em branco: a definir)
+            <input name="valor" type="number" min="0" max="21474836.47" step=".01" inputMode="decimal"
+              defaultValue={proposta.valor_centavos === null ? '' : (proposta.valor_centavos / 100).toFixed(2)} />
+          </label>
         ) : (
           <>
             <label>Link da proposta<input name="link" maxLength={250} required /></label>
@@ -334,7 +344,7 @@ function DetalhesProposta({ detalhe, token, fechar, atualizado }: {
         )}
         {erro && <p className="dcr-erro" role="alert">{erro}</p>}
         <button className="dcr-primario" type="submit" disabled={salvando}>
-          {salvando ? 'Salvando…' : proposta ? 'Salvar situação' : 'Adicionar ao painel'}
+          {salvando ? 'Salvando…' : proposta ? 'Salvar' : 'Adicionar ao painel'}
         </button>
       </form>
       {proposta && (
@@ -345,10 +355,12 @@ function DetalhesProposta({ detalhe, token, fechar, atualizado }: {
           ) : historico.length ? (
             <ul>{historico.map(registro => (
               <li key={`${registro.criado_em}-${registro.situacao}`}>
-                {situacoesPropostas[registro.situacao]} · {registro.autor} · {data.format(new Date(registro.criado_em))}
+                {situacoesPropostas[registro.situacao]} ·{' '}
+                {registro.valor_centavos === null ? 'valor a definir' : moeda.format(registro.valor_centavos / 100)} ·{' '}
+                {registro.autor} · {data.format(new Date(registro.criado_em))}
               </li>
             ))}</ul>
-          ) : <p>Nenhuma mudança de situação registrada.</p>}
+          ) : <p>Nenhuma mudança registrada.</p>}
         </section>
       )}
     </dialog>
