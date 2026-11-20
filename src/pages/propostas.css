@@ -1,0 +1,210 @@
+.dcr-propostas-destaque {
+  color: var(--broto);
+}
+.dcr-propostas-largura {
+  width: min(1080px, calc(100% - 48px));
+  margin-inline: auto;
+}
+.dcr-propostas-topo {
+  padding-bottom: 31px;
+  background: radial-gradient(ellipse at top right, var(--noite-2), var(--noite) 75%);
+  color: var(--papel);
+}
+.dcr-propostas-marca {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-block: 20px;
+  margin-bottom: 31px;
+  border-bottom: 1px solid #41554a;
+}
+.dcr .dcr-propostas-marca button {
+  color: var(--papel);
+  border-color: #597062;
+}
+.dcr .dcr-propostas-marca button:hover {
+  background: #284234;
+}
+.dcr .dcr-propostas-topo :focus-visible {
+  outline-color: var(--broto);
+}
+.dcr .dcr-propostas-topo h1 {
+  margin: 4px 0 24px;
+  font-size: clamp(2.7rem, 7vw, 5rem);
+}
+.dcr-propostas-placar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid #40574a;
+  border-radius: 14px;
+}
+.dcr .dcr-propostas-placar button {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  border: 0;
+  border-radius: 0;
+  padding: 13px 18px;
+  text-align: left;
+  color: #adbbb4;
+}
+.dcr .dcr-propostas-placar button + button {
+  border-left: 1px solid #40574a;
+}
+.dcr .dcr-propostas-placar button:first-child {
+  border-radius: 13px 0 0 13px;
+}
+.dcr .dcr-propostas-placar button:last-child {
+  border-radius: 0 13px 13px 0;
+}
+.dcr .dcr-propostas-placar button:hover,
+.dcr .dcr-propostas-placar button[aria-pressed='true'] {
+  background: #223c2d;
+}
+.dcr .dcr-propostas-placar strong {
+  color: var(--broto);
+  font-size: clamp(1.65rem, 5vw, 2.85rem);
+  line-height: 1.08;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.055em;
+}
+.dcr .dcr-propostas-placar small {
+  color: var(--broto);
+}
+.dcr-propostas-lista {
+  padding: 26px 0 40px;
+}
+.dcr-propostas-comandos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 12px;
+}
+.dcr-propostas-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 13px 0;
+}
+.dcr .dcr-propostas-filtros button {
+  padding: 7px 12px;
+}
+.dcr .dcr-propostas-aviso:not(:empty) {
+  margin-bottom: 10px;
+  color: var(--verde);
+}
+.dcr-propostas-itens {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--linha);
+  border-radius: 13px;
+  background: var(--branco);
+}
+.dcr-propostas-itens li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px 14px;
+  align-items: center;
+  padding: 13px 16px;
+}
+.dcr-propostas-itens li + li {
+  border-top: 1px solid var(--linha);
+}
+.dcr-propostas-itens p {
+  color: var(--cinza);
+  font-size: .86rem;
+}
+.dcr-propostas-itens strong {
+  overflow-wrap: anywhere;
+}
+.dcr-propostas-valor {
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+}
+.dcr-propostas-situacao {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #eee9e0;
+  color: #4d493e;
+  font-size: .78rem;
+  font-weight: 650;
+}
+.dcr-propostas-situacao[data-situacao='negociacao'] {
+  background: #f2e5cb;
+  color: #664508;
+}
+.dcr-propostas-situacao[data-situacao='fechada'] {
+  background: #dcead4;
+  color: #254e26;
+}
+.dcr-propostas-situacao[data-situacao='sem-acordo'] {
+  background: #ece4e3;
+  color: #5c403d;
+}
+.dcr-propostas-detalhe {
+  position: fixed;
+  inset: 0;
+  width: min(490px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: clamp(16px, 5vw, 24px);
+  border: 1px solid var(--linha);
+  border-radius: 15px;
+  background: var(--branco);
+  color: var(--tinta);
+}
+.dcr-propostas-detalhe::backdrop {
+  background: rgb(7 20 15 / 75%);
+}
+.dcr-propostas-detalhe form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.dcr-propostas-detalhe form button {
+  justify-self: start;
+}
+.dcr .dcr-propostas-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--verde-2);
+  text-decoration: underline;
+}
+.dcr-propostas-historico {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--linha);
+}
+.dcr .dcr-propostas-historico h3 {
+  margin: 0 0 5px;
+}
+.dcr-propostas-historico ul {
+  margin: 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .dcr-propostas-largura {
+    width: calc(100% - 32px);
+  }
+  .dcr .dcr-propostas-placar button {
+    padding: 9px 7px;
+    font-size: .78rem;
+  }
+  .dcr .dcr-propostas-placar small {
+    font-size: .72rem;
+    overflow-wrap: normal;
+  }
+  .dcr-propostas-itens li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: 12px;
+  }
+  .dcr-propostas-situacao,
+  .dcr-propostas-itens button {
+    justify-self: end;
+  }
+}
