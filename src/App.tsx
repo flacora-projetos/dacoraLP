@@ -38,6 +38,7 @@ const RelatorioDemoZenun = lazy(() => import('./pages/RelatorioDemoZenun'));
 const PainelRelatorios = lazy(() => import('./pages/PainelRelatorios'));
 const DataHub = lazy(() => import('./pages/DataHub'));
 const Reunioes = lazy(() => import('./pages/Reunioes'));
+const Propostas = lazy(() => import('./pages/Propostas'));
 const RelatorioPublico = lazy(() => import('./pages/RelatorioPublico'));
 
 /**
@@ -57,6 +58,7 @@ export default function App({ paginas }: { paginas?: PaginasInstitucionais }) {
       <Route path="/" element={<Home />} />
       <Route path="/reunioes" element={<Suspense fallback={<CarregandoPainel />}><Reunioes /></Suspense>} />
       <Route path="/reunioes/:slug" element={<Suspense fallback={<CarregandoPainel />}><Reunioes /></Suspense>} />
+      <Route path="/propostas" element={<Suspense fallback={<CarregandoPainel />}><Propostas /></Suspense>} />
       <Route path="/negocios-servicos" element={<Suspense fallback={null}><Negocios /></Suspense>} />
       <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
       <Route path="/proposta-landing-page" element={<Suspense fallback={null}><Proposta /></Suspense>} />

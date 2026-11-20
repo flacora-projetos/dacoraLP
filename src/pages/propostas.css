@@ -1,0 +1,75 @@
+.dcr .dcr-portao-propostas {
+  gap: clamp(30px, 7vw, 68px);
+  padding-inline: max(20px, calc((100% - 1120px) / 2), env(safe-area-inset-left), env(safe-area-inset-right));
+}
+.dcr .dcr-portao-propostas .dcr-marca {
+  justify-self: start;
+  margin: 0;
+  color: var(--papel);
+}
+.dcr-propostas-conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(32px, 8vw, 100px);
+}
+.dcr-portao-propostas .dcr-propostas-conteudo h1 {
+  font-size: clamp(3.25rem, 7vw, 6.25rem);
+  text-wrap: initial;
+}
+.dcr-propostas-conteudo h1 span {
+  color: var(--broto);
+}
+.dcr-propostas-formulario {
+  border-left: 1px solid rgb(207 227 184 / 26%);
+  padding-left: clamp(24px, 4vw, 44px);
+}
+.dcr-portao-propostas .dcr-propostas-formulario label {
+  color: var(--papel);
+  font-size: 1rem;
+}
+.dcr-portao-propostas .dcr-propostas-formulario input {
+  min-height: 50px;
+  border-color: rgb(207 227 184 / 45%);
+  background: var(--noite-2);
+  color: var(--papel);
+}
+.dcr-propostas-formulario input[aria-invalid='true'] {
+  border-color: #f2b8a0;
+}
+.dcr-portao-propostas .dcr-propostas-formulario p {
+  margin-top: 10px;
+  color: var(--salvia);
+  font-size: 0.9rem;
+}
+.dcr-portao-propostas .dcr-propostas-formulario .dcr-primario {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 48px;
+  margin: 22px 0 12px;
+  padding-inline: 19px;
+  background: var(--broto);
+  border-color: var(--broto);
+  color: var(--tinta);
+  font-size: 1rem;
+}
+.dcr-portao-propostas .dcr-propostas-formulario .dcr-primario:hover:not(:disabled) {
+  background: #e2f0d2;
+}
+.dcr .dcr-portao-propostas :is(a, input, button):focus-visible {
+  outline-color: var(--broto);
+}
+.dcr-portao-propostas .dcr-propostas-formulario .dcr-erro {
+  color: #f2b8a0;
+}
+@media (max-width: 700px) {
+  .dcr-propostas-conteudo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dcr-propostas-formulario {
+    border-left: 0;
+    border-top: 1px solid rgb(207 227 184 / 26%);
+    padding: 26px 0 0;
+  }
+}

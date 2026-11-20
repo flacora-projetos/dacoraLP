@@ -2,6 +2,16 @@
 
 `/propostas/<endereço>` abre uma proposta comercial depois da senha própria dela.
 
+`/propostas/` é a entrada geral. O identificador é o trecho do link após
+`/propostas/`. A entrada leva à tela de login e senha daquela proposta.
+Não há catálogo de propostas nem consulta a dados de clientes na entrada.
+As duas formas de acesso ficam fora do sitemap e do índice de busca.
+
+Validação local da entrada em 19/11/2026: build completo, verificador de
+propostas e navegador em 320 a 1440 px. Com uma proposta fictícia, o formulário
+levou ao login correto, a senha inválida foi recusada e a válida abriu a
+proposta. A publicação da entrada aguarda aprovação.
+
 **Nunca coloque proposta no Git nem em `public/`: este repositório é público.** A página e o resumo da senha ficam no bucket privado `propostas` do Supabase. O atendimento está em `api/_propostas.ts`, dentro da função `painel-sessao`, porque o plano da Vercel está no limite de 12 funções.
 
 ## Proposta nova ou trocar a senha
