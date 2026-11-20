@@ -120,6 +120,19 @@
 .dcr-propostas-itens strong {
   overflow-wrap: anywhere;
 }
+.dcr .dcr-propostas-endereco {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--verde-2);
+  font-family: var(--detalhe);
+  font-size: .78rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+.dcr .dcr-propostas-endereco:hover {
+  color: var(--verde);
+}
 .dcr-propostas-valor {
   font-size: .9rem;
   font-variant-numeric: tabular-nums;
