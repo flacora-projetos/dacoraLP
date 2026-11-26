@@ -1,0 +1,150 @@
+/* Estatísticas de uso (26/11/2026) — mesma identidade das páginas da equipe (.dcr). */
+.dce-largura {
+  width: min(1080px, calc(100% - 32px));
+  margin-inline: auto;
+}
+.dce-topo {
+  padding: 28px 0 32px;
+  background: radial-gradient(ellipse at top right, var(--noite-2), var(--noite) 75%);
+  color: var(--papel);
+}
+.dce-topo h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.dce-legenda {
+  max-width: 62ch;
+  color: var(--salvia);
+  font-size: 0.92rem;
+}
+.dce-legenda-escura {
+  color: var(--cinza);
+  font-size: 0.9rem;
+  margin: 0 0 14px;
+}
+.dce-corpo {
+  display: grid;
+  gap: 20px;
+  padding: 28px 0 64px;
+}
+.dce-cartao {
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: 16px;
+  padding: 22px;
+}
+.dce-cartao h2 {
+  margin: 0 0 14px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.dce-numeros {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.dce-numeros div {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--papel);
+}
+.dce-numeros strong {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--verde);
+}
+.dce-numeros span {
+  font-family: var(--detalhe);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cinza);
+}
+.dce-semanas {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  height: 110px;
+  margin: 18px 0 6px;
+}
+.dce-semana {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  height: 100%;
+  gap: 4px;
+  text-align: center;
+}
+.dce-semana .dce-barra {
+  align-self: end;
+  display: block;
+  min-height: 2px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--verde-2);
+}
+.dce-semana small {
+  font-family: var(--detalhe);
+  font-size: 0.68rem;
+  color: var(--cinza);
+}
+.dce-tabela-rolagem {
+  overflow-x: auto;
+  margin-top: 14px;
+}
+.dce-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.dce-tabela th {
+  text-align: left;
+  font-family: var(--detalhe);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cinza);
+  font-weight: 400;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--linha);
+  white-space: nowrap;
+}
+.dce-tabela td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--papel-2);
+  white-space: nowrap;
+}
+.dce-selo {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--broto);
+  color: var(--verde);
+  font-style: normal;
+  font-size: 0.72rem;
+}
+.dce-sim {
+  color: var(--verde-2);
+}
+.dce-nao {
+  color: var(--erro);
+}
+.dce-nada {
+  margin: 12px 0 0;
+  color: var(--cinza);
+}
+@media (max-width: 720px) {
+  .dce-numeros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dce-cartao {
+    padding: 16px;
+  }
+}

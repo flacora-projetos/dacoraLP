@@ -9,8 +9,9 @@
  * Endereço inexistente e senha errada respondem igual, para que a tela não
  * revele quais propostas existem. A falta de configuração falha fechado.
  */
-import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import type { Request, Response } from 'express';
+import { gravarVisita } from './_visitas.js';
 
 const BUCKET = 'propostas';
 const ENDERECO = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -30,6 +31,7 @@ export interface DependenciasPropostas {
   baixarPagina?: (endereco: string) => Promise<string | null>;
   chaveDeServico?: string;
   agora?: () => Date;
+  gravarVisita?: typeof gravarVisita;
 }
 
 function derivar(senha: string, sal: Buffer): Promise<Buffer> {
@@ -180,6 +182,30 @@ input:focus-visible,.entrar:focus-visible,.ver:focus-visible{outline:3px solid #
 `;
 }
 
+/**
+ * Páginas por endereço que entram nas estatísticas de uso (PO, 26/11/2026: "os 4
+ * que citei + o painel da black, não presuma"). Para contar outra, acrescente aqui
+ * e a área correspondente em `api/_visitas.ts` e na migração.
+ */
+export const ENDERECOS_CONTADOS: Record<string, 'painel-black'> = {
+  'painel-black-santalberti': 'painel-black',
+};
+const COOKIE_VISITANTE = 'dacora_visitante';
+
+/** A visita nunca derruba a página: falha no contador fica só no log. */
+async function contarVisita(req: Request, res: Response, endereco: string, gravar: typeof gravarVisita) {
+  let visitante = lerCookie(req.headers.cookie, COOKIE_VISITANTE);
+  if (!visitante || !/^[a-z0-9-]{8,64}$/i.test(visitante)) {
+    visitante = randomUUID();
+    res.setHeader('Set-Cookie', `${COOKIE_VISITANTE}=${visitante}; Path=/propostas/${endereco}; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax`);
+  }
+  try {
+    await gravar({ area: ENDERECOS_CONTADOS[endereco], caminho: `/propostas/${endereco}`, email: null, equipe: false, visitante, relatorio: null });
+  } catch (erro) {
+    console.error('[propostas] Visita não contada:', erro instanceof Error ? erro.message : 'erro_desconhecido');
+  }
+}
+
 export async function atenderPropostas(req: Request, res: Response, dependencias: DependenciasPropostas = {}) {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -222,7 +248,12 @@ export async function atenderPropostas(req: Request, res: Response, dependencias
 
     if (acesso && cookieValido(lerCookie(req.headers.cookie, nomeDoCookie(endereco)), endereco, acesso, chave, agora)) {
       const pagina = await baixarPagina(endereco);
-      if (pagina) return res.status(200).send(pagina);
+      if (pagina) {
+        if (req.method === 'GET' && ENDERECOS_CONTADOS[endereco]) {
+          await contarVisita(req, res, endereco, dependencias.gravarVisita ?? gravarVisita);
+        }
+        return res.status(200).send(pagina);
+      }
       throw new Error('proposta sem página');
     }
     return res.status(200).send(telaDeSenha(endereco, 'pedir'));

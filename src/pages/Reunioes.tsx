@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { useLocation } from 'react-router-dom';
+import { useAnunciarVisita } from '../visitas';
 import { obterSupabase } from '../painel/supabase';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
 import AreaReunioes from '../reunioes/AreaReunioes';
@@ -14,6 +16,8 @@ export default function Reunioes() {
   const [erro, setErro] = useState('');
   const [tentativa, setTentativa] = useState(0);
   const identidadeAnterior = useRef<string | null>(null);
+  const { pathname } = useLocation();
+  useAnunciarVisita('reunioes', sessao?.access_token, usuario?.id, pathname);
   useEffect(() => {
     let ativo = true;
     try {
