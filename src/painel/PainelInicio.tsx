@@ -15,9 +15,11 @@ import { usarPainelAuth } from './AuthContext';
 import Fila from './Fila';
 import Revisao from './Revisao';
 import { useSearchParams } from 'react-router-dom';
+import { useAnunciarVisita } from '../visitas';
 
 export default function PainelInicio() {
-  const { autorizacao, usuario, sair } = usarPainelAuth();
+  const { autorizacao, usuario, sair, sessao } = usarPainelAuth();
+  useAnunciarVisita('painel-relatorios', sessao?.access_token, autorizacao?.estado === 'autorizado' ? usuario?.id : null, '/painel-de-relatorios');
   const [busca] = useSearchParams();
   const relatorioId = busca.get('relatorio');
   const email = autorizacao?.estado === 'autorizado' ? autorizacao.email : usuario?.email ?? '';

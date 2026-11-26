@@ -36,6 +36,7 @@ import { atenderDataHub, type DependenciasDataHubPortal } from './_data-hub.js';
 import { atenderReunioes, type DependenciasReunioes } from './_reunioes.js';
 import { atenderPropostas, type DependenciasPropostas } from './_propostas.js';
 import { atenderPainelPropostas } from './_painel-propostas.js';
+import { atenderEstatisticas, atenderVisita } from './_visitas.js';
 
 export async function atenderPainelSessao(
   req: Request,
@@ -48,6 +49,8 @@ export async function atenderPainelSessao(
   if (req.query?.modo === 'reunioes') return atenderReunioes(req, res, dependencias.reunioes);
   if (req.query?.modo === 'propostas') return atenderPropostas(req, res, dependencias.propostas);
   if (req.query?.modo === 'painel-propostas') return atenderPainelPropostas(req, res, dependencias.painelPropostasFetch);
+  if (req.query?.modo === 'visita') return atenderVisita(req, res);
+  if (req.query?.modo === 'estatisticas') return atenderEstatisticas(req, res);
 
   const dataHubMode = req.query?.modo === 'data-hub';
   if (dataHubMode

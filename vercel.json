@@ -65,6 +65,7 @@
     { "handle": "filesystem" },
     { "src": "/propostas/?", "headers": { "X-Robots-Tag": "noindex, nofollow, noarchive", "Referrer-Policy": "no-referrer", "Cache-Control": "private, no-store, no-cache, must-revalidate" }, "dest": "/app.html" },
     { "src": "/reunioes(/.*)?", "headers": { "X-Robots-Tag": "noindex, nofollow, noarchive", "Referrer-Policy": "no-referrer", "Cache-Control": "private, no-store, no-cache, must-revalidate" }, "dest": "/app.html" },
+    { "src": "/estatisticas/?", "headers": { "X-Robots-Tag": "noindex, nofollow, noarchive", "Referrer-Policy": "no-referrer", "Cache-Control": "private, no-store, no-cache, must-revalidate" }, "dest": "/app.html" },
     { "src": "/painel-de-relatorios(/.*)?", "dest": "/app.html" },
     { "src": "/data-hub(/.*)?", "dest": "/app.html" },
     { "src": "/relatorios/(.*)", "dest": "/app.html" },

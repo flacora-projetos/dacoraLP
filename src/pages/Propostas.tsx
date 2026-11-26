@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { obterSupabase } from '../painel/supabase';
 import { usaPaginaPrivada } from '../painel/usaPaginaPrivada';
+import { useAnunciarVisita } from '../visitas';
 import { situacoesPropostas, type Proposta, type RegistroProposta, type SituacaoProposta } from '../propostas/tipos';
 import '../reunioes/reunioes.css';
 import './propostas.css';
@@ -69,6 +70,7 @@ export default function Propostas() {
   const token = sessao?.access_token;
   const pessoa = sessao?.user.id;
   const propostas = lista?.pessoa === pessoa ? lista?.propostas : undefined;
+  useAnunciarVisita('propostas', token, propostas ? pessoa : null, '/propostas');
 
   useEffect(() => {
     let cancelar: (() => void) | undefined;

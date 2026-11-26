@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { anunciarVisita, sessaoGuardada } from '../visitas';
 import { useParams } from 'react-router-dom';
 import RelatorioMontado from '../reports/RelatorioMontado';
 import BotaoPdfRelatorio from '../reports/pdf/BotaoPdfRelatorio';
@@ -39,6 +40,14 @@ export default function RelatorioPublico() {
   const [relatorio, setRelatorio] = useState<RelatorioExterno | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
+  const anunciado = useRef<string | null>(null);
+
+  // Conta a abertura só depois que o relatório apareceu na tela (link quebrado não conta).
+  useEffect(() => {
+    if (!relatorio || anunciado.current === token) return;
+    anunciado.current = token;
+    void anunciarVisita('relatorio-cliente', { token: sessaoGuardada(), relatorio: token });
+  }, [relatorio, token]);
 
   useEffect(() => {
     const controle = new AbortController();
